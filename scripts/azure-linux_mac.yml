@@ -1,0 +1,48 @@
+steps:
+- bash: |
+    set -e pipefail
+    brew install clang-format
+    cd $src
+    $src/scripts/run-clang-format.sh $src clang-format 0 \
+      $(find $src/tiledb $src/test/src $src/examples $src/tools \
+       -name "*.cc" -or -name "*.c" -or -name "*.h")
+  condition: eq(variables['Agent.OS'], 'macOS')
+  displayName: 'Check formatting (macOS only)'
+
+- bash: |
+    set -e pipefail
+    # Install bcftools (used by tests)
+    if [[ ( "$AGENT_OS" == "Linux" ]]; then
+        pushd /tmp
+        wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
+        tar xfj bcftools-1.9.tar.bz2
+        cd bcftools-1.9
+        ./configure --prefix=/usr
+        make -j2
+        sudo make install
+        popd
+    else
+        brew install bcftools
+    fi
+  displayName: 'Install bcftools'
+
+- bash: |
+    # DELETEME work-around for https://github.com/microsoft/azure-pipelines-image-generation/issues/969
+    sudo chown root.root /
+
+    # azure bash does not treat intermediate failure as error
+    # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
+    set -e pipefail
+
+    # Configure and build TileDB
+    mkdir -p $BUILD_REPOSITORY_LOCALPATH/build
+    cd $BUILD_REPOSITORY_LOCALPATH/build
+    cmake ..
+
+    make -j4
+    make -j4 -C libtiledbvcf tiledb_vcf_unit
+
+    make check
+    ../test/run-cli-tests.sh . ../test/inputs
+
+  displayName: 'Build and test TileDB-VCF'

@@ -1,0 +1,21 @@
+trigger:
+  branches:
+    include:
+    - master
+    - release-*
+
+jobs:
+- job:
+  strategy:
+    matrix:
+      ubuntu_16:
+        imageName: 'ubuntu-16.04'
+        CXX: g++
+      macOS:
+        imageName: 'macOS-10.13'
+        CXX: clang++
+
+  pool:
+    vmImage: $(imageName)
+  steps:
+  - template: scripts/azure-linux_mac.yml
