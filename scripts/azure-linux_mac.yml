@@ -12,7 +12,7 @@ steps:
 - bash: |
     set -e pipefail
     # Install bcftools (used by tests)
-    if [[ ( "$AGENT_OS" == "Linux" ]]; then
+    if [[ "$AGENT_OS" == "Linux" ]]; then
         pushd /tmp
         wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
         tar xfj bcftools-1.9.tar.bz2
