@@ -56,7 +56,7 @@ class Reader {
   void set_attributes(const std::vector<std::string>& attributes);
 
   /** Sets the allocation size for the Python attribute buffers. */
-  void set_buffer_alloc_size(unsigned size_mb);
+  void set_buffer_alloc_size(int64_t nbytes);
 
   /** Sets a CSV list of samples to include in the read. */
   void set_samples(const std::string& samples);
@@ -76,6 +76,9 @@ class Reader {
   /** Returns the number of records in the last read operation's results. */
   int64_t result_num_records();
 
+  /** Returns true if the last read operation was complete. */
+  bool completed();
+
  private:
   /** Buffer pair to hold attribute data read from the dataset. */
   struct BufferPair {
@@ -94,8 +97,8 @@ class Reader {
   /** The underlying C reader object. */
   std::unique_ptr<tiledb_vcf_reader_t, decltype(&deleter)> ptr;
 
-  /** The size (in MB) to use for Python buffer allocations. */
-  unsigned alloc_size_mb_;
+  /** The size (in bytes) to use for Python buffer allocations. */
+  int64_t alloc_size_bytes_;
 
   /** The set of attribute names included in the read query. */
   std::set<std::string> attributes_;

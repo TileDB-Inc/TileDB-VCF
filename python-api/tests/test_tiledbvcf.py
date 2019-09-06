@@ -39,13 +39,13 @@ def test_basic_reads(test_ds):
         {'sample_name': pd.Series(
             ['HG00280', 'HG01762', 'HG00280', 'HG01762', 'HG00280',
              'HG01762', 'HG00280', 'HG00280', 'HG00280', 'HG00280',
-             'HG00280', 'HG00280']),
+             'HG00280', 'HG00280', 'HG00280', 'HG00280']),
             'pos_start': pd.Series(
                 [12141, 12141, 12546, 12546, 13354, 13354, 13375, 13396,
-                 13414, 13452, 13520, 13545], dtype=np.int32),
+                 13414, 13452, 13520, 13545, 17319, 17480], dtype=np.int32),
             'pos_end': pd.Series(
                 [12277, 12277, 12771, 12771, 13374, 13389, 13395, 13413,
-                 13451, 13519, 13544, 13689], dtype=np.int32)})
+                 13451, 13519, 13544, 13689, 17479, 17486], dtype=np.int32)})
     df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end'])
     _check_dfs(expected_df, df)
 
@@ -102,6 +102,43 @@ def test_missing_sample_raises_exception(test_ds):
 def test_bad_contig_name_raises_exception(test_ds):
     with pytest.raises(RuntimeError):
         test_ds.count(regions=['chr1:1-1000000'])
+
+
+def test_incomplete_reads(test_ds):
+    test_ds.reader.set_buffer_alloc_size(10)
+    df = test_ds.read(attrs=['pos_end'], regions=['1:12700-13400'])
+    assert not test_ds.read_completed()
+    assert len(df) == 2
+    _check_dfs(pd.DataFrame.from_dict(
+        {'pos_end': np.array([12771, 12771], dtype=np.int32)}), df)
+
+    df = test_ds.continue_read()
+    assert not test_ds.read_completed()
+    assert len(df) == 2
+    _check_dfs(pd.DataFrame.from_dict(
+        {'pos_end': np.array([13374, 13389], dtype=np.int32)}), df)
+
+    df = test_ds.continue_read()
+    assert test_ds.read_completed()
+    assert len(df) == 2
+    _check_dfs(pd.DataFrame.from_dict(
+        {'pos_end': np.array([13395, 13413], dtype=np.int32)}), df)
+
+
+def test_incomplete_read_generator(test_ds):
+    test_ds.reader.set_buffer_alloc_size(10)
+
+    overall_df = None
+    for df in test_ds.read_iter(attrs=['pos_end'], regions=['1:12700-13400']):
+        if overall_df is None:
+            overall_df = df
+        else:
+            overall_df = overall_df.append(df, ignore_index=True)
+
+    assert len(overall_df) == 6
+    _check_dfs(pd.DataFrame.from_dict(
+        {'pos_end': np.array([12771, 12771, 13374, 13389, 13395, 13413],
+                             dtype=np.int32)}), overall_df)
 
 
 def test_basic_ingest(tmp_path):
