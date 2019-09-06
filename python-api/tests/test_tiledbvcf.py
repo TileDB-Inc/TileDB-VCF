@@ -102,3 +102,31 @@ def test_missing_sample_raises_exception(test_ds):
 def test_bad_contig_name_raises_exception(test_ds):
     with pytest.raises(RuntimeError):
         test_ds.count(regions=['chr1:1-1000000'])
+
+
+def test_basic_ingest(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
+               ['small.bcf', 'small2.bcf']]
+    ds.ingest_samples(samples)
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    assert ds.count() == 14
+    assert ds.count(regions=['1:12700-13400']) == 6
+    assert ds.count(samples=['HG00280'], regions=['1:12700-13400']) == 4
+
+
+def test_incremental_ingest(tmp_path):
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, 'small.bcf')])
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, 'small2.bcf')])
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    assert ds.count() == 14
+    assert ds.count(regions=['1:12700-13400']) == 6
+    assert ds.count(samples=['HG00280'], regions=['1:12700-13400']) == 4

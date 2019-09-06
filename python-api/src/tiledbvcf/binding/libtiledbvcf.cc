@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "reader.h"
+#include "writer.h"
 
 namespace py = pybind11;
 using namespace tiledbvcfpy;
@@ -24,4 +25,13 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("read", &Reader::read)
       .def("get_results", &Reader::get_buffers)
       .def("result_num_records", &Reader::result_num_records);
+
+  py::class_<Writer>(m, "Writer")
+      .def(py::init())
+      .def("init", &Writer::init)
+      .def("set_samples", &Writer::set_samples)
+      .def("set_extra_attributes", &Writer::set_extra_attributes)
+      .def("create_dataset", &Writer::create_dataset)
+      .def("register_samples", &Writer::register_samples)
+      .def("ingest_samples", &Writer::ingest_samples);
 }
