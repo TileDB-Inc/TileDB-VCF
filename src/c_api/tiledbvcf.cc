@@ -399,6 +399,16 @@ int32_t tiledb_vcf_reader_get_dataset_version(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_reset(tiledb_vcf_reader_t* reader) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->reset()))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_get_last_error(
     tiledb_vcf_reader_t* reader, tiledb_vcf_error_t** error) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || error == nullptr)
