@@ -65,6 +65,12 @@ TSVExporter::~TSVExporter() {
   close();
 }
 
+void TSVExporter::reset() {
+  Exporter::reset();
+  close();
+  output_initialized_ = false;
+}
+
 bool TSVExporter::export_record(
     const SampleAndId& sample,
     const bcf_hdr_t* hdr,

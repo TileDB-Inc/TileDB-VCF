@@ -98,6 +98,8 @@ class InMemoryExporter : public Exporter {
 
   std::set<std::string> array_attributes_required() const override;
 
+  void reset() override;
+
   bool export_record(
       const SampleAndId& sample,
       const bcf_hdr_t* hdr,

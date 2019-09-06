@@ -43,6 +43,8 @@ class TSVExporter : public Exporter {
 
   ~TSVExporter();
 
+  void reset() override;
+
   void close() override;
 
   bool export_record(

@@ -56,6 +56,12 @@ BCFExporter::BCFExporter(ExportFormat fmt) {
   }
 }
 
+void BCFExporter::reset() {
+  Exporter::reset();
+  file_info_.clear();
+  record_buffers_.clear();
+}
+
 bool BCFExporter::export_record(
     const SampleAndId& sample,
     const bcf_hdr_t* hdr,

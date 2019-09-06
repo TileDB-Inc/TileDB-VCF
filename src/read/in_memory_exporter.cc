@@ -125,6 +125,11 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
   return result;
 }
 
+void InMemoryExporter::reset() {
+  Exporter::reset();
+  reset_current_sizes();
+}
+
 void InMemoryExporter::result_size(
     const std::string& attribute,
     uint64_t* num_offsets,

@@ -37,6 +37,8 @@ class BCFExporter : public Exporter {
  public:
   explicit BCFExporter(ExportFormat fmt);
 
+  void reset() override;
+
   bool export_record(
       const SampleAndId& sample,
       const bcf_hdr_t* hdr,

@@ -106,6 +106,12 @@ class Reader {
   /** Performs a blocking read operation. */
   void read();
 
+  /**
+   * Resets the read state (but not the parameters), allowing another read
+   * operation to occur without reopening the dataset.
+   */
+  void reset();
+
   /** Convenience function to set all parameters from the given struct. */
   void set_all_params(const ExportParams& params);
 

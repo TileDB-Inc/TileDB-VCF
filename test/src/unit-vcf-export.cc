@@ -486,6 +486,136 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
     vfs.remove_dir(output_dir);
 }
 
+TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  std::string output_dir = "test_dataset_out";
+  if (vfs.is_dir(output_dir))
+    vfs.remove_dir(output_dir);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  TileDBVCFDataset::create(create_args);
+
+  // Register two samples
+  {
+    TileDBVCFDataset ds;
+    ds.open(dataset_uri);
+    RegistrationParams args;
+    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
+    ds.register_samples(args);
+  }
+
+  // Ingest the samples
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Query a few regions
+  {
+    Reader reader;
+    Buffer end;
+    end.resize(1024);
+    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.output_dir = output_dir;
+    params.sample_names = {"HG00280", "HG01762"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 14);
+    check_result<uint32_t>(
+        reader,
+        "pos_end",
+        end,
+        {12277,
+         12277,
+         12771,
+         12771,
+         13374,
+         13389,
+         13395,
+         13413,
+         13451,
+         13519,
+         13544,
+         13689,
+         17479,
+         17486});
+
+    // Reset the reader and read again.
+    reader.reset();
+    REQUIRE(reader.read_status() == ReadStatus::UNINITIALIZED);
+    REQUIRE(reader.num_records_exported() == 0);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 14);
+    check_result<uint32_t>(
+        reader,
+        "pos_end",
+        end,
+        {12277,
+         12277,
+         12771,
+         12771,
+         13374,
+         13389,
+         13395,
+         13413,
+         13451,
+         13519,
+         13544,
+         13689,
+         17479,
+         17486});
+
+    // Reset the reader and read a different region.
+    reader.reset();
+    reader.set_regions("1:12700-13400");
+    REQUIRE(reader.read_status() == ReadStatus::UNINITIALIZED);
+    REQUIRE(reader.num_records_exported() == 0);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 6);
+    check_result<uint32_t>(
+        reader, "pos_end", end, {12771, 12771, 13374, 13389, 13395, 13413});
+  }
+
+  // Check count operation
+  {
+    Reader reader;
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.output_dir = output_dir;
+    params.sample_names = {"HG00280", "HG01762"};
+    params.regions = {"1:12700-13400", "1:17000-17400"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 7);
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+  if (vfs.is_dir(output_dir))
+    vfs.remove_dir(output_dir);
+}
+
 TEST_CASE("TileDB-VCF: Test export to BCF", "[tiledbvcf][export]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);

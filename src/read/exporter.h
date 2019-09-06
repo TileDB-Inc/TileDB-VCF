@@ -44,6 +44,11 @@ class Exporter {
   virtual ~Exporter() {
   }
 
+  /** Resets any export state (but not configuration) stored by the Exporter. */
+  virtual void reset() {
+    all_exported_files_.clear();
+  }
+
   /** Sets the local output prefix where any output files should be stored. */
   void set_output_dir(const std::string& output_dir);
 

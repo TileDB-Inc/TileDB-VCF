@@ -45,6 +45,12 @@ void Reader::open_dataset(const std::string& dataset_uri) {
   dataset_->open(dataset_uri);
 }
 
+void Reader::reset() {
+  read_state_ = ReadState();
+  if (exporter_ != nullptr)
+    exporter_->reset();
+}
+
 void Reader::set_all_params(const ExportParams& params) {
   params_ = params;
   init_tiledb();
