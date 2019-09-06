@@ -59,7 +59,7 @@ TEST_CASE("TileDB-VCF: Test create", "[tiledbvcf][ingest]") {
 
   args.extra_attributes = {"info_a1", "fmt_a2"};
   TileDBVCFDataset::create(args);
-  REQUIRE_THROWS(TileDBVCFDataset::create(args));
+  REQUIRE_NOTHROW(TileDBVCFDataset::create(args));
 
   TileDBVCFDataset ds;
   ds.open(dataset_uri);

@@ -40,6 +40,10 @@ Writer::Writer() {
 
 void Writer::init(
     const TileDBVCFDataset& dataset, const IngestionParams& params) {
+  // Clean up old query and array objects first, if any.
+  query_.reset(nullptr);
+  array_.reset(nullptr);
+
   tiledb_config_.reset(new Config);
   (*tiledb_config_)["vfs.s3.multipart_part_size"] =
       params.part_size_mb * 1024 * 1024;

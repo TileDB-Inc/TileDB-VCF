@@ -10,12 +10,16 @@ class TileDBVCFDataset(object):
 
         :param uri: URI of TileDB-VCF dataset
         :param mode: Mode of operation.
-        :type mode: 'r' or 'w' (currently unsupported)
+        :type mode: 'r' or 'w'
         """
-        if mode != 'r':
+        if mode == 'r':
+            self.reader = libtiledbvcf.Reader()
+            self.reader.init(uri)
+        elif mode == 'w':
+            self.writer = libtiledbvcf.Writer()
+            self.writer.init(uri)
+        else:
             raise Exception('Unsupported dataset mode {}'.format(mode))
-        self.reader = libtiledbvcf.Reader()
-        self.reader.init(uri)
 
     def read(self, attrs, samples=None, regions=None):
         """Reads data from a TileDB-VCF dataset.
@@ -75,3 +79,17 @@ class TileDBVCFDataset(object):
 
         self.reader.read()
         return self.reader.result_num_records()
+
+    def ingest_samples(self, sample_uris=None, extra_attrs=None):
+        if sample_uris is None:
+            return
+
+        self.writer.set_samples(','.join(sample_uris))
+
+        extra_attrs = '' if extra_attrs is None else extra_attrs
+        self.writer.set_extra_attributes(','.join(extra_attrs))
+
+        # Create is a no-op if the dataset already exists.
+        self.writer.create_dataset()
+        self.writer.register_samples()
+        self.writer.ingest_samples()

@@ -80,7 +80,7 @@ class BuildExt(build_ext):
 
 
 ext_src_files = ['{}/binding/{}'.format(SRC_DIR, filename) for filename in
-                 ['libtiledbvcf.cc', 'reader.cc']]
+                 ['libtiledbvcf.cc', 'reader.cc', 'writer.cc']]
 ext_modules = [
     Extension(
         'tiledbvcf.libtiledbvcf',

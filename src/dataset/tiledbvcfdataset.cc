@@ -71,9 +71,15 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   check_attribute_names(params.extra_attributes);
 
-  if (vfs.is_dir(params.uri))
+  if (vfs.is_dir(params.uri)) {
+    // If the directory exists, check if it's a dataset. If so, return with no
+    // error (allows for multiple no-op create calls).
+    if (vfs.is_file(general_metadata_uri(params.uri)))
+      return;
+
     throw std::runtime_error(
         "Cannot create TileDB-VCF dataset; directory exists.");
+  }
   create_group(ctx, params.uri);
 
   Metadata metadata;

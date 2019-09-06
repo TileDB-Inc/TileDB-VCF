@@ -32,8 +32,7 @@
 
 namespace py = pybind11;
 
-namespace tiledbvcfpy {
-
+namespace {
 void check_error(tiledb_vcf_reader_t* reader, int32_t rc) {
   if (rc != TILEDB_VCF_OK) {
     std::string msg =
@@ -47,6 +46,9 @@ void check_error(tiledb_vcf_reader_t* reader, int32_t rc) {
     throw std::runtime_error(msg);
   }
 }
+}  // namespace
+
+namespace tiledbvcfpy {
 
 Reader::Reader()
     : ptr(nullptr, deleter)
