@@ -179,6 +179,18 @@ class Reader {
       AttrDatatype* datatype,
       bool* var_len) const;
 
+  /** Returns the number of in-memory user buffers that have been set. */
+  void num_buffers(int32_t* num_buffers) const;
+
+  /** Gets information about the given buffer (by index). */
+  void get_buffer(
+      int32_t buffer_idx,
+      const char** name,
+      int64_t** offset_buff,
+      int64_t* offset_buff_size,
+      void** data_buff,
+      int64_t* data_buff_size) const;
+
  private:
   /* ********************************* */
   /*           PRIVATE DATATYPES       */

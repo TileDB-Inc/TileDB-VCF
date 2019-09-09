@@ -51,15 +51,23 @@ void InMemoryExporter::set_buffer(
         attribute + "'.");
   }
 
-  UserBuffer& buff = user_buffers_[attribute];
-  buff.attr = attr_name_to_enum(attribute);
-  buff.attr_name = attribute;
-  buff.data = data;
-  buff.max_data_bytes = max_data_bytes;
-  buff.curr_data_bytes = 0;
-  buff.offsets = offsets;
-  buff.max_num_offsets = max_num_offsets;
-  buff.curr_num_offsets = 0;
+  auto it = user_buffers_.find(attribute);
+  UserBuffer* buff = nullptr;
+  if (it == user_buffers_.end()) {
+    buff = &user_buffers_[attribute];
+    user_buffers_by_idx_.push_back(buff);
+  } else {
+    buff = &it->second;
+  }
+
+  buff->attr = attr_name_to_enum(attribute);
+  buff->attr_name = attribute;
+  buff->data = data;
+  buff->max_data_bytes = max_data_bytes;
+  buff->curr_data_bytes = 0;
+  buff->offsets = offsets;
+  buff->max_num_offsets = max_num_offsets;
+  buff->curr_num_offsets = 0;
 }
 
 std::set<std::string> InMemoryExporter::array_attributes_required() const {
@@ -144,6 +152,28 @@ void InMemoryExporter::result_size(
     *num_offsets = buff.curr_num_offsets;
   if (nbytes)
     *nbytes = buff.curr_data_bytes;
+}
+
+void InMemoryExporter::num_buffers(int32_t* num_buffers) const {
+  *num_buffers = user_buffers_.size();
+}
+
+void InMemoryExporter::get_buffer(
+    int32_t buffer_idx,
+    const char** name,
+    int64_t** offset_buff,
+    int64_t* offset_buff_size,
+    void** data_buff,
+    int64_t* data_buff_size) const {
+  if (buffer_idx < 0 || buffer_idx >= user_buffers_by_idx_.size())
+    throw std::runtime_error(
+        "Error getting buffer information; index out of bounds.");
+  UserBuffer* buff = user_buffers_by_idx_[buffer_idx];
+  *name = buff->attr_name.c_str();
+  *offset_buff = buff->offsets;
+  *offset_buff_size = buff->max_num_offsets;
+  *data_buff = buff->data;
+  *data_buff_size = buff->max_data_bytes;
 }
 
 void InMemoryExporter::reset_current_sizes() {

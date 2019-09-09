@@ -365,6 +365,44 @@ int32_t tiledb_vcf_reader_get_result_size(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_get_num_buffers(
+    tiledb_vcf_reader_t* reader, int32_t* num_buffers) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || num_buffers == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->num_buffers(num_buffers)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_buffer(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer,
+    const char** name,
+    int64_t** offset_buff,
+    int64_t* offset_buff_size,
+    void** data_buff,
+    int64_t* data_buff_size) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->get_buffer(
+              buffer,
+              name,
+              offset_buff,
+              offset_buff_size,
+              data_buff,
+              data_buff_size)))
+    return TILEDB_VCF_ERR;
+
+  *offset_buff_size *= sizeof(int64_t);
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_get_attribute_type(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
