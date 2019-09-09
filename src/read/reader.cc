@@ -155,6 +155,34 @@ void Reader::attribute_datatype(
       dataset_.get(), attribute, datatype, var_len);
 }
 
+void Reader::num_buffers(int32_t* num_buffers) const {
+  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+  if (exp == nullptr)
+    throw std::runtime_error(
+        "Error getting num buffers; improper or null exporter instance");
+  exp->num_buffers(num_buffers);
+}
+
+void Reader::get_buffer(
+    int32_t buffer_idx,
+    const char** name,
+    int64_t** offset_buff,
+    int64_t* offset_buff_size,
+    void** data_buff,
+    int64_t* data_buff_size) const {
+  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+  if (exp == nullptr)
+    throw std::runtime_error(
+        "Error getting buffer information; improper or null exporter instance");
+  exp->get_buffer(
+      buffer_idx,
+      name,
+      offset_buff,
+      offset_buff_size,
+      data_buff,
+      data_buff_size);
+}
+
 void Reader::read() {
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;

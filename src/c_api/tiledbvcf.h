@@ -325,6 +325,39 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_size(
     int64_t* buff_size);
 
 /**
+ * Gets the number of buffers that have been previously set on the reader.
+ *
+ * @param reader VCF reader object
+ * @param num_buffers Set to the number of buffers
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_num_buffers(
+    tiledb_vcf_reader_t* reader, int32_t* num_buffers);
+
+/**
+ * Gets a buffer (by index) that was previously set on the reader. The original
+ * buffer sizes are returned (i.e. not the size of the result data).
+ *
+ * @param reader VCF reader object
+ * @param buffer Index of buffer to get
+ * @param name Set to the name of the buffer
+ * @param offset_buff Set to the offsets buffer (set to null for fixed-length
+ *      attributes).
+ * @param offset_buff_size Set to the size (in bytes) of the offsets buffer.
+ * @param data_buff Set to the data buffer.
+ * @param data_buff_size Set to the size (in bytes) of the offsets buffer.
+ * @return
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer,
+    const char** name,
+    int64_t** offset_buff,
+    int64_t* offset_buff_size,
+    void** data_buff,
+    int64_t* data_buff_size);
+
+/**
  * Gets the datatype of the given attribute. Useful to determine the types of
  * values stored in the `info_*` / `fmt_*` fields.
  *

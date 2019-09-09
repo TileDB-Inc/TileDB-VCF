@@ -120,6 +120,18 @@ class InMemoryExporter : public Exporter {
       uint64_t* num_offsets,
       uint64_t* nbytes) const;
 
+  /** Returns the number of in-memory user buffers that have been set. */
+  void num_buffers(int32_t* num_buffers) const;
+
+  /** Gets information about the given buffer (by index). */
+  void get_buffer(
+      int32_t buffer_idx,
+      const char** name,
+      int64_t** offset_buff,
+      int64_t* offset_buff_size,
+      void** data_buff,
+      int64_t* data_buff_size) const;
+
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
 
@@ -198,6 +210,9 @@ class InMemoryExporter : public Exporter {
 
   /** The external user buffers set for exporting. */
   std::map<std::string, UserBuffer> user_buffers_;
+
+  /** Helper map for looking up buffers by index. */
+  std::vector<UserBuffer*> user_buffers_by_idx_;
 
   /**
    * For convenience, the current query results for the record being exported.
