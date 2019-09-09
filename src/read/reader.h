@@ -139,10 +139,10 @@ class Reader {
    */
   void set_buffer(
       const std::string& attribute,
-      uint64_t* offsets,
-      uint64_t max_num_offsets,
+      int64_t* offsets,
+      int64_t max_num_offsets,
       void* data,
-      uint64_t max_data_bytes);
+      int64_t max_data_bytes);
 
   /** Sets the attribute buffer size parameter. */
   void set_attr_buffer_size(unsigned mb);

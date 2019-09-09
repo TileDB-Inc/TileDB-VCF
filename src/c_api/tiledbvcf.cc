@@ -270,7 +270,7 @@ int32_t tiledb_vcf_reader_set_buffer(
           reader,
           reader->reader_->set_buffer(
               attribute,
-              reinterpret_cast<uint64_t*>(offset_buff),
+              offset_buff,
               offset_buff_size / sizeof(int64_t),
               buff,
               buff_size)))

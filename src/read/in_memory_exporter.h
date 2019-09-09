@@ -91,10 +91,10 @@ class InMemoryExporter : public Exporter {
    */
   void set_buffer(
       const std::string& attribute,
-      uint64_t* offsets,
-      uint64_t max_num_offsets,
+      int64_t* offsets,
+      int64_t max_num_offsets,
       void* data,
-      uint64_t max_data_bytes);
+      int64_t max_data_bytes);
 
   std::set<std::string> array_attributes_required() const override;
 
@@ -181,15 +181,15 @@ class InMemoryExporter : public Exporter {
     /** Pointer to user's buffer. */
     void* data;
     /** Size of user's buffer (in bytes) */
-    uint64_t max_data_bytes;
+    int64_t max_data_bytes;
     /** Currently used number of bytes in user's buffer. */
-    uint64_t curr_data_bytes;
+    int64_t curr_data_bytes;
     /** Pointer to user's offset buffer (null for fixed-len) */
-    uint64_t* offsets;
+    int64_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
-    uint64_t max_num_offsets;
+    int64_t max_num_offsets;
     /** Currently used number of offsets in user's offset buffer. */
-    uint64_t curr_num_offsets;
+    int64_t curr_num_offsets;
   };
 
   /* ********************************* */

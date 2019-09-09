@@ -195,13 +195,13 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        sample_name.offsets().data(),
+        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        contig.offsets().data(),
+        reinterpret_cast<int64_t*>(contig.offsets().data()),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -209,25 +209,25 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
     reader.set_buffer(
         "fmt_GT",
-        gt.offsets().data(),
+        reinterpret_cast<int64_t*>(gt.offsets().data()),
         gt.offsets().size(),
         gt.data<void>(),
         gt.size());
     reader.set_buffer(
         "fmt_PL",
-        pl.offsets().data(),
+        reinterpret_cast<int64_t*>(pl.offsets().data()),
         pl.offsets().size(),
         pl.data<void>(),
         pl.size());
     reader.set_buffer(
         "fmt_DP",
-        dp.offsets().data(),
+        reinterpret_cast<int64_t*>(dp.offsets().data()),
         dp.offsets().size(),
         dp.data<void>(),
         dp.size());
     reader.set_buffer(
         "fmt_MIN_DP",
-        min_dp.offsets().data(),
+        reinterpret_cast<int64_t*>(min_dp.offsets().data()),
         min_dp.offsets().size(),
         min_dp.data<void>(),
         min_dp.size());
@@ -1028,13 +1028,13 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        sample_name.offsets().data(),
+        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        contig.offsets().data(),
+        reinterpret_cast<int64_t*>(contig.offsets().data()),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -1091,13 +1091,13 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        sample_name.offsets().data(),
+        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        contig.offsets().data(),
+        reinterpret_cast<int64_t*>(contig.offsets().data()),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -1343,7 +1343,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        sample_name.offsets().data(),
+        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
@@ -1351,19 +1351,19 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
     reader.set_buffer(
         "info_BaseQRankSum",
-        baseq.offsets().data(),
+        reinterpret_cast<int64_t*>(baseq.offsets().data()),
         baseq.offsets().size(),
         baseq.data<void>(),
         baseq.size());
     reader.set_buffer(
         "info_DP",
-        info_dp.offsets().data(),
+        reinterpret_cast<int64_t*>(info_dp.offsets().data()),
         info_dp.offsets().size(),
         info_dp.data<void>(),
         info_dp.size());
     reader.set_buffer(
         "fmt_DP",
-        fmt_dp.offsets().data(),
+        reinterpret_cast<int64_t*>(fmt_dp.offsets().data()),
         fmt_dp.offsets().size(),
         fmt_dp.data<void>(),
         fmt_dp.size());
