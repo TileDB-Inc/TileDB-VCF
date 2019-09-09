@@ -33,10 +33,10 @@ namespace vcf {
 
 void InMemoryExporter::set_buffer(
     const std::string& attribute,
-    uint64_t* offsets,
-    uint64_t max_num_offsets,
+    int64_t* offsets,
+    int64_t max_num_offsets,
     void* data,
-    uint64_t max_data_bytes) {
+    int64_t max_data_bytes) {
   if (fixed_len_attr(attribute) && offsets != nullptr) {
     throw std::runtime_error(
         "Error setting buffer; attribute '" + attribute +

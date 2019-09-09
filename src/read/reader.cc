@@ -94,10 +94,10 @@ void Reader::set_sample_partition(
 
 void Reader::set_buffer(
     const std::string& attribute,
-    uint64_t* offsets,
-    uint64_t max_num_offsets,
+    int64_t* offsets,
+    int64_t max_num_offsets,
     void* data,
-    uint64_t max_data_bytes) {
+    int64_t max_data_bytes) {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
   auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
