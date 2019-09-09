@@ -24,6 +24,13 @@ class TileDBVCFDataset(object):
     def read(self, attrs, samples=None, regions=None):
         """Reads data from a TileDB-VCF dataset.
 
+        For large datasets, a call to `read()` may not be able to fit all
+        results in memory. In that case, the returned dataframe will contain as
+        many results as possible, and in order to retrieve the rest of the
+        results, use the `continue_read()` function.
+
+        You can also use the Python generator version, `read_iter()`.
+
         :param list of str attrs: List of attribute names to be read.
         :param list of str samples: CSV list of sample names to be read.
         :param list of str regions: CSV list of genomic regions to be read.
@@ -37,6 +44,15 @@ class TileDBVCFDataset(object):
         self.reader.set_regions(','.join(regions))
         self.reader.set_attributes(attrs)
 
+        return self.continue_read()
+
+    def read_iter(self, attrs, samples=None, regions=None):
+        if not self.read_completed():
+            yield self.read(attrs, samples, regions)
+        while not self.read_completed():
+            yield self.continue_read()
+
+    def continue_read(self):
         self.reader.read()
 
         results = self.reader.get_results()
@@ -61,6 +77,13 @@ class TileDBVCFDataset(object):
                 df_series[attr_name] = pd.Series(data)
         return pd.DataFrame.from_dict(df_series)
 
+    def read_completed(self):
+        """Returns true if the previous read operation was complete.
+
+        A read is considered complete if the resulting dataframe contained
+        all results."""
+        return self.reader.completed()
+
     def count(self, samples=None, regions=None):
         """Counts data in a TileDB-VCF dataset.
 
@@ -78,6 +101,9 @@ class TileDBVCFDataset(object):
         self.reader.set_regions(','.join(regions))
 
         self.reader.read()
+        if not self.read_completed():
+            raise Exception('Unexpected read status during count.')
+
         return self.reader.result_num_records()
 
     def ingest_samples(self, sample_uris=None, extra_attrs=None):

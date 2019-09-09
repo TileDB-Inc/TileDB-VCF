@@ -24,6 +24,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_buffer_alloc_size", &Reader::set_buffer_alloc_size)
       .def("read", &Reader::read)
       .def("get_results", &Reader::get_buffers)
+      .def("completed", &Reader::completed)
       .def("result_num_records", &Reader::result_num_records);
 
   py::class_<Writer>(m, "Writer")

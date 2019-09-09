@@ -52,7 +52,7 @@ namespace tiledbvcfpy {
 
 Reader::Reader()
     : ptr(nullptr, deleter)
-    , alloc_size_mb_(100) {
+    , alloc_size_bytes_(20 * 1024 * 1024) {
   tiledb_vcf_reader_t* r;
   if (tiledb_vcf_reader_alloc(&r) != TILEDB_VCF_OK)
     throw std::runtime_error(
@@ -74,8 +74,8 @@ void Reader::set_attributes(const std::vector<std::string>& attributes) {
   attributes_.insert(attributes.begin(), attributes.end());
 }
 
-void Reader::set_buffer_alloc_size(unsigned size_mb) {
-  alloc_size_mb_ = size_mb;
+void Reader::set_buffer_alloc_size(int64_t nbytes) {
+  alloc_size_bytes_ = nbytes;
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -116,11 +116,11 @@ void Reader::alloc_buffers() {
     BufferPair& buffer = buffers_[attr];
 
     auto dtype = to_numpy_dtype(datatype);
-    size_t count = alloc_size_mb_ / dtype.itemsize();
+    size_t count = alloc_size_bytes_ / dtype.itemsize();
     buffer.data = py::array(dtype, count);
 
     if (var_len == 1) {
-      size_t count = alloc_size_mb_ / sizeof(int64_t);
+      size_t count = alloc_size_bytes_ / sizeof(int64_t);
       buffer.offsets = py::array(py::dtype::of<int64_t>(), count);
     }
   }
@@ -193,6 +193,13 @@ int64_t Reader::result_num_records() {
   check_error(
       reader, tiledb_vcf_reader_get_result_num_records(reader, &result));
   return result;
+}
+
+bool Reader::completed() {
+  auto reader = ptr.get();
+  tiledb_vcf_read_status_t status;
+  check_error(reader, tiledb_vcf_reader_get_status(reader, &status));
+  return status == TILEDB_VCF_COMPLETED;
 }
 
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
