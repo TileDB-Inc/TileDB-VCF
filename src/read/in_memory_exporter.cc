@@ -33,7 +33,7 @@ namespace vcf {
 
 void InMemoryExporter::set_buffer(
     const std::string& attribute,
-    int64_t* offsets,
+    int32_t* offsets,
     int64_t max_num_offsets,
     void* data,
     int64_t max_data_bytes) {
@@ -139,9 +139,7 @@ void InMemoryExporter::reset() {
 }
 
 void InMemoryExporter::result_size(
-    const std::string& attribute,
-    uint64_t* num_offsets,
-    uint64_t* nbytes) const {
+    const std::string& attribute, int64_t* num_offsets, int64_t* nbytes) const {
   auto it = user_buffers_.find(attribute);
   if (it == user_buffers_.end())
     throw std::runtime_error(
@@ -161,7 +159,7 @@ void InMemoryExporter::num_buffers(int32_t* num_buffers) const {
 void InMemoryExporter::get_buffer(
     int32_t buffer_idx,
     const char** name,
-    int64_t** offset_buff,
+    int32_t** offset_buff,
     int64_t* offset_buff_size,
     void** data_buff,
     int64_t* data_buff_size) const {
@@ -322,7 +320,7 @@ bool InMemoryExporter::copy_cell(
 
   // TODO: this is probably too expensive.
   // Record current buffer sizes in case of overflow on some attribute.
-  std::map<std::string, std::pair<uint64_t, uint64_t>> curr_user_buff_sizes;
+  std::map<std::string, std::pair<int64_t, int64_t>> curr_user_buff_sizes;
   for (auto& it : user_buffers_) {
     curr_user_buff_sizes[it.first].first = it.second.curr_num_offsets;
     curr_user_buff_sizes[it.first].second = it.second.curr_data_bytes;
@@ -484,7 +482,8 @@ bool InMemoryExporter::copy_to_user_buff(
   // Check for overflow
   if (dest->curr_data_bytes + nbytes > dest->max_data_bytes)
     return false;
-  if (var_len && dest->curr_num_offsets + 1 > dest->max_num_offsets)
+  if (var_len && (dest->curr_num_offsets + 1 > dest->max_num_offsets ||
+                  dest->curr_data_bytes >= std::numeric_limits<int32_t>::max()))
     return false;
 
   // Copy data

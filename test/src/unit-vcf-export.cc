@@ -47,6 +47,38 @@ static const std::string input_dir = TILEDB_VCF_TEST_INPUT_DIR;
 
 namespace {
 
+/** Helper struct representing a user buffer pair. */
+struct UserBuffer {
+  template <typename T>
+  const T* data() const {
+    return reinterpret_cast<const T*>(data_.data());
+  }
+
+  template <typename T>
+  T* data() {
+    return reinterpret_cast<T*>(data_.data());
+  }
+
+  const std::vector<int32_t>& offsets() const {
+    return offsets_;
+  }
+
+  std::vector<int32_t>& offsets() {
+    return offsets_;
+  }
+
+  void resize(size_t nbytes) {
+    data_.resize(nbytes);
+  }
+
+  size_t size() const {
+    return data_.size();
+  }
+
+  std::vector<char> data_;
+  std::vector<int32_t> offsets_;
+};
+
 template <typename T>
 struct null_value {};
 
@@ -66,9 +98,9 @@ template <typename T>
 void check_result(
     const Reader& reader,
     const std::string& attr,
-    const Buffer& buffer,
+    const UserBuffer& buffer,
     const std::vector<T>& expected) {
-  uint64_t num_offsets = 0, nbytes = 0;
+  int64_t num_offsets = 0, nbytes = 0;
   reader.result_size(attr, &num_offsets, &nbytes);
 
   unsigned nrec = expected.size();
@@ -85,17 +117,17 @@ template <typename T>
 void check_var_result(
     const Reader& reader,
     const std::string& attr,
-    const Buffer& buffer,
+    const UserBuffer& buffer,
     const std::vector<T>& expected) {
-  uint64_t num_offsets = 0, nbytes = 0;
+  int64_t num_offsets = 0, nbytes = 0;
   reader.result_size(attr, &num_offsets, &nbytes);
 
   std::vector<T> actual;
   for (unsigned i = 0; i < num_offsets; i++) {
-    uint64_t offset = buffer.offsets()[i];
-    uint64_t next_offset =
+    int32_t offset = buffer.offsets()[i];
+    int32_t next_offset =
         i == num_offsets - 1 ? nbytes : buffer.offsets()[i + 1];
-    uint64_t len = next_offset - offset;
+    int32_t len = next_offset - offset;
     const char* p = buffer.data<char>() + offset;
 
     unsigned nvals = len / sizeof(T);
@@ -116,9 +148,9 @@ void check_var_result(
 void check_string_result(
     const Reader& reader,
     const std::string& attr,
-    const Buffer& buffer,
+    const UserBuffer& buffer,
     const std::vector<std::string>& expected) {
-  uint64_t num_offsets = 0, nbytes = 0;
+  int64_t num_offsets = 0, nbytes = 0;
   reader.result_size(attr, &num_offsets, &nbytes);
 
   unsigned nrec = expected.size();
@@ -176,7 +208,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     Reader reader;
 
     // Allocate some buffers to receive data
-    Buffer sample_name, contig, pos, end, gt, pl, dp, min_dp;
+    UserBuffer sample_name, contig, pos, end, gt, pl, dp, min_dp;
     sample_name.resize(1024);
     sample_name.offsets().resize(100);
     contig.resize(1024);
@@ -195,13 +227,13 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
+        sample_name.offsets().data(),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        reinterpret_cast<int64_t*>(contig.offsets().data()),
+        contig.offsets().data(),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -209,25 +241,25 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
     reader.set_buffer(
         "fmt_GT",
-        reinterpret_cast<int64_t*>(gt.offsets().data()),
+        gt.offsets().data(),
         gt.offsets().size(),
         gt.data<void>(),
         gt.size());
     reader.set_buffer(
         "fmt_PL",
-        reinterpret_cast<int64_t*>(pl.offsets().data()),
+        pl.offsets().data(),
         pl.offsets().size(),
         pl.data<void>(),
         pl.size());
     reader.set_buffer(
         "fmt_DP",
-        reinterpret_cast<int64_t*>(dp.offsets().data()),
+        dp.offsets().data(),
         dp.offsets().size(),
         dp.data<void>(),
         dp.size());
     reader.set_buffer(
         "fmt_MIN_DP",
-        reinterpret_cast<int64_t*>(min_dp.offsets().data()),
+        min_dp.offsets().data(),
         min_dp.offsets().size(),
         min_dp.data<void>(),
         min_dp.size());
@@ -345,7 +377,7 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   Reader reader;
 
   // Allocate some buffers to receive data
-  Buffer sample_name, contig, pos, end, gt, pl, dp, min_dp;
+  UserBuffer sample_name, contig, pos, end, gt, pl, dp, min_dp;
   sample_name.resize(1024);
   sample_name.offsets().resize(100);
   contig.resize(1024);
@@ -364,13 +396,13 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   // Set buffers on the reader
   reader.set_buffer(
       "sample_name",
-      reinterpret_cast<int64_t*>(sample_name.offsets().data()),
+      sample_name.offsets().data(),
       sample_name.offsets().size(),
       sample_name.data<void>(),
       sample_name.size());
   reader.set_buffer(
       "contig",
-      reinterpret_cast<int64_t*>(contig.offsets().data()),
+      contig.offsets().data(),
       contig.offsets().size(),
       contig.data<void>(),
       contig.size());
@@ -378,25 +410,25 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
   reader.set_buffer(
       "fmt_GT",
-      reinterpret_cast<int64_t*>(gt.offsets().data()),
+      gt.offsets().data(),
       gt.offsets().size(),
       gt.data<void>(),
       gt.size());
   reader.set_buffer(
       "fmt_PL",
-      reinterpret_cast<int64_t*>(pl.offsets().data()),
+      pl.offsets().data(),
       pl.offsets().size(),
       pl.data<void>(),
       pl.size());
   reader.set_buffer(
       "fmt_DP",
-      reinterpret_cast<int64_t*>(dp.offsets().data()),
+      dp.offsets().data(),
       dp.offsets().size(),
       dp.data<void>(),
       dp.size());
   reader.set_buffer(
       "fmt_MIN_DP",
-      reinterpret_cast<int64_t*>(min_dp.offsets().data()),
+      min_dp.offsets().data(),
       min_dp.offsets().size(),
       min_dp.data<void>(),
       min_dp.size());
@@ -406,21 +438,21 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   reader.num_buffers(&num_buffers_set);
   REQUIRE(num_buffers_set == 8);
   const char* name;
-  int64_t* offs;
+  int32_t* offs;
   int64_t offs_size;
   void* data;
   int64_t data_size;
 
   reader.get_buffer(0, &name, &offs, &offs_size, &data, &data_size);
   REQUIRE(name == std::string("sample_name"));
-  REQUIRE(offs == reinterpret_cast<int64_t*>(sample_name.offsets().data()));
+  REQUIRE(offs == sample_name.offsets().data());
   REQUIRE(offs_size == sample_name.offsets().size());
   REQUIRE(data == sample_name.data<void>());
   REQUIRE(data_size == sample_name.size());
 
   reader.get_buffer(7, &name, &offs, &offs_size, &data, &data_size);
   REQUIRE(name == std::string("fmt_MIN_DP"));
-  REQUIRE(offs == reinterpret_cast<int64_t*>(min_dp.offsets().data()));
+  REQUIRE(offs == min_dp.offsets().data());
   REQUIRE(offs_size == min_dp.offsets().size());
   REQUIRE(data == min_dp.data<void>());
   REQUIRE(data_size == min_dp.size());
@@ -520,7 +552,7 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
   // Query a few regions
   {
     Reader reader;
-    Buffer end;
+    UserBuffer end;
     end.resize(1024);
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
 
@@ -613,7 +645,7 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
   // Query a few regions
   {
     Reader reader;
-    Buffer end;
+    UserBuffer end;
     end.resize(1024);
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
 
@@ -1105,7 +1137,7 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     Reader reader;
 
     // Allocate some buffers to receive data
-    Buffer sample_name, contig, pos, end;
+    UserBuffer sample_name, contig, pos, end;
     sample_name.resize(25);
     sample_name.offsets().resize(100);
     contig.resize(1024);
@@ -1116,13 +1148,13 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
+        sample_name.offsets().data(),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        reinterpret_cast<int64_t*>(contig.offsets().data()),
+        contig.offsets().data(),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -1168,7 +1200,7 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     Reader reader;
 
     // Allocate some buffers to receive data
-    Buffer sample_name, contig, pos, end;
+    UserBuffer sample_name, contig, pos, end;
     sample_name.resize(25);
     sample_name.offsets().resize(100);
     contig.resize(1024);
@@ -1179,13 +1211,13 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
+        sample_name.offsets().data(),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
     reader.set_buffer(
         "contig",
-        reinterpret_cast<int64_t*>(contig.offsets().data()),
+        contig.offsets().data(),
         contig.offsets().size(),
         contig.data<void>(),
         contig.size());
@@ -1416,7 +1448,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     Reader reader;
 
     // Allocate some buffers to receive data
-    Buffer sample_name, pos, end, baseq, info_dp, fmt_dp;
+    UserBuffer sample_name, pos, end, baseq, info_dp, fmt_dp;
     sample_name.resize(3 * 1024);
     sample_name.offsets().resize(3 * 100);
     pos.resize(3 * 1024);
@@ -1431,7 +1463,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     // Set buffers on the reader
     reader.set_buffer(
         "sample_name",
-        reinterpret_cast<int64_t*>(sample_name.offsets().data()),
+        sample_name.offsets().data(),
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
@@ -1439,19 +1471,19 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
     reader.set_buffer(
         "info_BaseQRankSum",
-        reinterpret_cast<int64_t*>(baseq.offsets().data()),
+        baseq.offsets().data(),
         baseq.offsets().size(),
         baseq.data<void>(),
         baseq.size());
     reader.set_buffer(
         "info_DP",
-        reinterpret_cast<int64_t*>(info_dp.offsets().data()),
+        info_dp.offsets().data(),
         info_dp.offsets().size(),
         info_dp.data<void>(),
         info_dp.size());
     reader.set_buffer(
         "fmt_DP",
-        reinterpret_cast<int64_t*>(fmt_dp.offsets().data()),
+        fmt_dp.offsets().data(),
         fmt_dp.offsets().size(),
         fmt_dp.data<void>(),
         fmt_dp.size());

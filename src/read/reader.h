@@ -139,7 +139,7 @@ class Reader {
    */
   void set_buffer(
       const std::string& attribute,
-      int64_t* offsets,
+      int32_t* offsets,
       int64_t max_num_offsets,
       void* data,
       int64_t max_data_bytes);
@@ -168,8 +168,8 @@ class Reader {
    */
   void result_size(
       const std::string& attribute,
-      uint64_t* num_offsets,
-      uint64_t* nbytes) const;
+      int64_t* num_offsets,
+      int64_t* nbytes) const;
 
   /**
    * Returns the datatype and var-length setting of the given attribute.
@@ -186,7 +186,7 @@ class Reader {
   void get_buffer(
       int32_t buffer_idx,
       const char** name,
-      int64_t** offset_buff,
+      int32_t** offset_buff,
       int64_t* offset_buff_size,
       void** data_buff,
       int64_t* data_buff_size) const;

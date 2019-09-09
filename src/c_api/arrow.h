@@ -54,7 +54,7 @@ class Arrow {
     for (int i = 0; i < num_buffers; i++) {
       // Get name and buffer pointers
       const char* name = nullptr;
-      int64_t* offsets = nullptr;
+      int32_t* offsets = nullptr;
       int64_t offset_size = 0;
       void* data = nullptr;
       int64_t data_size = 0;
@@ -120,7 +120,7 @@ class Arrow {
 
   static std::shared_ptr<arrow::Array> make_arrow_array(
       tiledb_vcf_attr_datatype_t datatype,
-      int64_t* offset_buff,
+      int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
       int64_t buff_size) {
@@ -171,7 +171,7 @@ class Arrow {
   }
 
   static std::shared_ptr<arrow::Array> make_arrow_string_array(
-      int64_t* offset_buff,
+      int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
       int64_t buff_size) {
@@ -181,14 +181,12 @@ class Arrow {
     // TODO:
     //   - Change our offset representation to match Arrow
     //   - Change our nullable representation to match Arrow
-    const size_t num_offsets = offset_buff_size / sizeof(int64_t);
+    const size_t num_offsets = offset_buff_size / sizeof(int32_t);
     arrow::BufferBuilder offset_builder;
     check_error(offset_builder.Reserve(
         num_offsets * sizeof(int32_t) + sizeof(int32_t)));
-    for (size_t i = 0; i < num_offsets; i++) {
-      int32_t off = (int32_t)(offset_buff[i]);
-      check_error(offset_builder.Append(&off, sizeof(off)));
-    }
+    check_error(
+        offset_builder.Append(offset_buff, num_offsets * sizeof(int32_t)));
     check_error(offset_builder.Append(&buff_size, sizeof(int32_t)));
     std::shared_ptr<arrow::Buffer> arrow_offsets;
     check_error(offset_builder.Finish(&arrow_offsets));
@@ -213,7 +211,7 @@ class Arrow {
   template <typename T, typename ArrayT>
   static std::shared_ptr<arrow::Array> make_arrow_array(
       const std::shared_ptr<arrow::DataType>& dtype,
-      int64_t* offset_buff,
+      int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
       int64_t buff_size) {
@@ -224,14 +222,12 @@ class Arrow {
     // TODO:
     //   - Change our offset representation to match Arrow
     //   - Change our nullable representation to match Arrow
-    const size_t num_offsets = offset_buff_size / sizeof(int64_t);
+    const size_t num_offsets = offset_buff_size / sizeof(int32_t);
     arrow::BufferBuilder offset_builder;
     check_error(offset_builder.Reserve(
         num_offsets * sizeof(int32_t) + sizeof(int32_t)));
-    for (size_t i = 0; i < num_offsets; i++) {
-      int32_t off = (int32_t)(offset_buff[i]);
-      check_error(offset_builder.Append(&off, sizeof(off)));
-    }
+    check_error(
+        offset_builder.Append(offset_buff, num_offsets * sizeof(int32_t)));
     check_error(offset_builder.Append(&buff_size, sizeof(int32_t)));
     std::shared_ptr<arrow::Buffer> arrow_offsets;
     check_error(offset_builder.Finish(&arrow_offsets));

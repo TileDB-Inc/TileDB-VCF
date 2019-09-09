@@ -260,7 +260,7 @@ int32_t tiledb_vcf_reader_set_buffer(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
     int64_t offset_buff_size,
-    int64_t* offset_buff,
+    int32_t* offset_buff,
     int64_t buff_size,
     void* buff) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
@@ -271,7 +271,7 @@ int32_t tiledb_vcf_reader_set_buffer(
           reader->reader_->set_buffer(
               attribute,
               offset_buff,
-              offset_buff_size / sizeof(int64_t),
+              offset_buff_size / sizeof(int32_t),
               buff,
               buff_size)))
     return TILEDB_VCF_ERR;
@@ -353,13 +353,13 @@ int32_t tiledb_vcf_reader_get_result_size(
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  uint64_t num_offsets = 0, nbytes = 0;
+  int64_t num_offsets = 0, nbytes = 0;
   if (SAVE_ERROR_CATCH(
           reader,
           reader->reader_->result_size(attribute, &num_offsets, &nbytes)))
     return TILEDB_VCF_ERR;
 
-  *offset_buff_size = num_offsets * sizeof(uint64_t);
+  *offset_buff_size = num_offsets * sizeof(int32_t);
   *buff_size = nbytes;
 
   return TILEDB_VCF_OK;
@@ -380,7 +380,7 @@ int32_t tiledb_vcf_reader_get_buffer(
     tiledb_vcf_reader_t* reader,
     int32_t buffer,
     const char** name,
-    int64_t** offset_buff,
+    int32_t** offset_buff,
     int64_t* offset_buff_size,
     void** data_buff,
     int64_t* data_buff_size) {
@@ -398,7 +398,7 @@ int32_t tiledb_vcf_reader_get_buffer(
               data_buff_size)))
     return TILEDB_VCF_ERR;
 
-  *offset_buff_size *= sizeof(int64_t);
+  *offset_buff_size *= sizeof(int32_t);
 
   return TILEDB_VCF_OK;
 }

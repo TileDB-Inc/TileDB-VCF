@@ -91,7 +91,7 @@ class InMemoryExporter : public Exporter {
    */
   void set_buffer(
       const std::string& attribute,
-      int64_t* offsets,
+      int32_t* offsets,
       int64_t max_num_offsets,
       void* data,
       int64_t max_data_bytes);
@@ -117,8 +117,8 @@ class InMemoryExporter : public Exporter {
    */
   void result_size(
       const std::string& attribute,
-      uint64_t* num_offsets,
-      uint64_t* nbytes) const;
+      int64_t* num_offsets,
+      int64_t* nbytes) const;
 
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
@@ -127,7 +127,7 @@ class InMemoryExporter : public Exporter {
   void get_buffer(
       int32_t buffer_idx,
       const char** name,
-      int64_t** offset_buff,
+      int32_t** offset_buff,
       int64_t* offset_buff_size,
       void** data_buff,
       int64_t* data_buff_size) const;
@@ -197,7 +197,7 @@ class InMemoryExporter : public Exporter {
     /** Currently used number of bytes in user's buffer. */
     int64_t curr_data_bytes;
     /** Pointer to user's offset buffer (null for fixed-len) */
-    int64_t* offsets;
+    int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
     /** Currently used number of offsets in user's offset buffer. */
