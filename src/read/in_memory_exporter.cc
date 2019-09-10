@@ -165,7 +165,7 @@ void InMemoryExporter::get_buffer(
     int64_t* offset_buff_size,
     void** data_buff,
     int64_t* data_buff_size) const {
-  if (buffer_idx < 0 || buffer_idx >= user_buffers_by_idx_.size())
+  if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
     throw std::runtime_error(
         "Error getting buffer information; index out of bounds.");
   UserBuffer* buff = user_buffers_by_idx_[buffer_idx];
@@ -191,7 +191,7 @@ bool InMemoryExporter::export_record(
     const ReadQueryResults& query_results,
     uint64_t cell_idx) {
   curr_query_results_ = &query_results;
-  return copy_cell(hdr, query_region, cell_idx);
+  return copy_cell(hdr, query_region, contig_offset, cell_idx);
 }
 
 InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
@@ -311,7 +311,10 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
 }
 
 bool InMemoryExporter::copy_cell(
-    const bcf_hdr_t* hdr, const Region& region, uint64_t cell_idx) {
+    const bcf_hdr_t* hdr,
+    const Region& region,
+    uint32_t contig_offset,
+    uint64_t cell_idx) {
   if (user_buffers_.empty()) {
     // With no user buffers to receive data, just degenerate to a count.
     return true;
@@ -347,13 +350,14 @@ bool InMemoryExporter::copy_cell(
         break;
       }
       case ExportableAttribute::PosStart: {
-        const uint32_t pos = buffers->pos().value<uint32_t>(cell_idx) + 1;
+        const uint32_t pos =
+            (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
         overflow = !copy_attr_value(&pos, sizeof(pos), &it.second);
         break;
       }
       case ExportableAttribute::PosEnd: {
         const uint32_t real_end =
-            buffers->real_end().value<uint32_t>(cell_idx) + 1;
+            (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
         overflow = !copy_attr_value(&real_end, sizeof(real_end), &it.second);
         break;
       }
