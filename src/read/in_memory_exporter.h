@@ -239,7 +239,11 @@ class InMemoryExporter : public Exporter {
       const TileDBVCFDataset* dataset, const std::string& attr);
 
   /** Exports/copies the given cell into the user buffers. */
-  bool copy_cell(const bcf_hdr_t* hdr, const Region& region, uint64_t cell_idx);
+  bool copy_cell(
+      const bcf_hdr_t* hdr,
+      const Region& region,
+      uint32_t contig_offset,
+      uint64_t cell_idx);
 
   /** Helper method to export a variable-length attribute to a user buffer. */
   bool copy_var_attr(
