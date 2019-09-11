@@ -26,6 +26,8 @@
  * THE SOFTWARE.
  */
 
+#include <arrow/python/pyarrow.h>
+#include <tiledbvcf/arrow.h>
 #include <stdexcept>
 
 #include "reader.h"
@@ -185,6 +187,13 @@ std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
     result[attr] = {buff.offsets, buff.data};
   }
   return result;
+}
+
+py::object Reader::get_results_arrow() {
+  auto reader = ptr.get();
+  std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader);
+  PyObject* obj = arrow::py::wrap_table(table);
+  return py::reinterpret_steal<py::object>(obj);
 }
 
 int64_t Reader::result_num_records() {

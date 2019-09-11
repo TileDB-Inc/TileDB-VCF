@@ -73,6 +73,12 @@ class Reader {
    */
   std::map<std::string, std::pair<py::array, py::array>> get_buffers();
 
+  /**
+   * Returns a PyArrow table containing the results from the last read
+   * operation.
+   */
+  py::object get_results_arrow();
+
   /** Returns the number of records in the last read operation's results. */
   int64_t result_num_records();
 

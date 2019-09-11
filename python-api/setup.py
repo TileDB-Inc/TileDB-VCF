@@ -86,6 +86,12 @@ class BuildExt(build_ext):
         for ext in self.extensions:
             ext.extra_compile_args = opts
             ext.extra_link_args = link_opts
+
+            import pyarrow
+            ext.include_dirs.append(pyarrow.get_include())
+            ext.libraries.extend(pyarrow.get_libraries())
+            ext.library_dirs.extend(pyarrow.get_library_dirs())
+
         build_ext.build_extensions(self)
 
 

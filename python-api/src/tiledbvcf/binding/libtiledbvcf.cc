@@ -23,7 +23,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_attributes", &Reader::set_attributes)
       .def("set_buffer_alloc_size", &Reader::set_buffer_alloc_size)
       .def("read", &Reader::read)
-      .def("get_results", &Reader::get_buffers)
+      .def("get_buffers", &Reader::get_buffers)
+      .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)
       .def("result_num_records", &Reader::result_num_records);
 
