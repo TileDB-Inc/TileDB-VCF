@@ -334,95 +334,113 @@ bool InMemoryExporter::copy_cell(
     if (overflow)
       break;
 
-    switch (it.second.attr) {
+    UserBuffer& user_buff = it.second;
+    switch (user_buff.attr) {
       case ExportableAttribute::SampleName: {
         const uint32_t sample_id =
             buffers->coords().value<uint32_t>(2 * cell_idx + 0);
         const std::string& sample_name =
             dataset_->metadata().sample_names[sample_id];
-        overflow = !copy_var_attr_value(
-            sample_name.c_str(), sample_name.size(), &it.second);
+        overflow = !copy_to_user_buff(
+            &user_buff, sample_name.c_str(), sample_name.size());
         break;
       }
       case ExportableAttribute::Contig: {
-        overflow = !copy_var_attr_value(
-            region.seq_name.c_str(), region.seq_name.size(), &it.second);
+        overflow = !copy_to_user_buff(
+            &user_buff, region.seq_name.c_str(), region.seq_name.size());
         break;
       }
       case ExportableAttribute::PosStart: {
         const uint32_t pos =
             (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_attr_value(&pos, sizeof(pos), &it.second);
+        overflow = !copy_to_user_buff(&user_buff, &pos, sizeof(pos));
         break;
       }
       case ExportableAttribute::PosEnd: {
         const uint32_t real_end =
             (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_attr_value(&real_end, sizeof(real_end), &it.second);
+        overflow = !copy_to_user_buff(&user_buff, &real_end, sizeof(real_end));
         break;
       }
       case ExportableAttribute::QueryBedStart: {
-        overflow = !copy_attr_value(&region.min, sizeof(uint32_t), &it.second);
+        overflow =
+            !copy_to_user_buff(&user_buff, &region.min, sizeof(region.min));
         break;
       }
       case ExportableAttribute::QueryBedEnd: {
         uint32_t end = region.max + 1;
-        overflow = !copy_attr_value(&end, sizeof(uint32_t), &it.second);
+        overflow = !copy_to_user_buff(&user_buff, &end, sizeof(end));
         break;
       }
       case ExportableAttribute::Alleles: {
-        overflow = !copy_var_attr(
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
             buffers->alleles(),
             cell_idx,
             curr_query_results_->alleles_size().second,
-            &it.second);
+            &data,
+            &nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
         break;
       }
       case ExportableAttribute::Id: {
-        overflow = !copy_var_attr(
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
             buffers->id(),
             cell_idx,
             curr_query_results_->id_size().second,
-            &it.second);
+            &data,
+            &nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
         break;
       }
       case ExportableAttribute::Filters: {
         void* data;
         uint64_t nbytes;
-        get_var_cell_data(
+        get_var_attr_value(
             buffers->filter_ids(),
             cell_idx,
             curr_query_results_->filter_ids_size().second,
             &data,
             &nbytes);
-        get_csv_filter_list(hdr, data, nbytes, &str_buff_);
-        overflow = !copy_var_attr_value(
-            str_buff_.data(), str_buff_.size() + 1, &it.second);
+        make_csv_filter_list(hdr, data, nbytes, &str_buff_);
+        overflow = !copy_to_user_buff(
+            &user_buff, str_buff_.data(), str_buff_.size() + 1);
         break;
       }
       case ExportableAttribute::Qual: {
-        const uint32_t qual = buffers->qual().value<float>(cell_idx);
-        overflow = !copy_attr_value(&qual, sizeof(qual), &it.second);
+        const auto qual = buffers->qual().value<float>(cell_idx);
+        overflow = !copy_to_user_buff(&user_buff, &qual, sizeof(qual));
         break;
       }
       case ExportableAttribute::Fmt: {
-        overflow = !copy_var_attr(
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
             buffers->fmt(),
             cell_idx,
             curr_query_results_->fmt_size().second,
-            &it.second);
+            &data,
+            &nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
         break;
       }
       case ExportableAttribute::Info: {
-        overflow = !copy_var_attr(
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
             buffers->info(),
             cell_idx,
             curr_query_results_->info_size().second,
-            &it.second);
+            &data,
+            &nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
         break;
       }
       case ExportableAttribute::InfoOrFmt: {
-        overflow = !copy_info_fmt_value(cell_idx, &it.second);
+        overflow = !copy_info_fmt_value(cell_idx, &user_buff);
         break;
       }
       default:
@@ -444,15 +462,39 @@ bool InMemoryExporter::copy_cell(
   return true;
 }
 
-bool InMemoryExporter::copy_var_attr(
+void InMemoryExporter::get_var_attr_value(
     const Buffer& src,
     uint64_t cell_idx,
     uint64_t buff_var_size,
-    UserBuffer* dest) const {
-  void* data;
-  uint64_t nbytes;
-  get_var_cell_data(src, cell_idx, buff_var_size, &data, &nbytes);
-  return copy_var_attr_value(data, nbytes, dest);
+    void** data,
+    uint64_t* nbytes) const {
+  const uint64_t num_cells = curr_query_results_->num_cells();
+  const auto& offsets = src.offsets();
+  uint64_t offset = offsets[cell_idx];
+  uint64_t next_offset =
+      cell_idx == num_cells - 1 ? buff_var_size : offsets[cell_idx + 1];
+  *nbytes = next_offset - offset;
+  *data = src.data<char>() + offset;
+}
+
+bool InMemoryExporter::copy_to_user_buff(
+    UserBuffer* dest, const void* data, uint64_t nbytes) const {
+  const bool var_len = dest->offsets != nullptr;
+
+  // Check for overflow
+  if (dest->curr_data_bytes + nbytes > dest->max_data_bytes)
+    return false;
+  if (var_len && dest->curr_num_offsets + 1 > dest->max_num_offsets)
+    return false;
+
+  // Copy data
+  std::memcpy(
+      static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
+  if (var_len)
+    dest->offsets[dest->curr_num_offsets++] = dest->curr_data_bytes;
+
+  dest->curr_data_bytes += nbytes;
+  return true;
 }
 
 bool InMemoryExporter::copy_info_fmt_value(
@@ -476,70 +518,10 @@ bool InMemoryExporter::copy_info_fmt_value(
     int decoded[num_values];
     for (unsigned i = 0; i < num_values; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
-    return copy_var_attr_value(decoded, nbytes, dest);
+    return copy_to_user_buff(dest, decoded, num_values * sizeof(int));
   } else {
-    return copy_var_attr_value(src, nbytes, dest);
+    return copy_to_user_buff(dest, src, nbytes);
   }
-}
-
-bool InMemoryExporter::copy_attr_value(
-    const void* data, unsigned nbytes, UserBuffer* dest) const {
-  if (nbytes == 0)
-    throw std::runtime_error("Error copying fixed-len attr value; nbytes == 0");
-
-  // Check for overflow
-  if (dest->curr_data_bytes + nbytes > dest->max_data_bytes)
-    return false;
-
-  // Copy data
-  std::memcpy(
-      static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
-  dest->curr_data_bytes += nbytes;
-
-  return true;
-}
-
-bool InMemoryExporter::copy_var_attr_value(
-    const void* data, unsigned nbytes, UserBuffer* dest) const {
-  bool empty = nbytes == 0;
-  nbytes = std::max<unsigned>(nbytes, 1);
-
-  // Check for overflow
-  if (dest->curr_num_offsets + 1 > dest->max_num_offsets ||
-      dest->curr_data_bytes + nbytes > dest->max_data_bytes)
-    return false;
-
-  // Copy data
-  dest->offsets[dest->curr_num_offsets++] = dest->curr_data_bytes;
-  if (empty) {
-    // Copy dummy byte.
-    char c = '\0';
-    std::memcpy(
-        static_cast<char*>(dest->data) + dest->curr_data_bytes,
-        &c,
-        sizeof(char));
-  } else {
-    std::memcpy(
-        static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
-  }
-  dest->curr_data_bytes += nbytes;
-
-  return true;
-}
-
-void InMemoryExporter::get_var_cell_data(
-    const Buffer& src,
-    uint64_t cell_idx,
-    uint64_t buff_var_size,
-    void** data,
-    uint64_t* nbytes) const {
-  const uint64_t num_cells = curr_query_results_->num_cells();
-  const auto& offsets = src.offsets();
-  uint64_t offset = offsets[cell_idx];
-  uint64_t next_offset =
-      cell_idx == num_cells - 1 ? buff_var_size : offsets[cell_idx + 1];
-  *nbytes = next_offset - offset;
-  *data = src.data<char>() + offset;
 }
 
 void InMemoryExporter::get_info_fmt_value(
@@ -643,7 +625,7 @@ void InMemoryExporter::get_null_value(
   }
 }
 
-void InMemoryExporter::get_csv_filter_list(
+void InMemoryExporter::make_csv_filter_list(
     const bcf_hdr_t* hdr,
     const void* data,
     uint64_t nbytes,
