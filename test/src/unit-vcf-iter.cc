@@ -72,12 +72,14 @@ TEST_CASE("VCF: Test basic iterator", "[tiledbvcf][iter]") {
   REQUIRE(vcf.seek("1", 0));
   REQUIRE(vcf.curr_rec() != nullptr);
 
+  // Work around some compilers complaining about brace-init
+  using Tup = std::tuple<std::string, int, int>;
   check_iter(
       &vcf,
       {{
-          {"1", 12140, 12276},
-          {"1", 12545, 12770},
-          {"1", 13353, 13388},
+          Tup{"1", 12140, 12276},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.next());
 
@@ -85,9 +87,9 @@ TEST_CASE("VCF: Test basic iterator", "[tiledbvcf][iter]") {
   check_iter(
       &vcf,
       {{
-          {"1", 12140, 12276},
-          {"1", 12545, 12770},
-          {"1", 13353, 13388},
+          Tup{"1", 12140, 12276},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.next());
 
@@ -95,8 +97,8 @@ TEST_CASE("VCF: Test basic iterator", "[tiledbvcf][iter]") {
   check_iter(
       &vcf,
       {{
-          {"1", 12545, 12770},
-          {"1", 13353, 13388},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.next());
 
@@ -104,8 +106,8 @@ TEST_CASE("VCF: Test basic iterator", "[tiledbvcf][iter]") {
   check_iter(
       &vcf,
       {{
-          {"1", 12545, 12770},
-          {"1", 13353, 13388},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.next());
 
@@ -113,7 +115,7 @@ TEST_CASE("VCF: Test basic iterator", "[tiledbvcf][iter]") {
   check_iter(
       &vcf,
       {{
-          {"1", 13353, 13388},
+          Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.next());
 
@@ -133,12 +135,15 @@ TEST_CASE("VCF: Test iterator", "[tiledbvcf][iter]") {
   REQUIRE(vcf.is_open());
   REQUIRE(vcf.curr_rec() == nullptr);
   REQUIRE(vcf.seek("7", 0));
+
+  // Work around some compilers complaining about brace-init
+  using Tup = std::tuple<std::string, int, int>;
   check_iter(
       &vcf,
       {{
-          {"7", 11989, 70061},
-          {"7", 77583, 107339},
-          {"7", 111162, 165905},
+          Tup{"7", 11989, 70061},
+          Tup{"7", 77583, 107339},
+          Tup{"7", 111162, 165905},
       }});
   // Check iterator doesn't span to the next contig
   REQUIRE(!vcf.next());

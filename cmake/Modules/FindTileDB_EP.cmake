@@ -49,7 +49,6 @@ else()
         -DCMAKE_BUILD_TYPE=Release
         -DTILEDB_S3=ON
         -DTILEDB_VERBOSE=ON
-        -DTILEDB_FORCE_ALL_DEPS=ON
       UPDATE_COMMAND ""
       INSTALL_COMMAND
         ${CMAKE_COMMAND} --build . --target install-tiledb

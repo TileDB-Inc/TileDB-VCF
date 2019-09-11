@@ -105,7 +105,7 @@ void check_var_result(
     }
   }
 
-  for (int i = 0; i < actual.size(); i++) {
+  for (unsigned i = 0; i < actual.size(); i++) {
     if (std::isnan(actual[i]))
       REQUIRE(std::isnan(expected[i]));
     else
