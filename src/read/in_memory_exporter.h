@@ -30,6 +30,7 @@
 #include "enums/attr_datatype.h"
 #include "read/exporter.h"
 #include "read_query_results.h"
+#include "utils/bitmap.h"
 
 namespace tiledb {
 namespace vcf {
@@ -96,6 +97,11 @@ class InMemoryExporter : public Exporter {
       void* data,
       int64_t max_data_bytes);
 
+  void set_validity_bitmap(
+      const std::string& attribute,
+      uint8_t* bitmap_buff,
+      int64_t bitmap_buff_size);
+
   std::set<std::string> array_attributes_required() const override;
 
   void reset() override;
@@ -132,6 +138,13 @@ class InMemoryExporter : public Exporter {
       void** data_buff,
       int64_t* data_buff_size) const;
 
+  /** Gets information about the given buffer (by index). */
+  void get_bitmap_buffer(
+      int32_t buffer_idx,
+      uint8_t** bitmap_buff,
+      int64_t* bitmap_buff_size) const;
+
+
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
 
@@ -142,12 +155,13 @@ class InMemoryExporter : public Exporter {
    * @param attribute Attribute name
    * @param datatype Set to the datatype of the attribute
    * @param var_len Set to true if the attribute is variable-length
+   * @param nullable Set to true if the attribute is nullable
    */
   static void attribute_datatype(
       const TileDBVCFDataset* dataset,
       const std::string& attribute,
       AttrDatatype* datatype,
-      bool* var_len);
+      bool* var_len, bool *nullable);
 
  private:
   /* ********************************* */
@@ -181,7 +195,11 @@ class InMemoryExporter : public Exporter {
         , curr_data_bytes(0)
         , offsets(nullptr)
         , max_num_offsets(0)
-        , curr_num_offsets(0) {
+        , curr_num_offsets(0)
+        , bitmap_buff(nullptr)
+        , max_bitmap_bytes(0)
+        , curr_bitmap_bytes(0)
+        , bitmap(nullptr) {
     }
 
     /** The attribute */
@@ -196,12 +214,22 @@ class InMemoryExporter : public Exporter {
     int64_t max_data_bytes;
     /** Currently used number of bytes in user's buffer. */
     int64_t curr_data_bytes;
+
     /** Pointer to user's offset buffer (null for fixed-len) */
     int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
     /** Currently used number of offsets in user's offset buffer. */
     int64_t curr_num_offsets;
+
+    /** Pointer to user's bitmap buffer (null for non-nullable) */
+    uint8_t* bitmap_buff;
+    /** Size, in num bytes, of user's bitmap buffer. */
+    int64_t max_bitmap_bytes;
+    /** Currently used number of bytes in user's bitmap buffer. */
+    int64_t curr_bitmap_bytes;
+    /** Convenience wrapper around the bitmap buffer. */
+    std::unique_ptr<Bitmap> bitmap;
   };
 
   /* ********************************* */
@@ -233,6 +261,9 @@ class InMemoryExporter : public Exporter {
 
   /** Returns true if the given exportable attribute is fixed-length. */
   static bool fixed_len_attr(const std::string& attr);
+
+  /** Returns true if the given exportable attribute is nullable. */
+  static bool nullable_attr(const std::string& attr);
 
   /** Gets the datatype for a specific info_/fmt_ attribute. */
   static AttrDatatype get_info_fmt_datatype(
@@ -271,13 +302,6 @@ class InMemoryExporter : public Exporter {
       const std::string& attr_name,
       const std::string& field_name,
       uint64_t cell_idx,
-      const void** data,
-      uint64_t* nbytes) const;
-
-  /** Gets a pointer to a null value appropriate for the given field. */
-  void get_null_value(
-      const std::string& field_name,
-      bool is_info,
       const void** data,
       uint64_t* nbytes) const;
 

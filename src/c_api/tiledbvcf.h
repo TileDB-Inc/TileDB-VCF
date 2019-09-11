@@ -196,7 +196,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
 /**
  * Sets a buffer to hold data for a specific attribute being read.
  *
- * The predefined attribute names are:
+ * The allowed attributes and their datatypes are:
  *
  * - "sample_name": The sample name (var-len char)
  * - "contig": The contig name (var-len char)
@@ -208,11 +208,26 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * - "id": ID string (var-len char)
  * - "filters": CSV string of filter names (var-len char)
  * - "qual": The quality value (float)
- * - "info_*": A specific INFO field value (var-len uint8, see below)
- * - "fmt_*": A specific FMT field value (var-len uint8, see below)
+ * - "info_*": A specific INFO field value (var-len uint8)
+ * - "fmt_*": A specific FMT field value (var-len uint8)
  * - "fmt": Format byte blob of non-attribute fields (var-len uint8)
  * - "info": Info byte blob of non-attribute fields (var-len uint8)
  *
+ * See the specific notes below for more information.
+ *
+ * (1) Variable-length vs fixed-length
+ * Fixed-length attributes, such as `pos_start` or `qual`, contain a
+ * single value per result record. Variable-length attributes, such as
+ * `sample_name` or `info_* / fmt_*`, contain a variable number of values per
+ * result record, which may be 0.
+ *
+ * For variable-length attributes, an extra "offsets" buffer must be provided.
+ * This will be populated with the starting offset of the variable-length value
+ * in the associated data buffer, for each record.
+ *
+ * The contents of the offset buffer follow the Apache Arrow semantics.
+ *
+ * (2) INFO/FMT fields
  * In general to access specific INFO or FMT field values, you should
  * use the special `fmt_*` / `info_*` attribute names. For example, to
  * retrieve the values of the `MIN_DP` format field, set a buffer for
@@ -224,9 +239,59 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * listed in the BCF header as being a floating-point field, then the bytes
  * stored in the buffer `info_foo` will be floating-point values.
  *
- * If a record does not contain a value for the specified INFO or FMT field,
- * the value stored in the result buffer is a special null sentinel value
- * indicating "no value".
+ * (3) Nullable attributes
+ * Most attributes are non-nullable, meaning a value will be stored for the
+ * attribute for every result record. The nullable attributes are:
+ *
+ * - "filters"
+ * - "info"
+ * - "info_*"
+ * - "fmt"
+ * - "fmt_*"
+ *
+ * For the nullable attributes, a validity bitmap buffer must also be provided.
+ * For a result record at index `i`, the bit index `i` will be set if the value
+ * of the nullable attribute has a valid (non-null) value. See the function
+ * `tiledb_vcf_reader_set_validity_bitmap`.
+ *
+ * (4) Apache Arrow integration
+ * The variable-length attribute offsets and nullable-attribute bitmap formats
+ * adhere to the Apache Arrow semantics for offsets and validity bitmaps. This
+ * is to allow zero-copy conversion to Arrow Tables.
+ *
+ * If you are using the Arrow interface to the TileDB-VCF reader class, note
+ * that your buffers must be allocated according to the Arrow requirements,
+ * which are, briefly:
+ * - 8-byte aligned
+ * - Length-padded to a multiple of 8 bytes
+ *
+ * **Example**:
+ *
+ * Suppose you want to read attributes `pos_start` and `filters`. You would
+ * provide 4 buffers:
+ * - pos_start: Data buffer only
+ * - filters: Offsets, bitmap and data buffers
+ *
+ * Suppose the read result contained three records with the following data:
+ *     pos_start  |  filters
+ *   -------------+------------
+ *     123        |  "f1"
+ *     456        |
+ *     789        |  "f12"
+ *
+ * The buffers would contain the following result bytes:
+ *
+ * pos_start data (little-endian int32 values, one per record):
+ *   0x7b 0x00 0x00 0x00 0xc8 0x01 0x00 0x00 0x15 0x03 0x00 0x00
+ * filters data (ASCII char values)
+ *   0x66 0x31 0x66 0x32 0x33
+ * filters offsets (little-endian int32 values)
+ *   0x00 0x00 0x00 0x00 0x02 0x00 0x00 0x00 0x05 0x00 0x00 0x00
+ * filters validity bitmap
+ *   0x05
+ *
+ * The validity bitmap value 0x05 corresponds to binary value 0b00000101, which
+ * indicates that the `filters` value for record index 1 is null.
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
@@ -243,6 +308,22 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer(
     int32_t* offset_buff,
     int64_t buff_size,
     void* buff);
+
+/**
+ * Sets the validity bitmap buffer for a nullable attribute. See the nullable
+ * docs for function `tiledb_vcf_reader_set_buffer` for more information.
+ *
+ * @param reader VCF reader object
+ * @param attribute Name of attribute
+ * @param bitmap_buff_size Size (in bytes) of `bitmap_buff`.
+ * @param bitmap_buff Buffer to hold bitmap.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    const char* attribute,
+    int64_t bitmap_buff_size,
+    uint8_t* bitmap_buff);
 
 /**
  * Sets the fixed amount of memory used *per attribute* in internal reader
@@ -358,6 +439,21 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer(
     int64_t* data_buff_size);
 
 /**
+ * For nullable attributes, retrieve the bitmap buffer that was set.
+ *
+ * @param reader VCF reader object
+ * @param buffer Index of buffer to get
+ * @param bitmap_buff Set to the bitmap buffer.
+ * @param bitmap_buff_size Set to the size (in bytes) of the offsets buffer.
+ * @return
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer,
+    uint8_t** bitmap_buff,
+    int64_t* bitmap_buff_size);
+
+/**
  * Gets the datatype of the given attribute. Useful to determine the types of
  * values stored in the `info_*` / `fmt_*` fields.
  *
@@ -367,13 +463,15 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer(
  * @param attribute Name of attribute to retrieve type of
  * @param datatype Set to the datatype of the attribute
  * @param var_len Set to `1` if the attribute is variable-length, else `0`
+ * @param nullable Set to `1` if the attribute is nullable, else `0`
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_type(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
     tiledb_vcf_attr_datatype_t* datatype,
-    int32_t* var_len);
+    int32_t* var_len,
+    int32_t* nullable);
 
 /**
  * Returns the version number of the TileDB VCF dataset.

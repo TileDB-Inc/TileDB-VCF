@@ -144,6 +144,15 @@ class Reader {
       void* data,
       int64_t max_data_bytes);
 
+  /**
+   * Sets a pre-allocated validity bitmap buffer for a nullable attribute for
+   * in-memory record export.
+   */
+  void set_validity_bitmap(
+      const std::string& attribute,
+      uint8_t* bitmap_buff,
+      int64_t bitmap_buff_size);
+
   /** Sets the attribute buffer size parameter. */
   void set_attr_buffer_size(unsigned mb);
 
@@ -172,12 +181,14 @@ class Reader {
       int64_t* nbytes) const;
 
   /**
-   * Returns the datatype and var-length setting of the given attribute.
+   * Returns the datatype, var-length, and nullable setting of the given
+   * attribute.
    */
   void attribute_datatype(
       const std::string& attribute,
       AttrDatatype* datatype,
-      bool* var_len) const;
+      bool* var_len,
+      bool* nullable) const;
 
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
@@ -190,6 +201,11 @@ class Reader {
       int64_t* offset_buff_size,
       void** data_buff,
       int64_t* data_buff_size) const;
+
+  void get_bitmap_buffer(
+      int32_t buffer_idx,
+      uint8_t** bitmap_buff,
+      int64_t* bitmap_buff_size) const;
 
  private:
   /* ********************************* */
