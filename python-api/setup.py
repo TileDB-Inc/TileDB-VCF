@@ -32,6 +32,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 
 import os
+import sys
 
 # Directory containing this file
 CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -64,7 +65,16 @@ def get_libtiledbvcf_include():
 
 
 def get_libtiledbvcf_lib():
-    return '{}/lib'.format(LIBTILEDBVCF_INSTALL_DIR)
+    libdirs = ['lib', 'lib64']
+    if os.name == 'posix' and sys.platform == 'darwin':
+        libname = 'libtiledbvcf.dylib'
+    else:
+        libname = 'libtiledbvcf.so'
+    for dir in libdirs:
+        path = os.path.join(LIBTILEDBVCF_INSTALL_DIR, dir, libname)
+        if os.path.exists(path):
+            return os.path.join(LIBTILEDBVCF_INSTALL_DIR, dir)
+    raise Exception('Could not locate libtiledbvcf native library')
 
 
 class BuildExt(build_ext):
@@ -111,9 +121,9 @@ setup(
     license='MIT',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    setup_requires=['pybind11>=2.3', 'pytest-runner>=5.1'],
-    install_requires=['pybind11>=2.3'],
-    tests_require=['pytest', 'pandas'],
+    setup_requires=[],
+    install_requires=[],
+    tests_require=[],
     test_suite='tests',
     ext_modules=ext_modules,
     cmdclass={'build_ext': BuildExt},

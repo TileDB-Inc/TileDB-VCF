@@ -10,7 +10,9 @@ jobs:
     matrix:
       ubuntu_16:
         imageName: 'ubuntu-16.04'
+        python.version: '3.x'
         CXX: g++
+        BUILD_PYTHON_API: ON
 #      macOS:
 #        imageName: 'macOS-10.13'
 #        CXX: clang++
@@ -18,4 +20,8 @@ jobs:
   pool:
     vmImage: $(imageName)
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
   - template: scripts/azure-linux_mac.yml
