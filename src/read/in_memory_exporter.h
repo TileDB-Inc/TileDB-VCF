@@ -144,7 +144,6 @@ class InMemoryExporter : public Exporter {
       uint8_t** bitmap_buff,
       int64_t* bitmap_buff_size) const;
 
-
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
 
@@ -161,7 +160,8 @@ class InMemoryExporter : public Exporter {
       const TileDBVCFDataset* dataset,
       const std::string& attribute,
       AttrDatatype* datatype,
-      bool* var_len, bool *nullable);
+      bool* var_len,
+      bool* nullable);
 
  private:
   /* ********************************* */

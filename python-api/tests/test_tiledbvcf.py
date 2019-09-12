@@ -141,6 +141,20 @@ def test_incomplete_read_generator(test_ds):
                              dtype=np.int32)}), overall_df)
 
 
+def test_read_filters(test_ds):
+    df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end', 'filters'],
+                      regions=['1:12700-13400'])
+    expected_df = pd.DataFrame(
+        {'sample_name': pd.Series(
+            ['HG00280', 'HG01762', 'HG00280', 'HG01762', 'HG00280', 'HG00280']),
+            'pos_start': pd.Series([12546, 12546, 13354, 13354, 13375, 13396],
+                                   dtype=np.int32),
+            'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
+                                 dtype=np.int32),
+            'filters': pd.Series([None, None, 'LowQual', None, None, None])})
+    _check_dfs(expected_df, df)
+
+
 def test_basic_ingest(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, 'dataset')
