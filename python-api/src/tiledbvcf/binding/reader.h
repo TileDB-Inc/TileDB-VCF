@@ -92,6 +92,8 @@ class Reader {
     py::array offsets;
     /** Data buffer. */
     py::array data;
+    /** Null-value bitmap, for nullable attributes. */
+    py::array bitmap;
   };
 
   /** Helper function to free a C reader instance */

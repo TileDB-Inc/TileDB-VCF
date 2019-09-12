@@ -34,6 +34,7 @@ find_package(Catch_EP REQUIRED)
 ############################################################
 
 add_executable(tiledb_vcf_unit EXCLUDE_FROM_ALL
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-writer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-export.cc

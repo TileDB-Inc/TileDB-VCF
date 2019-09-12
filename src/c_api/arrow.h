@@ -58,19 +58,26 @@ class Arrow {
       int64_t offset_size = 0;
       void* data = nullptr;
       int64_t data_size = 0;
+      uint8_t* bitmap = nullptr;
+      int64_t bitmap_size = 0;
       check_error(
           reader,
           tiledb_vcf_reader_get_buffer(
               reader, i, &name, &offsets, &offset_size, &data, &data_size),
           "Error getting buffer by index");
+      check_error(
+          reader,
+          tiledb_vcf_reader_get_validity_bitmap(
+              reader, i, &bitmap, &bitmap_size),
+          "Error getting bitmap buffer by index");
 
       // Get datatype
       tiledb_vcf_attr_datatype_t datatype = TILEDB_VCF_UINT8;
-      int32_t is_var_len = 0;
+      int32_t is_var_len = 0, is_nullable = 0;
       check_error(
           reader,
           tiledb_vcf_reader_get_attribute_type(
-              reader, name, &datatype, &is_var_len),
+              reader, name, &datatype, &is_var_len, &is_nullable),
           "Error getting buffer datatype");
 
       // Get actual buffer result size
@@ -85,8 +92,8 @@ class Arrow {
           arrow::field(name, arrow_dtype(datatype, is_var_len == 1));
       fields.push_back(field);
 
-      std::shared_ptr<arrow::Array> array =
-          make_arrow_array(datatype, offsets, offset_size, data, data_size);
+      std::shared_ptr<arrow::Array> array = make_arrow_array(
+          datatype, offsets, offset_size, data, data_size, bitmap, bitmap_size);
       arrays.push_back(array);
     }
 
@@ -123,10 +130,16 @@ class Arrow {
       int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
-      int64_t buff_size) {
+      int64_t buff_size,
+      uint8_t* bitmap,
+      int64_t bitmap_size) {
     if (offset_buff == nullptr) {
       // Fixed-length attribute. None of the fixed-length attributes in
       // TileDB-VCF are (currently) nullable.
+      if (bitmap != nullptr)
+        throw std::runtime_error(
+            "Error converting to Arrow Array; unhandled nullable fixed-len.");
+
       switch (datatype) {
         case TILEDB_VCF_UINT8:
           return make_arrow_array<uint8_t, arrow::UInt8Array>(buff, buff_size);
@@ -145,16 +158,39 @@ class Arrow {
       switch (datatype) {
         case TILEDB_VCF_CHAR:
           return make_arrow_string_array(
-              offset_buff, offset_buff_size, buff, buff_size);
+              offset_buff,
+              offset_buff_size,
+              buff,
+              buff_size,
+              bitmap,
+              bitmap_size);
         case TILEDB_VCF_UINT8:
           return make_arrow_array<uint8_t, arrow::UInt8Array>(
-              dtype, offset_buff, offset_buff_size, buff, buff_size);
+              dtype,
+              offset_buff,
+              offset_buff_size,
+              buff,
+              buff_size,
+              bitmap,
+              bitmap_size);
         case TILEDB_VCF_INT32:
           return make_arrow_array<int32_t, arrow::Int32Array>(
-              dtype, offset_buff, offset_buff_size, buff, buff_size);
+              dtype,
+              offset_buff,
+              offset_buff_size,
+              buff,
+              buff_size,
+              bitmap,
+              bitmap_size);
         case TILEDB_VCF_FLOAT32:
           return make_arrow_array<float, arrow::FloatArray>(
-              dtype, offset_buff, offset_buff_size, buff, buff_size);
+              dtype,
+              offset_buff,
+              offset_buff_size,
+              buff,
+              buff_size,
+              bitmap,
+              bitmap_size);
         default:
           throw std::runtime_error(
               "Error converting to Arrow Array; unhandled var-len datatype.");
@@ -174,30 +210,21 @@ class Arrow {
       int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
-      int64_t buff_size) {
+      int64_t buff_size,
+      uint8_t* bitmap,
+      int64_t bitmap_size) {
     auto nelts = buff_size / sizeof(char);
     auto arrow_buff = arrow::Buffer::Wrap(reinterpret_cast<char*>(buff), nelts);
 
-    // TODO:
-    //   - Change our nullable representation to match Arrow
     const auto num_offsets = offset_buff_size / sizeof(int32_t);
     auto arrow_offsets = arrow::Buffer::Wrap(offset_buff, num_offsets);
 
-    const int64_t num_values = num_offsets - 1;
     std::shared_ptr<arrow::Buffer> arrow_nulls;
-    check_error(arrow::AllocateEmptyBitmap(num_values, &arrow_nulls));
-    uint8_t* bits = arrow_nulls->mutable_data();
-    for (int64_t i = 0; i < num_values; i++) {
-      // TODO
-      bool is_null = false;
-      if (is_null)
-        arrow::BitUtil::ClearBit(bits, i);
-      else
-        arrow::BitUtil::SetBit(bits, i);
-    }
+    if (bitmap != nullptr)
+      arrow_nulls = arrow::Buffer::Wrap(bitmap, bitmap_size);
 
     return std::shared_ptr<arrow::Array>(new arrow::StringArray(
-        num_values, arrow_offsets, arrow_buff, arrow_nulls));
+        num_offsets - 1, arrow_offsets, arrow_buff, arrow_nulls));
   }
 
   template <typename T, typename ArrayT>
@@ -206,31 +233,22 @@ class Arrow {
       int32_t* offset_buff,
       int64_t offset_buff_size,
       void* buff,
-      int64_t buff_size) {
+      int64_t buff_size,
+      uint8_t* bitmap,
+      int64_t bitmap_size) {
     auto nelts = buff_size / sizeof(T);
     auto arrow_buff = arrow::Buffer::Wrap(reinterpret_cast<T*>(buff), nelts);
     std::shared_ptr<arrow::Array> arrow_values(new ArrayT(nelts, arrow_buff));
 
-    // TODO:
-    //   - Change our nullable representation to match Arrow
     const auto num_offsets = offset_buff_size / sizeof(int32_t);
     auto arrow_offsets = arrow::Buffer::Wrap(offset_buff, num_offsets);
 
-    const int64_t num_values = num_offsets - 1;
     std::shared_ptr<arrow::Buffer> arrow_nulls;
-    check_error(arrow::AllocateEmptyBitmap(num_values, &arrow_nulls));
-    uint8_t* bits = arrow_nulls->mutable_data();
-    for (int64_t i = 0; i < num_values; i++) {
-      // TODO
-      bool is_null = false;
-      if (is_null)
-        arrow::BitUtil::ClearBit(bits, i);
-      else
-        arrow::BitUtil::SetBit(bits, i);
-    }
+    if (bitmap != nullptr)
+      arrow_nulls = arrow::Buffer::Wrap(bitmap, bitmap_size);
 
-    return std::shared_ptr<arrow::Array>(
-        new arrow::ListArray(dtype, num_values, arrow_offsets, arrow_values));
+    return std::shared_ptr<arrow::Array>(new arrow::ListArray(
+        dtype, num_offsets - 1, arrow_offsets, arrow_values, arrow_nulls));
   }
 
   static std::shared_ptr<arrow::DataType> arrow_dtype(

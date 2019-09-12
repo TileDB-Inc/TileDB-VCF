@@ -67,6 +67,14 @@ struct UserBuffer {
     return offsets_;
   }
 
+  const std::vector<uint8_t>& bitmap() const {
+    return bitmap_;
+  }
+
+  std::vector<uint8_t>& bitmap() {
+    return bitmap_;
+  }
+
   void resize(size_t nbytes) {
     data_.resize(nbytes);
   }
@@ -77,22 +85,8 @@ struct UserBuffer {
 
   std::vector<char> data_;
   std::vector<int32_t> offsets_;
+  std::vector<uint8_t> bitmap_;
 };
-
-template <typename T>
-struct null_value {};
-
-template <>
-struct null_value<float> {
-  static const float value;
-};
-const float null_value<float>::value = Constants::values().null_float32();
-
-template <>
-struct null_value<int32_t> {
-  static const int32_t value;
-};
-const int32_t null_value<int32_t>::value = Constants::values().null_int32();
 
 template <typename T>
 void check_result(
@@ -123,12 +117,17 @@ void check_var_result(
   reader.result_size(attr, &num_offsets, &nbytes);
 
   std::vector<T> actual;
-  for (unsigned i = 0; i < num_offsets; i++) {
+  for (unsigned i = 0; i < num_offsets - 1; i++) {
     int32_t offset = buffer.offsets()[i];
-    int32_t next_offset =
-        i == num_offsets - 1 ? nbytes : buffer.offsets()[i + 1];
+    int32_t next_offset = buffer.offsets()[i + 1];
     int32_t len = next_offset - offset;
     const char* p = buffer.data<char>() + offset;
+
+    if (!buffer.bitmap().empty()) {
+      bool is_null = (buffer.bitmap()[i / 8] & (uint8_t(1) << (i % 8))) == 0;
+      if (is_null)
+        REQUIRE(len == 0);
+    }
 
     unsigned nvals = len / sizeof(T);
     for (unsigned j = 0; j < nvals; j++) {
@@ -137,12 +136,8 @@ void check_var_result(
     }
   }
 
-  for (unsigned i = 0; i < actual.size(); i++) {
-    if (std::isnan(actual[i]))
-      REQUIRE(std::isnan(expected[i]));
-    else
-      REQUIRE(actual[i] == expected[i]);
-  }
+  for (unsigned i = 0; i < actual.size(); i++)
+    REQUIRE(actual[i] == expected[i]);
 }
 
 void check_string_result(
@@ -326,44 +321,57 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     Reader reader;
     reader.open_dataset(dataset_uri);
     AttrDatatype dtype;
-    bool var_len;
-    REQUIRE_THROWS(reader.attribute_datatype("abc", &dtype, &var_len));
-    REQUIRE_THROWS(reader.attribute_datatype("info_abc", &dtype, &var_len));
-    REQUIRE_THROWS(reader.attribute_datatype("fmt_gt", &dtype, &var_len));
+    bool var_len, nullable;
+    REQUIRE_THROWS(
+        reader.attribute_datatype("abc", &dtype, &var_len, &nullable));
+    REQUIRE_THROWS(
+        reader.attribute_datatype("info_abc", &dtype, &var_len, &nullable));
+    REQUIRE_THROWS(
+        reader.attribute_datatype("fmt_gt", &dtype, &var_len, &nullable));
 
-    reader.attribute_datatype("sample_name", &dtype, &var_len);
+    reader.attribute_datatype("sample_name", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
-    reader.attribute_datatype("contig", &dtype, &var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype("contig", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
-    reader.attribute_datatype("query_bed_start", &dtype, &var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype("query_bed_start", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
-    reader.attribute_datatype("pos_end", &dtype, &var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype("pos_end", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
-    reader.attribute_datatype("info", &dtype, &var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype("info", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::UINT8);
     REQUIRE(var_len);
+    REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
+    REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
-    reader.attribute_datatype("fmt_AD", &dtype, &var_len);
+    REQUIRE(nullable);
+    reader.attribute_datatype("fmt_AD", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
+    REQUIRE(nullable);
 
-    reader.attribute_datatype("info_BaseQRankSum", &dtype, &var_len);
+    reader.attribute_datatype("info_BaseQRankSum", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::FLOAT32);
     REQUIRE(var_len);
-    reader.attribute_datatype("info_DS", &dtype, &var_len);
+    REQUIRE(nullable);
+    reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
+    REQUIRE(nullable);
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -1450,14 +1458,18 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     UserBuffer sample_name, pos, end, baseq, info_dp, fmt_dp;
     sample_name.resize(3 * 1024);
     sample_name.offsets().resize(3 * 100);
+    sample_name.bitmap().resize(3 * 100);
     pos.resize(3 * 1024);
     end.resize(3 * 1024);
     baseq.resize(3 * 1024);
     baseq.offsets().resize(3 * 100);
+    baseq.bitmap().resize(3 * 100);
     info_dp.resize(3 * 1024);
     info_dp.offsets().resize(3 * 100);
+    info_dp.bitmap().resize(3 * 100);
     fmt_dp.resize(3 * 1024);
     fmt_dp.offsets().resize(3 * 100);
+    fmt_dp.bitmap().resize(3 * 100);
 
     // Set buffers on the reader
     reader.set_buffer(
@@ -1466,26 +1478,38 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
         sample_name.offsets().size(),
         sample_name.data<void>(),
         sample_name.size());
+    REQUIRE_THROWS(reader.set_validity_bitmap(
+        "sample_name",
+        sample_name.bitmap().data(),
+        sample_name.bitmap().size()));
     reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
     reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+    REQUIRE_THROWS(reader.set_validity_bitmap(
+        "pos_end", sample_name.bitmap().data(), sample_name.bitmap().size()));
     reader.set_buffer(
         "info_BaseQRankSum",
         baseq.offsets().data(),
         baseq.offsets().size(),
         baseq.data<void>(),
         baseq.size());
+    reader.set_validity_bitmap(
+        "info_BaseQRankSum", baseq.bitmap().data(), baseq.bitmap().size());
     reader.set_buffer(
         "info_DP",
         info_dp.offsets().data(),
         info_dp.offsets().size(),
         info_dp.data<void>(),
         info_dp.size());
+    reader.set_validity_bitmap(
+        "info_DP", info_dp.bitmap().data(), info_dp.bitmap().size());
     reader.set_buffer(
         "fmt_DP",
         fmt_dp.offsets().data(),
         fmt_dp.offsets().size(),
         fmt_dp.data<void>(),
         fmt_dp.size());
+    reader.set_validity_bitmap(
+        "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -1546,18 +1570,9 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
          69770,
          69834});
 
-    const auto nf = null_value<float>::value;
     check_var_result<float>(
-        reader,
-        "info_BaseQRankSum",
-        baseq,
-        {nf, nf, nf, nf, nf, nf, nf, -0.787f, nf, 1.97f, nf, nf});
-    const auto nd = null_value<int>::value;
-    check_var_result<int32_t>(
-        reader,
-        "info_DP",
-        info_dp,
-        {nd, nd, nd, nd, nd, nd, nd, 89, nd, 24, nd, nd});
+        reader, "info_BaseQRankSum", baseq, {-0.787f, 1.97f});
+    check_var_result<int32_t>(reader, "info_DP", info_dp, {89, 24});
     check_var_result<int32_t>(
         reader,
         "fmt_DP",

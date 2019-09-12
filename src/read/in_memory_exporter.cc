@@ -55,19 +55,45 @@ void InMemoryExporter::set_buffer(
   UserBuffer* buff = nullptr;
   if (it == user_buffers_.end()) {
     buff = &user_buffers_[attribute];
+    buff->attr = attr_name_to_enum(attribute);
+    buff->attr_name = attribute;
     user_buffers_by_idx_.push_back(buff);
   } else {
     buff = &it->second;
   }
 
-  buff->attr = attr_name_to_enum(attribute);
-  buff->attr_name = attribute;
   buff->data = data;
   buff->max_data_bytes = max_data_bytes;
   buff->curr_data_bytes = 0;
   buff->offsets = offsets;
   buff->max_num_offsets = max_num_offsets;
   buff->curr_num_offsets = 0;
+}
+
+void InMemoryExporter::set_validity_bitmap(
+    const std::string& attribute,
+    uint8_t* bitmap_buff,
+    int64_t bitmap_buff_size) {
+  if (!nullable_attr(attribute))
+    throw std::runtime_error(
+        "Error setting validity bitmap buffer; attribute '" + attribute +
+        "' is not a nullable attribute.");
+
+  auto it = user_buffers_.find(attribute);
+  UserBuffer* buff = nullptr;
+  if (it == user_buffers_.end()) {
+    buff = &user_buffers_[attribute];
+    buff->attr = attr_name_to_enum(attribute);
+    buff->attr_name = attribute;
+    user_buffers_by_idx_.push_back(buff);
+  } else {
+    buff = &it->second;
+  }
+
+  buff->bitmap_buff = bitmap_buff;
+  buff->max_bitmap_bytes = bitmap_buff_size;
+  buff->curr_bitmap_bytes = 0;
+  buff->bitmap.reset(new Bitmap(bitmap_buff, bitmap_buff_size));
 }
 
 std::set<std::string> InMemoryExporter::array_attributes_required() const {
@@ -179,6 +205,18 @@ void InMemoryExporter::get_buffer(
   *data_buff_size = buff->max_data_bytes;
 }
 
+void InMemoryExporter::get_bitmap_buffer(
+    int32_t buffer_idx,
+    uint8_t** bitmap_buff,
+    int64_t* bitmap_buff_size) const {
+  if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
+    throw std::runtime_error(
+        "Error getting buffer information; index out of bounds.");
+  UserBuffer* buff = user_buffers_by_idx_[buffer_idx];
+  *bitmap_buff = buff->bitmap_buff;
+  *bitmap_buff_size = buff->max_bitmap_bytes;
+}
+
 void InMemoryExporter::reset_current_sizes() {
   for (auto& it : user_buffers_) {
     it.second.curr_data_bytes = 0;
@@ -229,11 +267,20 @@ bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
   return fixed_len.count(attr) > 0;
 }
 
+bool InMemoryExporter::nullable_attr(const std::string& attr) {
+  ExportableAttribute attribute = attr_name_to_enum(attr);
+  return attribute == ExportableAttribute::Filters ||
+         attribute == ExportableAttribute::Info ||
+         attribute == ExportableAttribute::Fmt ||
+         attribute == ExportableAttribute::InfoOrFmt;
+}
+
 void InMemoryExporter::attribute_datatype(
     const TileDBVCFDataset* dataset,
     const std::string& attribute,
     AttrDatatype* datatype,
-    bool* var_len) {
+    bool* var_len,
+    bool* nullable) {
   ExportableAttribute attr = attr_name_to_enum(attribute);
   switch (attr) {
     case ExportableAttribute::SampleName:
@@ -283,6 +330,7 @@ void InMemoryExporter::attribute_datatype(
   }
 
   *var_len = !fixed_len_attr(attribute);
+  *nullable = nullable_attr(attribute);
 }
 
 AttrDatatype InMemoryExporter::get_info_fmt_datatype(
@@ -409,8 +457,8 @@ bool InMemoryExporter::copy_cell(
             &data,
             &nbytes);
         make_csv_filter_list(hdr, data, nbytes, &str_buff_);
-        overflow = !copy_to_user_buff(
-            &user_buff, str_buff_.data(), str_buff_.size() + 1);
+        overflow =
+            !copy_to_user_buff(&user_buff, str_buff_.data(), str_buff_.size());
         break;
       }
       case ExportableAttribute::Qual: {
@@ -483,6 +531,7 @@ void InMemoryExporter::get_var_attr_value(
 bool InMemoryExporter::copy_to_user_buff(
     UserBuffer* dest, const void* data, uint64_t nbytes) const {
   const bool var_len = dest->offsets != nullptr;
+  const bool nullable = dest->bitmap_buff != nullptr;
 
   // Check for data buffer overflow
   if (dest->curr_data_bytes + nbytes > (uint64_t)dest->max_data_bytes)
@@ -494,10 +543,32 @@ bool InMemoryExporter::copy_to_user_buff(
        dest->curr_data_bytes + nbytes >
            (uint64_t)std::numeric_limits<int32_t>::max()))
     return false;
+  // Check for bitmap overflow (nullable only)
+  if (nullable && ((dest->curr_num_offsets + 1) / 8 >= dest->max_bitmap_bytes))
+    return false;
+
+  // Sanity check
+  if (!var_len && !nullable && (data == nullptr || nbytes == 0))
+    throw std::runtime_error(
+        "Error copying data to user buffer; fixed-len attribute '" +
+        dest->attr_name + "' is non-nullable but data is null.");
 
   // Copy data
-  std::memcpy(
-      static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
+  if (data != nullptr)
+    std::memcpy(
+        static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
+
+  // Update validity bitmap
+  if (nullable) {
+    const bool is_null =
+        nbytes == 0 || data == nullptr ||
+        (nbytes == 1 && *static_cast<const char*>(data) == '\0');
+    size_t i = dest->curr_num_offsets;
+    if (is_null)
+      dest->bitmap->clear(i);
+    else
+      dest->bitmap->set(i);
+  }
 
   // Update offsets
   if (var_len) {
@@ -577,7 +648,8 @@ void InMemoryExporter::get_info_fmt_value(
 
   // Check for null (dummy byte).
   if (tot_nbytes == 1 && *ptr == '\0') {
-    get_null_value(field_name, is_info, data, nbytes);
+    *data = nullptr;
+    *nbytes = 0;
     return;
   }
 
@@ -616,30 +688,8 @@ void InMemoryExporter::get_info_fmt_value(
   }
 
   // If we get here, no value for this field; return null value.
-  get_null_value(field_name, is_info, data, nbytes);
-}
-
-void InMemoryExporter::get_null_value(
-    const std::string& field_name,
-    bool is_info,
-    const void** data,
-    uint64_t* nbytes) const {
-  int type = is_info ? dataset_->info_field_type(field_name) :
-                       dataset_->fmt_field_type(field_name);
-  switch (type) {
-    case BCF_HT_INT:
-      *data = &Constants::values().null_int32();
-      *nbytes = sizeof(int32_t);
-      break;
-    case BCF_HT_REAL:
-      *data = &Constants::values().null_float32();
-      *nbytes = sizeof(float);
-      break;
-    default:
-      throw std::runtime_error(
-          "Error loading null value for field '" + field_name +
-          "'; unhandled type.");
-  }
+  *data = nullptr;
+  *nbytes = 0;
 }
 
 void InMemoryExporter::make_csv_filter_list(

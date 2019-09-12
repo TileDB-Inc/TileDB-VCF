@@ -109,6 +109,21 @@ void Reader::set_buffer(
   exp->set_buffer(attribute, offsets, max_num_offsets, data, max_data_bytes);
 }
 
+void Reader::set_validity_bitmap(
+    const std::string& attribute,
+    uint8_t* bitmap_buff,
+    int64_t bitmap_buff_size) {
+  // On the first call to set_buffer(), swap out any existing exporter with an
+  // InMemoryExporter.
+  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+  if (exp == nullptr) {
+    exp = new InMemoryExporter;
+    exporter_.reset(exp);
+  }
+
+  exp->set_validity_bitmap(attribute, bitmap_buff, bitmap_buff_size);
+}
+
 void Reader::set_attr_buffer_size(unsigned mb) {
   params_.attribute_buffer_size_mb = mb;
 }
@@ -147,10 +162,13 @@ void Reader::result_size(
 }
 
 void Reader::attribute_datatype(
-    const std::string& attribute, AttrDatatype* datatype, bool* var_len) const {
+    const std::string& attribute,
+    AttrDatatype* datatype,
+    bool* var_len,
+    bool* nullable) const {
   // Datatypes for attributes are defined by the in-memory export.
   return InMemoryExporter::attribute_datatype(
-      dataset_.get(), attribute, datatype, var_len);
+      dataset_.get(), attribute, datatype, var_len, nullable);
 }
 
 void Reader::num_buffers(int32_t* num_buffers) const {
@@ -179,6 +197,17 @@ void Reader::get_buffer(
       offset_buff_size,
       data_buff,
       data_buff_size);
+}
+
+void Reader::get_bitmap_buffer(
+    int32_t buffer_idx,
+    uint8_t** bitmap_buff,
+    int64_t* bitmap_buff_size) const {
+  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+  if (exp == nullptr)
+    throw std::runtime_error(
+        "Error getting buffer information; improper or null exporter instance");
+  exp->get_bitmap_buffer(buffer_idx, bitmap_buff, bitmap_buff_size);
 }
 
 void Reader::read() {
