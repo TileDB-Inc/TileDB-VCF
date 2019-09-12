@@ -91,7 +91,7 @@ class InMemoryExporter : public Exporter {
    */
   void set_buffer(
       const std::string& attribute,
-      int64_t* offsets,
+      int32_t* offsets,
       int64_t max_num_offsets,
       void* data,
       int64_t max_data_bytes);
@@ -117,8 +117,8 @@ class InMemoryExporter : public Exporter {
    */
   void result_size(
       const std::string& attribute,
-      uint64_t* num_offsets,
-      uint64_t* nbytes) const;
+      int64_t* num_offsets,
+      int64_t* nbytes) const;
 
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
@@ -127,7 +127,7 @@ class InMemoryExporter : public Exporter {
   void get_buffer(
       int32_t buffer_idx,
       const char** name,
-      int64_t** offset_buff,
+      int32_t** offset_buff,
       int64_t* offset_buff_size,
       void** data_buff,
       int64_t* data_buff_size) const;
@@ -197,7 +197,7 @@ class InMemoryExporter : public Exporter {
     /** Currently used number of bytes in user's buffer. */
     int64_t curr_data_bytes;
     /** Pointer to user's offset buffer (null for fixed-len) */
-    int64_t* offsets;
+    int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
     /** Currently used number of offsets in user's offset buffer. */
@@ -245,29 +245,18 @@ class InMemoryExporter : public Exporter {
       uint32_t contig_offset,
       uint64_t cell_idx);
 
-  /** Helper method to export a variable-length attribute to a user buffer. */
-  bool copy_var_attr(
-      const Buffer& src,
-      uint64_t cell_idx,
-      uint64_t buff_var_size,
-      UserBuffer* dest) const;
+  /** Copies the given data to a user buffer. */
+  bool copy_to_user_buff(
+      UserBuffer* dest, const void* data, uint64_t nbytes) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
   bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;
-
-  /** Copies the given fixed-length attribute data to a user buffer. */
-  bool copy_attr_value(
-      const void* data, unsigned nbytes, UserBuffer* dest) const;
-
-  /** Copies the given var-length attribute data to a user buffer. */
-  bool copy_var_attr_value(
-      const void* data, unsigned nbytes, UserBuffer* dest) const;
 
   /**
    * Gets a pointer to the variable-length attribute data in the given source
    * buffer.
    */
-  void get_var_cell_data(
+  void get_var_attr_value(
       const Buffer& src,
       uint64_t cell_idx,
       uint64_t buff_var_size,
@@ -295,7 +284,7 @@ class InMemoryExporter : public Exporter {
   /**
    * Constructs a string CSV list of filter names from the given filter data.
    */
-  void get_csv_filter_list(
+  void make_csv_filter_list(
       const bcf_hdr_t* hdr,
       const void* data,
       uint64_t nbytes,

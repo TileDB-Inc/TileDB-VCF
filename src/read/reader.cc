@@ -94,7 +94,7 @@ void Reader::set_sample_partition(
 
 void Reader::set_buffer(
     const std::string& attribute,
-    int64_t* offsets,
+    int32_t* offsets,
     int64_t max_num_offsets,
     void* data,
     int64_t max_data_bytes) {
@@ -138,9 +138,7 @@ void Reader::dataset_version(int32_t* version) const {
 }
 
 void Reader::result_size(
-    const std::string& attribute,
-    uint64_t* num_offsets,
-    uint64_t* nbytes) const {
+    const std::string& attribute, int64_t* num_offsets, int64_t* nbytes) const {
   auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
   if (exp == nullptr)
     throw std::runtime_error(
@@ -166,7 +164,7 @@ void Reader::num_buffers(int32_t* num_buffers) const {
 void Reader::get_buffer(
     int32_t buffer_idx,
     const char** name,
-    int64_t** offset_buff,
+    int32_t** offset_buff,
     int64_t* offset_buff_size,
     void** data_buff,
     int64_t* data_buff_size) const {

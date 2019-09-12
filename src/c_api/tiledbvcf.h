@@ -240,7 +240,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
     int64_t offset_buff_size,
-    int64_t* offset_buff,
+    int32_t* offset_buff,
     int64_t buff_size,
     void* buff);
 
@@ -352,7 +352,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer(
     tiledb_vcf_reader_t* reader,
     int32_t buffer,
     const char** name,
-    int64_t** offset_buff,
+    int32_t** offset_buff,
     int64_t* offset_buff_size,
     void** data_buff,
     int64_t* data_buff_size);

@@ -135,7 +135,7 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
   const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
-  int64_t offsets[10];
+  int32_t offsets[10];
   uint32_t start_pos[10];
 
   // Error for offsets on fixed-len attr
@@ -152,7 +152,7 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
           reader, "pos_start", 0, nullptr, sizeof(start_pos), start_pos) ==
       TILEDB_VCF_OK);
 
-  int64_t contig_offsets[10];
+  int32_t contig_offsets[10];
   char contigs[100];
 
   // Error for null offsets on var-len attr
@@ -193,19 +193,19 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   const unsigned expected_num_records = 10;
   uint32_t start_pos[expected_num_records];
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t contig_name_offsets[expected_num_records];
+  int32_t contig_name_offsets[expected_num_records + 1];
   char contig_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t filter_offsets[expected_num_records];
+  int32_t filter_offsets[expected_num_records + 1];
   char filter[expected_num_records * 10];
-  int64_t genotype_offsets[expected_num_records];
+  int32_t genotype_offsets[expected_num_records + 1];
   int genotype[expected_num_records * 2];
-  int64_t info_offsets[expected_num_records];
+  int32_t info_offsets[expected_num_records + 1];
   uint8_t info[expected_num_records * 100];
-  int64_t format_offsets[expected_num_records];
+  int32_t format_offsets[expected_num_records + 1];
   uint8_t format[expected_num_records * 100];
   uint32_t qrange_start[expected_num_records];
   uint32_t qrange_end[expected_num_records];
@@ -324,12 +324,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 70);
-  REQUIRE(off_size == expected_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (expected_num_records + 1) * sizeof(int32_t));
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "alleles", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 120);
-  REQUIRE(off_size == expected_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (expected_num_records + 1) * sizeof(int32_t));
 
   // Check results
   REQUIRE(start_pos[0] == 12141);
@@ -482,6 +482,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(qrange_start[9] == 13499);
   REQUIRE(qrange_end[9] == 17350);
 
+  // Check final offsets are equal to data size
+  REQUIRE(sample_name_offsets[10] == 70);
+  REQUIRE(genotype_offsets[10] == 80);
+  REQUIRE(info_offsets[10] == 40);
+  REQUIRE(format_offsets[10] == 950);
+
   tiledb_vcf_reader_free(&reader);
 }
 
@@ -501,25 +507,25 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   const unsigned expected_num_records = 10;
   uint32_t start_pos[expected_num_records];
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t contig_name_offsets[expected_num_records];
+  int32_t contig_name_offsets[expected_num_records + 1];
   char contig_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t filter_offsets[expected_num_records];
+  int32_t filter_offsets[expected_num_records + 1];
   char filter[expected_num_records * 10];
-  int64_t genotype_offsets[expected_num_records];
+  int32_t genotype_offsets[expected_num_records + 1];
   int genotype[expected_num_records * 2];
-  int64_t info_offsets[expected_num_records];
+  int32_t info_offsets[expected_num_records + 1];
   uint8_t info[expected_num_records * 100];
-  int64_t format_offsets[expected_num_records];
+  int32_t format_offsets[expected_num_records + 1];
   uint8_t format[expected_num_records * 100];
   uint32_t qrange_start[expected_num_records];
   uint32_t qrange_end[expected_num_records];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
-  int64_t pl_offsets[expected_num_records];
+  int32_t pl_offsets[expected_num_records + 1];
   int pl[expected_num_records * 3];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -842,11 +848,11 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -963,11 +969,11 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned expected_num_records = 4;
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -1055,11 +1061,11 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -1182,11 +1188,11 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -1342,7 +1348,7 @@ TEST_CASE(
   const unsigned alloced_num_records = 2;
   uint32_t start_pos[alloced_num_records];
   uint32_t end_pos[alloced_num_records];
-  int64_t sample_name_offsets[alloced_num_records];
+  int32_t sample_name_offsets[alloced_num_records + 1];
   char sample_name[alloced_num_records * 10];
   uint32_t qrange_start[alloced_num_records];
   uint32_t qrange_end[alloced_num_records];
@@ -1415,7 +1421,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == alloced_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -1481,7 +1487,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == alloced_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
 
   // Check next results
   REQUIRE(start_pos[0] == 13354);
@@ -1557,7 +1563,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 7);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1587,7 +1593,7 @@ TEST_CASE(
   const unsigned alloced_num_records = 2;
   uint32_t start_pos[alloced_num_records];
   uint32_t end_pos[alloced_num_records];
-  int64_t sample_name_offsets[alloced_num_records];
+  int32_t sample_name_offsets[alloced_num_records + 1];
   char sample_name[alloced_num_records * 10];
   uint32_t qrange_start[alloced_num_records];
   uint32_t qrange_end[alloced_num_records];
@@ -1660,7 +1666,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == alloced_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -1726,7 +1732,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == alloced_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
 
   // Check next results
   REQUIRE(start_pos[0] == 13354);
@@ -1808,7 +1814,7 @@ TEST_CASE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == 2 * sizeof(uint64_t));
+  REQUIRE(off_size == 3 * sizeof(int32_t));
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1873,7 +1879,7 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   const unsigned alloced_num_records = 2;
   uint32_t start_pos[alloced_num_records];
   uint32_t end_pos[alloced_num_records];
-  int64_t sample_name_offsets[alloced_num_records];
+  int32_t sample_name_offsets[alloced_num_records + 1];
   char sample_name[alloced_num_records * 10];
   uint32_t qrange_start[alloced_num_records];
   uint32_t qrange_end[alloced_num_records];
@@ -1946,7 +1952,7 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 14);
-  REQUIRE(off_size == alloced_num_records * sizeof(uint64_t));
+  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -1995,7 +2001,7 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
   REQUIRE(buff_size == 7);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2031,10 +2037,10 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned allocated_num_records = 10;
   uint32_t end_pos0[allocated_num_records];
-  int64_t sample_name_offsets0[allocated_num_records];
+  int32_t sample_name_offsets0[allocated_num_records + 1];
   char sample_name0[allocated_num_records * 10];
   uint32_t end_pos1[allocated_num_records];
-  int64_t sample_name_offsets1[allocated_num_records];
+  int32_t sample_name_offsets1[allocated_num_records + 1];
   char sample_name1[allocated_num_records * 10];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -2152,10 +2158,10 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned allocated_num_records = 10;
   uint32_t end_pos0[allocated_num_records];
-  int64_t sample_name_offsets0[allocated_num_records];
+  int32_t sample_name_offsets0[allocated_num_records];
   char sample_name0[allocated_num_records * 10];
   uint32_t end_pos1[allocated_num_records];
-  int64_t sample_name_offsets1[allocated_num_records];
+  int32_t sample_name_offsets1[allocated_num_records];
   char sample_name1[allocated_num_records * 10];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -2263,11 +2269,11 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   // Allocate and set buffers
   const unsigned expected_num_records = 5;
   uint32_t end_pos[expected_num_records];
-  int64_t sample_name_offsets[expected_num_records];
+  int32_t sample_name_offsets[expected_num_records + 1];
   char sample_name[expected_num_records * 10];
-  int64_t alleles_offsets[expected_num_records];
+  int32_t alleles_offsets[expected_num_records + 1];
   char alleles[expected_num_records * 20];
-  int64_t dp_offsets[expected_num_records];
+  int32_t dp_offsets[expected_num_records + 1];
   int dp[expected_num_records];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -2361,11 +2367,11 @@ TEST_CASE(
   // Allocate and set buffers. Note due to the varying result size per
   // attribute, a different number of cells fits for the different attributes,
   // which used to trigger a bug.
-  int64_t sample_name_offsets[2];
+  int32_t sample_name_offsets[3];
   char sample_name[17];
-  int64_t contig_offsets[2];
+  int32_t contig_offsets[3];
   char contig[17];
-  int64_t alleles_offsets[2];
+  int32_t alleles_offsets[3];
   char alleles[17];
   REQUIRE(
       tiledb_vcf_reader_set_buffer(
@@ -2418,12 +2424,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2437,12 +2443,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2456,12 +2462,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2475,12 +2481,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2494,12 +2500,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2513,12 +2519,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2532,12 +2538,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2551,12 +2557,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2570,12 +2576,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   // Resubmit query
@@ -2589,12 +2595,12 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
           reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 1 * sizeof(uint64_t));
+  REQUIRE(off_size == 2 * sizeof(int32_t));
   REQUIRE(buff_size == 1);
 
   tiledb_vcf_reader_free(&reader);

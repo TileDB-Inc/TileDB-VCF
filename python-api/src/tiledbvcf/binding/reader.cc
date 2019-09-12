@@ -122,8 +122,8 @@ void Reader::alloc_buffers() {
     buffer.data = py::array(dtype, count);
 
     if (var_len == 1) {
-      size_t count = alloc_size_bytes_ / sizeof(int64_t);
-      buffer.offsets = py::array(py::dtype::of<int64_t>(), count);
+      size_t count = alloc_size_bytes_ / sizeof(int32_t);
+      buffer.offsets = py::array(py::dtype::of<int32_t>(), count);
     }
   }
 }
@@ -139,9 +139,9 @@ void Reader::set_buffers() {
     size_t offsets_bytes = offsets_info.itemsize * offsets_info.shape[0];
     size_t data_bytes = data_info.itemsize * data_info.shape[0];
 
-    int64_t* offsets_ptr = offsets_bytes == 0 ?
+    int32_t* offsets_ptr = offsets_bytes == 0 ?
                                nullptr :
-                               reinterpret_cast<int64_t*>(offsets_info.ptr);
+                               reinterpret_cast<int32_t*>(offsets_info.ptr);
 
     check_error(
         reader,
@@ -170,7 +170,7 @@ void Reader::prepare_result_buffers() {
             reader, attr.c_str(), &offset_size, &data_size));
 
     if (buff.offsets.size() > 0) {
-      int64_t num_offsets = offset_size / sizeof(int64_t);
+      int64_t num_offsets = offset_size / sizeof(int32_t);
       buff.offsets.resize({num_offsets});
     }
 
