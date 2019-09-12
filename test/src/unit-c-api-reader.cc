@@ -413,7 +413,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[5]], 1) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[5]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 5)) == 0);
+  REQUIRE(filter_offsets[5] == 7);
   REQUIRE(genotype_offsets[5] == 40);
   REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t) + 1] == 0);
@@ -428,7 +429,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[6]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[6]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 6)) == 0);
+  REQUIRE(filter_offsets[6] == 7);
   REQUIRE(genotype_offsets[6] == 48);
   REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t) + 1] == 0);
@@ -443,7 +445,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[7]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[7]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 7)) == 0);
+  REQUIRE(filter_offsets[7] == 7);
   REQUIRE(genotype_offsets[7] == 56);
   REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t) + 1] == 0);
@@ -458,7 +461,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[8]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[8]], 1) == 0);
+  REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 0)) == 0);
+  REQUIRE(filter_offsets[8] == 7);
   REQUIRE(genotype_offsets[8] == 64);
   REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t) + 1] == 0);
@@ -473,7 +477,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[9]], 1) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[9]], 1) == 0);
+  REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 1)) == 0);
+  REQUIRE(filter_offsets[9] == 7);
   REQUIRE(genotype_offsets[9] == 72);
   REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t) + 1] == 0);
@@ -484,6 +489,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
 
   // Check final offsets are equal to data size
   REQUIRE(sample_name_offsets[10] == 70);
+  REQUIRE(filter_offsets[10] == 7);
   REQUIRE(genotype_offsets[10] == 80);
   REQUIRE(info_offsets[10] == 40);
   REQUIRE(format_offsets[10] == 950);
@@ -741,7 +747,8 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[5]], 1) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[5]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 5)) == 0);
+  REQUIRE(filter_offsets[5] == 7);
   REQUIRE(genotype_offsets[5] == 40);
   REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t) + 1] == 0);
@@ -760,7 +767,8 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[6]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[6]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 6)) == 0);
+  REQUIRE(filter_offsets[6] == 7);
   REQUIRE(genotype_offsets[6] == 48);
   REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t) + 1] == 0);
@@ -779,7 +787,8 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[7]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[7]], 1) == 0);
+  REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 7)) == 0);
+  REQUIRE(filter_offsets[7] == 7);
   REQUIRE(genotype_offsets[7] == 56);
   REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t) + 1] == 0);
@@ -798,7 +807,8 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[8]], 1) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[8]], 1) == 0);
+  REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 0)) == 0);
+  REQUIRE(filter_offsets[8] == 7);
   REQUIRE(genotype_offsets[8] == 64);
   REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t) + 1] == 0);
@@ -817,7 +827,8 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("1", &contig_name[contig_name_offsets[9]], 1) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
-  REQUIRE(strncmp("", &filter[filter_offsets[9]], 1) == 0);
+  REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 1)) == 0);
+  REQUIRE(filter_offsets[9] == 7);
   REQUIRE(genotype_offsets[9] == 72);
   REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t)] == 0);
   REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t) + 1] == 0);

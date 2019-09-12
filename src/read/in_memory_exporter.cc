@@ -409,8 +409,8 @@ bool InMemoryExporter::copy_cell(
             &data,
             &nbytes);
         make_csv_filter_list(hdr, data, nbytes, &str_buff_);
-        overflow = !copy_to_user_buff(
-            &user_buff, str_buff_.data(), str_buff_.size() + 1);
+        overflow =
+            !copy_to_user_buff(&user_buff, str_buff_.data(), str_buff_.size());
         break;
       }
       case ExportableAttribute::Qual: {
