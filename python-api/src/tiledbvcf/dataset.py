@@ -54,28 +54,8 @@ class TileDBVCFDataset(object):
 
     def continue_read(self):
         self.reader.read()
-
-        results = self.reader.get_results()
-        df_series = {}
-        for attr_name, buffs in results.items():
-            offsets, data = buffs[0], buffs[1]
-            has_offsets = offsets.size > 0
-            if has_offsets:
-                values = []
-                for i, offset in enumerate(offsets):
-                    if i < len(offsets) - 1:
-                        next_offset = offsets[i + 1]
-                    else:
-                        next_offset = len(data)
-                    value = data[offset:next_offset]
-                    if data.dtype.char == 'S':
-                        values.append(''.join(value.astype(str)))
-                    else:
-                        values.append(value)
-                df_series[attr_name] = pd.Series(values)
-            else:
-                df_series[attr_name] = pd.Series(data)
-        return pd.DataFrame.from_dict(df_series)
+        table = self.reader.get_results_arrow()
+        return table.to_pandas()
 
     def read_completed(self):
         """Returns true if the previous read operation was complete.
