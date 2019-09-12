@@ -146,8 +146,13 @@ void InMemoryExporter::result_size(
         "Error getting result size; attribute '" + attribute +
         "' had no buffer set.");
   const UserBuffer& buff = it->second;
-  if (num_offsets)
-    *num_offsets = buff.curr_num_offsets;
+
+  if (num_offsets) {
+    // If there was any data written, there is an extra "offset" stored at the
+    // end of the offsets buffer (storing the total data size, c.f. Arrow).
+    *num_offsets = buff.curr_num_offsets == 0 ? 0 : buff.curr_num_offsets + 1;
+  }
+
   if (nbytes)
     *nbytes = buff.curr_data_bytes;
 }
@@ -479,18 +484,31 @@ bool InMemoryExporter::copy_to_user_buff(
     UserBuffer* dest, const void* data, uint64_t nbytes) const {
   const bool var_len = dest->offsets != nullptr;
 
-  // Check for overflow
-  if (dest->curr_data_bytes + nbytes > dest->max_data_bytes)
+  // Check for data buffer overflow
+  if (dest->curr_data_bytes + nbytes > (uint64_t)dest->max_data_bytes)
     return false;
-  if (var_len && (dest->curr_num_offsets + 1 > dest->max_num_offsets ||
-                  dest->curr_data_bytes >= std::numeric_limits<int32_t>::max()))
+  // Check for offsets overflow (var-len only)
+  if (var_len &&
+      (dest->curr_num_offsets + 2 > dest->max_num_offsets ||
+       dest->curr_data_bytes >= (int64_t)std::numeric_limits<int32_t>::max() ||
+       dest->curr_data_bytes + nbytes >
+           (uint64_t)std::numeric_limits<int32_t>::max()))
     return false;
 
   // Copy data
   std::memcpy(
       static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
-  if (var_len)
-    dest->offsets[dest->curr_num_offsets++] = dest->curr_data_bytes;
+
+  // Update offsets
+  if (var_len) {
+    // Set offset of current cell
+    dest->offsets[dest->curr_num_offsets++] =
+        static_cast<int32_t>(dest->curr_data_bytes);
+    // Always keep the final offset set to the current data buffer size.
+    // (This is why we have the +2 overflow check above).
+    dest->offsets[dest->curr_num_offsets] =
+        static_cast<int32_t>(dest->curr_data_bytes + nbytes);
+  }
 
   dest->curr_data_bytes += nbytes;
   return true;

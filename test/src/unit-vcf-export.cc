@@ -105,7 +105,7 @@ void check_result(
 
   unsigned nrec = expected.size();
   REQUIRE(num_offsets == 0);
-  REQUIRE(nbytes == nrec * sizeof(T));
+  REQUIRE(nbytes == (int64_t)(nrec * sizeof(T)));
   std::vector<T> actual;
   for (unsigned i = 0; i < nrec; i++)
     actual.push_back(*(buffer.data<T>() + i));
@@ -154,11 +154,10 @@ void check_string_result(
   reader.result_size(attr, &num_offsets, &nbytes);
 
   unsigned nrec = expected.size();
-  REQUIRE(num_offsets == nrec);
+  REQUIRE(num_offsets == (int64_t)nrec + 1);
   std::vector<std::string> actual;
   for (unsigned i = 0; i < nrec; i++) {
-    auto len = (i == nrec - 1 ? nbytes : buffer.offsets()[i + 1]) -
-               buffer.offsets()[i];
+    auto len = buffer.offsets()[i + 1] - buffer.offsets()[i];
     std::string s(buffer.data<char>() + buffer.offsets()[i], len);
     actual.push_back(s);
   }

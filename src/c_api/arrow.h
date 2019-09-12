@@ -179,19 +179,11 @@ class Arrow {
     auto arrow_buff = arrow::Buffer::Wrap(reinterpret_cast<char*>(buff), nelts);
 
     // TODO:
-    //   - Change our offset representation to match Arrow
     //   - Change our nullable representation to match Arrow
-    const size_t num_offsets = offset_buff_size / sizeof(int32_t);
-    arrow::BufferBuilder offset_builder;
-    check_error(offset_builder.Reserve(
-        num_offsets * sizeof(int32_t) + sizeof(int32_t)));
-    check_error(
-        offset_builder.Append(offset_buff, num_offsets * sizeof(int32_t)));
-    check_error(offset_builder.Append(&buff_size, sizeof(int32_t)));
-    std::shared_ptr<arrow::Buffer> arrow_offsets;
-    check_error(offset_builder.Finish(&arrow_offsets));
+    const auto num_offsets = offset_buff_size / sizeof(int32_t);
+    auto arrow_offsets = arrow::Buffer::Wrap(offset_buff, num_offsets);
 
-    const int64_t num_values = num_offsets;
+    const int64_t num_values = num_offsets - 1;
     std::shared_ptr<arrow::Buffer> arrow_nulls;
     check_error(arrow::AllocateEmptyBitmap(num_values, &arrow_nulls));
     uint8_t* bits = arrow_nulls->mutable_data();
@@ -220,19 +212,11 @@ class Arrow {
     std::shared_ptr<arrow::Array> arrow_values(new ArrayT(nelts, arrow_buff));
 
     // TODO:
-    //   - Change our offset representation to match Arrow
     //   - Change our nullable representation to match Arrow
-    const size_t num_offsets = offset_buff_size / sizeof(int32_t);
-    arrow::BufferBuilder offset_builder;
-    check_error(offset_builder.Reserve(
-        num_offsets * sizeof(int32_t) + sizeof(int32_t)));
-    check_error(
-        offset_builder.Append(offset_buff, num_offsets * sizeof(int32_t)));
-    check_error(offset_builder.Append(&buff_size, sizeof(int32_t)));
-    std::shared_ptr<arrow::Buffer> arrow_offsets;
-    check_error(offset_builder.Finish(&arrow_offsets));
+    const auto num_offsets = offset_buff_size / sizeof(int32_t);
+    auto arrow_offsets = arrow::Buffer::Wrap(offset_buff, num_offsets);
 
-    const int64_t num_values = num_offsets;
+    const int64_t num_values = num_offsets - 1;
     std::shared_ptr<arrow::Buffer> arrow_nulls;
     check_error(arrow::AllocateEmptyBitmap(num_values, &arrow_nulls));
     uint8_t* bits = arrow_nulls->mutable_data();
