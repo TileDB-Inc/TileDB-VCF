@@ -13,10 +13,19 @@ TESTS_INPUT_DIR = os.path.abspath(
 
 
 def _check_dfs(expected, actual):
+    def assert_series(s1, s2):
+        if type(s2.iloc[0]) == np.ndarray:
+            assert len(s1) == len(s2)
+            for i in range(0, len(s1)):
+                assert np.array_equal(s1.iloc[i], s2.iloc[i])
+        else:
+            assert s1.equals(s2)
+
     for k in expected:
-        assert expected[k].equals(actual[k])
+        assert_series(expected[k], actual[k])
+
     for k in actual:
-        assert actual[k].equals(expected[k])
+        assert_series(expected[k], actual[k])
 
 
 @pytest.fixture
@@ -152,6 +161,32 @@ def test_read_filters(test_ds):
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
             'filters': pd.Series([None, None, 'LowQual', None, None, None])})
+    _check_dfs(expected_df, df)
+
+
+def test_read_var_len_attrs(test_ds):
+    df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
+                             'fmt_DP', 'fmt_PL'],
+                      regions=['1:12100-13360', '1:13500-17350'])
+    expected_df = pd.DataFrame(
+        {'sample_name': pd.Series(
+            ['HG00280', 'HG01762', 'HG00280', 'HG01762', 'HG00280', 'HG01762',
+             'HG00280', 'HG00280', 'HG00280', 'HG00280', ]),
+            'pos_start': pd.Series(
+                [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545,
+                 17319], dtype=np.int32),
+            'pos_end': pd.Series(
+                [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689,
+                 17479], dtype=np.int32),
+            'fmt_DP': pd.Series(map(lambda lst: np.array(lst, dtype=np.int32),
+                                    [[0], [0], [0], [0], [15], [64], [10], [6],
+                                     [0], [0]])),
+            'fmt_PL': pd.Series(
+                map(lambda lst: np.array(lst, dtype=np.int32),
+                    [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 24, 360],
+                     [0, 66, 990], [0, 21, 210], [0, 6, 90], [0, 0, 0],
+                     [0, 0, 0]]))})
+
     _check_dfs(expected_df, df)
 
 

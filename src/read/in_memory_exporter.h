@@ -116,15 +116,12 @@ class InMemoryExporter : public Exporter {
 
   /**
    * Returns the size of the result copied for the given attribute.
-   *
-   * @param attribute Name of attribute
-   * @param num_offsets For var-length attrs, number of offsets copied.
-   * @param nbytes Number of data bytes copid,
    */
   void result_size(
       const std::string& attribute,
       int64_t* num_offsets,
-      int64_t* nbytes) const;
+      int64_t* num_data_elements,
+      int64_t* num_data_bytes) const;
 
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
@@ -193,6 +190,7 @@ class InMemoryExporter : public Exporter {
         , data(nullptr)
         , max_data_bytes(0)
         , curr_data_bytes(0)
+        , curr_data_nelts(0)
         , offsets(nullptr)
         , max_num_offsets(0)
         , curr_num_offsets(0)
@@ -214,6 +212,8 @@ class InMemoryExporter : public Exporter {
     int64_t max_data_bytes;
     /** Currently used number of bytes in user's buffer. */
     int64_t curr_data_bytes;
+    /** Current number of elements in user's buffer. */
+    int64_t curr_data_nelts;
 
     /** Pointer to user's offset buffer (null for fixed-len) */
     int32_t* offsets;
@@ -278,7 +278,10 @@ class InMemoryExporter : public Exporter {
 
   /** Copies the given data to a user buffer. */
   bool copy_to_user_buff(
-      UserBuffer* dest, const void* data, uint64_t nbytes) const;
+      UserBuffer* dest,
+      const void* data,
+      uint64_t nbytes,
+      uint64_t nelts) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
   bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;
@@ -303,7 +306,8 @@ class InMemoryExporter : public Exporter {
       const std::string& field_name,
       uint64_t cell_idx,
       const void** data,
-      uint64_t* nbytes) const;
+      uint64_t* nbytes,
+      uint64_t* nelts) const;
 
   /**
    * Constructs a string CSV list of filter names from the given filter data.

@@ -179,19 +179,21 @@ void Reader::prepare_result_buffers() {
     py::buffer_info data_info = buff.data.request(true);
     py::buffer_info bitmap_info = buff.bitmap.request(true);
 
-    int64_t offset_size = 0, data_size = 0;
+    int64_t num_offsets = 0, num_data_elements = 0, num_data_bytes = 0;
     check_error(
         reader,
         tiledb_vcf_reader_get_result_size(
-            reader, attr.c_str(), &offset_size, &data_size));
+            reader,
+            attr.c_str(),
+            &num_offsets,
+            &num_data_elements,
+            &num_data_bytes));
 
-    int64_t num_offsets = offset_size / sizeof(int32_t);
     if (buff.offsets.size() > 0) {
       buff.offsets.resize({num_offsets});
     }
 
-    int64_t num_data_elts = data_size / buff.data.itemsize();
-    buff.data.resize({num_data_elts});
+    buff.data.resize({num_data_elements});
 
     if (bitmap_info.shape[0] > 0) {
       buff.bitmap.resize({num_offsets - 1});

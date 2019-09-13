@@ -365,19 +365,17 @@ int32_t tiledb_vcf_reader_get_result_num_records(
 int32_t tiledb_vcf_reader_get_result_size(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t* offset_buff_size,
-    int64_t* buff_size) {
+    int64_t* num_offsets,
+    int64_t* num_data_elements,
+    int64_t* num_data_bytes) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  int64_t num_offsets = 0, nbytes = 0;
   if (SAVE_ERROR_CATCH(
           reader,
-          reader->reader_->result_size(attribute, &num_offsets, &nbytes)))
+          reader->reader_->result_size(
+              attribute, num_offsets, num_data_elements, num_data_bytes)))
     return TILEDB_VCF_ERR;
-
-  *offset_buff_size = num_offsets * sizeof(int32_t);
-  *buff_size = nbytes;
 
   return TILEDB_VCF_OK;
 }

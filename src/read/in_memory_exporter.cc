@@ -65,6 +65,7 @@ void InMemoryExporter::set_buffer(
   buff->data = data;
   buff->max_data_bytes = max_data_bytes;
   buff->curr_data_bytes = 0;
+  buff->curr_data_nelts = 0;
   buff->offsets = offsets;
   buff->max_num_offsets = max_num_offsets;
   buff->curr_num_offsets = 0;
@@ -165,22 +166,25 @@ void InMemoryExporter::reset() {
 }
 
 void InMemoryExporter::result_size(
-    const std::string& attribute, int64_t* num_offsets, int64_t* nbytes) const {
+    const std::string& attribute,
+    int64_t* num_offsets,
+    int64_t* num_data_elements,
+    int64_t* num_data_bytes) const {
   auto it = user_buffers_.find(attribute);
   if (it == user_buffers_.end())
     throw std::runtime_error(
         "Error getting result size; attribute '" + attribute +
         "' had no buffer set.");
   const UserBuffer& buff = it->second;
-
   if (num_offsets) {
     // If there was any data written, there is an extra "offset" stored at the
     // end of the offsets buffer (storing the total data size, c.f. Arrow).
     *num_offsets = buff.curr_num_offsets == 0 ? 0 : buff.curr_num_offsets + 1;
   }
-
-  if (nbytes)
-    *nbytes = buff.curr_data_bytes;
+  if (num_data_elements)
+    *num_data_elements = buff.curr_data_nelts;
+  if (num_data_bytes)
+    *num_data_bytes = buff.curr_data_bytes;
 }
 
 void InMemoryExporter::num_buffers(int32_t* num_buffers) const {
@@ -220,7 +224,9 @@ void InMemoryExporter::get_bitmap_buffer(
 void InMemoryExporter::reset_current_sizes() {
   for (auto& it : user_buffers_) {
     it.second.curr_data_bytes = 0;
+    it.second.curr_data_nelts = 0;
     it.second.curr_num_offsets = 0;
+    it.second.curr_bitmap_bytes = 0;
   }
 }
 
@@ -373,10 +379,13 @@ bool InMemoryExporter::copy_cell(
 
   // TODO: this is probably too expensive.
   // Record current buffer sizes in case of overflow on some attribute.
-  std::map<std::string, std::pair<int64_t, int64_t>> curr_user_buff_sizes;
+  using SizeInfo = std::tuple<int64_t, int64_t, int64_t, int64_t>;
+  std::map<std::string, SizeInfo> curr_user_buff_sizes;
   for (auto& it : user_buffers_) {
-    curr_user_buff_sizes[it.first].first = it.second.curr_num_offsets;
-    curr_user_buff_sizes[it.first].second = it.second.curr_data_bytes;
+    std::get<0>(curr_user_buff_sizes[it.first]) = it.second.curr_num_offsets;
+    std::get<1>(curr_user_buff_sizes[it.first]) = it.second.curr_data_bytes;
+    std::get<2>(curr_user_buff_sizes[it.first]) = it.second.curr_data_nelts;
+    std::get<3>(curr_user_buff_sizes[it.first]) = it.second.curr_bitmap_bytes;
   }
 
   const auto* buffers = curr_query_results_->buffers();
@@ -393,34 +402,41 @@ bool InMemoryExporter::copy_cell(
         const std::string& sample_name =
             dataset_->metadata().sample_names[sample_id];
         overflow = !copy_to_user_buff(
-            &user_buff, sample_name.c_str(), sample_name.size());
+            &user_buff,
+            sample_name.c_str(),
+            sample_name.size(),
+            sample_name.size());
         break;
       }
       case ExportableAttribute::Contig: {
         overflow = !copy_to_user_buff(
-            &user_buff, region.seq_name.c_str(), region.seq_name.size());
+            &user_buff,
+            region.seq_name.c_str(),
+            region.seq_name.size(),
+            region.seq_name.size());
         break;
       }
       case ExportableAttribute::PosStart: {
         const uint32_t pos =
             (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_to_user_buff(&user_buff, &pos, sizeof(pos));
+        overflow = !copy_to_user_buff(&user_buff, &pos, sizeof(pos), 1);
         break;
       }
       case ExportableAttribute::PosEnd: {
         const uint32_t real_end =
             (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_to_user_buff(&user_buff, &real_end, sizeof(real_end));
+        overflow =
+            !copy_to_user_buff(&user_buff, &real_end, sizeof(real_end), 1);
         break;
       }
       case ExportableAttribute::QueryBedStart: {
         overflow =
-            !copy_to_user_buff(&user_buff, &region.min, sizeof(region.min));
+            !copy_to_user_buff(&user_buff, &region.min, sizeof(region.min), 1);
         break;
       }
       case ExportableAttribute::QueryBedEnd: {
         uint32_t end = region.max + 1;
-        overflow = !copy_to_user_buff(&user_buff, &end, sizeof(end));
+        overflow = !copy_to_user_buff(&user_buff, &end, sizeof(end), 1);
         break;
       }
       case ExportableAttribute::Alleles: {
@@ -432,7 +448,7 @@ bool InMemoryExporter::copy_cell(
             curr_query_results_->alleles_size().second,
             &data,
             &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
         break;
       }
       case ExportableAttribute::Id: {
@@ -444,7 +460,7 @@ bool InMemoryExporter::copy_cell(
             curr_query_results_->id_size().second,
             &data,
             &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
         break;
       }
       case ExportableAttribute::Filters: {
@@ -457,13 +473,13 @@ bool InMemoryExporter::copy_cell(
             &data,
             &nbytes);
         make_csv_filter_list(hdr, data, nbytes, &str_buff_);
-        overflow =
-            !copy_to_user_buff(&user_buff, str_buff_.data(), str_buff_.size());
+        overflow = !copy_to_user_buff(
+            &user_buff, str_buff_.data(), str_buff_.size(), str_buff_.size());
         break;
       }
       case ExportableAttribute::Qual: {
         const auto qual = buffers->qual().value<float>(cell_idx);
-        overflow = !copy_to_user_buff(&user_buff, &qual, sizeof(qual));
+        overflow = !copy_to_user_buff(&user_buff, &qual, sizeof(qual), 1);
         break;
       }
       case ExportableAttribute::Fmt: {
@@ -475,7 +491,7 @@ bool InMemoryExporter::copy_cell(
             curr_query_results_->fmt_size().second,
             &data,
             &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
         break;
       }
       case ExportableAttribute::Info: {
@@ -487,7 +503,7 @@ bool InMemoryExporter::copy_cell(
             curr_query_results_->info_size().second,
             &data,
             &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes);
+        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
         break;
       }
       case ExportableAttribute::InfoOrFmt: {
@@ -504,8 +520,10 @@ bool InMemoryExporter::copy_cell(
   if (overflow) {
     // Restore old buffer sizes so the user can process the incomplete results.
     for (auto& it : user_buffers_) {
-      it.second.curr_num_offsets = curr_user_buff_sizes[it.first].first;
-      it.second.curr_data_bytes = curr_user_buff_sizes[it.first].second;
+      it.second.curr_num_offsets = std::get<0>(curr_user_buff_sizes[it.first]);
+      it.second.curr_data_bytes = std::get<1>(curr_user_buff_sizes[it.first]);
+      it.second.curr_data_nelts = std::get<2>(curr_user_buff_sizes[it.first]);
+      it.second.curr_bitmap_bytes = std::get<3>(curr_user_buff_sizes[it.first]);
     }
     return false;
   }
@@ -529,7 +547,7 @@ void InMemoryExporter::get_var_attr_value(
 }
 
 bool InMemoryExporter::copy_to_user_buff(
-    UserBuffer* dest, const void* data, uint64_t nbytes) const {
+    UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
   const bool var_len = dest->offsets != nullptr;
   const bool nullable = dest->bitmap_buff != nullptr;
 
@@ -539,8 +557,8 @@ bool InMemoryExporter::copy_to_user_buff(
   // Check for offsets overflow (var-len only)
   if (var_len &&
       (dest->curr_num_offsets + 2 > dest->max_num_offsets ||
-       dest->curr_data_bytes >= (int64_t)std::numeric_limits<int32_t>::max() ||
-       dest->curr_data_bytes + nbytes >
+       dest->curr_data_nelts >= (int64_t)std::numeric_limits<int32_t>::max() ||
+       dest->curr_data_nelts + nelts >
            (uint64_t)std::numeric_limits<int32_t>::max()))
     return false;
   // Check for bitmap overflow (nullable only)
@@ -574,14 +592,15 @@ bool InMemoryExporter::copy_to_user_buff(
   if (var_len) {
     // Set offset of current cell
     dest->offsets[dest->curr_num_offsets++] =
-        static_cast<int32_t>(dest->curr_data_bytes);
+        static_cast<int32_t>(dest->curr_data_nelts);
     // Always keep the final offset set to the current data buffer size.
     // (This is why we have the +2 overflow check above).
     dest->offsets[dest->curr_num_offsets] =
-        static_cast<int32_t>(dest->curr_data_bytes + nbytes);
+        static_cast<int32_t>(dest->curr_data_nelts + nelts);
   }
 
   dest->curr_data_bytes += nbytes;
+  dest->curr_data_nelts += nelts;
   return true;
 }
 
@@ -596,19 +615,19 @@ bool InMemoryExporter::copy_info_fmt_value(
   const std::string& field_name = parts.second;
   const bool is_gt = field_name == "GT";
   const void* src = nullptr;
-  uint64_t nbytes = 0;
-  get_info_fmt_value(dest->attr_name, field_name, cell_idx, &src, &nbytes);
+  uint64_t nbytes = 0, nelts = 0;
+  get_info_fmt_value(
+      dest->attr_name, field_name, cell_idx, &src, &nbytes, &nelts);
 
   if (is_gt) {
     // Genotype needs special handling to be decoded.
     const int* genotype = reinterpret_cast<const int*>(src);
-    unsigned num_values = nbytes / sizeof(int);
-    int decoded[num_values];
-    for (unsigned i = 0; i < num_values; i++)
+    int decoded[nelts];
+    for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
-    return copy_to_user_buff(dest, decoded, num_values * sizeof(int));
+    return copy_to_user_buff(dest, decoded, nelts * sizeof(int), nelts);
   } else {
-    return copy_to_user_buff(dest, src, nbytes);
+    return copy_to_user_buff(dest, src, nbytes, nelts);
   }
 }
 
@@ -617,7 +636,8 @@ void InMemoryExporter::get_info_fmt_value(
     const std::string& field_name,
     uint64_t cell_idx,
     const void** data,
-    uint64_t* nbytes) const {
+    uint64_t* nbytes,
+    uint64_t* nelts) const {
   // Get either the extracted attribute buffer, or the info/fmt blob attribute.
   const bool is_info = utils::starts_with(attr_name, "info_");
   const Buffer* src = nullptr;
@@ -650,6 +670,7 @@ void InMemoryExporter::get_info_fmt_value(
   if (tot_nbytes == 1 && *ptr == '\0') {
     *data = nullptr;
     *nbytes = 0;
+    *nelts = 0;
     return;
   }
 
@@ -660,6 +681,7 @@ void InMemoryExporter::get_info_fmt_value(
     ptr += sizeof(int);
     *data = ptr;
     *nbytes = utils::bcf_type_size(type) * num_values;
+    *nelts = num_values;
     return;
   } else {
     // Skip initial 'nfmt'/'ninfo' field.
@@ -680,6 +702,7 @@ void InMemoryExporter::get_info_fmt_value(
       if (match) {
         *data = ptr;
         *nbytes = type_size * num_values;
+        *nelts = num_values;
         return;
       }
 
@@ -690,6 +713,7 @@ void InMemoryExporter::get_info_fmt_value(
   // If we get here, no value for this field; return null value.
   *data = nullptr;
   *nbytes = 0;
+  *nelts = 0;
 }
 
 void InMemoryExporter::make_csv_filter_list(

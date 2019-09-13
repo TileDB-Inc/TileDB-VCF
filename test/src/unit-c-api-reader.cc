@@ -319,22 +319,34 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check a few buffer sizes
-  int64_t buff_size, off_size;
+  int64_t num_offsets, num_data_elements, num_data_bytes;
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == expected_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == expected_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 70);
-  REQUIRE(off_size == (expected_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 70);
+  REQUIRE(num_offsets == (expected_num_records + 1));
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "alleles", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 120);
-  REQUIRE(off_size == (expected_num_records + 1) * sizeof(int32_t));
+          reader,
+          "alleles",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 120);
+  REQUIRE(num_offsets == (expected_num_records + 1));
 
   // Check results
   REQUIRE(start_pos[0] == 12141);
@@ -346,8 +358,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filter_offsets[0] == 0);
   REQUIRE(genotype_offsets[0] == 0);
-  REQUIRE(genotype[genotype_offsets[0] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[0] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype[genotype_offsets[0]] == 0);
+  REQUIRE(genotype[genotype_offsets[0] + 1] == 0);
   REQUIRE(info_offsets[0] == 0);
   REQUIRE(format_offsets[0] == 0);
   REQUIRE(qrange_start[0] == 12099);
@@ -361,9 +373,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filter_offsets[1] == 0);
-  REQUIRE(genotype_offsets[1] == 8);
-  REQUIRE(genotype[genotype_offsets[1] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[1] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[1] == 2);
+  REQUIRE(genotype[genotype_offsets[1]] == 0);
+  REQUIRE(genotype[genotype_offsets[1] + 1] == 0);
   REQUIRE(info_offsets[1] == 4);
   REQUIRE(format_offsets[1] == 95);
   REQUIRE(qrange_start[1] == 12099);
@@ -377,9 +389,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 2)) == 0);
   REQUIRE(filter_offsets[2] == 0);
-  REQUIRE(genotype_offsets[2] == 16);
-  REQUIRE(genotype[genotype_offsets[2] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[2] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[2] == 4);
+  REQUIRE(genotype[genotype_offsets[2]] == 0);
+  REQUIRE(genotype[genotype_offsets[2] + 1] == 0);
   REQUIRE(info_offsets[2] == 8);
   REQUIRE(format_offsets[2] == 190);
   REQUIRE(qrange_start[2] == 12099);
@@ -393,9 +405,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 3)) == 0);
   REQUIRE(filter_offsets[3] == 0);
-  REQUIRE(genotype_offsets[3] == 24);
-  REQUIRE(genotype[genotype_offsets[3] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[3] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[3] == 6);
+  REQUIRE(genotype[genotype_offsets[3]] == 0);
+  REQUIRE(genotype[genotype_offsets[3] + 1] == 0);
   REQUIRE(info_offsets[3] == 12);
   REQUIRE(format_offsets[3] == 285);
   REQUIRE(qrange_start[3] == 12099);
@@ -410,9 +422,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filter_offsets[4] == 0);
   REQUIRE(strncmp("LowQual", &filter[filter_offsets[4]], 7) == 0);
-  REQUIRE(genotype_offsets[4] == 32);
-  REQUIRE(genotype[genotype_offsets[4] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[4] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[4] == 8);
+  REQUIRE(genotype[genotype_offsets[4]] == 0);
+  REQUIRE(genotype[genotype_offsets[4] + 1] == 0);
   REQUIRE(info_offsets[4] == 16);
   REQUIRE(format_offsets[4] == 380);
   REQUIRE(qrange_start[4] == 12099);
@@ -426,9 +438,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 5)) == 0);
   REQUIRE(filter_offsets[5] == 7);
-  REQUIRE(genotype_offsets[5] == 40);
-  REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[5] == 10);
+  REQUIRE(genotype[genotype_offsets[5]] == 0);
+  REQUIRE(genotype[genotype_offsets[5] + 1] == 0);
   REQUIRE(info_offsets[5] == 20);
   REQUIRE(format_offsets[5] == 475);
   REQUIRE(qrange_start[5] == 12099);
@@ -442,9 +454,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 6)) == 0);
   REQUIRE(filter_offsets[6] == 7);
-  REQUIRE(genotype_offsets[6] == 48);
-  REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[6] == 12);
+  REQUIRE(genotype[genotype_offsets[6]] == 0);
+  REQUIRE(genotype[genotype_offsets[6] + 1] == 0);
   REQUIRE(info_offsets[6] == 24);
   REQUIRE(format_offsets[6] == 570);
   REQUIRE(qrange_start[6] == 13499);
@@ -458,9 +470,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 7)) == 0);
   REQUIRE(filter_offsets[7] == 7);
-  REQUIRE(genotype_offsets[7] == 56);
-  REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[7] == 14);
+  REQUIRE(genotype[genotype_offsets[7]] == 0);
+  REQUIRE(genotype[genotype_offsets[7] + 1] == 0);
   REQUIRE(info_offsets[7] == 28);
   REQUIRE(format_offsets[7] == 665);
   REQUIRE(qrange_start[7] == 13499);
@@ -474,9 +486,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
   REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filter_offsets[8] == 7);
-  REQUIRE(genotype_offsets[8] == 64);
-  REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[8] == 16);
+  REQUIRE(genotype[genotype_offsets[8]] == 0);
+  REQUIRE(genotype[genotype_offsets[8] + 1] == 0);
   REQUIRE(info_offsets[8] == 32);
   REQUIRE(format_offsets[8] == 760);
   REQUIRE(qrange_start[8] == 13499);
@@ -490,9 +502,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
   REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filter_offsets[9] == 7);
-  REQUIRE(genotype_offsets[9] == 72);
-  REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[9] == 18);
+  REQUIRE(genotype[genotype_offsets[9]] == 0);
+  REQUIRE(genotype[genotype_offsets[9] + 1] == 0);
   REQUIRE(info_offsets[9] == 36);
   REQUIRE(format_offsets[9] == 855);
   REQUIRE(qrange_start[9] == 13499);
@@ -501,7 +513,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   // Check final offsets are equal to data size
   REQUIRE(sample_name_offsets[10] == 70);
   REQUIRE(filter_offsets[10] == 7);
-  REQUIRE(genotype_offsets[10] == 80);
+  REQUIRE(genotype_offsets[10] == 20);
   REQUIRE(info_offsets[10] == 40);
   REQUIRE(format_offsets[10] == 950);
 
@@ -671,16 +683,16 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filter_offsets[0] == 0);
   REQUIRE(genotype_offsets[0] == 0);
-  REQUIRE(genotype[genotype_offsets[0] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[0] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype[genotype_offsets[0]] == 0);
+  REQUIRE(genotype[genotype_offsets[0] + 1] == 0);
   REQUIRE(info_offsets[0] == 0);
   REQUIRE(format_offsets[0] == 0);
   REQUIRE(qrange_start[0] == 12099);
   REQUIRE(qrange_end[0] == 13360);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[0] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[0] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[0] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[0]] == 0);
+  REQUIRE(pl[pl_offsets[0]] == 0);
+  REQUIRE(pl[pl_offsets[0] + 1] == 0);
+  REQUIRE(pl[pl_offsets[0] + 2] == 0);
 
   REQUIRE(start_pos[1] == 12141);
   REQUIRE(end_pos[1] == 12277);
@@ -690,17 +702,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filter_offsets[1] == 0);
-  REQUIRE(genotype_offsets[1] == 8);
-  REQUIRE(genotype[genotype_offsets[1] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[1] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[1] == 2);
+  REQUIRE(genotype[genotype_offsets[1]] == 0);
+  REQUIRE(genotype[genotype_offsets[1] + 1] == 0);
   REQUIRE(info_offsets[1] == 4);
   REQUIRE(format_offsets[1] == 38);
   REQUIRE(qrange_start[1] == 12099);
   REQUIRE(qrange_end[1] == 13360);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[1] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[1] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[1] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[1]] == 0);
+  REQUIRE(pl[pl_offsets[1]] == 0);
+  REQUIRE(pl[pl_offsets[1] + 1] == 0);
+  REQUIRE(pl[pl_offsets[1] + 2] == 0);
 
   REQUIRE(start_pos[2] == 12546);
   REQUIRE(end_pos[2] == 12771);
@@ -710,17 +722,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 2)) == 0);
   REQUIRE(filter_offsets[2] == 0);
-  REQUIRE(genotype_offsets[2] == 16);
-  REQUIRE(genotype[genotype_offsets[2] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[2] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[2] == 4);
+  REQUIRE(genotype[genotype_offsets[2]] == 0);
+  REQUIRE(genotype[genotype_offsets[2] + 1] == 0);
   REQUIRE(info_offsets[2] == 8);
   REQUIRE(format_offsets[2] == 76);
   REQUIRE(qrange_start[2] == 12099);
   REQUIRE(qrange_end[2] == 13360);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[2] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[2] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[2] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[2]] == 0);
+  REQUIRE(pl[pl_offsets[2]] == 0);
+  REQUIRE(pl[pl_offsets[2] + 1] == 0);
+  REQUIRE(pl[pl_offsets[2] + 2] == 0);
 
   REQUIRE(start_pos[3] == 12546);
   REQUIRE(end_pos[3] == 12771);
@@ -730,17 +742,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 3)) == 0);
   REQUIRE(filter_offsets[3] == 0);
-  REQUIRE(genotype_offsets[3] == 24);
-  REQUIRE(genotype[genotype_offsets[3] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[3] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[3] == 6);
+  REQUIRE(genotype[genotype_offsets[3]] == 0);
+  REQUIRE(genotype[genotype_offsets[3] + 1] == 0);
   REQUIRE(info_offsets[3] == 12);
   REQUIRE(format_offsets[3] == 114);
   REQUIRE(qrange_start[3] == 12099);
   REQUIRE(qrange_end[3] == 13360);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[3] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[3] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[3] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[3]] == 0);
+  REQUIRE(pl[pl_offsets[3]] == 0);
+  REQUIRE(pl[pl_offsets[3] + 1] == 0);
+  REQUIRE(pl[pl_offsets[3] + 2] == 0);
 
   REQUIRE(start_pos[4] == 13354);
   REQUIRE(end_pos[4] == 13374);
@@ -751,17 +763,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filter_offsets[4] == 0);
   REQUIRE(strncmp("LowQual", &filter[filter_offsets[4]], 7) == 0);
-  REQUIRE(genotype_offsets[4] == 32);
-  REQUIRE(genotype[genotype_offsets[4] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[4] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[4] == 8);
+  REQUIRE(genotype[genotype_offsets[4]] == 0);
+  REQUIRE(genotype[genotype_offsets[4] + 1] == 0);
   REQUIRE(info_offsets[4] == 16);
   REQUIRE(format_offsets[4] == 152);
   REQUIRE(qrange_start[4] == 12099);
   REQUIRE(qrange_end[4] == 13360);
-  REQUIRE(dp[dp_offsets[4] / sizeof(int32_t)] == 15);
-  REQUIRE(pl[pl_offsets[4] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[4] / sizeof(int32_t) + 1] == 24);
-  REQUIRE(pl[pl_offsets[4] / sizeof(int32_t) + 2] == 360);
+  REQUIRE(dp[dp_offsets[4]] == 15);
+  REQUIRE(pl[pl_offsets[4]] == 0);
+  REQUIRE(pl[pl_offsets[4] + 1] == 24);
+  REQUIRE(pl[pl_offsets[4] + 2] == 360);
 
   REQUIRE(start_pos[5] == 13354);
   REQUIRE(end_pos[5] == 13389);
@@ -771,17 +783,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 5)) == 0);
   REQUIRE(filter_offsets[5] == 7);
-  REQUIRE(genotype_offsets[5] == 40);
-  REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[5] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[5] == 10);
+  REQUIRE(genotype[genotype_offsets[5]] == 0);
+  REQUIRE(genotype[genotype_offsets[5] + 1] == 0);
   REQUIRE(info_offsets[5] == 20);
   REQUIRE(format_offsets[5] == 190);
   REQUIRE(qrange_start[5] == 12099);
   REQUIRE(qrange_end[5] == 13360);
-  REQUIRE(dp[dp_offsets[5] / sizeof(int32_t)] == 64);
-  REQUIRE(pl[pl_offsets[5] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[5] / sizeof(int32_t) + 1] == 66);
-  REQUIRE(pl[pl_offsets[5] / sizeof(int32_t) + 2] == 990);
+  REQUIRE(dp[dp_offsets[5]] == 64);
+  REQUIRE(pl[pl_offsets[5]] == 0);
+  REQUIRE(pl[pl_offsets[5] + 1] == 66);
+  REQUIRE(pl[pl_offsets[5] + 2] == 990);
 
   REQUIRE(start_pos[6] == 13452);
   REQUIRE(end_pos[6] == 13519);
@@ -791,17 +803,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 6)) == 0);
   REQUIRE(filter_offsets[6] == 7);
-  REQUIRE(genotype_offsets[6] == 48);
-  REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[6] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[6] == 12);
+  REQUIRE(genotype[genotype_offsets[6]] == 0);
+  REQUIRE(genotype[genotype_offsets[6] + 1] == 0);
   REQUIRE(info_offsets[6] == 24);
   REQUIRE(format_offsets[6] == 228);
   REQUIRE(qrange_start[6] == 13499);
   REQUIRE(qrange_end[6] == 17350);
-  REQUIRE(dp[dp_offsets[6] / sizeof(int32_t)] == 10);
-  REQUIRE(pl[pl_offsets[6] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[6] / sizeof(int32_t) + 1] == 21);
-  REQUIRE(pl[pl_offsets[6] / sizeof(int32_t) + 2] == 210);
+  REQUIRE(dp[dp_offsets[6]] == 10);
+  REQUIRE(pl[pl_offsets[6]] == 0);
+  REQUIRE(pl[pl_offsets[6] + 1] == 21);
+  REQUIRE(pl[pl_offsets[6] + 2] == 210);
 
   REQUIRE(start_pos[7] == 13520);
   REQUIRE(end_pos[7] == 13544);
@@ -811,17 +823,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
   REQUIRE((filter_bitmap[0] & ((uint8_t)1 << 7)) == 0);
   REQUIRE(filter_offsets[7] == 7);
-  REQUIRE(genotype_offsets[7] == 56);
-  REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[7] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[7] == 14);
+  REQUIRE(genotype[genotype_offsets[7]] == 0);
+  REQUIRE(genotype[genotype_offsets[7] + 1] == 0);
   REQUIRE(info_offsets[7] == 28);
   REQUIRE(format_offsets[7] == 266);
   REQUIRE(qrange_start[7] == 13499);
   REQUIRE(qrange_end[7] == 17350);
-  REQUIRE(dp[dp_offsets[7] / sizeof(int32_t)] == 6);
-  REQUIRE(pl[pl_offsets[7] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[7] / sizeof(int32_t) + 1] == 6);
-  REQUIRE(pl[pl_offsets[7] / sizeof(int32_t) + 2] == 90);
+  REQUIRE(dp[dp_offsets[7]] == 6);
+  REQUIRE(pl[pl_offsets[7]] == 0);
+  REQUIRE(pl[pl_offsets[7] + 1] == 6);
+  REQUIRE(pl[pl_offsets[7] + 2] == 90);
 
   REQUIRE(start_pos[8] == 13545);
   REQUIRE(end_pos[8] == 13689);
@@ -831,17 +843,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
   REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filter_offsets[8] == 7);
-  REQUIRE(genotype_offsets[8] == 64);
-  REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[8] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[8] == 16);
+  REQUIRE(genotype[genotype_offsets[8]] == 0);
+  REQUIRE(genotype[genotype_offsets[8] + 1] == 0);
   REQUIRE(info_offsets[8] == 32);
   REQUIRE(format_offsets[8] == 304);
   REQUIRE(qrange_start[8] == 13499);
   REQUIRE(qrange_end[8] == 17350);
-  REQUIRE(dp[dp_offsets[8] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[8] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[8] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[8] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[8]] == 0);
+  REQUIRE(pl[pl_offsets[8]] == 0);
+  REQUIRE(pl[pl_offsets[8] + 1] == 0);
+  REQUIRE(pl[pl_offsets[8] + 2] == 0);
 
   REQUIRE(start_pos[9] == 17319);
   REQUIRE(end_pos[9] == 17479);
@@ -851,17 +863,17 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
   REQUIRE((filter_bitmap[1] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filter_offsets[9] == 7);
-  REQUIRE(genotype_offsets[9] == 72);
-  REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t)] == 0);
-  REQUIRE(genotype[genotype_offsets[9] / sizeof(int32_t) + 1] == 0);
+  REQUIRE(genotype_offsets[9] == 18);
+  REQUIRE(genotype[genotype_offsets[9]] == 0);
+  REQUIRE(genotype[genotype_offsets[9] + 1] == 0);
   REQUIRE(info_offsets[9] == 36);
   REQUIRE(format_offsets[9] == 342);
   REQUIRE(qrange_start[9] == 13499);
   REQUIRE(qrange_end[9] == 17350);
-  REQUIRE(dp[dp_offsets[9] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[9] / sizeof(int32_t)] == 0);
-  REQUIRE(pl[pl_offsets[9] / sizeof(int32_t) + 1] == 0);
-  REQUIRE(pl[pl_offsets[9] / sizeof(int32_t) + 2] == 0);
+  REQUIRE(dp[dp_offsets[9]] == 0);
+  REQUIRE(pl[pl_offsets[9]] == 0);
+  REQUIRE(pl[pl_offsets[9] + 1] == 0);
+  REQUIRE(pl[pl_offsets[9] + 2] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -939,52 +951,52 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
   REQUIRE(end_pos[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[0]] == 0);
 
   REQUIRE(end_pos[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[1]] == 0);
 
   REQUIRE(end_pos[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[2]] == 0);
 
   REQUIRE(end_pos[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[3]] == 0);
 
   REQUIRE(end_pos[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
-  REQUIRE(dp[dp_offsets[4] / sizeof(int32_t)] == 15);
+  REQUIRE(dp[dp_offsets[4]] == 15);
 
   REQUIRE(end_pos[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
-  REQUIRE(dp[dp_offsets[5] / sizeof(int32_t)] == 64);
+  REQUIRE(dp[dp_offsets[5]] == 64);
 
   REQUIRE(end_pos[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
-  REQUIRE(dp[dp_offsets[6] / sizeof(int32_t)] == 10);
+  REQUIRE(dp[dp_offsets[6]] == 10);
 
   REQUIRE(end_pos[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
-  REQUIRE(dp[dp_offsets[7] / sizeof(int32_t)] == 6);
+  REQUIRE(dp[dp_offsets[7]] == 6);
 
   REQUIRE(end_pos[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
-  REQUIRE(dp[dp_offsets[8] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[8]] == 0);
 
   REQUIRE(end_pos[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
-  REQUIRE(dp[dp_offsets[9] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1060,22 +1072,22 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   REQUIRE(end_pos[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[0]] == 0);
 
   REQUIRE(end_pos[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[1]] == 0);
 
   REQUIRE(end_pos[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[2]] == 0);
 
   REQUIRE(end_pos[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[3]] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1152,52 +1164,52 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   REQUIRE(end_pos[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[0]] == 0);
 
   REQUIRE(end_pos[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[1]] == 0);
 
   REQUIRE(end_pos[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[2]] == 0);
 
   REQUIRE(end_pos[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[3]] == 0);
 
   REQUIRE(end_pos[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
-  REQUIRE(dp[dp_offsets[4] / sizeof(int32_t)] == 15);
+  REQUIRE(dp[dp_offsets[4]] == 15);
 
   REQUIRE(end_pos[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
-  REQUIRE(dp[dp_offsets[5] / sizeof(int32_t)] == 64);
+  REQUIRE(dp[dp_offsets[5]] == 64);
 
   REQUIRE(end_pos[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
-  REQUIRE(dp[dp_offsets[6] / sizeof(int32_t)] == 10);
+  REQUIRE(dp[dp_offsets[6]] == 10);
 
   REQUIRE(end_pos[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
-  REQUIRE(dp[dp_offsets[7] / sizeof(int32_t)] == 6);
+  REQUIRE(dp[dp_offsets[7]] == 6);
 
   REQUIRE(end_pos[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
-  REQUIRE(dp[dp_offsets[8] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[8]] == 0);
 
   REQUIRE(end_pos[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
-  REQUIRE(dp[dp_offsets[9] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1279,52 +1291,52 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
   REQUIRE(end_pos[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[0]] == 0);
 
   REQUIRE(end_pos[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[1]] == 0);
 
   REQUIRE(end_pos[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[2]] == 0);
 
   REQUIRE(end_pos[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[3]] == 0);
 
   REQUIRE(end_pos[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
-  REQUIRE(dp[dp_offsets[4] / sizeof(int32_t)] == 15);
+  REQUIRE(dp[dp_offsets[4]] == 15);
 
   REQUIRE(end_pos[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
-  REQUIRE(dp[dp_offsets[5] / sizeof(int32_t)] == 64);
+  REQUIRE(dp[dp_offsets[5]] == 64);
 
   REQUIRE(end_pos[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
-  REQUIRE(dp[dp_offsets[6] / sizeof(int32_t)] == 10);
+  REQUIRE(dp[dp_offsets[6]] == 10);
 
   REQUIRE(end_pos[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
-  REQUIRE(dp[dp_offsets[7] / sizeof(int32_t)] == 6);
+  REQUIRE(dp[dp_offsets[7]] == 6);
 
   REQUIRE(end_pos[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
-  REQUIRE(dp[dp_offsets[8] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[8]] == 0);
 
   REQUIRE(end_pos[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
-  REQUIRE(dp[dp_offsets[9] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1444,17 +1456,25 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check a few buffer sizes
-  int64_t buff_size, off_size;
+  int64_t num_offsets, num_data_elements, num_data_bytes;
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == alloced_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == alloced_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -1513,14 +1533,22 @@ TEST_CASE(
   // Check buffer sizes again
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == alloced_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == alloced_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check next results
   REQUIRE(start_pos[0] == 13354);
@@ -1589,14 +1617,22 @@ TEST_CASE(
   // Check last buffer sizes
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 1 * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 1 * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 7);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 7);
+  REQUIRE(num_offsets == 2);
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1689,17 +1725,25 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check a few buffer sizes
-  int64_t buff_size, off_size;
+  int64_t num_offsets, num_data_elements, num_data_bytes;
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == alloced_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == alloced_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -1758,14 +1802,22 @@ TEST_CASE(
   // Check buffer sizes again
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == alloced_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == alloced_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check next results
   REQUIRE(start_pos[0] == 13354);
@@ -1840,14 +1892,22 @@ TEST_CASE(
   // Check last buffer sizes
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 2 * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 2 * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == 3 * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == 3);
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1975,17 +2035,25 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   tot_num_records += num_records;
 
   // Check a few buffer sizes
-  int64_t buff_size, off_size;
+  int64_t num_offsets, num_data_elements, num_data_bytes;
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == alloced_num_records * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == alloced_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 14);
-  REQUIRE(off_size == (alloced_num_records + 1) * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 14);
+  REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
   REQUIRE(start_pos[0] == 12141);
@@ -2027,14 +2095,22 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   // Check last buffer sizes
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "pos_start", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 1 * sizeof(uint32_t));
-  REQUIRE(off_size == 0);
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 1 * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(buff_size == 7);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 7);
+  REQUIRE(num_offsets == 2);
 
   // Check resubmit completed query is ok
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2360,27 +2436,27 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   REQUIRE(end_pos[0] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
-  REQUIRE(dp[dp_offsets[0] / sizeof(int32_t)] == 15);
+  REQUIRE(dp[dp_offsets[0]] == 15);
 
   REQUIRE(end_pos[1] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
-  REQUIRE(dp[dp_offsets[1] / sizeof(int32_t)] == 64);
+  REQUIRE(dp[dp_offsets[1]] == 64);
 
   REQUIRE(end_pos[2] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
-  REQUIRE(dp[dp_offsets[2] / sizeof(int32_t)] == 10);
+  REQUIRE(dp[dp_offsets[2]] == 10);
 
   REQUIRE(end_pos[3] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
-  REQUIRE(dp[dp_offsets[3] / sizeof(int32_t)] == 6);
+  REQUIRE(dp[dp_offsets[3]] == 6);
 
   REQUIRE(end_pos[4] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
-  REQUIRE(dp[dp_offsets[4] / sizeof(int32_t)] == 0);
+  REQUIRE(dp[dp_offsets[4]] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -2449,21 +2525,29 @@ TEST_CASE(
   REQUIRE(status == TILEDB_VCF_INCOMPLETE);
 
   // Check result size
-  int64_t off_size = 0, buff_size = 0;
+  int64_t num_offsets, num_data_elements, num_data_bytes;
   REQUIRE(
       tiledb_vcf_reader_get_result_num_records(reader, &num_records) ==
       TILEDB_VCF_OK);
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2475,14 +2559,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2494,14 +2586,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2513,14 +2613,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2532,14 +2640,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2551,14 +2667,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2570,14 +2694,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2589,14 +2721,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2608,14 +2748,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2627,14 +2775,22 @@ TEST_CASE(
   REQUIRE(num_records == 1);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "sample_name", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 7);
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 7);
   REQUIRE(
       tiledb_vcf_reader_get_result_size(
-          reader, "contig", &off_size, &buff_size) == TILEDB_VCF_OK);
-  REQUIRE(off_size == 2 * sizeof(int32_t));
-  REQUIRE(buff_size == 1);
+          reader,
+          "contig",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_offsets == 2);
+  REQUIRE(num_data_bytes == 1);
 
   tiledb_vcf_reader_free(&reader);
 }

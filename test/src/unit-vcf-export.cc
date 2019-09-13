@@ -94,12 +94,13 @@ void check_result(
     const std::string& attr,
     const UserBuffer& buffer,
     const std::vector<T>& expected) {
-  int64_t num_offsets = 0, nbytes = 0;
-  reader.result_size(attr, &num_offsets, &nbytes);
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  reader.result_size(attr, &num_offsets, &num_data_elements, &num_data_bytes);
 
   unsigned nrec = expected.size();
   REQUIRE(num_offsets == 0);
-  REQUIRE(nbytes == (int64_t)(nrec * sizeof(T)));
+  REQUIRE(num_data_elements == (int64_t)nrec);
+  REQUIRE(num_data_bytes == (int64_t)(nrec * sizeof(T)));
   std::vector<T> actual;
   for (unsigned i = 0; i < nrec; i++)
     actual.push_back(*(buffer.data<T>() + i));
@@ -113,15 +114,15 @@ void check_var_result(
     const std::string& attr,
     const UserBuffer& buffer,
     const std::vector<T>& expected) {
-  int64_t num_offsets = 0, nbytes = 0;
-  reader.result_size(attr, &num_offsets, &nbytes);
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  reader.result_size(attr, &num_offsets, &num_data_elements, &num_data_bytes);
 
   std::vector<T> actual;
   for (unsigned i = 0; i < num_offsets - 1; i++) {
     int32_t offset = buffer.offsets()[i];
     int32_t next_offset = buffer.offsets()[i + 1];
     int32_t len = next_offset - offset;
-    const char* p = buffer.data<char>() + offset;
+    const T* p = buffer.data<T>() + offset;
 
     if (!buffer.bitmap().empty()) {
       bool is_null = (buffer.bitmap()[i / 8] & (uint8_t(1) << (i % 8))) == 0;
@@ -129,9 +130,9 @@ void check_var_result(
         REQUIRE(len == 0);
     }
 
-    unsigned nvals = len / sizeof(T);
+    unsigned nvals = len;
     for (unsigned j = 0; j < nvals; j++) {
-      T t = *reinterpret_cast<const T*>(p + j * sizeof(T));
+      T t = p[j];
       actual.push_back(t);
     }
   }
@@ -145,8 +146,8 @@ void check_string_result(
     const std::string& attr,
     const UserBuffer& buffer,
     const std::vector<std::string>& expected) {
-  int64_t num_offsets = 0, nbytes = 0;
-  reader.result_size(attr, &num_offsets, &nbytes);
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  reader.result_size(attr, &num_offsets, &num_data_elements, &num_data_bytes);
 
   unsigned nrec = expected.size();
   REQUIRE(num_offsets == (int64_t)nrec + 1);
