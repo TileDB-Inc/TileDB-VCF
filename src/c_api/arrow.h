@@ -49,6 +49,12 @@ class Arrow {
         tiledb_vcf_reader_get_num_buffers(reader, &num_buffers),
         "Error getting number of buffers from reader object");
 
+    int64_t num_records = 0;
+    check_error(
+        reader,
+        tiledb_vcf_reader_get_result_num_records(reader, &num_records),
+        "Error getting number of records from reader object");
+
     std::vector<std::shared_ptr<arrow::Field>> fields;
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     for (int i = 0; i < num_buffers; i++) {
@@ -99,7 +105,9 @@ class Arrow {
     }
 
     std::shared_ptr<arrow::Schema> schema = arrow::schema(fields);
-    return arrow::Table::Make(schema, arrays);
+    auto table = arrow::Table::Make(schema, arrays, num_records);
+    check_error(table->Validate());
+    return table;
   }
 
  private:
@@ -209,8 +217,9 @@ class Arrow {
     if (bitmap != nullptr)
       arrow_nulls = arrow::Buffer::Wrap(bitmap, ceil(num_data_elements, 8));
 
+    const int64_t num_cells = num_offsets == 0 ? 0 : num_offsets - 1;
     return std::shared_ptr<arrow::Array>(new arrow::StringArray(
-        num_offsets - 1, arrow_offsets, arrow_buff, arrow_nulls));
+        num_cells, arrow_offsets, arrow_buff, arrow_nulls));
   }
 
   template <typename T, typename ArrayT>
@@ -232,8 +241,9 @@ class Arrow {
     if (bitmap != nullptr)
       arrow_nulls = arrow::Buffer::Wrap(bitmap, ceil(num_data_elements, 8));
 
+    const int64_t num_cells = num_offsets == 0 ? 0 : num_offsets - 1;
     return std::shared_ptr<arrow::Array>(new arrow::ListArray(
-        dtype, num_offsets - 1, arrow_offsets, arrow_values, arrow_nulls));
+        dtype, num_cells, arrow_offsets, arrow_values, arrow_nulls));
   }
 
   static std::shared_ptr<arrow::DataType> arrow_dtype(

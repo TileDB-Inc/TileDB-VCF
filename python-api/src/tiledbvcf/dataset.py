@@ -1,25 +1,62 @@
 import pandas as pd
+
+from collections import namedtuple
 from . import libtiledbvcf
+
+ReadConfig = namedtuple('ReadConfig', [
+    # Max number of records (rows) to read.
+    'limit',
+    # Region partition tuple (idx, num_partitions)
+    'region_partition',
+    # Samples partition tuple (idx, num_partitions)
+    'sample_partition',
+    # Allocation size of Python attribute buffers (default 100MB/attribute)
+    'attribute_buffer_mb',
+    # Allocation size of TileDB-VCF internal attribute buffers (default 200MB/attribute)
+    'internal_memory_budget',
+    # List of strings of format 'option=value'
+    'tiledb_config'
+], defaults=[None] * 6)
 
 
 class TileDBVCFDataset(object):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode='r'):
+    def __init__(self, uri, mode='r', cfg=None):
         """ Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
         """
-        if mode == 'r':
+        self.mode = mode
+        if self.mode == 'r':
             self.reader = libtiledbvcf.Reader()
             self.reader.init(uri)
-        elif mode == 'w':
+            self._set_read_cfg(cfg)
+        elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
             self.writer.init(uri)
+            if cfg is not None:
+                raise Exception('Config not supported in write mode')
         else:
             raise Exception('Unsupported dataset mode {}'.format(mode))
+
+    def _set_read_cfg(self, cfg):
+        if cfg is None:
+            return
+        if cfg.limit is not None:
+            self.reader.set_max_num_records(cfg.limit)
+        if cfg.region_partition is not None:
+            self.reader.set_region_partition(*cfg.region_partition)
+        if cfg.sample_partition is not None:
+            self.reader.set_sample_partition(*cfg.sample_partition)
+        if cfg.attribute_buffer_mb is not None:
+            self.reader.set_buffer_alloc_size(cfg.attribute_buffer_mb)
+        if cfg.internal_memory_budget is not None:
+            self.reader.set_memory_budget(cfg.internal_memory_budget)
+        if cfg.tiledb_config is not None:
+            self.reader.set_tiledb_contig(','.join(cfg.tiledb_config))
 
     def read(self, attrs, samples=None, regions=None):
         """Reads data from a TileDB-VCF dataset.
@@ -36,6 +73,9 @@ class TileDBVCFDataset(object):
         :param list of str regions: CSV list of genomic regions to be read.
         :return: Pandas DataFrame containing results.
         """
+        if self.mode != 'r':
+            raise Exception('Dataset not open in read mode')
+
         self.reader.reset()
 
         samples = '' if samples is None else samples
@@ -47,12 +87,18 @@ class TileDBVCFDataset(object):
         return self.continue_read()
 
     def read_iter(self, attrs, samples=None, regions=None):
+        if self.mode != 'r':
+            raise Exception('Dataset not open in read mode')
+
         if not self.read_completed():
             yield self.read(attrs, samples, regions)
         while not self.read_completed():
             yield self.continue_read()
 
     def continue_read(self):
+        if self.mode != 'r':
+            raise Exception('Dataset not open in read mode')
+
         self.reader.read()
         table = self.reader.get_results_arrow()
         return table.to_pandas()
@@ -62,6 +108,8 @@ class TileDBVCFDataset(object):
 
         A read is considered complete if the resulting dataframe contained
         all results."""
+        if self.mode != 'r':
+            raise Exception('Dataset not open in read mode')
         return self.reader.completed()
 
     def count(self, samples=None, regions=None):
@@ -73,6 +121,8 @@ class TileDBVCFDataset(object):
             the count
         :return: Number of intersecting records in the dataset
         """
+        if self.mode != 'r':
+            raise Exception('Dataset not open in read mode')
         self.reader.reset()
 
         samples = '' if samples is None else samples
@@ -87,6 +137,9 @@ class TileDBVCFDataset(object):
         return self.reader.result_num_records()
 
     def ingest_samples(self, sample_uris=None, extra_attrs=None):
+        if self.mode != 'w':
+            raise Exception('Dataset not open in write mode')
+
         if sample_uris is None:
             return
 
