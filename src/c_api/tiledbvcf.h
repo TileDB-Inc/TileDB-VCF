@@ -390,20 +390,26 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_num_records(
     tiledb_vcf_reader_t* reader, int64_t* num_records);
 
 /**
- * After reading some data, gets the size (in bytes) of a buffer holding reader
- * results.
+ * After reading some data, gets the sizes of reader results for an attribute.
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
- * @param offset_buff_size Set to the size (bytes) of the result offset buffer
- * @param buff_size Set to the size (bytes) of the result data buffer
+ * @param num_offsets Set to the number of offsets in the result offsets buffer
+ *      (var-len attributes only). This will be one more than the number of
+ *      "cells" of data read.
+ * @param num_data_elements Set to the number of elements in the result data
+ *      buffer. This will be the number of data elements across all cells,
+ *      variable-length included.
+ * @param num_data_bytes Set to the number of bytes in the result data buffer
+ *      across all cells.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_size(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t* offset_buff_size,
-    int64_t* buff_size);
+    int64_t* num_offsets,
+    int64_t* num_data_elements,
+    int64_t* num_data_bytes);
 
 /**
  * Gets the number of buffers that have been previously set on the reader.

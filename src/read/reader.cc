@@ -153,12 +153,16 @@ void Reader::dataset_version(int32_t* version) const {
 }
 
 void Reader::result_size(
-    const std::string& attribute, int64_t* num_offsets, int64_t* nbytes) const {
+    const std::string& attribute,
+    int64_t* num_offsets,
+    int64_t* num_data_elements,
+    int64_t* num_data_bytes) const {
   auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
   if (exp == nullptr)
     throw std::runtime_error(
         "Error getting result size; improper or null exporter instance");
-  return exp->result_size(attribute, num_offsets, nbytes);
+  return exp->result_size(
+      attribute, num_offsets, num_data_elements, num_data_bytes);
 }
 
 void Reader::attribute_datatype(

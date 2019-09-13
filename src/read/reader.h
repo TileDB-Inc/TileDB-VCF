@@ -172,13 +172,14 @@ class Reader {
   void dataset_version(int32_t* version) const;
 
   /**
-   * Returns the size of data and offsets last exported for the given
+   * Returns the size of the result last exported for the given
    * attribute.
    */
   void result_size(
       const std::string& attribute,
       int64_t* num_offsets,
-      int64_t* nbytes) const;
+      int64_t* num_data_elements,
+      int64_t* num_data_bytes) const;
 
   /**
    * Returns the datatype, var-length, and nullable setting of the given
