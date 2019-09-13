@@ -86,8 +86,10 @@ class Reader {
   bool completed();
 
  private:
-  /** Buffer pair to hold attribute data read from the dataset. */
-  struct BufferPair {
+  /** Buffer struct to hold attribute data read from the dataset. */
+  struct BufferInfo {
+    /** Name of attribute. */
+    std::string attr_name;
     /** Offsets buffer, for var-len attributes. */
     py::array offsets;
     /** Data buffer. */
@@ -109,10 +111,10 @@ class Reader {
   int64_t alloc_size_bytes_;
 
   /** The set of attribute names included in the read query. */
-  std::set<std::string> attributes_;
+  std::vector<std::string> attributes_;
 
-  /** Map of attribute -> Python buffer pair. */
-  std::map<std::string, BufferPair> buffers_;
+  /** List of attribute buffers. */
+  std::vector<BufferInfo> buffers_;
 
   /** Allocate buffers for the read. */
   void alloc_buffers();

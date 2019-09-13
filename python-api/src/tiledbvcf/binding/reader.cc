@@ -73,7 +73,7 @@ void Reader::reset() {
 }
 
 void Reader::set_attributes(const std::vector<std::string>& attributes) {
-  attributes_.insert(attributes.begin(), attributes.end());
+  attributes_ = attributes;
 }
 
 void Reader::set_buffer_alloc_size(int64_t nbytes) {
@@ -115,7 +115,9 @@ void Reader::alloc_buffers() {
         tiledb_vcf_reader_get_attribute_type(
             reader, attr.c_str(), &datatype, &var_len, &nullable));
 
-    BufferPair& buffer = buffers_[attr];
+    buffers_.emplace_back();
+    BufferInfo& buffer = buffers_.back();
+    buffer.attr_name = attr;
 
     auto dtype = to_numpy_dtype(datatype);
     size_t count = alloc_size_bytes_ / dtype.itemsize();
@@ -134,9 +136,8 @@ void Reader::alloc_buffers() {
 
 void Reader::set_buffers() {
   auto reader = ptr.get();
-  for (auto& it : buffers_) {
-    const auto& attr = it.first;
-    BufferPair& buff = it.second;
+  for (auto& buff : buffers_) {
+    const auto& attr = buff.attr_name;
     py::buffer_info offsets_info = buff.offsets.request(true);
     py::buffer_info data_info = buff.data.request(true);
     py::buffer_info bitmap_info = buff.bitmap.request(true);
@@ -172,9 +173,8 @@ void Reader::set_buffers() {
 
 void Reader::prepare_result_buffers() {
   auto reader = ptr.get();
-  for (auto& it : buffers_) {
-    const auto& attr = it.first;
-    BufferPair& buff = it.second;
+  for (auto& buff : buffers_) {
+    const auto& attr = buff.attr_name;
     py::buffer_info offsets_info = buff.offsets.request(true);
     py::buffer_info data_info = buff.data.request(true);
     py::buffer_info bitmap_info = buff.bitmap.request(true);
@@ -203,9 +203,8 @@ void Reader::prepare_result_buffers() {
 
 std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
   std::map<std::string, std::pair<py::array, py::array>> result;
-  for (auto& it : buffers_) {
-    const auto& attr = it.first;
-    BufferPair& buff = it.second;
+  for (auto& buff : buffers_) {
+    const auto& attr = buff.attr_name;
     result[attr] = {buff.offsets, buff.data};
   }
   return result;
