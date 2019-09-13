@@ -1,4 +1,4 @@
 # Initialize pyarrow first.
 import pyarrow
 
-from .dataset import (TileDBVCFDataset)
+from .dataset import (ReadConfig, TileDBVCFDataset)

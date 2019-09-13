@@ -54,7 +54,7 @@ namespace tiledbvcfpy {
 
 Reader::Reader()
     : ptr(nullptr, deleter)
-    , alloc_size_bytes_(20 * 1024 * 1024) {
+    , alloc_size_bytes_(100 * 1024 * 1024) {
   tiledb_vcf_reader_t* r;
   if (tiledb_vcf_reader_alloc(&r) != TILEDB_VCF_OK)
     throw std::runtime_error(
@@ -85,9 +85,52 @@ void Reader::set_samples(const std::string& samples) {
   check_error(reader, tiledb_vcf_reader_set_samples(reader, samples.c_str()));
 }
 
+void Reader::set_samples_file(const std::string& uri) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_samples_file(reader, uri.c_str()));
+}
+
 void Reader::set_regions(const std::string& regions) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_regions(reader, regions.c_str()));
+}
+
+void Reader::set_bed_file(const std::string& uri) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_bed_file(reader, uri.c_str()));
+}
+
+void Reader::set_region_partition(int32_t partition, int32_t num_partitions) {
+  auto reader = ptr.get();
+  check_error(
+      reader,
+      tiledb_vcf_reader_set_region_partition(
+          reader, partition, num_partitions));
+}
+
+void Reader::set_sample_partition(int32_t partition, int32_t num_partitions) {
+  auto reader = ptr.get();
+  check_error(
+      reader,
+      tiledb_vcf_reader_set_sample_partition(
+          reader, partition, num_partitions));
+}
+
+void Reader::set_memory_budget(int32_t memory_mb) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_memory_budget(reader, memory_mb));
+}
+
+void Reader::set_max_num_records(int64_t max_num_records) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_max_num_records(reader, max_num_records));
+}
+
+void Reader::set_tiledb_config(const std::string& config_str) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_tiledb_config(reader, config_str.c_str()));
 }
 
 void Reader::read() {
@@ -213,7 +256,15 @@ std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
 py::object Reader::get_results_arrow() {
   auto reader = ptr.get();
   std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader);
+  if (table == nullptr)
+    throw std::runtime_error(
+        "TileDB-VCF-Py: Error converting to Arrow; null Array.");
   PyObject* obj = arrow::py::wrap_table(table);
+  if (obj == nullptr) {
+    PyErr_PrintEx(1);
+    throw std::runtime_error(
+        "TileDB-VCF-Py: Error converting to Arrow; null Python object.");
+  }
   return py::reinterpret_steal<py::object>(obj);
 }
 

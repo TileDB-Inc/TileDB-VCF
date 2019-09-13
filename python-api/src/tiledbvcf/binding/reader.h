@@ -61,8 +61,29 @@ class Reader {
   /** Sets a CSV list of samples to include in the read. */
   void set_samples(const std::string& samples);
 
+  /** Sets a URI of a file containing sample names to include in the read. */
+  void set_samples_file(const std::string& uri);
+
   /** Sets a CSV list of genomic regions to include in the read. */
   void set_regions(const std::string& regions);
+
+  /** Sets a URI of a BED file containing regions to include in the read. */
+  void set_bed_file(const std::string& uri);
+
+  /** Sets the region partition of this reader. */
+  void set_region_partition(int32_t partition, int32_t num_partitions);
+
+  /** Sets the sample partition of this reader. */
+  void set_sample_partition(int32_t partition, int32_t num_partitions);
+
+  /** Sets the internal memory budget for the TileDB-VCF library. */
+  void set_memory_budget(int32_t memory_mb);
+
+  /** Sets the max number of records that will be read. */
+  void set_max_num_records(int64_t max_num_records);
+
+  /** Sets CSV TileDB config parameters. */
+  void set_tiledb_config(const std::string& config_str);
 
   /** Performs a blocking read operation. */
   void read();
