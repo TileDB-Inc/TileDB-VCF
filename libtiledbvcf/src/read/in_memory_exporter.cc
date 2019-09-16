@@ -31,57 +31,50 @@
 namespace tiledb {
 namespace vcf {
 
-void InMemoryExporter::set_buffer(
-    const std::string& attribute,
-    int32_t* offsets,
-    int64_t max_num_offsets,
-    void* data,
-    int64_t max_data_bytes) {
-  if (fixed_len_attr(attribute) && offsets != nullptr) {
-    throw std::runtime_error(
-        "Error setting buffer; attribute '" + attribute +
-        "' is fixed-length but offset buffer was provided.");
-  } else if (!fixed_len_attr(attribute) && offsets == nullptr) {
-    throw std::runtime_error(
-        "Error setting buffer; attribute '" + attribute +
-        "' is variable-length but no offset buffer was provided.");
-  } else if (data == nullptr) {
+void InMemoryExporter::set_buffer_values(
+    const std::string& attribute, void* buff, int64_t buff_size) {
+  if (buff == nullptr) {
     throw std::runtime_error(
         "Error setting buffer; no data buffer provided for attribute '" +
         attribute + "'.");
   }
 
-  auto it = user_buffers_.find(attribute);
-  UserBuffer* buff = nullptr;
-  if (it == user_buffers_.end()) {
-    buff = &user_buffers_[attribute];
-    buff->attr = attr_name_to_enum(attribute);
-    buff->attr_name = attribute;
-    if (buff->attr == ExportableAttribute::InfoOrFmt) {
-      auto p = TileDBVCFDataset::split_info_fmt_attr_name(buff->attr_name);
-      buff->is_info = p.first == "info";
-      buff->info_fmt_field_name = p.second;
-    }
-    user_buffers_by_idx_.push_back(buff);
-  } else {
-    buff = &it->second;
-  }
-
-  buff->data = data;
-  buff->max_data_bytes = max_data_bytes;
-  buff->offsets = offsets;
-  buff->max_num_offsets = max_num_offsets;
+  auto user_buff = get_buffer(attribute);
+  user_buff->data = buff;
+  user_buff->max_data_bytes = buff_size;
 }
 
-void InMemoryExporter::set_validity_bitmap(
-    const std::string& attribute,
-    uint8_t* bitmap_buff,
-    int64_t bitmap_buff_size) {
+void InMemoryExporter::set_buffer_offsets(
+    const std::string& attribute, int32_t* buff, int64_t buff_size) {
+  if (fixed_len_attr(attribute) && buff != nullptr) {
+    throw std::runtime_error(
+        "Error setting buffer; attribute '" + attribute +
+        "' is fixed-length but offset buffer was provided.");
+  } else if (!fixed_len_attr(attribute) && buff == nullptr) {
+    throw std::runtime_error(
+        "Error setting buffer; attribute '" + attribute +
+        "' is variable-length but no offset buffer was provided.");
+  }
+
+  auto user_buff = get_buffer(attribute);
+  user_buff->offsets = buff;
+  user_buff->max_num_offsets = buff_size / sizeof(int32_t);
+}
+
+void InMemoryExporter::set_buffer_validity_bitmap(
+    const std::string& attribute, uint8_t* buff, int64_t buff_size) {
   if (!nullable_attr(attribute))
     throw std::runtime_error(
-        "Error setting validity bitmap buffer; attribute '" + attribute +
-        "' is not a nullable attribute.");
+        "Error setting buffer; attribute '" + attribute +
+        "' is not nullable but bitmap buffer was provided.");
+  auto user_buff = get_buffer(attribute);
+  user_buff->bitmap_buff = buff;
+  user_buff->max_bitmap_bytes = buff_size;
+  user_buff->bitmap.reset(new Bitmap(buff, buff_size));
+}
 
+InMemoryExporter::UserBuffer* InMemoryExporter::get_buffer(
+    const std::string& attribute) {
   auto it = user_buffers_.find(attribute);
   UserBuffer* buff = nullptr;
   if (it == user_buffers_.end()) {
@@ -97,10 +90,7 @@ void InMemoryExporter::set_validity_bitmap(
   } else {
     buff = &it->second;
   }
-
-  buff->bitmap_buff = bitmap_buff;
-  buff->max_bitmap_bytes = bitmap_buff_size;
-  buff->bitmap.reset(new Bitmap(bitmap_buff, bitmap_buff_size));
+  return buff;
 }
 
 std::set<std::string> InMemoryExporter::array_attributes_required() const {

@@ -96,27 +96,25 @@ void Reader::set_sample_partition(
   params_.sample_partitioning.num_partitions = num_partitions;
 }
 
-void Reader::set_buffer(
-    const std::string& attribute,
-    int32_t* offsets,
-    int64_t max_num_offsets,
-    void* data,
-    int64_t max_data_bytes) {
-  // On the first call to set_buffer(), swap out any existing exporter with an
-  // InMemoryExporter.
-  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
-  if (exp == nullptr) {
-    exp = new InMemoryExporter;
-    exporter_.reset(exp);
-  }
-
-  exp->set_buffer(attribute, offsets, max_num_offsets, data, max_data_bytes);
+void Reader::set_buffer_values(
+    const std::string& attribute, void* buff, int64_t buff_size) {
+  auto exp = set_in_memory_exporter();
+  exp->set_buffer_values(attribute, buff, buff_size);
 }
 
-void Reader::set_validity_bitmap(
-    const std::string& attribute,
-    uint8_t* bitmap_buff,
-    int64_t bitmap_buff_size) {
+void Reader::set_buffer_offsets(
+    const std::string& attribute, int32_t* buff, int64_t buff_size) {
+  auto exp = set_in_memory_exporter();
+  exp->set_buffer_offsets(attribute, buff, buff_size);
+}
+
+void Reader::set_buffer_validity_bitmap(
+    const std::string& attribute, uint8_t* buff, int64_t buff_size) {
+  auto exp = set_in_memory_exporter();
+  exp->set_buffer_validity_bitmap(attribute, buff, buff_size);
+}
+
+InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
   auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
@@ -124,8 +122,7 @@ void Reader::set_validity_bitmap(
     exp = new InMemoryExporter;
     exporter_.reset(exp);
   }
-
-  exp->set_validity_bitmap(attribute, bitmap_buff, bitmap_buff_size);
+  return exp;
 }
 
 void Reader::set_attr_buffer_size(unsigned mb) {

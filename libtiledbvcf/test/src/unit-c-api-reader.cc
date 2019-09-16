@@ -40,142 +40,130 @@ static std::string INPUT_ARRAYS_DIR =
 /*           HELPER MACROS           */
 /* ********************************* */
 
-#define SET_BUFF_POS_START(r, nr)                                           \
-  uint32_t pos_start[(nr)];                                                 \
-  REQUIRE(                                                                  \
-      tiledb_vcf_reader_set_buffer(                                         \
-          reader, "pos_start", 0, nullptr, sizeof(pos_start), pos_start) == \
+#define SET_BUFF_POS_START(r, nr)                               \
+  uint32_t pos_start[(nr)];                                     \
+  REQUIRE(                                                      \
+      tiledb_vcf_reader_set_buffer_values(                      \
+          reader, "pos_start", sizeof(pos_start), pos_start) == \
       TILEDB_VCF_OK);
 
-#define SET_BUFF_POS_END(r, nr)                                       \
-  uint32_t pos_end[(nr)];                                             \
-  REQUIRE(                                                            \
-      tiledb_vcf_reader_set_buffer(                                   \
-          reader, "pos_end", 0, nullptr, sizeof(pos_end), pos_end) == \
-      TILEDB_VCF_OK);
+#define SET_BUFF_POS_END(r, nr)            \
+  uint32_t pos_end[(nr)];                  \
+  REQUIRE(                                 \
+      tiledb_vcf_reader_set_buffer_values( \
+          reader, "pos_end", sizeof(pos_end), pos_end) == TILEDB_VCF_OK);
 
-#define SET_BUFF_QUERY_BED_START(r, nr) \
-  uint32_t query_bed_start[(nr)];       \
-  REQUIRE(                              \
-      tiledb_vcf_reader_set_buffer(     \
-          reader,                       \
-          "query_bed_start",            \
-          0,                            \
-          nullptr,                      \
-          sizeof(query_bed_start),      \
+#define SET_BUFF_QUERY_BED_START(r, nr)    \
+  uint32_t query_bed_start[(nr)];          \
+  REQUIRE(                                 \
+      tiledb_vcf_reader_set_buffer_values( \
+          reader,                          \
+          "query_bed_start",               \
+          sizeof(query_bed_start),         \
           query_bed_start) == TILEDB_VCF_OK);
 
-#define SET_BUFF_QUERY_BED_END(r, nr) \
-  uint32_t query_bed_end[(nr)];       \
-  REQUIRE(                            \
-      tiledb_vcf_reader_set_buffer(   \
-          reader,                     \
-          "query_bed_end",            \
-          0,                          \
-          nullptr,                    \
-          sizeof(query_bed_end),      \
-          query_bed_end) == TILEDB_VCF_OK);
-
-#define SET_BUFF_SAMPLE_NAME(r, nr)      \
-  int32_t sample_name_offsets[(nr) + 1]; \
-  char sample_name[(nr)*10];             \
-  REQUIRE(                               \
-      tiledb_vcf_reader_set_buffer(      \
-          (reader),                      \
-          "sample_name",                 \
-          sizeof(sample_name_offsets),   \
-          sample_name_offsets,           \
-          sizeof(sample_name),           \
-          sample_name) == TILEDB_VCF_OK);
-
-#define SET_BUFF_CONTIG(r, nr)      \
-  int32_t contig_offsets[(nr) + 1]; \
-  char contig[(nr)*10];             \
-  REQUIRE(                          \
-      tiledb_vcf_reader_set_buffer( \
-          (reader),                 \
-          "contig",                 \
-          sizeof(contig_offsets),   \
-          contig_offsets,           \
-          sizeof(contig),           \
-          contig) == TILEDB_VCF_OK);
-
-#define SET_BUFF_ALLELES(r, nr)      \
-  int32_t alleles_offsets[(nr) + 1]; \
-  char alleles[(nr)*20];             \
-  REQUIRE(                           \
-      tiledb_vcf_reader_set_buffer(  \
-          (reader),                  \
-          "alleles",                 \
-          sizeof(alleles_offsets),   \
-          alleles_offsets,           \
-          sizeof(alleles),           \
-          alleles) == TILEDB_VCF_OK);
-
-#define SET_BUFF_FILTERS(r, nr)                                         \
-  int32_t filters_offsets[(nr) + 1];                                    \
-  uint8_t filters_bitmap[(nr) / 8 + 1];                                 \
-  char filters[(nr)*20];                                                \
-  REQUIRE(                                                              \
-      tiledb_vcf_reader_set_buffer(                                     \
-          (reader),                                                     \
-          "filters",                                                    \
-          sizeof(filters_offsets),                                      \
-          filters_offsets,                                              \
-          sizeof(filters),                                              \
-          filters) == TILEDB_VCF_OK);                                   \
-  REQUIRE(                                                              \
-      tiledb_vcf_reader_set_validity_bitmap(                            \
-          reader, "filters", sizeof(filters_bitmap), filters_bitmap) == \
+#define SET_BUFF_QUERY_BED_END(r, nr)                                       \
+  uint32_t query_bed_end[(nr)];                                             \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_values(                                  \
+          reader, "query_bed_end", sizeof(query_bed_end), query_bed_end) == \
       TILEDB_VCF_OK);
 
-#define SET_BUFF_INFO(r, nr)        \
-  int32_t info_offsets[(nr) + 1];   \
-  char info[(nr)*100];              \
-  REQUIRE(                          \
-      tiledb_vcf_reader_set_buffer( \
-          (reader),                 \
-          "info",                   \
-          sizeof(info_offsets),     \
-          info_offsets,             \
-          sizeof(info),             \
-          info) == TILEDB_VCF_OK);
+#define SET_BUFF_SAMPLE_NAME(r, nr)                                     \
+  int32_t sample_name_offsets[(nr) + 1];                                \
+  char sample_name[(nr)*10];                                            \
+  REQUIRE(                                                              \
+      tiledb_vcf_reader_set_buffer_values(                              \
+          (reader), "sample_name", sizeof(sample_name), sample_name) == \
+      TILEDB_VCF_OK);                                                   \
+  REQUIRE(                                                              \
+      tiledb_vcf_reader_set_buffer_offsets(                             \
+          (reader),                                                     \
+          "sample_name",                                                \
+          sizeof(sample_name_offsets),                                  \
+          sample_name_offsets) == TILEDB_VCF_OK);
 
-#define SET_BUFF_FORMAT(r, nr)      \
-  int32_t format_offsets[(nr) + 1]; \
-  char format[(nr)*100];            \
-  REQUIRE(                          \
-      tiledb_vcf_reader_set_buffer( \
-          (reader),                 \
-          "fmt",                    \
-          sizeof(format_offsets),   \
-          format_offsets,           \
-          sizeof(format),           \
-          format) == TILEDB_VCF_OK);
+#define SET_BUFF_CONTIG(r, nr)                                           \
+  int32_t contig_offsets[(nr) + 1];                                      \
+  char contig[(nr)*10];                                                  \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_values(                               \
+          (reader), "contig", sizeof(contig), contig) == TILEDB_VCF_OK); \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_offsets(                              \
+          (reader), "contig", sizeof(contig_offsets), contig_offsets) == \
+      TILEDB_VCF_OK);
 
-#define SET_BUFF_FMT_GT(r, nr)      \
-  int32_t fmt_GT_offsets[(nr) + 1]; \
-  int fmt_GT[(nr)*2];               \
-  REQUIRE(                          \
-      tiledb_vcf_reader_set_buffer( \
-          (reader),                 \
-          "fmt_GT",                 \
-          sizeof(fmt_GT_offsets),   \
-          fmt_GT_offsets,           \
-          sizeof(fmt_GT),           \
-          fmt_GT) == TILEDB_VCF_OK);
+#define SET_BUFF_ALLELES(r, nr)                                             \
+  int32_t alleles_offsets[(nr) + 1];                                        \
+  char alleles[(nr)*20];                                                    \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_values(                                  \
+          (reader), "alleles", sizeof(alleles), alleles) == TILEDB_VCF_OK); \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_offsets(                                 \
+          (reader), "alleles", sizeof(alleles_offsets), alleles_offsets) == \
+      TILEDB_VCF_OK);
 
-#define SET_BUFF_FMT_DP(r, nr)      \
-  int32_t fmt_DP_offsets[(nr) + 1]; \
-  int fmt_DP[(nr)];                 \
-  REQUIRE(                          \
-      tiledb_vcf_reader_set_buffer( \
-          (reader),                 \
-          "fmt_DP",                 \
-          sizeof(fmt_DP_offsets),   \
-          fmt_DP_offsets,           \
-          sizeof(fmt_DP),           \
-          fmt_DP) == TILEDB_VCF_OK);
+#define SET_BUFF_FILTERS(r, nr)                                             \
+  int32_t filters_offsets[(nr) + 1];                                        \
+  uint8_t filters_bitmap[(nr) / 8 + 1];                                     \
+  char filters[(nr)*20];                                                    \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_values(                                  \
+          (reader), "filters", sizeof(filters), filters) == TILEDB_VCF_OK); \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_offsets(                                 \
+          (reader), "filters", sizeof(filters_offsets), filters_offsets) == \
+      TILEDB_VCF_OK);                                                       \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_validity_bitmap(                         \
+          reader, "filters", sizeof(filters_bitmap), filters_bitmap) ==     \
+      TILEDB_VCF_OK);
+
+#define SET_BUFF_INFO(r, nr)                                       \
+  int32_t info_offsets[(nr) + 1];                                  \
+  char info[(nr)*100];                                             \
+  REQUIRE(                                                         \
+      tiledb_vcf_reader_set_buffer_values(                         \
+          (reader), "info", sizeof(info), info) == TILEDB_VCF_OK); \
+  REQUIRE(                                                         \
+      tiledb_vcf_reader_set_buffer_offsets(                        \
+          (reader), "info", sizeof(info_offsets), info_offsets) == \
+      TILEDB_VCF_OK);
+
+#define SET_BUFF_FORMAT(r, nr)                                        \
+  int32_t format_offsets[(nr) + 1];                                   \
+  char format[(nr)*100];                                              \
+  REQUIRE(                                                            \
+      tiledb_vcf_reader_set_buffer_values(                            \
+          (reader), "fmt", sizeof(format), format) == TILEDB_VCF_OK); \
+  REQUIRE(                                                            \
+      tiledb_vcf_reader_set_buffer_offsets(                           \
+          (reader), "fmt", sizeof(format_offsets), format_offsets) == \
+      TILEDB_VCF_OK);
+
+#define SET_BUFF_FMT_GT(r, nr)                                           \
+  int32_t fmt_GT_offsets[(nr) + 1];                                      \
+  int fmt_GT[(nr)*2];                                                    \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_values(                               \
+          (reader), "fmt_GT", sizeof(fmt_GT), fmt_GT) == TILEDB_VCF_OK); \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_offsets(                              \
+          (reader), "fmt_GT", sizeof(fmt_GT_offsets), fmt_GT_offsets) == \
+      TILEDB_VCF_OK);
+
+#define SET_BUFF_FMT_DP(r, nr)                                           \
+  int32_t fmt_DP_offsets[(nr) + 1];                                      \
+  int fmt_DP[(nr)];                                                      \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_values(                               \
+          (reader), "fmt_DP", sizeof(fmt_DP), fmt_DP) == TILEDB_VCF_OK); \
+  REQUIRE(                                                               \
+      tiledb_vcf_reader_set_buffer_offsets(                              \
+          (reader), "fmt_DP", sizeof(fmt_DP_offsets), fmt_DP_offsets) == \
+      TILEDB_VCF_OK);
 
 /* ********************************* */
 /*               TESTS               */
@@ -285,39 +273,31 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
 
   // Error for offsets on fixed-len attr
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader,
-          "pos_start",
-          sizeof(offsets),
-          offsets,
-          sizeof(pos_start),
-          pos_start) == TILEDB_VCF_ERR);
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader, "pos_start", sizeof(offsets), offsets) == TILEDB_VCF_ERR);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader, "pos_start", 0, nullptr, sizeof(pos_start), pos_start) ==
-      TILEDB_VCF_OK);
+      tiledb_vcf_reader_set_buffer_values(
+          reader, "pos_start", sizeof(pos_start), pos_start) == TILEDB_VCF_OK);
 
   int32_t contig_offsets[10];
   char contigs[100];
 
   // Error for null offsets on var-len attr
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader, "contig", 0, nullptr, sizeof(contigs), contigs) ==
+      tiledb_vcf_reader_set_buffer_offsets(reader, "contig", 0, nullptr) ==
       TILEDB_VCF_ERR);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader,
-          "contig",
-          sizeof(contig_offsets),
-          contig_offsets,
-          sizeof(contigs),
-          contigs) == TILEDB_VCF_OK);
+      tiledb_vcf_reader_set_buffer_values(
+          reader, "contig", sizeof(contigs), contigs) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader, "contig", sizeof(contig_offsets), contig_offsets) ==
+      TILEDB_VCF_OK);
 
   // Error on null data buffer
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader, "pos_start", 0, nullptr, 0, nullptr) == TILEDB_VCF_ERR);
+      tiledb_vcf_reader_set_buffer_values(reader, "pos_start", 0, nullptr) ==
+      TILEDB_VCF_ERR);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -603,9 +583,11 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   int32_t pl_offsets[expected_num_records + 1];
   int pl[expected_num_records * 3];
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader, "fmt_PL", sizeof(pl_offsets), pl_offsets, sizeof(pl), pl) ==
+      tiledb_vcf_reader_set_buffer_values(reader, "fmt_PL", sizeof(pl), pl) ==
       TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader, "fmt_PL", sizeof(pl_offsets), pl_offsets) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -1906,29 +1888,31 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
   int32_t sample_name_offsets1[allocated_num_records + 1];
   char sample_name1[allocated_num_records * 10];
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader0, "pos_end", 0, nullptr, sizeof(pos_end0), pos_end0) ==
+      tiledb_vcf_reader_set_buffer_values(
+          reader0, "pos_end", sizeof(pos_end0), pos_end0) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0, "sample_name", sizeof(sample_name0), sample_name0) ==
       TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
+      tiledb_vcf_reader_set_buffer_offsets(
           reader0,
           "sample_name",
           sizeof(sample_name_offsets0),
-          sample_name_offsets0,
-          sizeof(sample_name0),
-          sample_name0) == TILEDB_VCF_OK);
+          sample_name_offsets0) == TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader1, "pos_end", 0, nullptr, sizeof(pos_end1), pos_end1) ==
+      tiledb_vcf_reader_set_buffer_values(
+          reader1, "pos_end", sizeof(pos_end1), pos_end1) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1, "sample_name", sizeof(sample_name1), sample_name1) ==
       TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
+      tiledb_vcf_reader_set_buffer_offsets(
           reader1,
           "sample_name",
           sizeof(sample_name_offsets1),
-          sample_name_offsets1,
-          sizeof(sample_name1),
-          sample_name1) == TILEDB_VCF_OK);
+          sample_name_offsets1) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -2027,29 +2011,31 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   int32_t sample_name_offsets1[allocated_num_records];
   char sample_name1[allocated_num_records * 10];
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader0, "pos_end", 0, nullptr, sizeof(pos_end0), pos_end0) ==
+      tiledb_vcf_reader_set_buffer_values(
+          reader0, "pos_end", sizeof(pos_end0), pos_end0) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0, "sample_name", sizeof(sample_name0), sample_name0) ==
       TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
+      tiledb_vcf_reader_set_buffer_offsets(
           reader0,
           "sample_name",
           sizeof(sample_name_offsets0),
-          sample_name_offsets0,
-          sizeof(sample_name0),
-          sample_name0) == TILEDB_VCF_OK);
+          sample_name_offsets0) == TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader1, "pos_end", 0, nullptr, sizeof(pos_end1), pos_end1) ==
+      tiledb_vcf_reader_set_buffer_values(
+          reader1, "pos_end", sizeof(pos_end1), pos_end1) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1, "sample_name", sizeof(sample_name1), sample_name1) ==
       TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
+      tiledb_vcf_reader_set_buffer_offsets(
           reader1,
           "sample_name",
           sizeof(sample_name_offsets1),
-          sample_name_offsets1,
-          sizeof(sample_name1),
-          sample_name1) == TILEDB_VCF_OK);
+          sample_name_offsets1) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -2210,29 +2196,29 @@ TEST_CASE(
   int32_t alleles_offsets[3];
   char alleles[17];
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
+      tiledb_vcf_reader_set_buffer_values(
+          reader, "sample_name", sizeof(sample_name), sample_name) ==
+      TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
           reader,
           "sample_name",
           sizeof(sample_name_offsets),
-          sample_name_offsets,
-          sizeof(sample_name),
-          sample_name) == TILEDB_VCF_OK);
+          sample_name_offsets) == TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader,
-          "contig",
-          sizeof(contig_offsets),
-          contig_offsets,
-          sizeof(contig),
-          contig) == TILEDB_VCF_OK);
+      tiledb_vcf_reader_set_buffer_values(
+          reader, "contig", sizeof(contig), contig) == TILEDB_VCF_OK);
   REQUIRE(
-      tiledb_vcf_reader_set_buffer(
-          reader,
-          "alleles",
-          sizeof(alleles_offsets),
-          alleles_offsets,
-          sizeof(alleles),
-          alleles) == TILEDB_VCF_OK);
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader, "contig", sizeof(contig_offsets), contig_offsets) ==
+      TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader, "alleles", sizeof(alleles), alleles) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader, "alleles", sizeof(alleles_offsets), alleles_offsets) ==
+      TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(

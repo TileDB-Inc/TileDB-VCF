@@ -49,58 +49,17 @@ namespace vcf {
  */
 class InMemoryExporter : public Exporter {
  public:
-  /**
-   * Sets a user-defined buffer for receiving exported data.
-   *
-   * The predefined attribute names are:
-   *
-   * - "sample_name": The sample name (var-len char)
-   * - "contig": The contig name (var-len char)
-   * - "pos_start": The 1-based record start position (int32)
-   * - "pos_end": The 1-based record end position (int32)
-   * - "query_bed_start": The 0-based BED query start position (int32)
-   * - "query_bed_end": The 1-based BED query end position (int32)
-   * - "alleles": CSV string of alleles (var-len char)
-   * - "id": ID string (var-len char)
-   * - "filters": CSV string of filter names (var-len char)
-   * - "qual": The quality value (float)
-   * - "info_*": A specific INFO field value (var-len uint8, see below)
-   * - "fmt_*": A specific FMT field value (var-len uint8, see below)
-   * - "fmt": Format byte blob of non-attribute fields (var-len uint8)
-   * - "info": Info byte blob of non-attribute fields (var-len uint8)
-   *
-   * In general to access specific INFO or FMT field values, you should
-   * use the special `fmt_*` / `info_*` attribute names. For example, to
-   * retrieve the values of the `MIN_DP` format field, set a buffer for
-   * attribute `fmt_MIN_DP`. The generic `fmt` and `info` byte blob attributes
-   * are mostly available as an escape hatch.
-   *
-   * When retrieving info/fmt fields, the values stored in the buffers are typed
-   * according to the actual field type. For example, if an INFO field `foo` is
-   * listed in the BCF header as being a floating-point field, then the bytes
-   * stored in the buffer `info_foo` will be floating-point values.
-   *
-   * If a record does not contain a value for the specified INFO or FMT field,
-   * the value stored in the result buffer is a special null sentinel value
-   * indicating "no value".
-   *
-   * @param attribute Name of attribute
-   * @param offsets Offsets buffer, ignored for fixed-len attributes.
-   * @param max_num_offsets Size of offsets buffer (in num elements).
-   * @param data Data buffer.
-   * @param max_data_bytes Size of data buffer (in bytes).
-   */
-  void set_buffer(
-      const std::string& attribute,
-      int32_t* offsets,
-      int64_t max_num_offsets,
-      void* data,
-      int64_t max_data_bytes);
+  /** Sets the values buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_values(
+      const std::string& attribute, void* buff, int64_t buff_size);
 
-  void set_validity_bitmap(
-      const std::string& attribute,
-      uint8_t* bitmap_buff,
-      int64_t bitmap_buff_size);
+  /** Sets the offsets buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
+  /** Sets the bitmap buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_validity_bitmap(
+      const std::string& attribute, uint8_t* buff, int64_t buff_size);
 
   std::set<std::string> array_attributes_required() const override;
 
@@ -279,6 +238,8 @@ class InMemoryExporter : public Exporter {
   /** Gets the datatype for a specific info_/fmt_ attribute. */
   static AttrDatatype get_info_fmt_datatype(
       const TileDBVCFDataset* dataset, const std::string& attr);
+
+  UserBuffer* get_buffer(const std::string& attribute);
 
   /** Exports/copies the given cell into the user buffers. */
   bool copy_cell(

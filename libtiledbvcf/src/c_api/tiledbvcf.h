@@ -206,7 +206,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
     tiledb_vcf_reader_t* reader, int32_t partition, int32_t num_partitions);
 
 /**
- * Sets a buffer to hold data for a specific attribute being read.
+ * Sets a buffer to hold values for a specific attribute being read.
  *
  * The allowed attributes and their datatypes are:
  *
@@ -307,35 +307,67 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
- * @param offset_buff_size Size (in bytes) of `offset_buff`.
- * @param offset_buff Buffer to hold offsets (NULL for fixed-length attributes).
- * @param buff_size Size (in bytes) of `buff`
- * @param buff Buffer to hold attribute data.
+ * @param buff_size Size (in bytes) of `buff`.
+ * @param buff Buffer to hold offsets.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer(
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_values(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t offset_buff_size,
-    int32_t* offset_buff,
     int64_t buff_size,
     void* buff);
 
 /**
- * Sets the validity bitmap buffer for a nullable attribute. See the nullable
- * docs for function `tiledb_vcf_reader_set_buffer` for more information.
+ * Sets the value offsets buffer for a variable-length attribute.
+ *
+ * Fixed-length attributes, such as `pos_start` or `qual`, contain a
+ * single value per result record. Variable-length attributes, such as
+ * `sample_name` or `info_* / fmt_*`, contain a variable number of values per
+ * result record, which may be 0.
+ *
+ * For variable-length attributes, an extra "offsets" buffer must be provided.
+ * This will be populated with the starting offset of the variable-length value
+ * in the associated data buffer, for each record.
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
- * @param bitmap_buff_size Size (in bytes) of `bitmap_buff`.
- * @param bitmap_buff Buffer to hold bitmap.
+ * @param buff_size Size (in bytes) of `buff`.
+ * @param buff Buffer to hold offsets.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_validity_bitmap(
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_offsets(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t bitmap_buff_size,
-    uint8_t* bitmap_buff);
+    int64_t buff_size,
+    int32_t* buff);
+
+/**
+ * Sets the validity bitmap buffer for a nullable attribute.
+ *
+ * Most attributes are non-nullable, meaning a value will be stored for the
+ * attribute for every result record. The nullable attributes are:
+ *
+ * - "filters"
+ * - "info"
+ * - "info_*"
+ * - "fmt"
+ * - "fmt_*"
+ *
+ * For the nullable attributes, a validity bitmap buffer must also be provided.
+ * For a result record at index `i`, the bit index `i` will be set if the value
+ * of the nullable attribute has a valid (non-null) value.
+ *
+ * @param reader VCF reader object
+ * @param attribute Name of attribute
+ * @param buff_size Size (in bytes) of `buff`.
+ * @param buff Buffer to hold bitmap.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    const char* attribute,
+    int64_t buff_size,
+    uint8_t* buff);
 
 /**
  * Sets the fixed amount of memory used *per attribute* in internal reader

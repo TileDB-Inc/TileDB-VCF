@@ -42,6 +42,7 @@
 #include "enums/attr_datatype.h"
 #include "enums/read_status.h"
 #include "read/exporter.h"
+#include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
 
 namespace tiledb {
@@ -137,25 +138,17 @@ class Reader {
   /** Sets the sample partitioning. */
   void set_sample_partition(uint64_t partition_idx, uint64_t num_partitions);
 
-  /**
-   * Sets a pre-allocated buffer for a particular attribute for in-memory record
-   * export.
-   */
-  void set_buffer(
-      const std::string& attribute,
-      int32_t* offsets,
-      int64_t max_num_offsets,
-      void* data,
-      int64_t max_data_bytes);
+  /** Sets the values buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_values(
+      const std::string& attribute, void* buff, int64_t buff_size);
 
-  /**
-   * Sets a pre-allocated validity bitmap buffer for a nullable attribute for
-   * in-memory record export.
-   */
-  void set_validity_bitmap(
-      const std::string& attribute,
-      uint8_t* bitmap_buff,
-      int64_t bitmap_buff_size);
+  /** Sets the offsets buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
+  /** Sets the bitmap buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_validity_bitmap(
+      const std::string& attribute, uint8_t* buff, int64_t buff_size);
 
   /** Sets the attribute buffer size parameter. */
   void set_attr_buffer_size(unsigned mb);
@@ -263,6 +256,8 @@ class Reader {
   /* ********************************* */
   /*           PRIVATE METHODS         */
   /* ********************************* */
+
+  InMemoryExporter* set_in_memory_exporter();
 
   bool next_read_batch();
 

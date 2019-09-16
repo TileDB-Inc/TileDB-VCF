@@ -268,11 +268,9 @@ int32_t tiledb_vcf_reader_set_sample_partition(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_set_buffer(
+int32_t tiledb_vcf_reader_set_buffer_values(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t offset_buff_size,
-    int32_t* offset_buff,
     int64_t buff_size,
     void* buff) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
@@ -280,29 +278,40 @@ int32_t tiledb_vcf_reader_set_buffer(
 
   if (SAVE_ERROR_CATCH(
           reader,
-          reader->reader_->set_buffer(
-              attribute,
-              offset_buff,
-              offset_buff_size / sizeof(int32_t),
-              buff,
-              buff_size)))
+          reader->reader_->set_buffer_values(attribute, buff, buff_size)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_set_validity_bitmap(
+int32_t tiledb_vcf_reader_set_buffer_offsets(
     tiledb_vcf_reader_t* reader,
     const char* attribute,
-    int64_t bitmap_buff_size,
-    uint8_t* bitmap_buff) {
+    int64_t buff_size,
+    int32_t* buff) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(
           reader,
-          reader->reader_->set_validity_bitmap(
-              attribute, bitmap_buff, bitmap_buff_size)))
+          reader->reader_->set_buffer_offsets(attribute, buff, buff_size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_buffer_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    const char* attribute,
+    int64_t buff_size,
+    uint8_t* buff) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_buffer_validity_bitmap(
+              attribute, buff, buff_size)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
