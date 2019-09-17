@@ -95,7 +95,8 @@ static std::string INPUT_ARRAYS_DIR =
       TILEDB_VCF_OK);
 
 #define SET_BUFF_ALLELES(r, nr)                                             \
-  int32_t alleles_offsets[(nr) + 1];                                        \
+  int32_t alleles_offsets[2 * (nr) + 1];                                    \
+  int32_t alleles_list_offsets[(nr) + 1];                                   \
   char alleles[(nr)*20];                                                    \
   REQUIRE(                                                                  \
       tiledb_vcf_reader_set_buffer_values(                                  \
@@ -103,10 +104,17 @@ static std::string INPUT_ARRAYS_DIR =
   REQUIRE(                                                                  \
       tiledb_vcf_reader_set_buffer_offsets(                                 \
           (reader), "alleles", sizeof(alleles_offsets), alleles_offsets) == \
-      TILEDB_VCF_OK);
+      TILEDB_VCF_OK);                                                       \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_list_offsets(                            \
+          (reader),                                                         \
+          "alleles",                                                        \
+          sizeof(alleles_list_offsets),                                     \
+          alleles_list_offsets) == TILEDB_VCF_OK);
 
 #define SET_BUFF_FILTERS(r, nr)                                             \
-  int32_t filters_offsets[(nr) + 1];                                        \
+  int32_t filters_offsets[2 * (nr) + 1];                                    \
+  int32_t filters_list_offsets[(nr) + 1];                                   \
   uint8_t filters_bitmap[(nr) / 8 + 1];                                     \
   char filters[(nr)*20];                                                    \
   REQUIRE(                                                                  \
@@ -116,6 +124,12 @@ static std::string INPUT_ARRAYS_DIR =
       tiledb_vcf_reader_set_buffer_offsets(                                 \
           (reader), "filters", sizeof(filters_offsets), filters_offsets) == \
       TILEDB_VCF_OK);                                                       \
+  REQUIRE(                                                                  \
+      tiledb_vcf_reader_set_buffer_list_offsets(                            \
+          (reader),                                                         \
+          "filters",                                                        \
+          sizeof(filters_list_offsets),                                     \
+          filters_list_offsets) == TILEDB_VCF_OK);                          \
   REQUIRE(                                                                  \
       tiledb_vcf_reader_set_buffer_validity_bitmap(                         \
           reader, "filters", sizeof(filters_bitmap), filters_bitmap) ==     \
@@ -378,8 +392,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &num_offsets,
           &num_data_elements,
           &num_data_bytes) == TILEDB_VCF_OK);
-  REQUIRE(num_data_bytes == 110);
-  REQUIRE(num_offsets == (expected_num_records + 1));
+  REQUIRE(num_data_bytes == 100);
+  REQUIRE(num_offsets == (2 * expected_num_records + 1));
 
   // Check results
   REQUIRE(pos_start[0] == 12141);
@@ -387,7 +401,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[0] == 0);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filters_offsets[0] == 0);
   REQUIRE(fmt_GT_offsets[0] == 0);
@@ -403,7 +423,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[1] == 7);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filters_offsets[1] == 0);
   REQUIRE(fmt_GT_offsets[1] == 2);
@@ -419,7 +445,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[2] == 14);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 2)) == 0);
   REQUIRE(filters_offsets[2] == 0);
   REQUIRE(fmt_GT_offsets[2] == 4);
@@ -435,7 +467,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[3] == 21);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 3)) == 0);
   REQUIRE(filters_offsets[3] == 0);
   REQUIRE(fmt_GT_offsets[3] == 6);
@@ -451,7 +489,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[4] == 28);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filters_offsets[4] == 0);
   REQUIRE(strncmp("LowQual", &filters[filters_offsets[4]], 7) == 0);
@@ -468,7 +512,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[5] == 35);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[5]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
   REQUIRE(filters_offsets[5] == 7);
   REQUIRE(fmt_GT_offsets[5] == 10);
@@ -484,7 +534,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[6] == 42);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[6]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
   REQUIRE(filters_offsets[6] == 7);
   REQUIRE(fmt_GT_offsets[6] == 12);
@@ -500,7 +556,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[7] == 49);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[7]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
   REQUIRE(filters_offsets[7] == 7);
   REQUIRE(fmt_GT_offsets[7] == 14);
@@ -516,7 +578,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[8] == 56);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[8]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filters_offsets[8] == 7);
   REQUIRE(fmt_GT_offsets[8] == 16);
@@ -532,7 +600,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[9] == 63);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[9]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filters_offsets[9] == 7);
   REQUIRE(fmt_GT_offsets[9] == 18);
@@ -618,7 +692,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[0] == 0);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filters_offsets[0] == 0);
   REQUIRE(fmt_GT_offsets[0] == 0);
@@ -638,7 +718,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[1] == 7);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filters_offsets[1] == 0);
   REQUIRE(fmt_GT_offsets[1] == 2);
@@ -658,7 +744,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[2] == 14);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 2)) == 0);
   REQUIRE(filters_offsets[2] == 0);
   REQUIRE(fmt_GT_offsets[2] == 4);
@@ -678,7 +770,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[3] == 21);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 3)) == 0);
   REQUIRE(filters_offsets[3] == 0);
   REQUIRE(fmt_GT_offsets[3] == 6);
@@ -698,7 +796,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[4] == 28);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filters_offsets[4] == 0);
   REQUIRE(strncmp("LowQual", &filters[filters_offsets[4]], 7) == 0);
@@ -719,7 +823,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[5] == 35);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[5]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
   REQUIRE(filters_offsets[5] == 7);
   REQUIRE(fmt_GT_offsets[5] == 10);
@@ -739,7 +849,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[6] == 42);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[6]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
   REQUIRE(filters_offsets[6] == 7);
   REQUIRE(fmt_GT_offsets[6] == 12);
@@ -759,7 +875,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[7] == 49);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[7]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
   REQUIRE(filters_offsets[7] == 7);
   REQUIRE(fmt_GT_offsets[7] == 14);
@@ -779,7 +901,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[8] == 56);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[8]], 1) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
   REQUIRE(filters_offsets[8] == 7);
   REQUIRE(fmt_GT_offsets[8] == 16);
@@ -799,7 +927,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[9] == 63);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
   REQUIRE(strncmp("1", &contig[contig_offsets[9]], 1) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
+          9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
   REQUIRE(filters_offsets[9] == 7);
   REQUIRE(fmt_GT_offsets[9] == 18);
@@ -862,52 +996,112 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
   // Check results
   REQUIRE(pos_end[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
@@ -956,22 +1150,46 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   // Check results
   REQUIRE(pos_end[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
 
   tiledb_vcf_reader_free(&reader);
@@ -1021,52 +1239,112 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   // Check results
   REQUIRE(pos_end[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
@@ -1121,52 +1399,112 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
   // Check results
   REQUIRE(pos_end[0] == 12277);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("C,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[5]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[6]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[7]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[8]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[9]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
 
   tiledb_vcf_reader_free(&reader);
@@ -2148,27 +2486,57 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   // Check results
   REQUIRE(pos_end[0] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[0]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 15);
 
   REQUIRE(pos_end[1] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("T,<NON_REF>", &alleles[alleles_offsets[1]], 11) == 0);
+  REQUIRE(
+      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 64);
 
   REQUIRE(pos_end[2] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[2]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 10);
 
   REQUIRE(pos_end[3] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[3]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 6);
 
   REQUIRE(pos_end[4] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("G,<NON_REF>", &alleles[alleles_offsets[4]], 11) == 0);
+  REQUIRE(
+      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
+  REQUIRE(
+      strncmp(
+          "<NON_REF>",
+          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
+          9) == 0);
   REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 0);
 
   tiledb_vcf_reader_free(&reader);
@@ -2193,7 +2561,8 @@ TEST_CASE(
   char sample_name[17];
   int32_t contig_offsets[3];
   char contig[17];
-  int32_t alleles_offsets[3];
+  int32_t alleles_offsets[2 * 3];
+  int32_t alleles_list_offsets[3];
   char alleles[17];
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
@@ -2219,6 +2588,12 @@ TEST_CASE(
       tiledb_vcf_reader_set_buffer_offsets(
           reader, "alleles", sizeof(alleles_offsets), alleles_offsets) ==
       TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_list_offsets(
+          reader,
+          "alleles",
+          sizeof(alleles_list_offsets),
+          alleles_list_offsets) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(

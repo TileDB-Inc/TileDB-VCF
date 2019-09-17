@@ -342,6 +342,50 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_offsets(
     int32_t* buff);
 
 /**
+ * Sets the list offsets buffer for a list var-len attribute. The list var-len
+ * attributes are:
+ * - "filters"
+ * - "alleles"
+ *
+ * List attributes contain a multiple variable-length values per result record.
+ * For example, a record that has CSV alleles `C,<NON_REF>` has 2
+ * variable-length string values, `C` and `<NON_REF>`. To distinguish the
+ * values, an extra "list offset" buffer must be provided.
+ *
+ * **Example:**
+ *
+ * Suppose the read results contain three records, with CSV alleles
+ * `C,<NON_REF>`, `T,<NON_REF>` and `G,<NON_REF>` respectively.
+ *
+ * The *values* buffer would contain the chars:
+ *   char:  C < N O N _ R E F > T < N O N _ R E F > G < N O N _ R E F >
+ *   index: 0                   1                   2
+ *          0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
+ *
+ * The *offsets* buffer contains the positions of the individual strings ("G",
+ * "<NON_REF>" etc). The offsets buffer therefore contains:
+ *   [0, 1, 10, 11, 20, 21, 30]
+ * e.g. the string starting at offset 11 and continuing to 19 is "<NON_REF>".
+ *
+ * The *list offsets* buffer contains the positions in the offsets buffer
+ * associating the pairs of values with the actual records. The list offsets
+ * buffer therefore contains:
+ *   [0, 2, 4, 6]
+ * because each record has exactly two allele strings.
+ *
+ * @param reader VCF reader object
+ * @param attribute Name of attribute
+ * @param buff_size Size (in bytes) of `buff`.
+ * @param buff Buffer to hold offsets.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_list_offsets(
+    tiledb_vcf_reader_t* reader,
+    const char* attribute,
+    int64_t buff_size,
+    int32_t* buff);
+
+/**
  * Sets the validity bitmap buffer for a nullable attribute.
  *
  * Most attributes are non-nullable, meaning a value will be stored for the
@@ -502,6 +546,12 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_validity_bitmap(
     int32_t buffer,
     uint8_t** bitmap_buff,
     int64_t* bitmap_buff_size);
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_list_offsets(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer,
+    int32_t** buff,
+    int64_t* buff_size);
 
 /**
  * Gets the datatype of the given attribute. Useful to determine the types of

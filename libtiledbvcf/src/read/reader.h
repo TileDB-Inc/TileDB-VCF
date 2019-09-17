@@ -146,6 +146,12 @@ class Reader {
   void set_buffer_offsets(
       const std::string& attribute, int32_t* buff, int64_t buff_size);
 
+  /**
+   * Sets the list offsets buffer pointer and size (in bytes) for an attribute.
+   */
+  void set_buffer_list_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
   /** Sets the bitmap buffer pointer and size (in bytes) for an attribute. */
   void set_buffer_validity_bitmap(
       const std::string& attribute, uint8_t* buff, int64_t buff_size);
@@ -204,6 +210,9 @@ class Reader {
       int32_t buffer_idx,
       uint8_t** bitmap_buff,
       int64_t* bitmap_buff_size) const;
+
+  void get_list_offsets_buffer(
+      int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const;
 
  private:
   /* ********************************* */

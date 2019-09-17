@@ -57,6 +57,12 @@ class InMemoryExporter : public Exporter {
   void set_buffer_offsets(
       const std::string& attribute, int32_t* buff, int64_t buff_size);
 
+  /**
+   * Sets the list offsets buffer pointer and size (in bytes) for an attribute.
+   */
+  void set_buffer_list_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
   /** Sets the bitmap buffer pointer and size (in bytes) for an attribute. */
   void set_buffer_validity_bitmap(
       const std::string& attribute, uint8_t* buff, int64_t buff_size);
@@ -99,6 +105,9 @@ class InMemoryExporter : public Exporter {
       int32_t buffer_idx,
       uint8_t** bitmap_buff,
       int64_t* bitmap_buff_size) const;
+
+  void get_list_offsets_buffer(
+      int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const;
 
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
@@ -149,6 +158,8 @@ class InMemoryExporter : public Exporter {
     int64_t data_nelts = 0;
     /** Number of offsets in user's offsets buffer. */
     int64_t num_offsets = 0;
+    /** Number of offsets in user's list offsets buffer. */
+    int64_t num_list_offsets = 0;
     /** Number of bytes in user's bitmap buffer. */
     int64_t bitmap_bytes = 0;
   };
@@ -164,6 +175,8 @@ class InMemoryExporter : public Exporter {
         , max_data_bytes(0)
         , offsets(nullptr)
         , max_num_offsets(0)
+        , list_offsets(nullptr)
+        , max_num_list_offsets(0)
         , bitmap_buff(nullptr)
         , max_bitmap_bytes(0)
         , bitmap(nullptr) {
@@ -193,6 +206,11 @@ class InMemoryExporter : public Exporter {
     int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
+
+    /** Pointer to user's list offset buffer. */
+    int32_t* list_offsets;
+    /** Size, in num offsets, of user's list offset buffer. */
+    int64_t max_num_list_offsets;
 
     /** Pointer to user's bitmap buffer (null for non-nullable) */
     uint8_t* bitmap_buff;
@@ -232,6 +250,12 @@ class InMemoryExporter : public Exporter {
   /** Returns true if the given exportable attribute is fixed-length. */
   static bool fixed_len_attr(const std::string& attr);
 
+  /**
+   * Returns true if the given exportable attribute is a variable-length "list"
+   * attribute.
+   */
+  static bool var_len_list_attr(const std::string& attr);
+
   /** Returns true if the given exportable attribute is nullable. */
   static bool nullable_attr(const std::string& attr);
 
@@ -254,6 +278,9 @@ class InMemoryExporter : public Exporter {
       const void* data,
       uint64_t nbytes,
       uint64_t nelts) const;
+
+  /** Helper method to export the alleles attribute. */
+  bool copy_alleles_list(uint64_t cell_idx, UserBuffer* dest) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
   bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;

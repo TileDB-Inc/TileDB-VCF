@@ -35,7 +35,7 @@ void InMemoryExporter::set_buffer_values(
     const std::string& attribute, void* buff, int64_t buff_size) {
   if (buff == nullptr) {
     throw std::runtime_error(
-        "Error setting buffer; no data buffer provided for attribute '" +
+        "Error setting buffer; null values buffer provided for attribute '" +
         attribute + "'.");
   }
 
@@ -53,12 +53,31 @@ void InMemoryExporter::set_buffer_offsets(
   } else if (!fixed_len_attr(attribute) && buff == nullptr) {
     throw std::runtime_error(
         "Error setting buffer; attribute '" + attribute +
-        "' is variable-length but no offset buffer was provided.");
+        "' is variable-length but null offset buffer was provided.");
   }
 
   auto user_buff = get_buffer(attribute);
   user_buff->offsets = buff;
   user_buff->max_num_offsets = buff_size / sizeof(int32_t);
+}
+
+void InMemoryExporter::set_buffer_list_offsets(
+    const std::string& attribute, int32_t* buff, int64_t buff_size) {
+  if (!var_len_list_attr(attribute) && buff != nullptr) {
+    throw std::runtime_error(
+        "Error setting buffer; attribute '" + attribute +
+        "' is not a var-len list attribute but list offset buffer was "
+        "provided.");
+  } else if (buff == nullptr) {
+    throw std::runtime_error(
+        "Error setting buffer; attribute '" + attribute +
+        "' is a var-len list attribute but null list offset buffer was "
+        "provided.");
+  }
+
+  auto user_buff = get_buffer(attribute);
+  user_buff->list_offsets = buff;
+  user_buff->max_num_list_offsets = buff_size / sizeof(int32_t);
 }
 
 void InMemoryExporter::set_buffer_validity_bitmap(
@@ -218,6 +237,16 @@ void InMemoryExporter::get_bitmap_buffer(
   *bitmap_buff_size = buff->max_bitmap_bytes;
 }
 
+void InMemoryExporter::get_list_offsets_buffer(
+    int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const {
+  if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
+    throw std::runtime_error(
+        "Error getting buffer information; index out of bounds.");
+  UserBuffer* userbuff = user_buffers_by_idx_[buffer_idx];
+  *buff = userbuff->list_offsets;
+  *buff_size = userbuff->max_num_list_offsets;
+}
+
 void InMemoryExporter::reset_current_sizes() {
   for (auto& it : user_buffers_)
     it.second.curr_sizes = UserBufferSizes();
@@ -264,6 +293,12 @@ bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
   std::set<std::string> fixed_len = {
       "pos_start", "pos_end", "query_bed_start", "query_bed_end", "qual"};
   return fixed_len.count(attr) > 0;
+}
+
+bool InMemoryExporter::var_len_list_attr(const std::string& attr) {
+  ExportableAttribute attribute = attr_name_to_enum(attr);
+  return attribute == ExportableAttribute::Filters ||
+         attribute == ExportableAttribute::Alleles;
 }
 
 bool InMemoryExporter::nullable_attr(const std::string& attr) {
@@ -427,16 +462,7 @@ bool InMemoryExporter::copy_cell(
         break;
       }
       case ExportableAttribute::Alleles: {
-        void* data;
-        uint64_t nbytes;
-        get_var_attr_value(
-            buffers->alleles(),
-            cell_idx,
-            curr_query_results_->alleles_size().second,
-            &data,
-            &nbytes);
-        nbytes -= 1;  // Don't copy terminating null char
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
+        overflow = !copy_alleles_list(cell_idx, &user_buff);
         break;
       }
       case ExportableAttribute::Id: {
@@ -588,6 +614,72 @@ bool InMemoryExporter::copy_to_user_buff(
 
   dest->curr_sizes.data_bytes += nbytes;
   dest->curr_sizes.data_nelts += nelts;
+  return true;
+}
+
+bool InMemoryExporter::copy_alleles_list(
+    uint64_t cell_idx, UserBuffer* dest) const {
+  // Sanity check buffers
+  if (dest->offsets == nullptr || dest->list_offsets == nullptr)
+    throw std::runtime_error(
+        "Error copying alleles list; no buffer set for offsets or list "
+        "offsets.");
+
+  // Find the data and size
+  const Buffer& src = curr_query_results_->buffers()->alleles();
+  const uint64_t src_size = curr_query_results_->alleles_size().second;
+  void* data = nullptr;
+  uint64_t nbytes = 0;
+  get_var_attr_value(src, cell_idx, src_size, &data, &nbytes);
+
+  // Sanity check
+  if (nbytes == 1 && *static_cast<const char*>(data) == '\0')
+    throw std::runtime_error(
+        "Error copying alleles list; unhandled empty alleles list.");
+
+  // Save current number of offsets (before copying).
+  const uint64_t starting_num_offsets = dest->curr_sizes.num_offsets;
+
+  // Note that the alleles data is ingested as a null-terminated CSV list.
+  const char* p = static_cast<const char*>(data);
+  unsigned num_parts = 0;
+  uint64_t idx = 0;
+  while (idx < nbytes) {
+    // Find the extent of the allele string.
+    uint64_t start_idx = idx;
+    for (; idx < nbytes; idx++) {
+      if (p[idx] == ',' || p[idx] == '\0')
+        break;
+    }
+
+    // Sanity check
+    if (idx <= start_idx)
+      throw std::runtime_error("Error copying alleles list; idx <= start_idx");
+
+    // Copy the allele to the user data buffer (and update value offsets).
+    const uint64_t len = idx - start_idx;
+    if (!copy_to_user_buff(dest, p + start_idx, len, len))
+      return false;
+
+    idx++;  // Skip comma
+    num_parts++;
+  }
+
+  // Check for list offsets overflow
+  if (dest->curr_sizes.num_list_offsets + 2 > dest->max_num_list_offsets ||
+      starting_num_offsets >= (int64_t)std::numeric_limits<int32_t>::max() ||
+      starting_num_offsets + num_parts >
+          (uint64_t)std::numeric_limits<int32_t>::max())
+    return false;
+
+  // Update list offsets
+  dest->list_offsets[dest->curr_sizes.num_list_offsets++] =
+      static_cast<int32_t>(starting_num_offsets);
+  // Always keep the final offset set to the current buffer size.
+  // (This is why we have the +2 overflow check above).
+  dest->list_offsets[dest->curr_sizes.num_list_offsets] =
+      static_cast<int32_t>(starting_num_offsets + num_parts);
+
   return true;
 }
 

@@ -108,6 +108,12 @@ void Reader::set_buffer_offsets(
   exp->set_buffer_offsets(attribute, buff, buff_size);
 }
 
+void Reader::set_buffer_list_offsets(
+    const std::string& attribute, int32_t* buff, int64_t buff_size) {
+  auto exp = set_in_memory_exporter();
+  exp->set_buffer_list_offsets(attribute, buff, buff_size);
+}
+
 void Reader::set_buffer_validity_bitmap(
     const std::string& attribute, uint8_t* buff, int64_t buff_size) {
   auto exp = set_in_memory_exporter();
@@ -213,6 +219,15 @@ void Reader::get_bitmap_buffer(
     throw std::runtime_error(
         "Error getting buffer information; improper or null exporter instance");
   exp->get_bitmap_buffer(buffer_idx, bitmap_buff, bitmap_buff_size);
+}
+
+void Reader::get_list_offsets_buffer(
+    int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const {
+  auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+  if (exp == nullptr)
+    throw std::runtime_error(
+        "Error getting buffer information; improper or null exporter instance");
+  exp->get_list_offsets_buffer(buffer_idx, buff, buff_size);
 }
 
 void Reader::read() {
