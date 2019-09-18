@@ -26,7 +26,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_sample_partition", &Reader::set_sample_partition)
       .def("set_memory_budget", &Reader::set_memory_budget)
       .def("set_max_num_records", &Reader::set_max_num_records)
-      .def("set_tiledb_contig", &Reader::set_tiledb_config)
+      .def("set_tiledb_config", &Reader::set_tiledb_config)
       .def("set_attributes", &Reader::set_attributes)
       .def("set_buffer_alloc_size", &Reader::set_buffer_alloc_size)
       .def("read", &Reader::read)

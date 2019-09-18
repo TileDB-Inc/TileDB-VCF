@@ -56,7 +56,7 @@ class TileDBVCFDataset(object):
         if cfg.internal_memory_budget is not None:
             self.reader.set_memory_budget(cfg.internal_memory_budget)
         if cfg.tiledb_config is not None:
-            self.reader.set_tiledb_contig(','.join(cfg.tiledb_config))
+            self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):
@@ -96,12 +96,13 @@ class TileDBVCFDataset(object):
 
         return self.continue_read()
 
-    def read_iter(self, attrs, samples=None, regions=None):
+    def read_iter(self, attrs, samples=None, regions=None, samples_file=None,
+                  bed_file=None):
         if self.mode != 'r':
             raise Exception('Dataset not open in read mode')
 
         if not self.read_completed():
-            yield self.read(attrs, samples, regions)
+            yield self.read(attrs, samples, regions, samples_file, bed_file)
         while not self.read_completed():
             yield self.continue_read()
 
