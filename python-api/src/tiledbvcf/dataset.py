@@ -58,7 +58,8 @@ class TileDBVCFDataset(object):
         if cfg.tiledb_config is not None:
             self.reader.set_tiledb_contig(','.join(cfg.tiledb_config))
 
-    def read(self, attrs, samples=None, regions=None):
+    def read(self, attrs, samples=None, regions=None, samples_file=None,
+             bed_file=None):
         """Reads data from a TileDB-VCF dataset.
 
         For large datasets, a call to `read()` may not be able to fit all
@@ -71,6 +72,9 @@ class TileDBVCFDataset(object):
         :param list of str attrs: List of attribute names to be read.
         :param list of str samples: CSV list of sample names to be read.
         :param list of str regions: CSV list of genomic regions to be read.
+        :param str samples_file: URI of file containing sample names to be read,
+            one per line.
+        :param str bed_file: URI of a BED file of genomic regions to be read.
         :return: Pandas DataFrame containing results.
         """
         if self.mode != 'r':
@@ -83,6 +87,12 @@ class TileDBVCFDataset(object):
         self.reader.set_samples(','.join(samples))
         self.reader.set_regions(','.join(regions))
         self.reader.set_attributes(attrs)
+
+        if samples_file is not None:
+            self.reader.set_samples_file(samples_file)
+
+        if bed_file is not None:
+            self.reader.set_bed_file(bed_file)
 
         return self.continue_read()
 

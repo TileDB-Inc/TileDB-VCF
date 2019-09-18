@@ -189,6 +189,27 @@ def test_read_filters(test_ds):
     _check_dfs(expected_df, df)
 
 
+def test_read_alleles(test_ds):
+    df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
+                             'alleles'],
+                      regions=['1:12100-13360', '1:13500-17350'])
+    expected_df = pd.DataFrame(
+        {'sample_name': pd.Series(
+            ['HG00280', 'HG01762', 'HG00280', 'HG01762', 'HG00280', 'HG01762',
+             'HG00280', 'HG00280', 'HG00280', 'HG00280', ]),
+            'pos_start': pd.Series(
+                [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545,
+                 17319], dtype=np.int32),
+            'pos_end': pd.Series(
+                [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689,
+                 17479], dtype=np.int32),
+            'alleles': pd.Series(
+                ['C,<NON_REF>', 'C,<NON_REF>', 'G,<NON_REF>', 'G,<NON_REF>',
+                 'T,<NON_REF>', 'T,<NON_REF>', 'G,<NON_REF>', 'G,<NON_REF>',
+                 'G,<NON_REF>', 'T,<NON_REF>'])})
+    _check_dfs(expected_df, df)
+
+
 def test_read_var_len_attrs(test_ds):
     df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
                              'fmt_DP', 'fmt_PL'],
