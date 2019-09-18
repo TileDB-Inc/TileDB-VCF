@@ -153,6 +153,10 @@ void Region::parse_bed_file(
           "Error parsing BED file: could not parse min/max from line '" +
           *line + "'.");
     }
+    if (min > max)
+      throw std::runtime_error(
+          "Error parsing BED file: range from line '" + *line +
+          "' has min > max.");
     if (min == max)
       throw std::runtime_error(
           "Error parsing BED file: range from line '" + *line +
@@ -185,7 +189,9 @@ void Region::sort(
           throw std::runtime_error(
               "Error sorting regions list; no contig offset found for '" +
               b.seq_name + "'.");
-        return it_a->second < it_b->second;
+        const uint32_t global_min_a = it_a->second + a.min;
+        const uint32_t global_min_b = it_b->second + b.min;
+        return global_min_a < global_min_b;
       });
 }
 
