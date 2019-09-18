@@ -121,6 +121,12 @@ void Reader::set_memory_budget(int32_t memory_mb) {
   check_error(reader, tiledb_vcf_reader_set_memory_budget(reader, memory_mb));
 }
 
+void Reader::set_sort_regions(bool sort_regions) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_sort_regions(reader, sort_regions ? 1 : 0));
+}
+
 void Reader::set_max_num_records(int64_t max_num_records) {
   auto reader = ptr.get();
   check_error(

@@ -64,6 +64,10 @@ void Reader::set_regions(const std::string& regions) {
   params_.regions = utils::split(regions, ',');
 }
 
+void Reader::set_sort_regions(bool sort_regions) {
+  params_.sort_regions = sort_regions;
+}
+
 void Reader::set_samples_file(const std::string& uri) {
   if (!vfs_->is_file(uri))
     throw std::runtime_error(
@@ -751,7 +755,8 @@ void Reader::prepare_regions(
     *regions = dataset_->all_contigs();
 
   // Sort all by global column coord.
-  Region::sort(dataset_->metadata().contig_offsets, regions);
+  if (params_.sort_regions)
+    Region::sort(dataset_->metadata().contig_offsets, regions);
 
   // Apply region partitioning before expanding.
   utils::partition_vector(

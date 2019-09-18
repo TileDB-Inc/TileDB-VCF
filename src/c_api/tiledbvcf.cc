@@ -230,6 +230,18 @@ int32_t tiledb_vcf_reader_set_regions(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_sort_regions(
+    tiledb_vcf_reader_t* reader, int32_t sort_regions) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_sort_regions(sort_regions == 1)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_set_region_partition(
     tiledb_vcf_reader_t* reader, int32_t partition, int32_t num_partitions) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
