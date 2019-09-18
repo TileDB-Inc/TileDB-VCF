@@ -345,7 +345,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &num_offsets,
           &num_data_elements,
           &num_data_bytes) == TILEDB_VCF_OK);
-  REQUIRE(num_data_bytes == 120);
+  REQUIRE(num_data_bytes == 110);
   REQUIRE(num_offsets == (expected_num_records + 1));
 
   // Check results

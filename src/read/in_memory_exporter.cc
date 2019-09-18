@@ -448,6 +448,7 @@ bool InMemoryExporter::copy_cell(
             curr_query_results_->alleles_size().second,
             &data,
             &nbytes);
+        nbytes -= 1;  // Don't copy terminating null char
         overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
         break;
       }
