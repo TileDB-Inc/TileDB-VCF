@@ -75,6 +75,7 @@ struct ExportParams {
   bool verbose = false;
   bool export_to_disk = false;
   bool cli_count_only = false;
+  bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
 
@@ -120,6 +121,9 @@ class Reader {
 
   /** Sets the regions list parameter. */
   void set_regions(const std::string& regions);
+
+  /** Sets the sort regionsparameter. */
+  void set_sort_regions(bool sort_regions);
 
   /** Sets the samples file URI parameter. */
   void set_samples_file(const std::string& uri);

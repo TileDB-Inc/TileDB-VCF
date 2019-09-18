@@ -10,13 +10,15 @@ ReadConfig = namedtuple('ReadConfig', [
     'region_partition',
     # Samples partition tuple (idx, num_partitions)
     'sample_partition',
+    # Whether or not to sort the regions to be read (default True)
+    'sort_regions',
     # Allocation size of Python attribute buffers (default 100MB/attribute)
     'attribute_buffer_mb',
     # Allocation size of TileDB-VCF internal attribute buffers (default 200MB/attribute)
     'internal_memory_budget',
     # List of strings of format 'option=value'
     'tiledb_config'
-], defaults=[None] * 6)
+], defaults=[None] * 7)
 
 
 class TileDBVCFDataset(object):
@@ -51,12 +53,14 @@ class TileDBVCFDataset(object):
             self.reader.set_region_partition(*cfg.region_partition)
         if cfg.sample_partition is not None:
             self.reader.set_sample_partition(*cfg.sample_partition)
+        if cfg.sort_regions is not None:
+            self.reader.set_sort_regions(cfg.sort_regions)
         if cfg.attribute_buffer_mb is not None:
             self.reader.set_buffer_alloc_size(cfg.attribute_buffer_mb)
         if cfg.internal_memory_budget is not None:
             self.reader.set_memory_budget(cfg.internal_memory_budget)
         if cfg.tiledb_config is not None:
-            self.reader.set_tiledb_contig(','.join(cfg.tiledb_config))
+            self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):
@@ -96,12 +100,13 @@ class TileDBVCFDataset(object):
 
         return self.continue_read()
 
-    def read_iter(self, attrs, samples=None, regions=None):
+    def read_iter(self, attrs, samples=None, regions=None, samples_file=None,
+                  bed_file=None):
         if self.mode != 'r':
             raise Exception('Dataset not open in read mode')
 
         if not self.read_completed():
-            yield self.read(attrs, samples, regions)
+            yield self.read(attrs, samples, regions, samples_file, bed_file)
         while not self.read_completed():
             yield self.continue_read()
 

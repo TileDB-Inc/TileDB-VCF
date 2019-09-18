@@ -167,6 +167,18 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_regions(tiledb_vcf_reader_t* reader, const char* regions);
 
 /**
+ * Sets whether or not to sort the regions to be read. You can disable region
+ * sorting if you are certain that the BED file being used is already sorted.
+ *
+ * @param reader VCF reader object
+ * @param sort_regions If `1`, regions will be sorted (the default). If `0`,
+ *      region sorting is disabled.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sort_regions(
+    tiledb_vcf_reader_t* reader, int32_t sort_regions);
+
+/**
  * Sets the region partitioning info for the reader. The partitioning divides
  * the reader genomic regions (e.g. the BED ranges) according to a simple block
  * distribution.

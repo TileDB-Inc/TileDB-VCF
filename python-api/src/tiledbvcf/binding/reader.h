@@ -76,6 +76,9 @@ class Reader {
   /** Sets the sample partition of this reader. */
   void set_sample_partition(int32_t partition, int32_t num_partitions);
 
+  /** Sets the sort regions parameter of this reader. */
+  void set_sort_regions(bool sort_regions);
+
   /** Sets the internal memory budget for the TileDB-VCF library. */
   void set_memory_budget(int32_t memory_mb);
 
