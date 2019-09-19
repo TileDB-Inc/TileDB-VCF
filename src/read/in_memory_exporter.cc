@@ -69,11 +69,8 @@ void InMemoryExporter::set_buffer(
 
   buff->data = data;
   buff->max_data_bytes = max_data_bytes;
-  buff->curr_data_bytes = 0;
-  buff->curr_data_nelts = 0;
   buff->offsets = offsets;
   buff->max_num_offsets = max_num_offsets;
-  buff->curr_num_offsets = 0;
 }
 
 void InMemoryExporter::set_validity_bitmap(
@@ -103,7 +100,6 @@ void InMemoryExporter::set_validity_bitmap(
 
   buff->bitmap_buff = bitmap_buff;
   buff->max_bitmap_bytes = bitmap_buff_size;
-  buff->curr_bitmap_bytes = 0;
   buff->bitmap.reset(new Bitmap(bitmap_buff, bitmap_buff_size));
 }
 
@@ -189,12 +185,13 @@ void InMemoryExporter::result_size(
   if (num_offsets) {
     // If there was any data written, there is an extra "offset" stored at the
     // end of the offsets buffer (storing the total data size, c.f. Arrow).
-    *num_offsets = buff.curr_num_offsets == 0 ? 0 : buff.curr_num_offsets + 1;
+    *num_offsets =
+        buff.curr_sizes.num_offsets == 0 ? 0 : buff.curr_sizes.num_offsets + 1;
   }
   if (num_data_elements)
-    *num_data_elements = buff.curr_data_nelts;
+    *num_data_elements = buff.curr_sizes.data_nelts;
   if (num_data_bytes)
-    *num_data_bytes = buff.curr_data_bytes;
+    *num_data_bytes = buff.curr_sizes.data_bytes;
 }
 
 void InMemoryExporter::num_buffers(int32_t* num_buffers) const {
@@ -232,12 +229,8 @@ void InMemoryExporter::get_bitmap_buffer(
 }
 
 void InMemoryExporter::reset_current_sizes() {
-  for (auto& it : user_buffers_) {
-    it.second.curr_data_bytes = 0;
-    it.second.curr_data_nelts = 0;
-    it.second.curr_num_offsets = 0;
-    it.second.curr_bitmap_bytes = 0;
-  }
+  for (auto& it : user_buffers_)
+    it.second.curr_sizes = UserBufferSizes();
 }
 
 bool InMemoryExporter::export_record(
@@ -387,16 +380,10 @@ bool InMemoryExporter::copy_cell(
     return true;
   }
 
-  // TODO: this is probably too expensive.
   // Record current buffer sizes in case of overflow on some attribute.
-  using SizeInfo = std::tuple<int64_t, int64_t, int64_t, int64_t>;
-  std::map<std::string, SizeInfo> curr_user_buff_sizes;
-  for (auto& it : user_buffers_) {
-    std::get<0>(curr_user_buff_sizes[it.first]) = it.second.curr_num_offsets;
-    std::get<1>(curr_user_buff_sizes[it.first]) = it.second.curr_data_bytes;
-    std::get<2>(curr_user_buff_sizes[it.first]) = it.second.curr_data_nelts;
-    std::get<3>(curr_user_buff_sizes[it.first]) = it.second.curr_bitmap_bytes;
-  }
+  std::vector<UserBufferSizes> saved_sizes(user_buffers_.size());
+  for (size_t i = 0; i < user_buffers_.size(); i++)
+    saved_sizes[i] = user_buffers_by_idx_[i]->curr_sizes;
 
   const auto* buffers = curr_query_results_->buffers();
   bool overflow = false;
@@ -530,12 +517,8 @@ bool InMemoryExporter::copy_cell(
 
   if (overflow) {
     // Restore old buffer sizes so the user can process the incomplete results.
-    for (auto& it : user_buffers_) {
-      it.second.curr_num_offsets = std::get<0>(curr_user_buff_sizes[it.first]);
-      it.second.curr_data_bytes = std::get<1>(curr_user_buff_sizes[it.first]);
-      it.second.curr_data_nelts = std::get<2>(curr_user_buff_sizes[it.first]);
-      it.second.curr_bitmap_bytes = std::get<3>(curr_user_buff_sizes[it.first]);
-    }
+    for (size_t i = 0; i < user_buffers_.size(); i++)
+      user_buffers_by_idx_[i]->curr_sizes = saved_sizes[i];
     return false;
   }
 
@@ -563,17 +546,18 @@ bool InMemoryExporter::copy_to_user_buff(
   const bool nullable = dest->bitmap_buff != nullptr;
 
   // Check for data buffer overflow
-  if (dest->curr_data_bytes + nbytes > (uint64_t)dest->max_data_bytes)
+  if (dest->curr_sizes.data_bytes + nbytes > (uint64_t)dest->max_data_bytes)
     return false;
   // Check for offsets overflow (var-len only)
-  if (var_len &&
-      (dest->curr_num_offsets + 2 > dest->max_num_offsets ||
-       dest->curr_data_nelts >= (int64_t)std::numeric_limits<int32_t>::max() ||
-       dest->curr_data_nelts + nelts >
-           (uint64_t)std::numeric_limits<int32_t>::max()))
+  if (var_len && (dest->curr_sizes.num_offsets + 2 > dest->max_num_offsets ||
+                  dest->curr_sizes.data_nelts >=
+                      (int64_t)std::numeric_limits<int32_t>::max() ||
+                  dest->curr_sizes.data_nelts + nelts >
+                      (uint64_t)std::numeric_limits<int32_t>::max()))
     return false;
   // Check for bitmap overflow (nullable only)
-  if (nullable && ((dest->curr_num_offsets + 1) / 8 >= dest->max_bitmap_bytes))
+  if (nullable &&
+      ((dest->curr_sizes.num_offsets + 1) / 8 >= dest->max_bitmap_bytes))
     return false;
 
   // Sanity check
@@ -585,14 +569,16 @@ bool InMemoryExporter::copy_to_user_buff(
   // Copy data
   if (data != nullptr)
     std::memcpy(
-        static_cast<char*>(dest->data) + dest->curr_data_bytes, data, nbytes);
+        static_cast<char*>(dest->data) + dest->curr_sizes.data_bytes,
+        data,
+        nbytes);
 
   // Update validity bitmap
   if (nullable) {
     const bool is_null =
         nbytes == 0 || data == nullptr ||
         (nbytes == 1 && *static_cast<const char*>(data) == '\0');
-    size_t i = dest->curr_num_offsets;
+    size_t i = dest->curr_sizes.num_offsets;
     if (is_null)
       dest->bitmap->clear(i);
     else
@@ -602,16 +588,16 @@ bool InMemoryExporter::copy_to_user_buff(
   // Update offsets
   if (var_len) {
     // Set offset of current cell
-    dest->offsets[dest->curr_num_offsets++] =
-        static_cast<int32_t>(dest->curr_data_nelts);
+    dest->offsets[dest->curr_sizes.num_offsets++] =
+        static_cast<int32_t>(dest->curr_sizes.data_nelts);
     // Always keep the final offset set to the current data buffer size.
     // (This is why we have the +2 overflow check above).
-    dest->offsets[dest->curr_num_offsets] =
-        static_cast<int32_t>(dest->curr_data_nelts + nelts);
+    dest->offsets[dest->curr_sizes.num_offsets] =
+        static_cast<int32_t>(dest->curr_sizes.data_nelts + nelts);
   }
 
-  dest->curr_data_bytes += nbytes;
-  dest->curr_data_nelts += nelts;
+  dest->curr_sizes.data_bytes += nbytes;
+  dest->curr_sizes.data_nelts += nelts;
   return true;
 }
 
