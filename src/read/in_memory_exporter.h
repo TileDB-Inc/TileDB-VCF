@@ -182,21 +182,31 @@ class InMemoryExporter : public Exporter {
     InfoOrFmt
   };
 
+  /** Struct holding size info of user buffers. */
+  struct UserBufferSizes {
+    /** Number of bytes in user's data/values buffer. */
+    int64_t data_bytes = 0;
+    /** Number of elements in user's data/values buffer. */
+    int64_t data_nelts = 0;
+    /** Number of offsets in user's offsets buffer. */
+    int64_t num_offsets = 0;
+    /** Number of bytes in user's bitmap buffer. */
+    int64_t bitmap_bytes = 0;
+  };
+
   /** User-allocated buffer to store exportable attribute data */
   struct UserBuffer {
     UserBuffer()
         : attr(ExportableAttribute::InfoOrFmt)
         , attr_name("")
+        , is_info(false)
+        , info_fmt_field_name("")
         , data(nullptr)
         , max_data_bytes(0)
-        , curr_data_bytes(0)
-        , curr_data_nelts(0)
         , offsets(nullptr)
         , max_num_offsets(0)
-        , curr_num_offsets(0)
         , bitmap_buff(nullptr)
         , max_bitmap_bytes(0)
-        , curr_bitmap_bytes(0)
         , bitmap(nullptr) {
     }
 
@@ -206,28 +216,29 @@ class InMemoryExporter : public Exporter {
     /** The name of the attribute */
     std::string attr_name;
 
+    /** If type is InfoOrFmt, true if it's info, false if fmt. */
+    bool is_info;
+
+    /** If type is InfoOrFmt, the field name. */
+    std::string info_fmt_field_name;
+
+    /** Current sizes of user buffers. */
+    UserBufferSizes curr_sizes;
+
     /** Pointer to user's buffer. */
     void* data;
-    /** Size of user's buffer (in bytes) */
+    /** Size of user's buffer allocation (in bytes) */
     int64_t max_data_bytes;
-    /** Currently used number of bytes in user's buffer. */
-    int64_t curr_data_bytes;
-    /** Current number of elements in user's buffer. */
-    int64_t curr_data_nelts;
 
     /** Pointer to user's offset buffer (null for fixed-len) */
     int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
-    /** Currently used number of offsets in user's offset buffer. */
-    int64_t curr_num_offsets;
 
     /** Pointer to user's bitmap buffer (null for non-nullable) */
     uint8_t* bitmap_buff;
     /** Size, in num bytes, of user's bitmap buffer. */
     int64_t max_bitmap_bytes;
-    /** Currently used number of bytes in user's bitmap buffer. */
-    int64_t curr_bitmap_bytes;
     /** Convenience wrapper around the bitmap buffer. */
     std::unique_ptr<Bitmap> bitmap;
   };
@@ -302,8 +313,7 @@ class InMemoryExporter : public Exporter {
    * buffers.
    */
   void get_info_fmt_value(
-      const std::string& attr_name,
-      const std::string& field_name,
+      const UserBuffer* attr_buff,
       uint64_t cell_idx,
       const void** data,
       uint64_t* nbytes,
