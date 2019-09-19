@@ -57,6 +57,11 @@ void InMemoryExporter::set_buffer(
     buff = &user_buffers_[attribute];
     buff->attr = attr_name_to_enum(attribute);
     buff->attr_name = attribute;
+    if (buff->attr == ExportableAttribute::InfoOrFmt) {
+      auto p = TileDBVCFDataset::split_info_fmt_attr_name(buff->attr_name);
+      buff->is_info = p.first == "info";
+      buff->info_fmt_field_name = p.second;
+    }
     user_buffers_by_idx_.push_back(buff);
   } else {
     buff = &it->second;
@@ -86,6 +91,11 @@ void InMemoryExporter::set_validity_bitmap(
     buff = &user_buffers_[attribute];
     buff->attr = attr_name_to_enum(attribute);
     buff->attr_name = attribute;
+    if (buff->attr == ExportableAttribute::InfoOrFmt) {
+      auto p = TileDBVCFDataset::split_info_fmt_attr_name(buff->attr_name);
+      buff->is_info = p.first == "info";
+      buff->info_fmt_field_name = p.second;
+    }
     user_buffers_by_idx_.push_back(buff);
   } else {
     buff = &it->second;
@@ -607,18 +617,11 @@ bool InMemoryExporter::copy_to_user_buff(
 
 bool InMemoryExporter::copy_info_fmt_value(
     uint64_t cell_idx, UserBuffer* dest) const {
-  auto parts = TileDBVCFDataset::split_info_fmt_attr_name(dest->attr_name);
-  if (parts.first != "fmt" && parts.first != "info")
-    throw std::runtime_error(
-        "Error copying unknown attribute cell value; unhandled attribute '" +
-        dest->attr_name + "'");
-
-  const std::string& field_name = parts.second;
+  const std::string& field_name = dest->info_fmt_field_name;
   const bool is_gt = field_name == "GT";
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
-  get_info_fmt_value(
-      dest->attr_name, field_name, cell_idx, &src, &nbytes, &nelts);
+  get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
 
   if (is_gt) {
     // Genotype needs special handling to be decoded.
@@ -633,14 +636,15 @@ bool InMemoryExporter::copy_info_fmt_value(
 }
 
 void InMemoryExporter::get_info_fmt_value(
-    const std::string& attr_name,
-    const std::string& field_name,
+    const UserBuffer* attr_buff,
     uint64_t cell_idx,
     const void** data,
     uint64_t* nbytes,
     uint64_t* nelts) const {
   // Get either the extracted attribute buffer, or the info/fmt blob attribute.
-  const bool is_info = utils::starts_with(attr_name, "info_");
+  const std::string& attr_name = attr_buff->attr_name;
+  const std::string& field_name = attr_buff->info_fmt_field_name;
+  const bool is_info = attr_buff->is_info;
   const Buffer* src = nullptr;
   std::pair<uint64_t, uint64_t> src_size;
   bool is_extracted_attr = false;

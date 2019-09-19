@@ -187,6 +187,8 @@ class InMemoryExporter : public Exporter {
     UserBuffer()
         : attr(ExportableAttribute::InfoOrFmt)
         , attr_name("")
+        , is_info(false)
+        , info_fmt_field_name("")
         , data(nullptr)
         , max_data_bytes(0)
         , curr_data_bytes(0)
@@ -205,6 +207,12 @@ class InMemoryExporter : public Exporter {
 
     /** The name of the attribute */
     std::string attr_name;
+
+    /** If type is InfoOrFmt, true if it's info, false if fmt. */
+    bool is_info;
+
+    /** If type is InfoOrFmt, the field name. */
+    std::string info_fmt_field_name;
 
     /** Pointer to user's buffer. */
     void* data;
@@ -302,8 +310,7 @@ class InMemoryExporter : public Exporter {
    * buffers.
    */
   void get_info_fmt_value(
-      const std::string& attr_name,
-      const std::string& field_name,
+      const UserBuffer* attr_buff,
       uint64_t cell_idx,
       const void** data,
       uint64_t* nbytes,
