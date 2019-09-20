@@ -13,6 +13,7 @@ jobs:
         python.version: '3.x'
         CXX: g++
         BUILD_PYTHON_API: ON
+        BUILD_SPARK_API: ON
 #      macOS:
 #        imageName: 'macOS-10.13'
 #        CXX: clang++
