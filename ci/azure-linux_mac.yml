@@ -2,11 +2,10 @@ steps:
 - bash: |
     set -e pipefail
     brew install clang-format
-    src=$BUILD_REPOSITORY_LOCALPATH
-    cd $src
-    $src/scripts/run-clang-format.sh $src clang-format 0 \
-      $(find $src/src $src/test \
-       -name "*.cc" -or -name "*.c" -or -name "*.h")
+    src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
+    cd $BUILD_REPOSITORY_LOCALPATH
+    ci/run-clang-format.sh $src clang-format 0 \
+      $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
   condition: eq(variables['Agent.OS'], 'Darwin')
   displayName: 'Check formatting (macOS only)'
 
@@ -53,8 +52,8 @@ steps:
     unset SYSTEM
 
     # Configure and build TileDB-VCF
-    mkdir -p $BUILD_REPOSITORY_LOCALPATH/build
-    cd $BUILD_REPOSITORY_LOCALPATH/build
+    mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
+    cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
     cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist ..
 
     make -j4
@@ -79,7 +78,7 @@ steps:
         sudo chown -R $USER $CONDA
       fi
 
-      pushd $BUILD_REPOSITORY_LOCALPATH/python-api
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
       conda env create --file conda-env.yml
       # Note that 'conda init' doesn't seem to work directly.
       source $CONDA/etc/profile.d/conda.sh
