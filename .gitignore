@@ -1,8 +1,8 @@
 .vscode*
 *.swp
-build/*
 dist/*
-cmake-build-*/*
+libtiledbvcf/cmake-build-*/*
+libtiledbvcf/build/*
 core/bin/*
 core/obj/*
 core/lib/*

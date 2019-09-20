@@ -69,7 +69,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
 # 'make format' target
 ############################################################
 
-set(SCRIPTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
+set(SCRIPTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ci")
 
 find_package(ClangTools)
 if (${CLANG_FORMAT_FOUND})

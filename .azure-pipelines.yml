@@ -24,4 +24,4 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
-  - template: scripts/azure-linux_mac.yml
+  - template: ci/azure-linux_mac.yml

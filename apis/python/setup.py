@@ -43,7 +43,7 @@ SRC_DIR = 'src/tiledbvcf'
 # Installation directory of libtiledbvcf (C API).
 # TODO : make this more portable
 LIBTILEDBVCF_INSTALL_DIR = os.path.abspath(
-    os.path.join(CONTAINING_DIR, '../dist'))
+    os.path.join(CONTAINING_DIR, '../../dist'))
 
 
 class get_pybind_include(object):

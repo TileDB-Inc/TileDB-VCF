@@ -9,7 +9,7 @@ CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Test inputs directory
 TESTS_INPUT_DIR = os.path.abspath(
-    os.path.join(CONTAINING_DIR, '../../test/inputs'))
+    os.path.join(CONTAINING_DIR, '../../../libtiledbvcf/test/inputs'))
 
 
 def _check_dfs(expected, actual):
