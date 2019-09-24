@@ -483,8 +483,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_num_records(
  * @param reader VCF reader object
  * @param attribute Name of attribute
  * @param num_offsets Set to the number of offsets in the result offsets buffer
- *      (var-len attributes only). This will be one more than the number of
- *      "cells" of data read.
+ *      (var-len attributes only).
  * @param num_data_elements Set to the number of elements in the result data
  *      buffer. This will be the number of data elements across all cells,
  *      variable-length included.
@@ -510,48 +509,66 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_num_buffers(
     tiledb_vcf_reader_t* reader, int32_t* num_buffers);
 
 /**
- * Gets a buffer (by index) that was previously set on the reader. The original
- * buffer sizes are returned (i.e. not the size of the result data).
+ * Gets the values buffer (by index) that was previously set on the reader.
  *
  * @param reader VCF reader object
- * @param buffer Index of buffer to get
+ * @param buffer_idx Index of buffer to get
  * @param name Set to the name of the buffer
- * @param offset_buff Set to the offsets buffer (set to null for fixed-length
- *      attributes).
- * @param offset_buff_size Set to the size (in bytes) of the offsets buffer.
- * @param data_buff Set to the data buffer.
- * @param data_buff_size Set to the size (in bytes) of the offsets buffer.
+ * @param buff Set to the data buffer.
  * @return
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer(
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_values(
     tiledb_vcf_reader_t* reader,
-    int32_t buffer,
+    int32_t buffer_idx,
     const char** name,
-    int32_t** offset_buff,
-    int64_t* offset_buff_size,
-    void** data_buff,
-    int64_t* data_buff_size);
+    void** buff);
 
 /**
- * For nullable attributes, retrieve the bitmap buffer that was set.
+ * Gets the offsets buffer (by index) that was previously set on the reader.
  *
  * @param reader VCF reader object
- * @param buffer Index of buffer to get
- * @param bitmap_buff Set to the bitmap buffer.
- * @param bitmap_buff_size Set to the size (in bytes) of the offsets buffer.
+ * @param buffer_idx Index of buffer to get
+ * @param name Set to the name of the buffer
+ * @param buff Set to the offsets buffer.
  * @return
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_validity_bitmap(
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_offsets(
     tiledb_vcf_reader_t* reader,
-    int32_t buffer,
-    uint8_t** bitmap_buff,
-    int64_t* bitmap_buff_size);
+    int32_t buffer_idx,
+    const char** name,
+    int32_t** buff);
 
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_list_offsets(
+/**
+ * Gets the list offsets buffer (by index) that was previously set on the
+ * reader.
+ *
+ * @param reader VCF reader object
+ * @param buffer_idx Index of buffer to get
+ * @param name Set to the name of the buffer
+ * @param buff Set to the list offsets buffer.
+ * @return
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_list_offsets(
     tiledb_vcf_reader_t* reader,
-    int32_t buffer,
-    int32_t** buff,
-    int64_t* buff_size);
+    int32_t buffer_idx,
+    const char** name,
+    int32_t** buff);
+
+/**
+ * Gets the validity bitmap buffer (by index) that was previously set on the
+ * reader.
+ *
+ * @param reader VCF reader object
+ * @param buffer_idx Index of buffer to get
+ * @param name Set to the name of the buffer
+ * @param buff Set to the bitmap buffer.
+ * @return
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer_idx,
+    const char** name,
+    uint8_t** buff);
 
 /**
  * Gets the datatype of the given attribute. Useful to determine the types of
@@ -564,6 +581,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_list_offsets(
  * @param datatype Set to the datatype of the attribute
  * @param var_len Set to `1` if the attribute is variable-length, else `0`
  * @param nullable Set to `1` if the attribute is nullable, else `0`
+ * @param list Set to `1` if the attribute is a var-len list, else `0`
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_type(
@@ -571,7 +589,8 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_type(
     const char* attribute,
     tiledb_vcf_attr_datatype_t* datatype,
     int32_t* var_len,
-    int32_t* nullable);
+    int32_t* nullable,
+    int32_t* list);
 
 /**
  * Returns the version number of the TileDB VCF dataset.

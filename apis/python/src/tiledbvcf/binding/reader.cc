@@ -158,11 +158,11 @@ void Reader::alloc_buffers() {
   auto reader = ptr.get();
   for (const auto& attr : attributes_) {
     tiledb_vcf_attr_datatype_t datatype = TILEDB_VCF_UINT8;
-    int32_t var_len = 0, nullable = 0;
+    int32_t var_len = 0, nullable = 0, list = 0;
     check_error(
         reader,
         tiledb_vcf_reader_get_attribute_type(
-            reader, attr.c_str(), &datatype, &var_len, &nullable));
+            reader, attr.c_str(), &datatype, &var_len, &nullable, &list));
 
     buffers_.emplace_back();
     BufferInfo& buffer = buffers_.back();
@@ -177,6 +177,11 @@ void Reader::alloc_buffers() {
       buffer.offsets = py::array(py::dtype::of<int32_t>(), count);
     }
 
+    if (list == 1) {
+      size_t count = alloc_size_bytes_ / sizeof(int32_t);
+      buffer.list_offsets = py::array(py::dtype::of<int32_t>(), count);
+    }
+
     if (nullable == 1) {
       buffer.bitmap = py::array(py::dtype::of<uint8_t>(), count);
     }
@@ -188,31 +193,43 @@ void Reader::set_buffers() {
   for (auto& buff : buffers_) {
     const auto& attr = buff.attr_name;
     py::buffer_info offsets_info = buff.offsets.request(true);
+    py::buffer_info list_offsets_info = buff.list_offsets.request(true);
     py::buffer_info data_info = buff.data.request(true);
     py::buffer_info bitmap_info = buff.bitmap.request(true);
 
     size_t offsets_bytes = offsets_info.itemsize * offsets_info.shape[0];
+    size_t list_offsets_bytes =
+        list_offsets_info.itemsize * list_offsets_info.shape[0];
     size_t data_bytes = data_info.itemsize * data_info.shape[0];
     size_t bitmap_bytes = bitmap_info.itemsize * bitmap_info.shape[0];
 
-    int32_t* offsets_ptr = offsets_bytes == 0 ?
-                               nullptr :
-                               reinterpret_cast<int32_t*>(offsets_info.ptr);
-
     check_error(
         reader,
-        tiledb_vcf_reader_set_buffer(
-            reader,
-            attr.c_str(),
-            offsets_bytes,
-            offsets_ptr,
-            data_bytes,
-            data_info.ptr));
+        tiledb_vcf_reader_set_buffer_values(
+            reader, attr.c_str(), data_bytes, data_info.ptr));
+
+    if (offsets_bytes > 0)
+      check_error(
+          reader,
+          tiledb_vcf_reader_set_buffer_offsets(
+              reader,
+              attr.c_str(),
+              offsets_bytes,
+              reinterpret_cast<int32_t*>(offsets_info.ptr)));
+
+    if (list_offsets_bytes > 0)
+      check_error(
+          reader,
+          tiledb_vcf_reader_set_buffer_list_offsets(
+              reader,
+              attr.c_str(),
+              list_offsets_bytes,
+              reinterpret_cast<int32_t*>(list_offsets_info.ptr)));
 
     if (bitmap_bytes > 0)
       check_error(
           reader,
-          tiledb_vcf_reader_set_validity_bitmap(
+          tiledb_vcf_reader_set_buffer_validity_bitmap(
               reader,
               attr.c_str(),
               bitmap_bytes,

@@ -207,44 +207,44 @@ void InMemoryExporter::num_buffers(int32_t* num_buffers) const {
   *num_buffers = user_buffers_.size();
 }
 
-void InMemoryExporter::get_buffer(
-    int32_t buffer_idx,
-    const char** name,
-    int32_t** offset_buff,
-    int64_t* offset_buff_size,
-    void** data_buff,
-    int64_t* data_buff_size) const {
+void InMemoryExporter::get_buffer_values(
+    int32_t buffer_idx, const char** name, void** buff) const {
   if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
     throw std::runtime_error(
         "Error getting buffer information; index out of bounds.");
-  UserBuffer* buff = user_buffers_by_idx_[buffer_idx];
-  *name = buff->attr_name.c_str();
-  *offset_buff = buff->offsets;
-  *offset_buff_size = buff->max_num_offsets;
-  *data_buff = buff->data;
-  *data_buff_size = buff->max_data_bytes;
+  UserBuffer* user_buff = user_buffers_by_idx_[buffer_idx];
+  *name = user_buff->attr_name.c_str();
+  *buff = user_buff->data;
 }
 
-void InMemoryExporter::get_bitmap_buffer(
-    int32_t buffer_idx,
-    uint8_t** bitmap_buff,
-    int64_t* bitmap_buff_size) const {
+void InMemoryExporter::get_buffer_offsets(
+    int32_t buffer_idx, const char** name, int32_t** buff) const {
   if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
     throw std::runtime_error(
         "Error getting buffer information; index out of bounds.");
-  UserBuffer* buff = user_buffers_by_idx_[buffer_idx];
-  *bitmap_buff = buff->bitmap_buff;
-  *bitmap_buff_size = buff->max_bitmap_bytes;
+  UserBuffer* user_buff = user_buffers_by_idx_[buffer_idx];
+  *name = user_buff->attr_name.c_str();
+  *buff = user_buff->offsets;
 }
 
-void InMemoryExporter::get_list_offsets_buffer(
-    int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const {
+void InMemoryExporter::get_buffer_list_offsets(
+    int32_t buffer_idx, const char** name, int32_t** buff) const {
   if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
     throw std::runtime_error(
         "Error getting buffer information; index out of bounds.");
-  UserBuffer* userbuff = user_buffers_by_idx_[buffer_idx];
-  *buff = userbuff->list_offsets;
-  *buff_size = userbuff->max_num_list_offsets;
+  UserBuffer* user_buff = user_buffers_by_idx_[buffer_idx];
+  *name = user_buff->attr_name.c_str();
+  *buff = user_buff->list_offsets;
+}
+
+void InMemoryExporter::get_buffer_validity_bitmap(
+    int32_t buffer_idx, const char** name, uint8_t** buff) const {
+  if (buffer_idx < 0 || (size_t)buffer_idx >= user_buffers_by_idx_.size())
+    throw std::runtime_error(
+        "Error getting buffer information; index out of bounds.");
+  UserBuffer* user_buff = user_buffers_by_idx_[buffer_idx];
+  *name = user_buff->attr_name.c_str();
+  *buff = user_buff->bitmap_buff;
 }
 
 void InMemoryExporter::reset_current_sizes() {
@@ -259,8 +259,143 @@ bool InMemoryExporter::export_record(
     uint32_t contig_offset,
     const ReadQueryResults& query_results,
     uint64_t cell_idx) {
+  // Keep a convenience reference to the current query results.
   curr_query_results_ = &query_results;
-  return copy_cell(hdr, query_region, contig_offset, cell_idx);
+
+  if (user_buffers_.empty()) {
+    // With no user buffers to receive data, just degenerate to a count.
+    return true;
+  }
+
+  // Record current buffer sizes in case of overflow on some attribute.
+  std::vector<UserBufferSizes> saved_sizes(user_buffers_.size());
+  for (size_t i = 0; i < user_buffers_.size(); i++)
+    saved_sizes[i] = user_buffers_by_idx_[i]->curr_sizes;
+
+  // For all user buffers, copy the appropriate data.
+  const auto* buffers = curr_query_results_->buffers();
+  bool overflow = false;
+  for (auto& it : user_buffers_) {
+    if (overflow)
+      break;
+
+    UserBuffer& user_buff = it.second;
+    switch (user_buff.attr) {
+      case ExportableAttribute::SampleName: {
+        const uint32_t sample_id =
+            buffers->coords().value<uint32_t>(2 * cell_idx + 0);
+        const std::string& sample_name =
+            dataset_->metadata().sample_names[sample_id];
+        overflow = !copy_cell(
+            &user_buff,
+            sample_name.c_str(),
+            sample_name.size(),
+            sample_name.size());
+        break;
+      }
+      case ExportableAttribute::Contig: {
+        overflow = !copy_cell(
+            &user_buff,
+            query_region.seq_name.c_str(),
+            query_region.seq_name.size(),
+            query_region.seq_name.size());
+        break;
+      }
+      case ExportableAttribute::PosStart: {
+        const uint32_t pos =
+            (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
+        overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1);
+        break;
+      }
+      case ExportableAttribute::PosEnd: {
+        const uint32_t real_end =
+            (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
+        overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+        break;
+      }
+      case ExportableAttribute::QueryBedStart: {
+        overflow = !copy_cell(
+            &user_buff, &query_region.min, sizeof(query_region.min), 1);
+        break;
+      }
+      case ExportableAttribute::QueryBedEnd: {
+        uint32_t end = query_region.max + 1;
+        overflow = !copy_cell(&user_buff, &end, sizeof(end), 1);
+        break;
+      }
+      case ExportableAttribute::Alleles: {
+        overflow = !copy_alleles_list(cell_idx, &user_buff);
+        break;
+      }
+      case ExportableAttribute::Id: {
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
+            buffers->id(),
+            cell_idx,
+            curr_query_results_->id_size().second,
+            &data,
+            &nbytes);
+        // Don't copy terminating null byte
+        if (nbytes > 0)
+          nbytes -= 1;
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        break;
+      }
+      case ExportableAttribute::Filters: {
+        overflow = !copy_filters_list(hdr, cell_idx, &user_buff);
+        break;
+      }
+      case ExportableAttribute::Qual: {
+        const auto qual = buffers->qual().value<float>(cell_idx);
+        overflow = !copy_cell(&user_buff, &qual, sizeof(qual), 1);
+        break;
+      }
+      case ExportableAttribute::Fmt: {
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
+            buffers->fmt(),
+            cell_idx,
+            curr_query_results_->fmt_size().second,
+            &data,
+            &nbytes);
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        break;
+      }
+      case ExportableAttribute::Info: {
+        void* data;
+        uint64_t nbytes;
+        get_var_attr_value(
+            buffers->info(),
+            cell_idx,
+            curr_query_results_->info_size().second,
+            &data,
+            &nbytes);
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        break;
+      }
+      case ExportableAttribute::InfoOrFmt: {
+        overflow = !copy_info_fmt_value(cell_idx, &user_buff);
+        break;
+      }
+      default:
+        throw std::runtime_error(
+            "Error copying cell; unimplemented attribute '" + it.first + "'");
+        break;
+    }
+  }
+
+  // Overflow can occur if a user buffer was too small to receive the copied
+  // data. Restore old buffer sizes so the user can process the incomplete
+  // results.
+  if (overflow) {
+    for (size_t i = 0; i < user_buffers_.size(); i++)
+      user_buffers_by_idx_[i]->curr_sizes = saved_sizes[i];
+    return false;
+  }
+
+  return true;
 }
 
 InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
@@ -314,7 +449,8 @@ void InMemoryExporter::attribute_datatype(
     const std::string& attribute,
     AttrDatatype* datatype,
     bool* var_len,
-    bool* nullable) {
+    bool* nullable,
+    bool* list) {
   ExportableAttribute attr = attr_name_to_enum(attribute);
   switch (attr) {
     case ExportableAttribute::SampleName:
@@ -365,6 +501,7 @@ void InMemoryExporter::attribute_datatype(
 
   *var_len = !fixed_len_attr(attribute);
   *nullable = nullable_attr(attribute);
+  *list = var_len_list_attr(attribute);
 }
 
 AttrDatatype InMemoryExporter::get_info_fmt_datatype(
@@ -395,152 +532,6 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
   }
 }
 
-bool InMemoryExporter::copy_cell(
-    const bcf_hdr_t* hdr,
-    const Region& region,
-    uint32_t contig_offset,
-    uint64_t cell_idx) {
-  if (user_buffers_.empty()) {
-    // With no user buffers to receive data, just degenerate to a count.
-    return true;
-  }
-
-  // Record current buffer sizes in case of overflow on some attribute.
-  std::vector<UserBufferSizes> saved_sizes(user_buffers_.size());
-  for (size_t i = 0; i < user_buffers_.size(); i++)
-    saved_sizes[i] = user_buffers_by_idx_[i]->curr_sizes;
-
-  const auto* buffers = curr_query_results_->buffers();
-  bool overflow = false;
-  for (auto& it : user_buffers_) {
-    if (overflow)
-      break;
-
-    UserBuffer& user_buff = it.second;
-    switch (user_buff.attr) {
-      case ExportableAttribute::SampleName: {
-        const uint32_t sample_id =
-            buffers->coords().value<uint32_t>(2 * cell_idx + 0);
-        const std::string& sample_name =
-            dataset_->metadata().sample_names[sample_id];
-        overflow = !copy_to_user_buff(
-            &user_buff,
-            sample_name.c_str(),
-            sample_name.size(),
-            sample_name.size());
-        break;
-      }
-      case ExportableAttribute::Contig: {
-        overflow = !copy_to_user_buff(
-            &user_buff,
-            region.seq_name.c_str(),
-            region.seq_name.size(),
-            region.seq_name.size());
-        break;
-      }
-      case ExportableAttribute::PosStart: {
-        const uint32_t pos =
-            (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_to_user_buff(&user_buff, &pos, sizeof(pos), 1);
-        break;
-      }
-      case ExportableAttribute::PosEnd: {
-        const uint32_t real_end =
-            (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow =
-            !copy_to_user_buff(&user_buff, &real_end, sizeof(real_end), 1);
-        break;
-      }
-      case ExportableAttribute::QueryBedStart: {
-        overflow =
-            !copy_to_user_buff(&user_buff, &region.min, sizeof(region.min), 1);
-        break;
-      }
-      case ExportableAttribute::QueryBedEnd: {
-        uint32_t end = region.max + 1;
-        overflow = !copy_to_user_buff(&user_buff, &end, sizeof(end), 1);
-        break;
-      }
-      case ExportableAttribute::Alleles: {
-        overflow = !copy_alleles_list(cell_idx, &user_buff);
-        break;
-      }
-      case ExportableAttribute::Id: {
-        void* data;
-        uint64_t nbytes;
-        get_var_attr_value(
-            buffers->id(),
-            cell_idx,
-            curr_query_results_->id_size().second,
-            &data,
-            &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
-        break;
-      }
-      case ExportableAttribute::Filters: {
-        void* data;
-        uint64_t nbytes;
-        get_var_attr_value(
-            buffers->filter_ids(),
-            cell_idx,
-            curr_query_results_->filter_ids_size().second,
-            &data,
-            &nbytes);
-        make_csv_filter_list(hdr, data, nbytes, &str_buff_);
-        overflow = !copy_to_user_buff(
-            &user_buff, str_buff_.data(), str_buff_.size(), str_buff_.size());
-        break;
-      }
-      case ExportableAttribute::Qual: {
-        const auto qual = buffers->qual().value<float>(cell_idx);
-        overflow = !copy_to_user_buff(&user_buff, &qual, sizeof(qual), 1);
-        break;
-      }
-      case ExportableAttribute::Fmt: {
-        void* data;
-        uint64_t nbytes;
-        get_var_attr_value(
-            buffers->fmt(),
-            cell_idx,
-            curr_query_results_->fmt_size().second,
-            &data,
-            &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
-        break;
-      }
-      case ExportableAttribute::Info: {
-        void* data;
-        uint64_t nbytes;
-        get_var_attr_value(
-            buffers->info(),
-            cell_idx,
-            curr_query_results_->info_size().second,
-            &data,
-            &nbytes);
-        overflow = !copy_to_user_buff(&user_buff, data, nbytes, nbytes);
-        break;
-      }
-      case ExportableAttribute::InfoOrFmt: {
-        overflow = !copy_info_fmt_value(cell_idx, &user_buff);
-        break;
-      }
-      default:
-        throw std::runtime_error(
-            "Error copying cell; unimplemented attribute '" + it.first + "'");
-        break;
-    }
-  }
-
-  if (overflow) {
-    // Restore old buffer sizes so the user can process the incomplete results.
-    for (size_t i = 0; i < user_buffers_.size(); i++)
-      user_buffers_by_idx_[i]->curr_sizes = saved_sizes[i];
-    return false;
-  }
-
-  return true;
-}
-
 void InMemoryExporter::get_var_attr_value(
     const Buffer& src,
     uint64_t cell_idx,
@@ -556,31 +547,29 @@ void InMemoryExporter::get_var_attr_value(
   *data = src.data<char>() + offset;
 }
 
-bool InMemoryExporter::copy_to_user_buff(
+bool InMemoryExporter::copy_cell(
+    UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
+  const int64_t index = dest->curr_sizes.num_offsets;
+  if (!copy_cell_data(dest, data, nbytes, nelts))
+    return false;
+  bool is_null = data == nullptr;
+  if (!update_cell_list_and_bitmap(dest, index, is_null, 1))
+    return false;
+  return true;
+}
+
+bool InMemoryExporter::copy_cell_data(
     UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
   const bool var_len = dest->offsets != nullptr;
-  const bool nullable = dest->bitmap_buff != nullptr;
 
   // Check for data buffer overflow
   if (dest->curr_sizes.data_bytes + nbytes > (uint64_t)dest->max_data_bytes)
     return false;
   // Check for offsets overflow (var-len only)
   if (var_len && (dest->curr_sizes.num_offsets + 2 > dest->max_num_offsets ||
-                  dest->curr_sizes.data_nelts >=
-                      (int64_t)std::numeric_limits<int32_t>::max() ||
                   dest->curr_sizes.data_nelts + nelts >
                       (uint64_t)std::numeric_limits<int32_t>::max()))
     return false;
-  // Check for bitmap overflow (nullable only)
-  if (nullable &&
-      ((dest->curr_sizes.num_offsets + 1) / 8 >= dest->max_bitmap_bytes))
-    return false;
-
-  // Sanity check
-  if (!var_len && !nullable && (data == nullptr || nbytes == 0))
-    throw std::runtime_error(
-        "Error copying data to user buffer; fixed-len attribute '" +
-        dest->attr_name + "' is non-nullable but data is null.");
 
   // Copy data
   if (data != nullptr)
@@ -588,18 +577,6 @@ bool InMemoryExporter::copy_to_user_buff(
         static_cast<char*>(dest->data) + dest->curr_sizes.data_bytes,
         data,
         nbytes);
-
-  // Update validity bitmap
-  if (nullable) {
-    const bool is_null =
-        nbytes == 0 || data == nullptr ||
-        (nbytes == 1 && *static_cast<const char*>(data) == '\0');
-    size_t i = dest->curr_sizes.num_offsets;
-    if (is_null)
-      dest->bitmap->clear(i);
-    else
-      dest->bitmap->set(i);
-  }
 
   // Update offsets
   if (var_len) {
@@ -617,6 +594,70 @@ bool InMemoryExporter::copy_to_user_buff(
   return true;
 }
 
+bool InMemoryExporter::update_cell_list_and_bitmap(
+    UserBuffer* dest,
+    int64_t index,
+    bool is_null,
+    int32_t num_list_values) const {
+  const bool nullable = dest->bitmap_buff != nullptr;
+  const bool list = dest->list_offsets != nullptr;
+
+  // If there's no nullable bitmap or list offsets, nothing to do here.
+  if (!nullable && !list)
+    return true;
+
+  // Check for bitmap overflow (nullable only)
+  if (nullable && (index / 8 >= dest->max_bitmap_bytes))
+    return false;
+
+  // Check for list offsets overflow (lists only)
+  if (list &&
+      (dest->curr_sizes.num_list_offsets + 2 > dest->max_num_list_offsets ||
+       dest->curr_sizes.num_list_offsets + (uint64_t)num_list_values >
+           (uint64_t)std::numeric_limits<int32_t>::max()))
+    return false;
+
+  // Update validity bitmap
+  if (nullable) {
+    if (is_null)
+      dest->bitmap->clear(index);
+    else
+      dest->bitmap->set(index);
+  }
+
+  // Update offsets
+  if (list) {
+    // Set list offset of current cell
+    dest->list_offsets[dest->curr_sizes.num_list_offsets++] =
+        static_cast<int32_t>(index);
+    // Always keep the final offset set to the current size.
+    // (This is why we have the +2 overflow check above).
+    dest->list_offsets[dest->curr_sizes.num_list_offsets] =
+        static_cast<int32_t>(index + num_list_values);
+  }
+
+  return true;
+}
+
+bool InMemoryExporter::add_zero_length_offset(UserBuffer* dest) const {
+  // Sanity check
+  if (dest->offsets == nullptr)
+    throw std::runtime_error(
+        "Error adding null value offset; no offsets buffer.");
+
+  // Check for offsets overflow
+  if (dest->curr_sizes.num_offsets + 2 > dest->max_num_offsets ||
+      dest->curr_sizes.num_offsets > std::numeric_limits<int32_t>::max())
+    return false;
+
+  dest->offsets[dest->curr_sizes.num_offsets++] =
+      static_cast<int32_t>(dest->curr_sizes.data_nelts);
+  dest->offsets[dest->curr_sizes.num_offsets] =
+      static_cast<int32_t>(dest->curr_sizes.data_nelts);
+
+  return true;
+}
+
 bool InMemoryExporter::copy_alleles_list(
     uint64_t cell_idx, UserBuffer* dest) const {
   // Sanity check buffers
@@ -626,19 +667,12 @@ bool InMemoryExporter::copy_alleles_list(
         "offsets.");
 
   // Find the data and size
+  const int64_t index = dest->curr_sizes.num_offsets;
   const Buffer& src = curr_query_results_->buffers()->alleles();
   const uint64_t src_size = curr_query_results_->alleles_size().second;
   void* data = nullptr;
   uint64_t nbytes = 0;
   get_var_attr_value(src, cell_idx, src_size, &data, &nbytes);
-
-  // Sanity check
-  if (nbytes == 1 && *static_cast<const char*>(data) == '\0')
-    throw std::runtime_error(
-        "Error copying alleles list; unhandled empty alleles list.");
-
-  // Save current number of offsets (before copying).
-  const uint64_t starting_num_offsets = dest->curr_sizes.num_offsets;
 
   // Note that the alleles data is ingested as a null-terminated CSV list.
   const char* p = static_cast<const char*>(data);
@@ -658,27 +692,66 @@ bool InMemoryExporter::copy_alleles_list(
 
     // Copy the allele to the user data buffer (and update value offsets).
     const uint64_t len = idx - start_idx;
-    if (!copy_to_user_buff(dest, p + start_idx, len, len))
+    if (!copy_cell_data(dest, p + start_idx, len, len))
       return false;
 
     idx++;  // Skip comma
     num_parts++;
   }
 
-  // Check for list offsets overflow
-  if (dest->curr_sizes.num_list_offsets + 2 > dest->max_num_list_offsets ||
-      starting_num_offsets >= (int64_t)std::numeric_limits<int32_t>::max() ||
-      starting_num_offsets + num_parts >
-          (uint64_t)std::numeric_limits<int32_t>::max())
+  // Add null offset if necessary.
+  bool is_null = data == nullptr ||
+                 (nbytes == 1 && *static_cast<const char*>(data) == '\0');
+  if (is_null && !add_zero_length_offset(dest))
     return false;
 
-  // Update list offsets
-  dest->list_offsets[dest->curr_sizes.num_list_offsets++] =
-      static_cast<int32_t>(starting_num_offsets);
-  // Always keep the final offset set to the current buffer size.
-  // (This is why we have the +2 overflow check above).
-  dest->list_offsets[dest->curr_sizes.num_list_offsets] =
-      static_cast<int32_t>(starting_num_offsets + num_parts);
+  // Update list offsets and bitmap.
+  if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts))
+    return false;
+
+  return true;
+}
+
+bool InMemoryExporter::copy_filters_list(
+    const bcf_hdr_t* hdr, uint64_t cell_idx, UserBuffer* dest) const {
+  // Sanity check buffers
+  if (dest->offsets == nullptr || dest->list_offsets == nullptr)
+    throw std::runtime_error(
+        "Error copying filters list; no buffer set for offsets or list "
+        "offsets.");
+
+  // Find the data and size
+  const Buffer& src = curr_query_results_->buffers()->filter_ids();
+  const uint64_t src_size = curr_query_results_->filter_ids_size().second;
+  void* data = nullptr;
+  uint64_t nbytes = 0;
+  get_var_attr_value(src, cell_idx, src_size, &data, &nbytes);
+
+  // Note that the filters data is ingested as a list of int32 IDs.
+  const int* int_data = static_cast<const int*>(data);
+  int num_filters = *int_data;
+  const int* filter_ids = int_data + 1;
+
+  const int64_t index = dest->curr_sizes.num_offsets;
+  const bool is_null = num_filters == 0;
+  if (is_null) {
+    // To adhere to Arrow's offset semantics, a zero-length value still gets
+    // an entry in the offsets buffer.
+    if (!add_zero_length_offset(dest))
+      return false;
+  } else {
+    // Copy the filter names to the user data buffer (and update value offsets).
+    for (int i = 0; i < num_filters; i++) {
+      const char* filter_name = bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]);
+      const uint64_t len = strlen(filter_name);
+      if (!copy_cell_data(dest, filter_name, len, len))
+        return false;
+    }
+  }
+
+  // Update list offsets and bitmap.
+  if (!update_cell_list_and_bitmap(dest, index, is_null, num_filters))
+    return false;
 
   return true;
 }
@@ -697,9 +770,9 @@ bool InMemoryExporter::copy_info_fmt_value(
     int decoded[nelts];
     for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
-    return copy_to_user_buff(dest, decoded, nelts * sizeof(int), nelts);
+    return copy_cell(dest, decoded, nelts * sizeof(int), nelts);
   } else {
-    return copy_to_user_buff(dest, src, nbytes, nelts);
+    return copy_cell(dest, src, nbytes, nelts);
   }
 }
 
@@ -787,22 +860,6 @@ void InMemoryExporter::get_info_fmt_value(
   *data = nullptr;
   *nbytes = 0;
   *nelts = 0;
-}
-
-void InMemoryExporter::make_csv_filter_list(
-    const bcf_hdr_t* hdr,
-    const void* data,
-    uint64_t nbytes,
-    std::string* dest) const {
-  const int* int_data = reinterpret_cast<const int*>(data);
-  const int* filter_ids = int_data + 1;
-  int num_filters = *int_data;
-  dest->clear();
-  for (int i = 0; i < num_filters; i++) {
-    (*dest) += std::string(bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]));
-    if (i < num_filters - 1)
-      (*dest) += ",";
-  }
 }
 
 }  // namespace vcf

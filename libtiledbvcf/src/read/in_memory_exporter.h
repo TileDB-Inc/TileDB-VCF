@@ -91,23 +91,17 @@ class InMemoryExporter : public Exporter {
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
 
-  /** Gets information about the given buffer (by index). */
-  void get_buffer(
-      int32_t buffer_idx,
-      const char** name,
-      int32_t** offset_buff,
-      int64_t* offset_buff_size,
-      void** data_buff,
-      int64_t* data_buff_size) const;
+  void get_buffer_values(
+      int32_t buffer_idx, const char** name, void** data_buff) const;
 
-  /** Gets information about the given buffer (by index). */
-  void get_bitmap_buffer(
-      int32_t buffer_idx,
-      uint8_t** bitmap_buff,
-      int64_t* bitmap_buff_size) const;
+  void get_buffer_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
 
-  void get_list_offsets_buffer(
-      int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const;
+  void get_buffer_list_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
+
+  void get_buffer_validity_bitmap(
+      int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
@@ -120,13 +114,15 @@ class InMemoryExporter : public Exporter {
    * @param datatype Set to the datatype of the attribute
    * @param var_len Set to true if the attribute is variable-length
    * @param nullable Set to true if the attribute is nullable
+   * @param nullable Set to true if the attribute is var-len list
    */
   static void attribute_datatype(
       const TileDBVCFDataset* dataset,
       const std::string& attribute,
       AttrDatatype* datatype,
       bool* var_len,
-      bool* nullable);
+      bool* nullable,
+      bool* list);
 
  private:
   /* ********************************* */
@@ -265,22 +261,44 @@ class InMemoryExporter : public Exporter {
 
   UserBuffer* get_buffer(const std::string& attribute);
 
-  /** Exports/copies the given cell into the user buffers. */
+  /** Copies the given cell data to a user buffer. */
   bool copy_cell(
-      const bcf_hdr_t* hdr,
-      const Region& region,
-      uint32_t contig_offset,
-      uint64_t cell_idx);
-
-  /** Copies the given data to a user buffer. */
-  bool copy_to_user_buff(
       UserBuffer* dest,
       const void* data,
       uint64_t nbytes,
       uint64_t nelts) const;
 
+  /** Copies the cell value, and updates the offsets for var-len attributes. */
+  bool copy_cell_data(
+      UserBuffer* dest,
+      const void* data,
+      uint64_t nbytes,
+      uint64_t nelts) const;
+
+  /**
+   * Updates the attribute list offsets and validity bitmap. This should be
+   * called after copy_cell_data().
+   */
+  bool update_cell_list_and_bitmap(
+      UserBuffer* dest,
+      int64_t index,
+      bool is_null,
+      int32_t num_list_values) const;
+
+  /**
+   * Adds an offset for a 0-length var-len value.
+   *
+   * To adhere to Arrow's offset semantics, a zero-length value still gets an
+   * entry in the offsets buffer.
+   */
+  bool add_zero_length_offset(UserBuffer* dest) const;
+
   /** Helper method to export the alleles attribute. */
   bool copy_alleles_list(uint64_t cell_idx, UserBuffer* dest) const;
+
+  /** Helper method to export the filters attribute. */
+  bool copy_filters_list(
+      const bcf_hdr_t* hdr, uint64_t cell_idx, UserBuffer* dest) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
   bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;
@@ -306,15 +324,6 @@ class InMemoryExporter : public Exporter {
       const void** data,
       uint64_t* nbytes,
       uint64_t* nelts) const;
-
-  /**
-   * Constructs a string CSV list of filter names from the given filter data.
-   */
-  void make_csv_filter_list(
-      const bcf_hdr_t* hdr,
-      const void* data,
-      uint64_t nbytes,
-      std::string* dest) const;
 };
 
 }  // namespace vcf

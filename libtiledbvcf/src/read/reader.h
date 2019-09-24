@@ -192,27 +192,23 @@ class Reader {
       const std::string& attribute,
       AttrDatatype* datatype,
       bool* var_len,
-      bool* nullable) const;
+      bool* nullable,
+      bool* list) const;
 
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
 
-  /** Gets information about the given buffer (by index). */
-  void get_buffer(
-      int32_t buffer_idx,
-      const char** name,
-      int32_t** offset_buff,
-      int64_t* offset_buff_size,
-      void** data_buff,
-      int64_t* data_buff_size) const;
+  void get_buffer_values(
+      int32_t buffer_idx, const char** name, void** data_buff) const;
 
-  void get_bitmap_buffer(
-      int32_t buffer_idx,
-      uint8_t** bitmap_buff,
-      int64_t* bitmap_buff_size) const;
+  void get_buffer_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
 
-  void get_list_offsets_buffer(
-      int32_t buffer_idx, int32_t** buff, int64_t* buff_size) const;
+  void get_buffer_list_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
+
+  void get_buffer_validity_bitmap(
+      int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
  private:
   /* ********************************* */

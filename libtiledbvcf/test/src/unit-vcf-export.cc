@@ -311,54 +311,63 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     Reader reader;
     reader.open_dataset(dataset_uri);
     AttrDatatype dtype;
-    bool var_len, nullable;
+    bool var_len, nullable, list;
     REQUIRE_THROWS(
-        reader.attribute_datatype("abc", &dtype, &var_len, &nullable));
-    REQUIRE_THROWS(
-        reader.attribute_datatype("info_abc", &dtype, &var_len, &nullable));
-    REQUIRE_THROWS(
-        reader.attribute_datatype("fmt_gt", &dtype, &var_len, &nullable));
+        reader.attribute_datatype("abc", &dtype, &var_len, &nullable, &list));
+    REQUIRE_THROWS(reader.attribute_datatype(
+        "info_abc", &dtype, &var_len, &nullable, &list));
+    REQUIRE_THROWS(reader.attribute_datatype(
+        "fmt_gt", &dtype, &var_len, &nullable, &list));
 
-    reader.attribute_datatype("sample_name", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("alleles", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("contig", &dtype, &var_len, &nullable);
+    REQUIRE(list);
+    reader.attribute_datatype(
+        "sample_name", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("query_bed_start", &dtype, &var_len, &nullable);
+    REQUIRE(!list);
+    reader.attribute_datatype("contig", &dtype, &var_len, &nullable, &list);
+    REQUIRE(dtype == AttrDatatype::CHAR);
+    REQUIRE(var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype(
+        "query_bed_start", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("pos_end", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("pos_end", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("info", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("info", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::UINT8);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
-    reader.attribute_datatype("fmt_AD", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_AD", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("info_BaseQRankSum", &dtype, &var_len, &nullable);
+    reader.attribute_datatype(
+        "info_BaseQRankSum", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::FLOAT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
-    reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
@@ -425,26 +434,21 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   REQUIRE(num_buffers_set == 8);
   const char* name;
   int32_t* offs;
-  int64_t offs_size;
   void* data;
-  int64_t data_size;
 
-  reader.get_buffer(0, &name, &offs, &offs_size, &data, &data_size);
+  reader.get_buffer_values(0, &name, &data);
+  reader.get_buffer_offsets(0, &name, &offs);
   REQUIRE(name == std::string("sample_name"));
   REQUIRE(offs == sample_name.offsets().data());
-  REQUIRE(offs_size == sample_name.offsets().size());
   REQUIRE(data == sample_name.data<void>());
-  REQUIRE(data_size == sample_name.size());
 
-  reader.get_buffer(7, &name, &offs, &offs_size, &data, &data_size);
+  reader.get_buffer_values(7, &name, &data);
+  reader.get_buffer_offsets(7, &name, &offs);
   REQUIRE(name == std::string("fmt_MIN_DP"));
   REQUIRE(offs == min_dp.offsets().data());
-  REQUIRE(offs_size == min_dp.offsets().size());
   REQUIRE(data == min_dp.data<void>());
-  REQUIRE(data_size == min_dp.size());
 
-  REQUIRE_THROWS(
-      reader.get_buffer(8, &name, &offs, &offs_size, &data, &data_size));
+  REQUIRE_THROWS(reader.get_buffer_values(8, &name, &data));
 }
 
 TEST_CASE(

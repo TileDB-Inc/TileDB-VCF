@@ -428,61 +428,63 @@ int32_t tiledb_vcf_reader_get_num_buffers(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_get_buffer(
+int32_t tiledb_vcf_reader_get_buffer_values(
     tiledb_vcf_reader_t* reader,
-    int32_t buffer,
+    int32_t buffer_idx,
     const char** name,
-    int32_t** offset_buff,
-    int64_t* offset_buff_size,
-    void** data_buff,
-    int64_t* data_buff_size) {
+    void** buff) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(
-          reader,
-          reader->reader_->get_buffer(
-              buffer,
-              name,
-              offset_buff,
-              offset_buff_size,
-              data_buff,
-              data_buff_size)))
-    return TILEDB_VCF_ERR;
-
-  *offset_buff_size *= sizeof(int32_t);
-
-  return TILEDB_VCF_OK;
-}
-
-int32_t tiledb_vcf_reader_get_validity_bitmap(
-    tiledb_vcf_reader_t* reader,
-    int32_t buffer,
-    uint8_t** bitmap_buff,
-    int64_t* bitmap_buff_size) {
-  if (sanity_check(reader) == TILEDB_VCF_ERR)
-    return TILEDB_VCF_ERR;
-
-  if (SAVE_ERROR_CATCH(
-          reader,
-          reader->reader_->get_bitmap_buffer(
-              buffer, bitmap_buff, bitmap_buff_size)))
+          reader, reader->reader_->get_buffer_values(buffer_idx, name, buff)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_get_list_offsets(
+int32_t tiledb_vcf_reader_get_buffer_offsets(
     tiledb_vcf_reader_t* reader,
-    int32_t buffer,
-    int32_t** buff,
-    int64_t* buff_size) {
+    int32_t buffer_idx,
+    const char** name,
+    int32_t** buff) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->get_buffer_offsets(buffer_idx, name, buff)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_buffer_list_offsets(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer_idx,
+    const char** name,
+    int32_t** buff) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(
           reader,
-          reader->reader_->get_list_offsets_buffer(buffer, buff, buff_size)))
+          reader->reader_->get_buffer_list_offsets(buffer_idx, name, buff)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_buffer_validity_bitmap(
+    tiledb_vcf_reader_t* reader,
+    int32_t buffer_idx,
+    const char** name,
+    uint8_t** buff) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->get_buffer_validity_bitmap(buffer_idx, name, buff)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
@@ -493,22 +495,24 @@ int32_t tiledb_vcf_reader_get_attribute_type(
     const char* attribute,
     tiledb_vcf_attr_datatype_t* datatype,
     int32_t* var_len,
-    int32_t* nullable) {
+    int32_t* nullable,
+    int32_t* list) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || datatype == nullptr ||
       var_len == nullptr)
     return TILEDB_VCF_ERR;
 
   tiledb::vcf::AttrDatatype attr_datatype;
-  bool is_var_len, is_nullable;
+  bool is_var_len, is_nullable, is_list;
   if (SAVE_ERROR_CATCH(
           reader,
           reader->reader_->attribute_datatype(
-              attribute, &attr_datatype, &is_var_len, &is_nullable)))
+              attribute, &attr_datatype, &is_var_len, &is_nullable, &is_list)))
     return TILEDB_VCF_ERR;
 
   *datatype = static_cast<tiledb_vcf_attr_datatype_t>(attr_datatype);
   *var_len = is_var_len ? 1 : 0;
   *nullable = is_nullable ? 1 : 0;
+  *list = is_list ? 1 : 0;
 
   return TILEDB_VCF_OK;
 }

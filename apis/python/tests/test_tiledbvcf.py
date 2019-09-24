@@ -185,7 +185,9 @@ def test_read_filters(test_ds):
                                    dtype=np.int32),
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
-            'filters': pd.Series([None, None, 'LowQual', None, None, None])})
+            'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
+                                     [None, None, ['LowQual'], None, None,
+                                      None]))})
     _check_dfs(expected_df, df)
 
 
@@ -204,9 +206,33 @@ def test_read_alleles(test_ds):
                 [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689,
                  17479], dtype=np.int32),
             'alleles': pd.Series(
-                ['C,<NON_REF>', 'C,<NON_REF>', 'G,<NON_REF>', 'G,<NON_REF>',
-                 'T,<NON_REF>', 'T,<NON_REF>', 'G,<NON_REF>', 'G,<NON_REF>',
-                 'G,<NON_REF>', 'T,<NON_REF>'])})
+                map(lambda lst: np.array(lst, dtype=np.object),
+                    [['C', '<NON_REF>'], ['C', '<NON_REF>'], ['G', '<NON_REF>'],
+                     ['G', '<NON_REF>'], ['T', '<NON_REF>'], ['T', '<NON_REF>'],
+                     ['G', '<NON_REF>'], ['G', '<NON_REF>'], ['G', '<NON_REF>'],
+                     ['T', '<NON_REF>']]))})
+    _check_dfs(expected_df, df)
+
+
+def test_read_multiple_alleles(tmp_path):
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
+               ['small3.bcf', 'small.bcf']]
+    ds.ingest_samples(samples)
+
+    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    df = ds.read(attrs=['sample_name', 'pos_start', 'alleles', 'id', 'filters'],
+                 regions=['1:70100-1300000'])
+    expected_df = pd.DataFrame(
+        {'sample_name': pd.Series(['HG00280', 'HG00280']),
+         'pos_start': pd.Series(
+             [866511, 1289367], dtype=np.int32),
+         'alleles': pd.Series(map(lambda lst: np.array(lst, dtype=np.object), [
+             ['T', 'CCCCTCCCT', 'C', 'CCCCTCCCTCCCT', 'CCCCT'], ['CTG', 'C']])),
+         'id': pd.Series(['.', 'rs1497816']),
+         'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
+                                  [['LowQual'], ['LowQual']]))})
     _check_dfs(expected_df, df)
 
 

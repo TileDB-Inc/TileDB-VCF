@@ -116,6 +116,8 @@ class Reader {
     std::string attr_name;
     /** Offsets buffer, for var-len attributes. */
     py::array offsets;
+    /** List offsets buffer, for list var-len attributes. */
+    py::array list_offsets;
     /** Data buffer. */
     py::array data;
     /** Null-value bitmap, for nullable attributes. */
