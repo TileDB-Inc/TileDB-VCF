@@ -49,58 +49,23 @@ namespace vcf {
  */
 class InMemoryExporter : public Exporter {
  public:
-  /**
-   * Sets a user-defined buffer for receiving exported data.
-   *
-   * The predefined attribute names are:
-   *
-   * - "sample_name": The sample name (var-len char)
-   * - "contig": The contig name (var-len char)
-   * - "pos_start": The 1-based record start position (int32)
-   * - "pos_end": The 1-based record end position (int32)
-   * - "query_bed_start": The 0-based BED query start position (int32)
-   * - "query_bed_end": The 1-based BED query end position (int32)
-   * - "alleles": CSV string of alleles (var-len char)
-   * - "id": ID string (var-len char)
-   * - "filters": CSV string of filter names (var-len char)
-   * - "qual": The quality value (float)
-   * - "info_*": A specific INFO field value (var-len uint8, see below)
-   * - "fmt_*": A specific FMT field value (var-len uint8, see below)
-   * - "fmt": Format byte blob of non-attribute fields (var-len uint8)
-   * - "info": Info byte blob of non-attribute fields (var-len uint8)
-   *
-   * In general to access specific INFO or FMT field values, you should
-   * use the special `fmt_*` / `info_*` attribute names. For example, to
-   * retrieve the values of the `MIN_DP` format field, set a buffer for
-   * attribute `fmt_MIN_DP`. The generic `fmt` and `info` byte blob attributes
-   * are mostly available as an escape hatch.
-   *
-   * When retrieving info/fmt fields, the values stored in the buffers are typed
-   * according to the actual field type. For example, if an INFO field `foo` is
-   * listed in the BCF header as being a floating-point field, then the bytes
-   * stored in the buffer `info_foo` will be floating-point values.
-   *
-   * If a record does not contain a value for the specified INFO or FMT field,
-   * the value stored in the result buffer is a special null sentinel value
-   * indicating "no value".
-   *
-   * @param attribute Name of attribute
-   * @param offsets Offsets buffer, ignored for fixed-len attributes.
-   * @param max_num_offsets Size of offsets buffer (in num elements).
-   * @param data Data buffer.
-   * @param max_data_bytes Size of data buffer (in bytes).
-   */
-  void set_buffer(
-      const std::string& attribute,
-      int32_t* offsets,
-      int64_t max_num_offsets,
-      void* data,
-      int64_t max_data_bytes);
+  /** Sets the values buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_values(
+      const std::string& attribute, void* buff, int64_t buff_size);
 
-  void set_validity_bitmap(
-      const std::string& attribute,
-      uint8_t* bitmap_buff,
-      int64_t bitmap_buff_size);
+  /** Sets the offsets buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
+  /**
+   * Sets the list offsets buffer pointer and size (in bytes) for an attribute.
+   */
+  void set_buffer_list_offsets(
+      const std::string& attribute, int32_t* buff, int64_t buff_size);
+
+  /** Sets the bitmap buffer pointer and size (in bytes) for an attribute. */
+  void set_buffer_validity_bitmap(
+      const std::string& attribute, uint8_t* buff, int64_t buff_size);
 
   std::set<std::string> array_attributes_required() const override;
 
@@ -126,20 +91,17 @@ class InMemoryExporter : public Exporter {
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
 
-  /** Gets information about the given buffer (by index). */
-  void get_buffer(
-      int32_t buffer_idx,
-      const char** name,
-      int32_t** offset_buff,
-      int64_t* offset_buff_size,
-      void** data_buff,
-      int64_t* data_buff_size) const;
+  void get_buffer_values(
+      int32_t buffer_idx, const char** name, void** data_buff) const;
 
-  /** Gets information about the given buffer (by index). */
-  void get_bitmap_buffer(
-      int32_t buffer_idx,
-      uint8_t** bitmap_buff,
-      int64_t* bitmap_buff_size) const;
+  void get_buffer_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
+
+  void get_buffer_list_offsets(
+      int32_t buffer_idx, const char** name, int32_t** buff) const;
+
+  void get_buffer_validity_bitmap(
+      int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
   /** Resets the "current" (i.e. copied so far) sizes for all user buffers. */
   void reset_current_sizes();
@@ -152,13 +114,15 @@ class InMemoryExporter : public Exporter {
    * @param datatype Set to the datatype of the attribute
    * @param var_len Set to true if the attribute is variable-length
    * @param nullable Set to true if the attribute is nullable
+   * @param nullable Set to true if the attribute is var-len list
    */
   static void attribute_datatype(
       const TileDBVCFDataset* dataset,
       const std::string& attribute,
       AttrDatatype* datatype,
       bool* var_len,
-      bool* nullable);
+      bool* nullable,
+      bool* list);
 
  private:
   /* ********************************* */
@@ -190,6 +154,8 @@ class InMemoryExporter : public Exporter {
     int64_t data_nelts = 0;
     /** Number of offsets in user's offsets buffer. */
     int64_t num_offsets = 0;
+    /** Number of offsets in user's list offsets buffer. */
+    int64_t num_list_offsets = 0;
     /** Number of bytes in user's bitmap buffer. */
     int64_t bitmap_bytes = 0;
   };
@@ -205,6 +171,8 @@ class InMemoryExporter : public Exporter {
         , max_data_bytes(0)
         , offsets(nullptr)
         , max_num_offsets(0)
+        , list_offsets(nullptr)
+        , max_num_list_offsets(0)
         , bitmap_buff(nullptr)
         , max_bitmap_bytes(0)
         , bitmap(nullptr) {
@@ -234,6 +202,11 @@ class InMemoryExporter : public Exporter {
     int32_t* offsets;
     /** Size, in num offsets, of user's offset buffer. */
     int64_t max_num_offsets;
+
+    /** Pointer to user's list offset buffer. */
+    int32_t* list_offsets;
+    /** Size, in num offsets, of user's list offset buffer. */
+    int64_t max_num_list_offsets;
 
     /** Pointer to user's bitmap buffer (null for non-nullable) */
     uint8_t* bitmap_buff;
@@ -273,6 +246,12 @@ class InMemoryExporter : public Exporter {
   /** Returns true if the given exportable attribute is fixed-length. */
   static bool fixed_len_attr(const std::string& attr);
 
+  /**
+   * Returns true if the given exportable attribute is a variable-length "list"
+   * attribute.
+   */
+  static bool var_len_list_attr(const std::string& attr);
+
   /** Returns true if the given exportable attribute is nullable. */
   static bool nullable_attr(const std::string& attr);
 
@@ -280,19 +259,46 @@ class InMemoryExporter : public Exporter {
   static AttrDatatype get_info_fmt_datatype(
       const TileDBVCFDataset* dataset, const std::string& attr);
 
-  /** Exports/copies the given cell into the user buffers. */
-  bool copy_cell(
-      const bcf_hdr_t* hdr,
-      const Region& region,
-      uint32_t contig_offset,
-      uint64_t cell_idx);
+  UserBuffer* get_buffer(const std::string& attribute);
 
-  /** Copies the given data to a user buffer. */
-  bool copy_to_user_buff(
+  /** Copies the given cell data to a user buffer. */
+  bool copy_cell(
       UserBuffer* dest,
       const void* data,
       uint64_t nbytes,
       uint64_t nelts) const;
+
+  /** Copies the cell value, and updates the offsets for var-len attributes. */
+  bool copy_cell_data(
+      UserBuffer* dest,
+      const void* data,
+      uint64_t nbytes,
+      uint64_t nelts) const;
+
+  /**
+   * Updates the attribute list offsets and validity bitmap. This should be
+   * called after copy_cell_data().
+   */
+  bool update_cell_list_and_bitmap(
+      UserBuffer* dest,
+      int64_t index,
+      bool is_null,
+      int32_t num_list_values) const;
+
+  /**
+   * Adds an offset for a 0-length var-len value.
+   *
+   * To adhere to Arrow's offset semantics, a zero-length value still gets an
+   * entry in the offsets buffer.
+   */
+  bool add_zero_length_offset(UserBuffer* dest) const;
+
+  /** Helper method to export the alleles attribute. */
+  bool copy_alleles_list(uint64_t cell_idx, UserBuffer* dest) const;
+
+  /** Helper method to export the filters attribute. */
+  bool copy_filters_list(
+      const bcf_hdr_t* hdr, uint64_t cell_idx, UserBuffer* dest) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
   bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;
@@ -318,15 +324,6 @@ class InMemoryExporter : public Exporter {
       const void** data,
       uint64_t* nbytes,
       uint64_t* nelts) const;
-
-  /**
-   * Constructs a string CSV list of filter names from the given filter data.
-   */
-  void make_csv_filter_list(
-      const bcf_hdr_t* hdr,
-      const void* data,
-      uint64_t nbytes,
-      std::string* dest) const;
 };
 
 }  // namespace vcf

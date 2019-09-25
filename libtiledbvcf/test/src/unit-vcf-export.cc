@@ -220,44 +220,33 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     min_dp.offsets().resize(100);
 
     // Set buffers on the reader
-    reader.set_buffer(
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
         "sample_name",
         sample_name.offsets().data(),
-        sample_name.offsets().size(),
-        sample_name.data<void>(),
-        sample_name.size());
-    reader.set_buffer(
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("contig", contig.data<void>(), contig.size());
+    reader.set_buffer_offsets(
         "contig",
         contig.offsets().data(),
-        contig.offsets().size(),
-        contig.data<void>(),
-        contig.size());
-    reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
-    reader.set_buffer(
-        "fmt_GT",
-        gt.offsets().data(),
-        gt.offsets().size(),
-        gt.data<void>(),
-        gt.size());
-    reader.set_buffer(
-        "fmt_PL",
-        pl.offsets().data(),
-        pl.offsets().size(),
-        pl.data<void>(),
-        pl.size());
-    reader.set_buffer(
-        "fmt_DP",
-        dp.offsets().data(),
-        dp.offsets().size(),
-        dp.data<void>(),
-        dp.size());
-    reader.set_buffer(
+        contig.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+    reader.set_buffer_values("fmt_GT", gt.data<void>(), gt.size());
+    reader.set_buffer_offsets(
+        "fmt_GT", gt.offsets().data(), gt.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("fmt_PL", pl.data<void>(), pl.size());
+    reader.set_buffer_offsets(
+        "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
+    reader.set_buffer_offsets(
+        "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
+    reader.set_buffer_offsets(
         "fmt_MIN_DP",
         min_dp.offsets().data(),
-        min_dp.offsets().size(),
-        min_dp.data<void>(),
-        min_dp.size());
+        min_dp.offsets().size() * sizeof(int32_t));
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -322,54 +311,63 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     Reader reader;
     reader.open_dataset(dataset_uri);
     AttrDatatype dtype;
-    bool var_len, nullable;
+    bool var_len, nullable, list;
     REQUIRE_THROWS(
-        reader.attribute_datatype("abc", &dtype, &var_len, &nullable));
-    REQUIRE_THROWS(
-        reader.attribute_datatype("info_abc", &dtype, &var_len, &nullable));
-    REQUIRE_THROWS(
-        reader.attribute_datatype("fmt_gt", &dtype, &var_len, &nullable));
+        reader.attribute_datatype("abc", &dtype, &var_len, &nullable, &list));
+    REQUIRE_THROWS(reader.attribute_datatype(
+        "info_abc", &dtype, &var_len, &nullable, &list));
+    REQUIRE_THROWS(reader.attribute_datatype(
+        "fmt_gt", &dtype, &var_len, &nullable, &list));
 
-    reader.attribute_datatype("sample_name", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("alleles", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("contig", &dtype, &var_len, &nullable);
+    REQUIRE(list);
+    reader.attribute_datatype(
+        "sample_name", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::CHAR);
     REQUIRE(var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("query_bed_start", &dtype, &var_len, &nullable);
+    REQUIRE(!list);
+    reader.attribute_datatype("contig", &dtype, &var_len, &nullable, &list);
+    REQUIRE(dtype == AttrDatatype::CHAR);
+    REQUIRE(var_len);
+    REQUIRE(!nullable);
+    reader.attribute_datatype(
+        "query_bed_start", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("pos_end", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("pos_end", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(!var_len);
     REQUIRE(!nullable);
-    reader.attribute_datatype("info", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("info", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::UINT8);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_GT", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
-    reader.attribute_datatype("fmt_AD", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("fmt_AD", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
 
-    reader.attribute_datatype("info_BaseQRankSum", &dtype, &var_len, &nullable);
+    reader.attribute_datatype(
+        "info_BaseQRankSum", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::FLOAT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
-    reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable);
+    reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
     REQUIRE(var_len);
     REQUIRE(nullable);
@@ -402,44 +400,33 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   min_dp.offsets().resize(100);
 
   // Set buffers on the reader
-  reader.set_buffer(
+  reader.set_buffer_values(
+      "sample_name", sample_name.data<void>(), sample_name.size());
+  reader.set_buffer_offsets(
       "sample_name",
       sample_name.offsets().data(),
-      sample_name.offsets().size(),
-      sample_name.data<void>(),
-      sample_name.size());
-  reader.set_buffer(
+      sample_name.offsets().size() * sizeof(int32_t));
+  reader.set_buffer_values("contig", contig.data<void>(), contig.size());
+  reader.set_buffer_offsets(
       "contig",
       contig.offsets().data(),
-      contig.offsets().size(),
-      contig.data<void>(),
-      contig.size());
-  reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
-  reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
-  reader.set_buffer(
-      "fmt_GT",
-      gt.offsets().data(),
-      gt.offsets().size(),
-      gt.data<void>(),
-      gt.size());
-  reader.set_buffer(
-      "fmt_PL",
-      pl.offsets().data(),
-      pl.offsets().size(),
-      pl.data<void>(),
-      pl.size());
-  reader.set_buffer(
-      "fmt_DP",
-      dp.offsets().data(),
-      dp.offsets().size(),
-      dp.data<void>(),
-      dp.size());
-  reader.set_buffer(
+      contig.offsets().size() * sizeof(int32_t));
+  reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+  reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+  reader.set_buffer_values("fmt_GT", gt.data<void>(), gt.size());
+  reader.set_buffer_offsets(
+      "fmt_GT", gt.offsets().data(), gt.offsets().size() * sizeof(int32_t));
+  reader.set_buffer_values("fmt_PL", pl.data<void>(), pl.size());
+  reader.set_buffer_offsets(
+      "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
+  reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
+  reader.set_buffer_offsets(
+      "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
+  reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
+  reader.set_buffer_offsets(
       "fmt_MIN_DP",
       min_dp.offsets().data(),
-      min_dp.offsets().size(),
-      min_dp.data<void>(),
-      min_dp.size());
+      min_dp.offsets().size() * sizeof(int32_t));
 
   // Check buffer accessors
   int32_t num_buffers_set = 0;
@@ -447,26 +434,21 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   REQUIRE(num_buffers_set == 8);
   const char* name;
   int32_t* offs;
-  int64_t offs_size;
   void* data;
-  int64_t data_size;
 
-  reader.get_buffer(0, &name, &offs, &offs_size, &data, &data_size);
+  reader.get_buffer_values(0, &name, &data);
+  reader.get_buffer_offsets(0, &name, &offs);
   REQUIRE(name == std::string("sample_name"));
   REQUIRE(offs == sample_name.offsets().data());
-  REQUIRE(offs_size == sample_name.offsets().size());
   REQUIRE(data == sample_name.data<void>());
-  REQUIRE(data_size == sample_name.size());
 
-  reader.get_buffer(7, &name, &offs, &offs_size, &data, &data_size);
+  reader.get_buffer_values(7, &name, &data);
+  reader.get_buffer_offsets(7, &name, &offs);
   REQUIRE(name == std::string("fmt_MIN_DP"));
   REQUIRE(offs == min_dp.offsets().data());
-  REQUIRE(offs_size == min_dp.offsets().size());
   REQUIRE(data == min_dp.data<void>());
-  REQUIRE(data_size == min_dp.size());
 
-  REQUIRE_THROWS(
-      reader.get_buffer(8, &name, &offs, &offs_size, &data, &data_size));
+  REQUIRE_THROWS(reader.get_buffer_values(8, &name, &data));
 }
 
 TEST_CASE(
@@ -562,7 +544,7 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
     Reader reader;
     UserBuffer end;
     end.resize(1024);
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -655,7 +637,7 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
     Reader reader;
     UserBuffer end;
     end.resize(1024);
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -1154,20 +1136,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     end.resize(1024);
 
     // Set buffers on the reader
-    reader.set_buffer(
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
         "sample_name",
         sample_name.offsets().data(),
-        sample_name.offsets().size(),
-        sample_name.data<void>(),
-        sample_name.size());
-    reader.set_buffer(
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("contig", contig.data<void>(), contig.size());
+    reader.set_buffer_offsets(
         "contig",
         contig.offsets().data(),
-        contig.offsets().size(),
-        contig.data<void>(),
-        contig.size());
-    reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+        contig.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -1217,20 +1198,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     end.resize(1024);
 
     // Set buffers on the reader
-    reader.set_buffer(
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
         "sample_name",
         sample_name.offsets().data(),
-        sample_name.offsets().size(),
-        sample_name.data<void>(),
-        sample_name.size());
-    reader.set_buffer(
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("contig", contig.data<void>(), contig.size());
+    reader.set_buffer_offsets(
         "contig",
         contig.offsets().data(),
-        contig.offsets().size(),
-        contig.data<void>(),
-        contig.size());
-    reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
+        contig.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -1473,43 +1453,35 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     fmt_dp.bitmap().resize(3 * 100);
 
     // Set buffers on the reader
-    reader.set_buffer(
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
         "sample_name",
         sample_name.offsets().data(),
-        sample_name.offsets().size(),
-        sample_name.data<void>(),
-        sample_name.size());
-    REQUIRE_THROWS(reader.set_validity_bitmap(
+        sample_name.offsets().size() * sizeof(int32_t));
+    REQUIRE_THROWS(reader.set_buffer_validity_bitmap(
         "sample_name",
         sample_name.bitmap().data(),
         sample_name.bitmap().size()));
-    reader.set_buffer("pos_start", nullptr, 0, pos.data<void>(), pos.size());
-    reader.set_buffer("pos_end", nullptr, 0, end.data<void>(), end.size());
-    REQUIRE_THROWS(reader.set_validity_bitmap(
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+    REQUIRE_THROWS(reader.set_buffer_validity_bitmap(
         "pos_end", sample_name.bitmap().data(), sample_name.bitmap().size()));
-    reader.set_buffer(
-        "info_BaseQRankSum",
-        baseq.offsets().data(),
-        baseq.offsets().size(),
-        baseq.data<void>(),
-        baseq.size());
-    reader.set_validity_bitmap(
+    reader.set_buffer_values(
+        "info_BaseQRankSum", baseq.data<void>(), baseq.size());
+    reader.set_buffer_offsets(
+        "info_BaseQRankSum", baseq.offsets().data(), baseq.offsets().size());
+    reader.set_buffer_validity_bitmap(
         "info_BaseQRankSum", baseq.bitmap().data(), baseq.bitmap().size());
-    reader.set_buffer(
-        "info_DP",
-        info_dp.offsets().data(),
-        info_dp.offsets().size(),
-        info_dp.data<void>(),
-        info_dp.size());
-    reader.set_validity_bitmap(
+    reader.set_buffer_values("info_DP", info_dp.data<void>(), info_dp.size());
+    reader.set_buffer_offsets(
+        "info_DP", info_dp.offsets().data(), info_dp.offsets().size());
+    reader.set_buffer_validity_bitmap(
         "info_DP", info_dp.bitmap().data(), info_dp.bitmap().size());
-    reader.set_buffer(
-        "fmt_DP",
-        fmt_dp.offsets().data(),
-        fmt_dp.offsets().size(),
-        fmt_dp.data<void>(),
-        fmt_dp.size());
-    reader.set_validity_bitmap(
+    reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
+    reader.set_buffer_offsets(
+        "fmt_DP", fmt_dp.offsets().data(), fmt_dp.offsets().size());
+    reader.set_buffer_validity_bitmap(
         "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
 
     ExportParams params;
