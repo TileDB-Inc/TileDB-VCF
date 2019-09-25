@@ -91,6 +91,23 @@ steps:
   displayName: 'Build and test TileDB-VCF Python API'
 
 - bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/dist/lib:$LD_LIBRARY_PATH
+      ./gradlew assemble
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test
+
+      ./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API'
+
+- bash: |
       set -e pipefail
       # Display log files if the build failed
       echo "Dumping log files for failed build"

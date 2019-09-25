@@ -1,0 +1,153 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'com.github.sherter.google-java-format' version '0.7.1'
+    id 'com.github.johnrengelman.shadow' version '4.0.3'
+}
+
+group 'io.tiledb'
+version '0.1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.apache.spark:spark-sql_2.12:2.4.3'
+    compile 'org.apache.spark:spark-core_2.12:2.4.3'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+test {
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+// Helper task containing some path information
+task pathConfig {
+    ext.root = file("../..").absolutePath
+    ext.nativeLibSrcDir = "${root}/libtiledbvcf"
+    ext.nativeLibBuildDir = "${root}/libtiledbvcf/build"
+    ext.nativeLibInstallDir = "${root}/dist"
+    ext.jniLibInstallDir = "${buildDir}/install"
+}
+
+// Add native libraries as resources
+processResources {
+    // Relative path within the jar to place libraries
+    def destDirName = 'lib'
+
+    from ("${pathConfig.nativeLibInstallDir}/lib") {
+        include 'libtiledb*'
+        include 'libhts*'
+        into destDirName
+    }
+
+    from ("${pathConfig.jniLibInstallDir}/lib") {
+        include 'libtiledb*'
+        into destDirName
+    }
+}
+
+shadowJar {
+    zip64 true
+}
+
+import com.github.sherter.googlejavaformatgradleplugin.GoogleJavaFormat
+import com.github.sherter.googlejavaformatgradleplugin.VerifyGoogleJavaFormat
+
+task format(type: GoogleJavaFormat) {
+    source = sourceSets*.allJava
+    include '**/*.java'
+}
+
+task checkFormat(type: VerifyGoogleJavaFormat) {
+    source = sourceSets*.allJava
+    include '**/*.java'
+    ignoreFailures false
+}
+
+// Runs CMake for the native TileDB-VCF library.
+task cmakeNativeLibTask(type: Exec) {
+    doFirst {
+        mkdir "${pathConfig.nativeLibBuildDir}"
+    }
+    workingDir = "${pathConfig.nativeLibBuildDir}"
+    executable = 'cmake'
+
+    List<String> buildArgs = new ArrayList<String>()
+    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=ON")
+    }
+    buildArgs.add("-DCMAKE_INSTALL_PREFIX=${pathConfig.nativeLibInstallDir}")
+    buildArgs.add("..")
+
+    args buildArgs
+}
+
+// Builds the native TileDB-VCF library.
+task makeNativeLibTask(type: Exec) {
+    dependsOn 'cmakeNativeLibTask'
+    workingDir = "${pathConfig.nativeLibBuildDir}"
+    executable = 'make'
+    args '-j8'
+}
+
+// Installs the native TileDB-VCF library.
+task installNativeLibTask(type: Exec) {
+    dependsOn 'makeNativeLibTask'
+    workingDir = "${pathConfig.nativeLibBuildDir}"
+    executable = 'make'
+    args 'install-libtiledbvcf'
+}
+
+// Runs CMake for the JNI library
+task cmakeJNITask(type: Exec) {
+    doFirst {
+        mkdir "$buildDir"
+    }
+    workingDir = buildDir
+    executable = 'cmake'
+
+    List<String> buildArgs = new ArrayList<String>()
+    buildArgs.add("-DCMAKE_PREFIX_PATH=${pathConfig.nativeLibInstallDir}")
+    buildArgs.add("-DCMAKE_INSTALL_PREFIX=${pathConfig.jniLibInstallDir}")
+    buildArgs.add("..")
+
+    args buildArgs
+}
+
+// Builds the JNI library
+task makeJNITask(type: Exec) {
+    dependsOn 'cmakeJNITask'
+    workingDir = buildDir
+    executable = 'make'
+    args '-j8'
+}
+
+// Installs the JNI library
+task installJNITask(type: Exec) {
+    dependsOn 'makeJNITask'
+    workingDir = buildDir
+    executable = 'make'
+    args 'install'
+}
+
+// Try to find the native TileDB-VCF library.
+task findNativeLib {
+    if (file("${pathConfig.nativeLibInstallDir}/include/tiledbvcf/tiledbvcf.h").isFile()) {
+        ext.foundNativeLib = "true"
+        println "Found native TileDB-VCF library: ${pathConfig.nativeLibInstallDir}"
+    } else {
+        cmakeJNITask.dependsOn installNativeLibTask
+    }
+}
+
+assemble {
+    dependsOn findNativeLib, installJNITask
+}
