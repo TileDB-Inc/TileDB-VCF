@@ -32,7 +32,6 @@
 
 #include "c_api/tiledbvcf.h"
 #include "read/reader.h"
-#include "utils/constants.h"
 #include "write/writer.h"
 
 #include <cassert>
@@ -113,18 +112,6 @@ inline int32_t sanity_check(const tiledb_vcf_writer_t* writer) {
     return TILEDB_VCF_ERR;
   }
   return TILEDB_VCF_OK;
-}
-
-/* ********************************* */
-/*             CONSTANTS             */
-/* ********************************* */
-
-int32_t tiledb_vcf_null_int32() {
-  return tiledb::vcf::Constants::values().null_int32();
-}
-
-float tiledb_vcf_null_float32() {
-  return tiledb::vcf::Constants::values().null_float32();
 }
 
 /* ********************************* */

@@ -26,7 +26,6 @@
 
 #include "read/in_memory_exporter.h"
 #include "enums/attr_datatype.h"
-#include "utils/constants.h"
 
 namespace tiledb {
 namespace vcf {

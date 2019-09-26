@@ -34,7 +34,6 @@
 
 #include "dataset/tiledbvcfdataset.h"
 #include "read/reader.h"
-#include "utils/constants.h"
 #include "write/writer.h"
 
 #include <cstring>

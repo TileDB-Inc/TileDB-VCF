@@ -51,12 +51,6 @@ extern "C" {
 /** General error */
 #define TILEDB_VCF_ERR (-1)
 
-/** Returns the sentinel used to indicate 'no value' for int32 datatypes. */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_null_int32();
-
-/** Returns the sentinel used to indicate 'no value' for float datatypes. */
-TILEDBVCF_EXPORT float tiledb_vcf_null_float32();
-
 /* ********************************* */
 /*               ENUMS               */
 /* ********************************* */
@@ -95,7 +89,12 @@ typedef struct tiledb_vcf_error_t tiledb_vcf_error_t;
 /* ********************************* */
 
 /**
- * Allocate a VCF reader object.
+ * Allocates a VCF reader object.
+ *
+ * A VCF reader is used for reading from existing TileDB-VCF datasets. Reading
+ * from a TileDB-VCF dataset is accomplished by specifying a set of sample
+ * names, a set of genomic regions, and a set of "attributes" per sample to read
+ * from the dataset.
  *
  * @param reader Will be set to point at the allocated reader object.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
@@ -103,7 +102,7 @@ typedef struct tiledb_vcf_error_t tiledb_vcf_error_t;
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_alloc(tiledb_vcf_reader_t** reader);
 
 /**
- * Free the given VCF reader object.
+ * Frees the given VCF reader object, freeing any held memory or resources.
  *
  * @param reader Pointer to reader object to free.
  */
@@ -120,11 +119,17 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_init(tiledb_vcf_reader_t* reader, const char* dataset_uri);
 
 /**
- * Sets the URI of a file containing sample names to read.
+ * Sets the URI of a file containing sample names to read. The file should
+ * contain, one per line, the names of samples in the dataset to be read.
+ *
+ * You can also manually specify sample names without a file with the
+ * `tiledb_vcf_reader_set_samples()` function.
+ *
+ * If you specify both a CSV samples list and a samples file, samples from both
+ * will be included in the read.
  *
  * @param reader VCF reader object
- * @param samples_uri URI of file containing sample names, one per line, that
- *      will be read.
+ * @param samples_uri URI of file containing sample names.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_samples_file(
@@ -133,9 +138,15 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_samples_file(
 /**
  * Sets the URI of a BED file containing regions to be read.
  *
- * The BED file is assumed to follow the format of bcftools, a tab-separated
+ * The BED file is assumed to follow the format of bcftools: a tab-separated
  * file of the format `contig   start   end` where the start/end interval
- * is a 0-based, half-open interval.
+ * is a 0-indexed, half-open interval.
+ *
+ * You can also manually specify regions without a BED file with the
+ * `tiledb_vcf_reader_set_regions()` function.
+ *
+ * If you specify both a CSV regions list and a BED file, regions from both
+ * will be included in the read.
  *
  * @param reader VCF reader object
  * @param uri URI of BED file
@@ -145,7 +156,10 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_bed_file(tiledb_vcf_reader_t* reader, const char* uri);
 
 /**
- * Sets the one or more samples to be read.
+ * Given a CSV string of sample names, sets the samples to be read.
+ *
+ * If you specify both a CSV samples list and a samples file, samples from both
+ * will be included in the read.
  *
  * @param reader VCF reader object
  * @param samples CSV list of sample names.
@@ -155,20 +169,36 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_samples(tiledb_vcf_reader_t* reader, const char* samples);
 
 /**
- * Sets the one or more genomic regions to be read.
+ * Given a CSV string of genomic regions, sets the regions to be read.
+ *
+ * Each region string should be in the form "contig:start-end". The start/end
+ * interval should be a 1-indexed, inclusive interval. This is different from
+ * the intervals specified in a BED file (which are 0-indexed, half-open
+ * intervals).
+ *
+ * If you specify both a CSV regions list and a BED file, regions from both
+ * will be included in the read.
  *
  * @param reader VCF reader object
- * @param ranges CSV list of region strings. Each region string should be
- *      in the form "contig:start-end". The start and end positions must be
- *      1-indexed. The region is inclusive.
+ * @param ranges CSV list of region strings
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_regions(tiledb_vcf_reader_t* reader, const char* regions);
 
 /**
- * Sets whether or not to sort the regions to be read. You can disable region
- * sorting if you are certain that the BED file being used is already sorted.
+ * Sets whether or not to sort the regions to be read. By default, the regions
+ * from the BED file (if specified) and the CSV regions (if specified) are
+ * combined and then sorted. This can be slow if there are many regions in
+ * total.
+ *
+ * If you are only specifying a BED file, and you are certain that the regions
+ * within it are already sorted, you can disable sorting here to gain some
+ * performance. The behavior is undefined if you disable sorting but the BED
+ * file is not actually sorted.
+ *
+ * The sorting order is first on contig (in the order specified in the VCF
+ * header of the ingested samples), and then on start position.
  *
  * @param reader VCF reader object
  * @param sort_regions If `1`, regions will be sorted (the default). If `0`,
@@ -183,6 +213,13 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sort_regions(
  * the reader genomic regions (e.g. the BED ranges) according to a simple block
  * distribution.
  *
+ * For example, suppose a BED file is specified that contains 1,000 regions.
+ * With 10 partitions, each partition would be responsible for 100 regions of
+ * the BED file. Partition index 0 would take regions [0, 99], index 1 would
+ * take regions [100, 199], etc.
+ *
+ * You can combine region and sample partitioning.
+ *
  * @param reader VCF reader object
  * @param partition Index of region partition that this reader object should
  *      process.
@@ -196,6 +233,13 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_region_partition(
  * Sets the sample partitioning info for the reader. The partitioning divides
  * the samples being read according to a simple block distribution.
  *
+ * For example, suppose a samples file is specified that contains 1,000 sample
+ * names. With 10 partitions, each partition would be responsible for reading
+ * 100 samples. Partition index 0 would take samples [0, 99], index 1 would take
+ * samples [100, 199], etc.
+ *
+ * You can combine region and sample partitioning.
+ *
  * @param reader VCF reader object
  * @param partition Index of sample partition that this reader object should
  *      process.
@@ -206,24 +250,32 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
     tiledb_vcf_reader_t* reader, int32_t partition, int32_t num_partitions);
 
 /**
- * Sets a buffer to hold values for a specific attribute being read.
+ * Sets a buffer to hold values for a specific attribute being read. This is the
+ * main interface by which VCF data is returned from a read operation.
  *
- * The allowed attributes and their datatypes are:
+ * The in-memory format of the returned data follows the Apache Arrow
+ * specification for fixed-length, variable-length (e.g. List<char>), and list
+ * variable-length (e.g. List<List<char>>)values. The values are all
+ * little-endian.
  *
- * - "sample_name": The sample name (var-len char)
- * - "contig": The contig name (var-len char)
- * - "pos_start": The 1-based record start position (int32)
- * - "pos_end": The 1-based record end position (int32)
- * - "query_bed_start": The 0-based BED query start position (int32)
- * - "query_bed_end": The 1-based BED query end position (int32)
- * - "alleles": CSV string of alleles (var-len char)
- * - "id": ID string (var-len char)
- * - "filters": CSV string of filter names (var-len char)
- * - "qual": The quality value (float)
- * - "info_*": A specific INFO field value (var-len uint8)
- * - "fmt_*": A specific FMT field value (var-len uint8)
- * - "fmt": Format byte blob of non-attribute fields (var-len uint8)
- * - "info": Info byte blob of non-attribute fields (var-len uint8)
+ * The allowed attributes and their Arrow-like datatypes are:
+ *
+ * - "sample_name": The sample name  (List<char>, non-nullable)
+ * - "contig": The contig name of record  (List<char>, non-nullable)
+ * - "pos_start": The 1-based start position of record  (int32, non-nullable)
+ * - "pos_end": The 1-based end position of record  (int32, non-nullable)
+ * - "query_bed_start": The 0-based start position of the query BED range that
+ *    intersected the record.  (int32, non-nullable)
+ * - "query_bed_end": The 1-based end position of the query BED range that
+ *    intersected the record.  (int32, non-nullable)
+ * - "alleles": List of allele names  (List<List<char>>, non-nullable)
+ * - "id": ID string  (List<char>, non-nullable)
+ * - "filters": List of filter names  (List<List<char>>, nullable)
+ * - "qual": The quality value  (float32, non-nullable)
+ * - "info_*": A specific INFO field value  (List<?>, nullable)
+ * - "fmt_*": A specific FMT field value  (List<?>, nullable)
+ * - "fmt": Format byte blob of non-attribute fields  (List<byte>, nullable)
+ * - "info": Info byte blob of non-attribute fields  (List<byte>, nullable)
  *
  * See the specific notes below for more information.
  *
@@ -233,11 +285,15 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * `sample_name` or `info_* / fmt_*`, contain a variable number of values per
  * result record, which may be 0.
  *
- * For variable-length attributes, an extra "offsets" buffer must be provided.
- * This will be populated with the starting offset of the variable-length value
- * in the associated data buffer, for each record.
+ * For variable-length attributes, such as `sample_name`, an extra "offsets"
+ * buffer must be provided. This will be populated with the starting offset of
+ * the variable-length value in the associated data buffer, for each record.
  *
- * The contents of the offset buffer follow the Apache Arrow semantics.
+ * For list variable length attributes, such as `alleles`, in addition to an
+ * offsets buffer, a separate "list offsets" buffer must also be provided.
+ *
+ * The contents of the values and offset buffers follow the Apache Arrow
+ * semantics.
  *
  * (2) INFO/FMT fields
  * In general to access specific INFO or FMT field values, you should
@@ -247,9 +303,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * are mostly available as an escape hatch.
  *
  * When retrieving info/fmt fields, the values stored in the buffers are typed
- * according to the actual field type. For example, if an INFO field `foo` is
- * listed in the BCF header as being a floating-point field, then the bytes
- * stored in the buffer `info_foo` will be floating-point values.
+ * according to the actual field type. For example, the `fmt_GT` attribute
+ * extracts the `GT` FMT field for a record. In the VCF specification, `GT` is
+ * defined as a list of integer values. This means the bytes stored in the
+ * `fmt_GT` result buffer will be integer values.
+ *
+ * All of the `info_*`/`fmt_*` attributes are variable-length. The offset buffer
+ * combined with the datatype of the attribute allows you to interpret the
+ * returned bytes appropriately (number and type of values).
  *
  * (3) Nullable attributes
  * Most attributes are non-nullable, meaning a value will be stored for the
@@ -267,9 +328,9 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * `tiledb_vcf_reader_set_validity_bitmap`.
  *
  * (4) Apache Arrow integration
- * The variable-length attribute offsets and nullable-attribute bitmap formats
- * adhere to the Apache Arrow semantics for offsets and validity bitmaps. This
- * is to allow zero-copy conversion to Arrow Tables.
+ * The offsets and nullable-attribute bitmap formats adhere to the Apache Arrow
+ * semantics for offsets and validity bitmaps. This is to allow zero-copy
+ * conversion to Arrow Tables.
  *
  * If you are using the Arrow interface to the TileDB-VCF reader class, note
  * that your buffers must be allocated according to the Arrow requirements,
@@ -280,35 +341,40 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
  * **Example**:
  *
  * Suppose you want to read attributes `pos_start` and `filters`. You would
- * provide 4 buffers:
- * - pos_start: Data buffer only
- * - filters: Offsets, bitmap and data buffers
+ * provide 5 buffers:
+ * - pos_start: Values buffer only
+ * - filters: Values, offsets, list offsets, and validity bitmap buffers.
  *
  * Suppose the read result contained three records with the following data:
  *     pos_start  |  filters
  *   -------------+------------
- *     123        |  "f1"
- *     456        |
- *     789        |  "f12"
+ *     100        |  "f1"
+ *     200        |
+ *     300        |  "f2", "f3"
  *
  * The buffers would contain the following result bytes:
  *
- * pos_start data (little-endian int32 values, one per record):
- *   0x7b 0x00 0x00 0x00 0xc8 0x01 0x00 0x00 0x15 0x03 0x00 0x00
- * filters data (ASCII char values)
- *   0x66 0x31 0x66 0x32 0x33
+ * pos_start values (little-endian int32 values, one per record):
+ *   0x64 0x00 0x00 0x00 0xc8 0x00 0x00 0x00 0x2c 0x01 0x00 0x00
+ * filters values (ASCII char values)
+ *   0x66 0x31 0x66 0x32 0x66 0x33
  * filters offsets (little-endian int32 values)
- *   0x00 0x00 0x00 0x00 0x02 0x00 0x00 0x00 0x05 0x00 0x00 0x00
+ *   0x00 0x00 0x00 0x00 0x02 0x00 0x00 0x00 0x02 0x00 0x00 0x00
+ *   0x04 0x00 0x00 0x00 0x06 0x00 0x00 0x00
+ * filters list offsets (little-endian int32 values)
+ *   0x00 0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x02 0x00 0x00 0x00
+ *   0x04 0x00 0x00 0x00 0x05 0x00 0x00 0x00
  * filters validity bitmap
  *   0x05
  *
  * The validity bitmap value 0x05 corresponds to binary value 0b00000101, which
- * indicates that the `filters` value for record index 1 is null.
+ * indicates that the `filters` list for record index 0 is non-null (valid),
+ * for record index 1 is null, and for record index 2 is non-null.
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
  * @param buff_size Size (in bytes) of `buff`.
- * @param buff Buffer to hold offsets.
+ * @param buff Buffer to receive data.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_values(
@@ -332,7 +398,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_values(
  * @param reader VCF reader object
  * @param attribute Name of attribute
  * @param buff_size Size (in bytes) of `buff`.
- * @param buff Buffer to hold offsets.
+ * @param buff Buffer to receive offsets.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_offsets(
@@ -376,7 +442,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_offsets(
  * @param reader VCF reader object
  * @param attribute Name of attribute
  * @param buff_size Size (in bytes) of `buff`.
- * @param buff Buffer to hold offsets.
+ * @param buff Buffer to receive list offsets.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_list_offsets(
@@ -404,7 +470,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_list_offsets(
  * @param reader VCF reader object
  * @param attribute Name of attribute
  * @param buff_size Size (in bytes) of `buff`.
- * @param buff Buffer to hold bitmap.
+ * @param buff Buffer to receive bitmap.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_validity_bitmap(
@@ -428,6 +494,11 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_memory_budget(
  * Sets the max number of records that will be read until the read status is
  * considered complete.
  *
+ * If instead you want to receive all records, but only process them a chunk
+ * at a time, you should set your buffer sizes to be of the desired chunk size,
+ * and then repeatedly resubmit the read operation until the read status is
+ * complete, processing the results in between read operations.
+ *
  * @param reader VCF reader object
  * @param max_num_records Max number of records
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
@@ -450,7 +521,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_tiledb_config(
     tiledb_vcf_reader_t* reader, const char* config);
 
 /**
- * Submits a blocking read operation.
+ * Performs a blocking read operation. This reads data from the dataset into the
+ * buffers that have been set on the reader.
+ *
+ * If all records in the dataset satisfying the query (genomic regions and
+ * samples) are returned in the read operation, the read status is set to
+ * 'complete'. If the buffers provided were too small to hold all records,
+ * the read status is set to 'incomplete'. Simply process the partial results,
+ * and resubmit the read operation until the status becomes 'complete'.
  *
  * @param reader VCF reader object
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
@@ -482,12 +560,11 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_num_records(
  *
  * @param reader VCF reader object
  * @param attribute Name of attribute
- * @param num_offsets Set to the number of offsets in the result offsets buffer
- *      (var-len attributes only).
- * @param num_data_elements Set to the number of elements in the result data
+ * @param num_offsets Set to the number of offsets in the result offsets buffer.
+ * @param num_data_elements Set to the number of elements in the result values
  *      buffer. This will be the number of data elements across all cells,
  *      variable-length included.
- * @param num_data_bytes Set to the number of bytes in the result data buffer
+ * @param num_data_bytes Set to the number of bytes in the result values buffer
  *      across all cells.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
@@ -499,7 +576,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_result_size(
     int64_t* num_data_bytes);
 
 /**
- * Gets the number of buffers that have been previously set on the reader.
+ * Gets the number of buffers that have been set on the reader.
  *
  * @param reader VCF reader object
  * @param num_buffers Set to the number of buffers
@@ -509,7 +586,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_num_buffers(
     tiledb_vcf_reader_t* reader, int32_t* num_buffers);
 
 /**
- * Gets the values buffer (by index) that was previously set on the reader.
+ * Gets the values buffer (by index) that was set on the reader.
  *
  * @param reader VCF reader object
  * @param buffer_idx Index of buffer to get
@@ -524,7 +601,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_values(
     void** buff);
 
 /**
- * Gets the offsets buffer (by index) that was previously set on the reader.
+ * Gets the offsets buffer (by index) that was set on the reader.
  *
  * @param reader VCF reader object
  * @param buffer_idx Index of buffer to get
@@ -539,8 +616,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_offsets(
     int32_t** buff);
 
 /**
- * Gets the list offsets buffer (by index) that was previously set on the
- * reader.
+ * Gets the list offsets buffer (by index) that was set on the reader.
  *
  * @param reader VCF reader object
  * @param buffer_idx Index of buffer to get
@@ -555,8 +631,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_list_offsets(
     int32_t** buff);
 
 /**
- * Gets the validity bitmap buffer (by index) that was previously set on the
- * reader.
+ * Gets the validity bitmap buffer (by index) that was set on the reader.
  *
  * @param reader VCF reader object
  * @param buffer_idx Index of buffer to get
@@ -571,8 +646,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_buffer_validity_bitmap(
     uint8_t** buff);
 
 /**
- * Gets the datatype of the given attribute. Useful to determine the types of
- * values stored in the `info_*` / `fmt_*` fields.
+ * Gets the datatype of a particular attribute.
  *
  * Returns an error if the specified attribute is unknown.
  *
