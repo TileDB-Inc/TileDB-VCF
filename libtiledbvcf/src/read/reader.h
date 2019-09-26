@@ -81,7 +81,7 @@ struct ExportParams {
   std::vector<std::string> tiledb_config;
 
   // Memory/performance params:
-  unsigned attribute_buffer_size_mb = 200;
+  unsigned memory_budget_mb = 2 * 1024;
 };
 
 /* ********************************* */
@@ -156,8 +156,23 @@ class Reader {
   void set_buffer_validity_bitmap(
       const std::string& attribute, uint8_t* buff, int64_t buff_size);
 
-  /** Sets the attribute buffer size parameter. */
-  void set_attr_buffer_size(unsigned mb);
+  /**
+   * Sets the memory budget parameter.
+   *
+   * The memory budget is split 50/50 between TileDB's internal memory budget,
+   * and our Reader query buffers. For the Reader query buffers, we allocate
+   * two sets (due to double-buffering). That means the allocation size of the
+   * query buffers *per attribute* is:
+   *
+   *   ((mem_budget / 2) / num_query_buffers) / 2.
+   *
+   * Example: Suppose you want to target a query buffer size of 100MB per
+   * attribute. Suppose the query needs 3 fixed-len attributes and 2 var-len.
+   * That is a total of 3 + 4 = 7 query buffers that need to be allocated. So:
+   *
+   *   required_mem_budget = 100 * 2 * 7 * 2 = 2800 MB
+   */
+  void set_memory_budget(unsigned mb);
 
   /** Sets the attribute buffer size parameter. */
   void set_record_limit(uint64_t max_num_records);

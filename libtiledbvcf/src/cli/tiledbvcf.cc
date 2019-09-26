@@ -361,12 +361,12 @@ int main(int argc, char** argv) {
          export_args.cli_count_only = true;
        }) % "Don't write output files, only print the count of the resulting "
             "number of intersecting records.",
-       option("-b", "--attribute-buffer-mb") %
+       option("-b", "--mem-budget-mb") %
                defaulthelp(
-                   "The buffer size (MB) per attribute used when submitting "
-                   "TileDB queries.",
-                   export_args.attribute_buffer_size_mb) &
-           value("MB", export_args.attribute_buffer_size_mb),
+                   "The memory budget (MB) used when submitting TileDB "
+                   "queries.",
+                   export_args.memory_budget_mb) &
+           value("MB", export_args.memory_budget_mb),
        ((option("-f", "--samples-file") %
              "Path to file with 1 sample name per line" &
          value("path", export_args.samples_file_uri)) |

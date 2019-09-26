@@ -182,6 +182,9 @@ class TileDBVCFDataset {
   /** Return a set of the attribute names for the "builtin" attributes. */
   static std::set<std::string> builtin_attributes();
 
+  /** Returns true if the builtin attribute is fixed-len in the schema. */
+  static bool attribute_is_fixed_len(const std::string& attr);
+
   /** Returns a set of all the attribute names in the dataset. */
   std::set<std::string> all_attributes() const;
 

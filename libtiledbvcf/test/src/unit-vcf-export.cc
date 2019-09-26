@@ -1216,7 +1216,7 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     params.output_dir = output_dir;
     params.sample_names = {"HG00280", "HG01762"};
     params.regions = {"1:12700-13400", "1:17000-17400"};
-    params.attribute_buffer_size_mb = 0;  // Use undocumented "0MB" alloc.
+    params.memory_budget_mb = 0;  // Use undocumented "0MB" alloc.
     reader.set_all_params(params);
     reader.open_dataset(dataset_uri);
     reader.read();

@@ -131,8 +131,9 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
   return exp;
 }
 
-void Reader::set_attr_buffer_size(unsigned mb) {
-  params_.attribute_buffer_size_mb = mb;
+void Reader::set_memory_budget(unsigned mb) {
+  params_.memory_budget_mb = mb;
+  init_tiledb();
 }
 
 void Reader::set_record_limit(uint64_t max_num_records) {
@@ -832,8 +833,10 @@ void Reader::prepare_attribute_buffers() {
         "requirements.");
   }
 
-  buffers_a->allocate_fixed(attrs, params_.attribute_buffer_size_mb);
-  buffers_b->allocate_fixed(attrs, params_.attribute_buffer_size_mb);
+  // We get half of the memory budget for the query buffers.
+  const unsigned alloc_budget = params_.memory_budget_mb / 4;
+  buffers_a->allocate_fixed(attrs, alloc_budget);
+  buffers_b->allocate_fixed(attrs, alloc_budget);
 }
 
 void Reader::init_tiledb() {
@@ -843,6 +846,12 @@ void Reader::init_tiledb() {
   cfg["sm.tile_cache_size"] = uint64_t(1) * 1024 * 1024 * 1024;
   cfg["sm.num_reader_threads"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
+
+  // TileDB gets half of our memory budget, and a minimum of 10MB.
+  const uint64_t tiledb_mem_budget = std::max<uint64_t>(
+      10 * 1024 * 1024, (uint64_t(params_.memory_budget_mb) * 1024 * 1024) / 2);
+  cfg["sm.memory_budget"] = tiledb_mem_budget / 2;
+  cfg["sm.memory_budget_var"] = tiledb_mem_budget / 2;
 
   // User overrides
   for (const auto& s : params_.tiledb_config) {

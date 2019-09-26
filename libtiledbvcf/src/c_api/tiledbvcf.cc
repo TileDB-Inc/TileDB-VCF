@@ -325,8 +325,7 @@ int32_t tiledb_vcf_reader_set_memory_budget(
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(
-          reader, reader->reader_->set_attr_buffer_size(memory_mb)))
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_memory_budget(memory_mb)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
