@@ -83,7 +83,6 @@ steps:
       # Note that 'conda init' doesn't seem to work directly.
       source $CONDA/etc/profile.d/conda.sh
       conda activate tiledbvcf-py
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/dist/lib:$LD_LIBRARY_PATH
       python setup.py install --user
       python setup.py pytest
     fi
@@ -96,8 +95,9 @@ steps:
     if [[ "$BUILD_SPARK_API" == "ON" ]]; then
       pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
 
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/dist/lib:$LD_LIBRARY_PATH
       ./gradlew assemble
+
+      ./gradlew jar
 
       export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
       ./gradlew test
