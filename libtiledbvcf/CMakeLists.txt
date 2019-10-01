@@ -35,7 +35,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 # Superbuild option must be on by default.
 option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
 option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
-option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." OFF)
+option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
+option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
 option(ENABLE_ARROW_EXPORT "Installs an extra header for exporting in-memory results with Apache Arrow" ON)
 
 # Set C++11 as required standard for all C++ targets (required to use the TileDB
@@ -47,6 +48,19 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 # Release builds by default.
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Root directory default installation prefix
+if (OVERRIDE_INSTALL_PREFIX)
+  set(PREFIX_REL_PATH "${CMAKE_SOURCE_DIR}/../dist")
+  get_filename_component(DEFAULT_PREFIX "${PREFIX_REL_PATH}" ABSOLUTE)
+  set(CMAKE_INSTALL_PREFIX "${DEFAULT_PREFIX}" CACHE PATH "Default install prefix" FORCE)
+  message(STATUS "Using default install prefix ${CMAKE_INSTALL_PREFIX}. To control CMAKE_INSTALL_PREFIX, set OVERRIDE_INSTALL_PREFIX=OFF")
+endif()
+message(STATUS "Install prefix is ${CMAKE_INSTALL_PREFIX}.")
+
+if (FORCE_EXTERNAL_HTSLIB)
+  message(STATUS "Skipping search for htslib, building it as an external project. To use system htslib, set FORCE_EXTERNAL_HTSLIB=OFF")
 endif()
 
 # Use @rpath on macOS for building shared libraries.

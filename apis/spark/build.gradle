@@ -43,13 +43,12 @@ processResources {
     def destDirName = 'lib'
 
     from ("${pathConfig.nativeLibInstallDir}/lib") {
-        include 'libtiledb*'
-        include 'libhts*'
+        include '*'
         into destDirName
     }
 
     from ("${pathConfig.jniLibInstallDir}/lib") {
-        include 'libtiledb*'
+        include '*'
         into destDirName
     }
 }
@@ -81,10 +80,9 @@ task cmakeNativeLibTask(type: Exec) {
     executable = 'cmake'
 
     List<String> buildArgs = new ArrayList<String>()
-    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
-        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=ON")
+    if (project.hasProperty("NO_FORCE_EXTERNAL_HTSLIB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=OFF")
     }
-    buildArgs.add("-DCMAKE_INSTALL_PREFIX=${pathConfig.nativeLibInstallDir}")
     buildArgs.add("..")
 
     args buildArgs
