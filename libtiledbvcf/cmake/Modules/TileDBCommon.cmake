@@ -88,7 +88,7 @@ function(install_target_libs LIB_TARGET)
     install(FILES ${TARGET_LIBRARIES} DESTINATION ${CMAKE_INSTALL_BINDIR})
   else()
     get_filename_component(ABS_PATH ${TARGET_LIBRARIES} REALPATH)
-    install(FILES ${ABS_PATH} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(FILES ${ABS_PATH} DESTINATION lib)
   endif()
 endfunction()
 

@@ -173,46 +173,39 @@ void Exporter::recover_record(
     if (field_nbytes == 1 && *field_ptr == 0)
       continue;
 
-    // If the field is in both INFO and FMT, this loop will execute twice.
-    while (field_nbytes) {
-      int type = *(int*)(field_ptr);
-      field_ptr += sizeof(int);
-      int nvalues = *(int*)(field_ptr);
-      field_ptr += sizeof(int);
+    int type = *(int*)(field_ptr);
+    field_ptr += sizeof(int);
+    int nvalues = *(int*)(field_ptr);
+    field_ptr += sizeof(int);
 
-      const char* values_ptr = field_ptr;
+    const char* values_ptr = field_ptr;
 
-      // For string types, bcf_update_info/format requires null-termination.
-      if (type == BCF_HT_STR) {
-        str_buffer.clear();
-        str_buffer.reserve(nvalues + 1);
-        str_buffer.append(field_ptr, nvalues);
-        str_buffer.push_back('\0');
-        nvalues = str_buffer.size();
-        values_ptr = str_buffer.data();
-      }
+    // For string types, bcf_update_info/format requires null-termination.
+    if (type == BCF_HT_STR) {
+      str_buffer.clear();
+      str_buffer.reserve(nvalues + 1);
+      str_buffer.append(field_ptr, nvalues);
+      str_buffer.push_back('\0');
+      nvalues = str_buffer.size();
+      values_ptr = str_buffer.data();
+    }
 
-      if (is_info) {
-        st = bcf_update_info(
-            hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
-        if (st < 0)
-          throw std::runtime_error(
-              "Record recovery error; Error adding INFO field '" +
-              std::string(field_name) + "', " + std::to_string(st));
-        num_info_fields++;
-      } else {
-        st = bcf_update_format(
-            hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
-        if (st < 0)
-          throw std::runtime_error(
-              "Record recovery error; Error adding FMT field '" +
-              std::string(field_name) + "', " + std::to_string(st));
-        num_fmt_fields++;
-      }
-
-      const size_t block_size = nvalues * utils::bcf_type_size(type);
-      field_ptr += block_size;
-      field_nbytes -= block_size;
+    if (is_info) {
+      st = bcf_update_info(
+          hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
+      if (st < 0)
+        throw std::runtime_error(
+            "Record recovery error; Error adding INFO field '" +
+            std::string(field_name) + "', " + std::to_string(st));
+      num_info_fields++;
+    } else {
+      st = bcf_update_format(
+          hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
+      if (st < 0)
+        throw std::runtime_error(
+            "Record recovery error; Error adding FMT field '" +
+            std::string(field_name) + "', " + std::to_string(st));
+      num_fmt_fields++;
     }
   }
 
