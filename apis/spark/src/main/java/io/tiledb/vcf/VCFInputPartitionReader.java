@@ -184,10 +184,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader = null;
     }
 
-    for (ArrowColumnVector v : arrowVectors) v.close();
-    arrowVectors.clear();
+    if (arrowVectors != null) {
+      for (ArrowColumnVector v : arrowVectors) v.close();
+      arrowVectors.clear();
+    }
 
-    resultBatch.close();
+    if (resultBatch != null) {
+      resultBatch.close();
+    }
   }
 
   /**
