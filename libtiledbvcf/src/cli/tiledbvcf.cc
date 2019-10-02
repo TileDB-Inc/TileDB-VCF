@@ -25,6 +25,7 @@
  */
 
 #include <clipp.h>
+#include <sstream>
 #include <thread>
 
 #include "dataset/tiledbvcfdataset.h"
@@ -39,12 +40,22 @@ using namespace tiledb::vcf;
 
 namespace {
 /** TileDBVCF operation mode */
-enum class Mode { Create, Register, Store, Export, List, Stat, UNDEF };
+enum class Mode { Version, Create, Register, Store, Export, List, Stat, UNDEF };
 
 /** Returns a help string, displaying the given default value. */
 template <typename T>
 std::string defaulthelp(const std::string& msg, T default_value) {
   return msg + " [default " + std::to_string(default_value) + "]";
+}
+
+/** Returns TileDB-VCF and TileDB version information in string form. */
+std::string version_info() {
+  std::stringstream ss;
+  ss << "TileDB-VCF build " << utils::TILEDB_VCF_COMMIT_HASH << "\n";
+  auto v = tiledb::version();
+  ss << "TileDB version " << std::get<0>(v) << "." << std::get<1>(v) << "."
+     << std::get<2>(v);
+  return ss.str();
 }
 
 /** Prints a formatted help message for a command. */
@@ -53,7 +64,7 @@ void print_command_usage(
   using namespace clipp;
   clipp::doc_formatting fmt{};
   fmt.start_column(4).doc_column(25);
-  std::cerr << name << "\n\nDESCRIPTION\n    " << desc << "\n\nUSAGE\n"
+  std::cout << name << "\n\nDESCRIPTION\n    " << desc << "\n\nUSAGE\n"
             << usage_lines(cli, name, fmt) << "\n\nOPTIONS\n"
             << documentation(cli, fmt) << "\n";
 }
@@ -114,27 +125,27 @@ void usage(
     const clipp::group& list_mode,
     const clipp::group& stat_mode) {
   using namespace clipp;
-  std::cerr
+  std::cout
       << "TileDBVCF -- efficient variant-call data storage and retrieval.\n\n"
       << "This command-line utility provides an interface to create, store and "
          "efficiently retrieve variant-call data in the TileDB storage format."
       << "\n\n"
-      << "More information: TileDB <https://tiledb.io>"
-      << "\n\n";
+      << "More information: TileDB <https://tiledb.io>\n"
+      << version_info() << "\n\n";
 
-  std::cerr << "Summary:\n" << usage_lines(cli, "tiledbvcf") << "\n\n\n";
+  std::cout << "Summary:\n" << usage_lines(cli, "tiledbvcf") << "\n\n\n";
   usage_create(create_mode);
-  std::cerr << "\n\n";
+  std::cout << "\n\n";
   usage_register(register_mode);
-  std::cerr << "\n\n";
+  std::cout << "\n\n";
   usage_store(store_mode);
-  std::cerr << "\n\n";
+  std::cout << "\n\n";
   usage_export(export_mode);
-  std::cerr << "\n\n";
+  std::cout << "\n\n";
   usage_list(list_mode);
-  std::cerr << "\n\n";
+  std::cout << "\n\n";
   usage_stat(stat_mode);
-  std::cerr << "\n";
+  std::cout << "\n";
 }
 
 /** Parses the string into the given partition info struct. */
@@ -376,7 +387,9 @@ int main(int argc, char** argv) {
        value("uri", stat_args.uri));
 
   auto cli =
-      ((command("create").set(opmode, Mode::Create), create_mode) |
+      (command("--version", "-v", "version").set(opmode, Mode::Version) %
+           "Prints the version and exits." |
+       (command("create").set(opmode, Mode::Create), create_mode) |
        (command("register").set(opmode, Mode::Register), register_mode) |
        (command("store").set(opmode, Mode::Store), store_mode) |
        (command("export").set(opmode, Mode::Export), export_mode) |
@@ -422,6 +435,9 @@ int main(int argc, char** argv) {
   }
 
   switch (opmode) {
+    case Mode::Version:
+      std::cout << version_info() << "\n";
+      break;
     case Mode::Create:
       do_create(create_args);
       break;

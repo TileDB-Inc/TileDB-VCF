@@ -9,6 +9,26 @@ find_package(HTSlib_EP REQUIRED)
 find_package(TileDB_EP REQUIRED)
 
 ############################################################
+# Get source commit hash
+############################################################
+
+find_package(Git REQUIRED)
+
+execute_process(
+  COMMAND "${GIT_EXECUTABLE}" describe --dirty=-modified --always
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  RESULT_VARIABLE res
+  OUTPUT_VARIABLE BUILD_COMMIT_HASH
+  ERROR_QUIET
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set_property(GLOBAL APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${CMAKE_SOURCE_DIR}/.git/index")
+
+message(STATUS "Building with commit hash ${TILEDB_VCF_COMMIT_HASH}")
+
+############################################################
 # Common object library
 ############################################################
 
@@ -50,6 +70,10 @@ target_include_directories(TILEDB_VCF_OBJECTS
     ${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:HTSlib::HTSlib,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
+  -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
 )
 
 ############################################################

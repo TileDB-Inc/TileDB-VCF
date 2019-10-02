@@ -40,6 +40,9 @@ namespace tiledb {
 namespace vcf {
 namespace utils {
 
+/** Commit hash of TileDB-VCF (#defined by CMake) */
+extern const std::string TILEDB_VCF_COMMIT_HASH;
+
 /** Returns the value of x/y (integer division) rounded up. */
 uint32_t ceil(uint32_t x, uint32_t y);
 
