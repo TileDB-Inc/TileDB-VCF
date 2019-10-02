@@ -40,8 +40,11 @@ public class NativeLibLoader {
 
   /** Finds and loads native TileDB. */
   static void loadNativeTileDB() {
+    String os = getOSClassifier();
+    String versionedLibName = os.startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so.1.6.2";
     try {
-      loadNativeLib("tiledb", true);
+      // Don't use name mapping to get the versioned tiledb
+      loadNativeLib(versionedLibName, false);
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
