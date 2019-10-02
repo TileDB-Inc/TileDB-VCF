@@ -34,6 +34,9 @@ namespace tiledb {
 namespace vcf {
 namespace utils {
 
+/** Commit hash of TileDB-VCF (#defined by CMake) */
+const std::string TILEDB_VCF_COMMIT_HASH = BUILD_COMMIT_HASH;
+
 std::vector<std::string> split(
     const std::string& str, const std::string& delims, bool skip_empty) {
   std::vector<std::string> output;
