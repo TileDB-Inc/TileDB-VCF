@@ -29,8 +29,11 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
   private static Logger log = Logger.getLogger(VCFInputPartitionReader.class.getName());
 
-  /** Default total number of MB that should be used for allocating columnar buffers. */
-  private static final int DEFAULT_TOTAL_COLUMN_MB = 500;
+  /**
+   * Default memory budget (in MB). The Spark connector uses half for allocating columnar buffers,
+   * the other half goes to TileDB-VCF native for its own buffers.
+   */
+  private static final int DEFAULT_MEM_BUDGET_MB = 512;
 
   /** URI of the TileDB-VCF dataset. */
   private URI datasetURI;
@@ -184,13 +187,19 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader = null;
     }
 
-    if (arrowVectors != null) {
-      for (ArrowColumnVector v : arrowVectors) v.close();
-      arrowVectors.clear();
-    }
+    releaseArrowVectors();
 
     if (resultBatch != null) {
       resultBatch.close();
+      resultBatch = null;
+    }
+  }
+
+  /** Closes any allocated Arrow vectors and clears the list. */
+  private void releaseArrowVectors() {
+    if (arrowVectors != null) {
+      for (ArrowColumnVector v : arrowVectors) v.close();
+      arrowVectors.clear();
     }
   }
 
@@ -242,33 +251,39 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // Get the memory budget, if specified.
     Optional<Integer> memoryBudget = options.getMemoryBudget();
-    int bufferMemBudgetMB = DEFAULT_TOTAL_COLUMN_MB;
+    int memBudgetMB = DEFAULT_MEM_BUDGET_MB;
     if (memoryBudget.isPresent()) {
-      bufferMemBudgetMB = memoryBudget.get();
+      memBudgetMB = memoryBudget.get();
     }
 
-    // Given fixed memory budget and required attributes, compute buffer sizes.
-    int bufferSizeMB;
+    // Given fixed memory budget and required attributes, compute buffer sizes. Note that if
+    // nBuffers is 0,
+    // this is just a counting operation, and no buffers need to be allocated.
     if (nBuffers > 0) {
-      bufferSizeMB = ((bufferMemBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
-    } else {
-      // If no buffers are required, that means this is a count operation, and libtiledbvcf can have
-      // all the memory budgeted.
-      bufferSizeMB = bufferMemBudgetMB;
-    }
+      // We get half, the other half goes to libtiledbvcf.
+      memBudgetMB /= 2;
 
-    // Libtiledbvcf buffers split the same budget as us.
-    vcfReader.setMemoryBudget(bufferSizeMB);
+      // Compute allocation size; check against some reasonable minimum.
+      int bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
+      if (bufferSizeMB < 10) {
+        log.warn(
+            "Warning: TileDB-VCF-Spark buffer allocation of "
+                + bufferSizeMB
+                + " is small. Increase the memory budget from its current setting of "
+                + (memBudgetMB * 2)
+                + " MB.");
+      }
 
-    // If no buffers are needed, this is just a counting query.
-    if (nBuffers > 0) {
       int bufferSizeBytes = bufferSizeMB * (1024 * 1024);
-      this.arrowVectors.clear();
+
+      releaseArrowVectors();
       for (int idx = 0; idx < numColumns; idx++) {
         allocateAndSetBuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes);
         this.statsTotalBufferBytes += numBuffersForField(attrNames[idx]) * bufferSizeBytes;
       }
     }
+
+    vcfReader.setMemoryBudget(memBudgetMB);
 
     if (enableStatsLogging) {
       log.info(
