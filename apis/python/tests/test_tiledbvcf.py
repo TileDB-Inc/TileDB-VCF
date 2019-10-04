@@ -138,8 +138,12 @@ def test_read_write_mode_exceptions():
         ds.count()
 
 
-def test_incomplete_reads(test_ds):
-    test_ds.reader.set_buffer_alloc_size(10)
+def test_incomplete_reads():
+    # Using undocumented "0 MB" budget to test incomplete reads.
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
+    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+
     df = test_ds.read(attrs=['pos_end'], regions=['1:12700-13400'])
     assert not test_ds.read_completed()
     assert len(df) == 2
@@ -159,8 +163,11 @@ def test_incomplete_reads(test_ds):
         {'pos_end': np.array([13395, 13413], dtype=np.int32)}), df)
 
 
-def test_incomplete_read_generator(test_ds):
-    test_ds.reader.set_buffer_alloc_size(10)
+def test_incomplete_read_generator():
+    # Using undocumented "0 MB" budget to test incomplete reads.
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
+    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
     overall_df = None
     for df in test_ds.read_iter(attrs=['pos_end'], regions=['1:12700-13400']):
@@ -301,7 +308,7 @@ def test_read_config():
     cfg = tiledbvcf.ReadConfig()
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
-    cfg = tiledbvcf.ReadConfig(attribute_buffer_mb=50,
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=512,
                                region_partition=(0, 3),
                                tiledb_config=['sm.tile_cache_size=0',
                                               'sm.num_reader_threads=1'])

@@ -29,7 +29,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_max_num_records", &Reader::set_max_num_records)
       .def("set_tiledb_config", &Reader::set_tiledb_config)
       .def("set_attributes", &Reader::set_attributes)
-      .def("set_buffer_alloc_size", &Reader::set_buffer_alloc_size)
       .def("read", &Reader::read)
       .def("get_buffers", &Reader::get_buffers)
       .def("get_results_arrow", &Reader::get_results_arrow)
