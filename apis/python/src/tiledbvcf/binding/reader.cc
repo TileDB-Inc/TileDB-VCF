@@ -54,7 +54,7 @@ namespace tiledbvcfpy {
 
 Reader::Reader()
     : ptr(nullptr, deleter)
-    , alloc_size_bytes_(100 * 1024 * 1024) {
+    , mem_budget_mb_(2 * 1024) {
   tiledb_vcf_reader_t* r;
   if (tiledb_vcf_reader_alloc(&r) != TILEDB_VCF_OK)
     throw std::runtime_error(
@@ -74,10 +74,6 @@ void Reader::reset() {
 
 void Reader::set_attributes(const std::vector<std::string>& attributes) {
   attributes_ = attributes;
-}
-
-void Reader::set_buffer_alloc_size(int64_t nbytes) {
-  alloc_size_bytes_ = nbytes;
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -117,8 +113,13 @@ void Reader::set_sample_partition(int32_t partition, int32_t num_partitions) {
 }
 
 void Reader::set_memory_budget(int32_t memory_mb) {
+  mem_budget_mb_ = memory_mb;
+
+  // TileDB-VCF gets half the budget, we use the other half for buffer
+  // allocation.
   auto reader = ptr.get();
-  check_error(reader, tiledb_vcf_reader_set_memory_budget(reader, memory_mb));
+  check_error(
+      reader, tiledb_vcf_reader_set_memory_budget(reader, mem_budget_mb_ / 2));
 }
 
 void Reader::set_sort_regions(bool sort_regions) {
@@ -150,12 +151,47 @@ void Reader::read() {
   if (status != TILEDB_VCF_COMPLETED && status != TILEDB_VCF_INCOMPLETE)
     throw std::runtime_error(
         "TileDB-VCF-Py: Error submitting read; unhandled read status.");
-
-  prepare_result_buffers();
 }
 
 void Reader::alloc_buffers() {
   auto reader = ptr.get();
+
+  // Release old buffers. TODO: reuse when possible
+  release_buffers();
+
+  // Get a count of the number of buffers required.
+  int num_buffers = 0;
+  for (const auto& attr : attributes_) {
+    tiledb_vcf_attr_datatype_t datatype = TILEDB_VCF_UINT8;
+    int32_t var_len = 0, nullable = 0, list = 0;
+    check_error(
+        reader,
+        tiledb_vcf_reader_get_attribute_type(
+            reader, attr.c_str(), &datatype, &var_len, &nullable, &list));
+    num_buffers += 1;
+    num_buffers += var_len ? 1 : 0;
+    num_buffers += nullable ? 1 : 0;
+    num_buffers += list ? 1 : 0;
+  }
+
+  if (num_buffers == 0)
+    return;
+
+  // Only use half the budget because TileDB-VCF gets the other half.
+  const int64_t budget_mb = mem_budget_mb_ / 2;
+
+  // The undocumented "0 MB" budget is used only for testing incomplete queries.
+  int64_t alloc_size_bytes;
+  if (mem_budget_mb_ == 0) {
+    alloc_size_bytes = 10;  // Some small value
+  } else {
+    alloc_size_bytes = (budget_mb * 1024 * 1024) / num_buffers;
+    if (alloc_size_bytes < (10 * 1024 * 1024))
+      throw std::runtime_error(
+          "TileDB-VCF-Py: buffer allocation size is below the minimum of 10MB. "
+          "Try increasing the memory budget.");
+  }
+
   for (const auto& attr : attributes_) {
     tiledb_vcf_attr_datatype_t datatype = TILEDB_VCF_UINT8;
     int32_t var_len = 0, nullable = 0, list = 0;
@@ -169,21 +205,23 @@ void Reader::alloc_buffers() {
     buffer.attr_name = attr;
 
     auto dtype = to_numpy_dtype(datatype);
-    size_t count = alloc_size_bytes_ / dtype.itemsize();
-    buffer.data = py::array(dtype, count);
+    size_t count = alloc_size_bytes / dtype.itemsize();
+    // Forcing a stride of 1 here (I think) guarantees the backing memory
+    // will be contiguous.
+    buffer.data = py::array(dtype, {count}, {1});
 
     if (var_len == 1) {
-      size_t count = alloc_size_bytes_ / sizeof(int32_t);
-      buffer.offsets = py::array(py::dtype::of<int32_t>(), count);
+      size_t count = alloc_size_bytes / sizeof(int32_t);
+      buffer.offsets = py::array_t<int32_t, py::array::c_style>(count);
     }
 
     if (list == 1) {
-      size_t count = alloc_size_bytes_ / sizeof(int32_t);
-      buffer.list_offsets = py::array(py::dtype::of<int32_t>(), count);
+      size_t count = alloc_size_bytes / sizeof(int32_t);
+      buffer.list_offsets = py::array_t<int32_t, py::array::c_style>(count);
     }
 
     if (nullable == 1) {
-      buffer.bitmap = py::array(py::dtype::of<uint8_t>(), count);
+      buffer.bitmap = py::array_t<uint8_t, py::array::c_style>(count);
     }
   }
 }
@@ -237,34 +275,15 @@ void Reader::set_buffers() {
   }
 }
 
-void Reader::prepare_result_buffers() {
-  auto reader = ptr.get();
-  for (auto& buff : buffers_) {
-    const auto& attr = buff.attr_name;
-    py::buffer_info offsets_info = buff.offsets.request(true);
-    py::buffer_info data_info = buff.data.request(true);
-    py::buffer_info bitmap_info = buff.bitmap.request(true);
-
-    int64_t num_offsets = 0, num_data_elements = 0, num_data_bytes = 0;
-    check_error(
-        reader,
-        tiledb_vcf_reader_get_result_size(
-            reader,
-            attr.c_str(),
-            &num_offsets,
-            &num_data_elements,
-            &num_data_bytes));
-
-    if (buff.offsets.size() > 0) {
-      buff.offsets.resize({num_offsets});
-    }
-
-    buff.data.resize({num_data_elements});
-
-    if (bitmap_info.shape[0] > 0) {
-      buff.bitmap.resize({num_offsets - 1});
-    }
+void Reader::release_buffers() {
+  for (auto& b : buffers_) {
+    b.data.release();
+    b.offsets.release();
+    b.list_offsets.release();
+    b.bitmap.release();
   }
+
+  buffers_.clear();
 }
 
 std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {

@@ -728,6 +728,11 @@ std::set<std::string> TileDBVCFDataset::builtin_attributes() {
           AttrNames::fmt};
 }
 
+bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
+  return attr == TILEDB_COORDS || attr == AttrNames::pos ||
+         attr == AttrNames::real_end || attr == AttrNames::qual;
+}
+
 std::set<std::string> TileDBVCFDataset::all_attributes() const {
   if (!open_)
     throw std::invalid_argument(

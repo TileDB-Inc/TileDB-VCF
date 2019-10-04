@@ -1,17 +1,29 @@
 #include "dataset/attribute_buffer_set.h"
+#include "read/in_memory_exporter.h"
 
 namespace tiledb {
 namespace vcf {
 
 void AttributeBufferSet::allocate_fixed(
-    const std::set<std::string>& attr_names, unsigned size_mb) {
-  // Requesting 0 MB will result in a 1 KB allocation. This is used by the
-  // tests to test the path of incomplete TileDB queries.
-  const uint64_t nbytes = size_mb == 0 ? 1024 : (size_mb * 1024 * 1024);
-  const uint64_t num_offsets = nbytes / sizeof(uint64_t);
-
+    const std::set<std::string>& attr_names, unsigned mem_budget_mb) {
   clear();
   fixed_alloc_.clear();
+
+  // Get count of number of query buffers being allocated
+  size_t num_buffers = 0;
+  for (const auto& s : attr_names) {
+    bool fixed_len = TileDBVCFDataset::attribute_is_fixed_len(s);
+    num_buffers += fixed_len ? 1 : 2;
+  }
+
+  // Every buffer alloc gets the same size.
+  uint64_t nbytes = (uint64_t(mem_budget_mb) * 1024 * 1024) / num_buffers;
+  uint64_t num_offsets = nbytes / sizeof(uint64_t);
+
+  // Requesting 0 MB will result in a 1 KB allocation. This is used by the
+  // tests to test the path of incomplete TileDB queries.
+  nbytes = mem_budget_mb == 0 ? 1024 : (mem_budget_mb * 1024 * 1024);
+  num_offsets = nbytes / sizeof(uint64_t);
 
   using names = TileDBVCFDataset::AttrNames;
   for (const auto& s : attr_names) {

@@ -480,11 +480,27 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_validity_bitmap(
     uint8_t* buff);
 
 /**
- * Sets the fixed amount of memory used *per attribute* in internal reader
- * buffers. The default is 200 MB per attribute.
+ * Sets a rough memory budget for the reader's internal allocations. This budget
+ * is divided up equally between attribute buffers used for internal TileDB
+ * queries, and the TileDB storage manager's memory budget parameters.
+ *
+ * The memory budget is split 50/50 between TileDB-VCF's and TileDB's internal
+ * memory budget, including query buffers. For the TileDB query buffers, we
+ * allocate two sets (due to double-buffering). That means the allocation size
+ * of the query buffers *per attribute* is:
+ *
+ *   ((mem_budget / 2) / num_query_buffers) / 2.
+ *
+ * Example: Suppose you want to target a TileDB query buffer size of 100MB per
+ * attribute. Suppose the query needs 3 fixed-len attributes and 2 var-len.
+ * That is a total of 3 + 4 = 7 query buffers that need to be allocated. So:
+ *
+ *   required_mem_budget = 100 * 2 * 7 * 2 = 2800 MB
+ *
+ * The default memory budget is 2GB.
  *
  * @param reader VCF reader object
- * @param memory_mb Fixed memory amount (in MB).
+ * @param memory_mb Memory budget (in MB).
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_memory_budget(

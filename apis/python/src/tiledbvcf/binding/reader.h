@@ -55,9 +55,6 @@ class Reader {
   /** Sets the list of attributes that will be included in the read. */
   void set_attributes(const std::vector<std::string>& attributes);
 
-  /** Sets the allocation size for the Python attribute buffers. */
-  void set_buffer_alloc_size(int64_t nbytes);
-
   /** Sets a CSV list of samples to include in the read. */
   void set_samples(const std::string& samples);
 
@@ -133,8 +130,8 @@ class Reader {
   /** The underlying C reader object. */
   std::unique_ptr<tiledb_vcf_reader_t, decltype(&deleter)> ptr;
 
-  /** The size (in bytes) to use for Python buffer allocations. */
-  int64_t alloc_size_bytes_;
+  /** The size (in MB) of the memory budget parameter. */
+  int64_t mem_budget_mb_;
 
   /** The set of attribute names included in the read query. */
   std::vector<std::string> attributes_;
@@ -148,8 +145,8 @@ class Reader {
   /** Sets the allocated buffers on the reader object. */
   void set_buffers();
 
-  /** Resizes the Python result buffers according to the number of results. */
-  void prepare_result_buffers();
+  /** Releases references on allocated buffers and clears the buffers list. */
+  void release_buffers();
 };
 
 }  // namespace tiledbvcfpy

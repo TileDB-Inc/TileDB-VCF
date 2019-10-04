@@ -45,15 +45,16 @@ namespace vcf {
 class AttributeBufferSet {
  public:
   /**
-   * Resize buffer for the given set of attributes to the given size.
+   * Resize buffers for the given set of attributes using the given allocation
+   * budget.
    *
    * Used when reading.
    *
    * @param extra List of attributes to allocate buffers for.
-   * @param size_mb Size (MB) of allocation.
+   * @param mem_budget_mb Memory budget (MB) of sum of allocations.
    */
   void allocate_fixed(
-      const std::set<std::string>& attr_names, unsigned size_mb);
+      const std::set<std::string>& attr_names, unsigned mem_budget_mb);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size

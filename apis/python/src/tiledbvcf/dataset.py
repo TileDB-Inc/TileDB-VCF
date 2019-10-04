@@ -12,13 +12,11 @@ ReadConfig = namedtuple('ReadConfig', [
     'sample_partition',
     # Whether or not to sort the regions to be read (default True)
     'sort_regions',
-    # Allocation size of Python attribute buffers (default 100MB/attribute)
-    'attribute_buffer_mb',
-    # Allocation size of TileDB-VCF internal attribute buffers (default 200MB/attribute)
-    'internal_memory_budget',
+    # Memory budget (MB) for buffer and internal allocations (default 2048MB)
+    'memory_budget_mb',
     # List of strings of format 'option=value'
     'tiledb_config'
-], defaults=[None] * 7)
+], defaults=[None] * 6)
 
 
 class TileDBVCFDataset(object):
@@ -55,10 +53,8 @@ class TileDBVCFDataset(object):
             self.reader.set_sample_partition(*cfg.sample_partition)
         if cfg.sort_regions is not None:
             self.reader.set_sort_regions(cfg.sort_regions)
-        if cfg.attribute_buffer_mb is not None:
-            self.reader.set_buffer_alloc_size(cfg.attribute_buffer_mb)
-        if cfg.internal_memory_budget is not None:
-            self.reader.set_memory_budget(cfg.internal_memory_budget)
+        if cfg.memory_budget_mb is not None:
+            self.reader.set_memory_budget(cfg.memory_budget_mb)
         if cfg.tiledb_config is not None:
             self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
 
