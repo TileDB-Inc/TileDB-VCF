@@ -29,7 +29,9 @@ class TileDBVCFDataset(object):
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
         """
+        self.uri = uri
         self.mode = mode
+        self.cfg = cfg
         if self.mode == 'r':
             self.reader = libtiledbvcf.Reader()
             self.reader.init(uri)
