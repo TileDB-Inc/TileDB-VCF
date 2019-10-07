@@ -158,7 +158,9 @@ def ingest_samples(array_uri, samples_file, job_info):
     sample_batch_uris = upload_sample_batches(samples_per_job,
                                               job_info.metadata_s3)
 
-    # Configure the job requirements
+    # Configure the job requirements. Ingestion does not really benefit from
+    # packing multiple jobs onto the same instance, so these requirements are
+    # calibrated to use a full m5.4xlarge instance per job.
     nvcpus = 16
     mem_req_mb = 60000
     tilevcf_mem_gb = int(mem_req_mb / 1024)
@@ -167,10 +169,8 @@ def ingest_samples(array_uri, samples_file, job_info):
     job_ids = []
     for batch_uri in sample_batch_uris:
         tilevcf_args = ['store', '-u', array_uri, '-d', scratch_path, '-s',
-                        str(scratch_size_mb), '-t', str(nvcpus), '-m',
-                        str(tilevcf_mem_gb), '-c', '800000', '-n', '15000',
-                        '-p', '50', '--remove-sample-file',
-                        '-f', batch_uri]
+                        str(scratch_size_mb), '-t', str(nvcpus),
+                        '-f', batch_uri, '--remove-sample-file']
         response = job_info.client.submit_job(
             jobName='ingest_samples',
             jobQueue=job_info.job_queue,
@@ -191,13 +191,9 @@ def ingest_samples(array_uri, samples_file, job_info):
 
 
 @click.command()
-@click.option('--array', required=True,
-              help='S3 URI of destination TileDB array.', metavar='URI')
-@click.option('--attributes',
-              help='Comma-separated list of VCF info and/or format field names '
-                   'that should be extracted as separate TileDB attributes. '
-                   'This option is only used if the destination array does not '
-                   'yet exist.', default='AD,GT,DP,GQ,MIN_DP', metavar='CSV')
+@click.option('--dataset-uri', required=True,
+              help='S3 URI of destination TileDB-VCF dataset. If the dataset '
+                   'does not exist, it will be created.', metavar='URI')
 @click.option('--samples', required=True,
               help='Path to file containing a list of sample URIs (one per'
                    ' line) to ingest.',
@@ -207,18 +203,24 @@ def ingest_samples(array_uri, samples_file, job_info):
                    'storage between batch jobs, e.g. uploading lists of '
                    'samples to register or ingest.',
               metavar='NAME')
+@click.option('--job-queue', required=True,
+              help='Name of job queue to use for jobs.', metavar='NAME')
+@click.option('--job-definition', required=True,
+              help='Name of job definition to use for jobs.', metavar='NAME')
+@click.option('--attributes',
+              help='Comma-separated list of VCF info and/or format field names '
+                   'that should be extracted as separate TileDB attributes. '
+                   'This option is only used if the destination array does not '
+                   'yet exist.',
+              default='fmt_GT,fmt_DP,fmt_GQ,fmt_MIN_DP', metavar='CSV')
 @click.option('--num-jobs', default=1,
               help='Number of jobs to submit for ingestion. Each job will be '
                    'responsible for ingesting nsamples/njobs samples to the '
                    'array. When combined with --incremental, each incremental '
                    'batch uses this many jobs.',
               metavar='N')
-@click.option('--job-queue', required=True,
-              help='Name of job queue to use for jobs.', metavar='NAME')
-@click.option('--job-definition', required=True,
-              help='Name of job definition to use for jobs.', metavar='NAME')
-@click.option('--region', help='AWS region name', default='us-east-1',
-              metavar='NAME')
+@click.option('--region', help='AWS region name of Batch environment',
+              default='us-east-1', metavar='NAME')
 @click.option('--retries', help='Max number (1-10) of retries for failed jobs.',
               default=1, metavar='N')
 @click.option('--wait', help='Waits for all jobs to complete before exiting.',
@@ -226,16 +228,34 @@ def ingest_samples(array_uri, samples_file, job_info):
 @click.option('--incremental', default=1, metavar='N',
               help='If specified, ingest the samples in N batches instead of '
                    'all at once.')
-def main(array, samples, attributes, job_queue, job_definition, region,
+def main(dataset_uri, samples, attributes, job_queue, job_definition, region,
          metadata_s3, num_jobs, retries, wait, incremental):
-    """Ingest VCF sample data from multiple VCF/BCF files via AWS Batch."""
+    """Ingest VCF sample data into a TileDB-VCF dataset via AWS Batch.
+
+    This script requires an existing AWS Batch setup, including a job definition
+    with a Docker image containing the TileDB-VCF CLI executable. The CLI
+    executable is invoked in each batch job by this script using the `command`
+    container override parameter.
+
+    Ingestion of the samples (specified via --samples argument) is distributed
+    across the specified number of Batch jobs (--num-jobs), irrespective of
+    the number of instances in the compute environment. For example, if there
+    are 1,000 samples to be ingested, the compute environment contains 10
+    instances, and 10 jobs are requested, each instance will execute 1 job that
+    ingests 100 samples at a time. If 100 jobs were requested, 100 jobs would be
+    queued (each ingesting 10 samples), and the 10 instances would pull jobs
+    from the queue until all are finished.
+
+    The bucket specified with the --metadata-s3 argument is used to store a file
+    for each job containing the list of samples the job should ingest.
+    """
 
     job_info = JobInfo(job_queue=job_queue, job_definition=job_definition,
                        client=boto3.client('batch', region_name=region),
                        max_retries=retries,
                        num_store_jobs=num_jobs,
                        metadata_s3=metadata_s3)
-    create_job_id = create_array(array, attributes, job_info)
+    create_job_id = create_array(dataset_uri, attributes, job_info)
 
     for i in range(0, incremental):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -248,10 +268,11 @@ def main(array, samples, attributes, job_queue, job_definition, region,
                 continue
 
             job_info.depends_on = [create_job_id] if i == 0 else []
-            register_job_id = register_samples(array, batch_samples, job_info)
+            register_job_id = register_samples(dataset_uri, batch_samples,
+                                               job_info)
 
             job_info.depends_on = [register_job_id]
-            job_ids = ingest_samples(array, batch_samples, job_info)
+            job_ids = ingest_samples(dataset_uri, batch_samples, job_info)
 
             if wait:
                 # Registration stats

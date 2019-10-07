@@ -33,20 +33,19 @@ class JobInfo(object):
         return result
 
 
-def export_samples(array_uri, samples_uri, bed_uri, attributes, dest_s3,
+def export_samples(array_uri, samples_uri, bed_uri, dest_s3,
                    config_dict, job_info):
     """Submit multiple Batch jobs to export samples from the array."""
-    # Configure the job requirements
+    # Configure the job requirements. Export benefits from packing multiple
+    # processes onto a single node.
     nvcpus = 4
     mem_req_mb = 15000
 
     # Submit the configured number of jobs, specifying the partition to tiledbvcf.
     job_ids = []
     for i in range(0, job_info.num_export_jobs):
-        region_map_filename = 'region-map-job-{}.txt'.format(i)
-        tilevcf_args = ['export', '-u', array_uri, '-g', region_map_filename,
+        tilevcf_args = ['export', '-u', array_uri,
                         '-R', bed_uri, '-f', samples_uri,
-                        '-t', attributes,
                         '-d', scratch_path, '--upload-dir', dest_s3,
                         '--sample-partition',
                         '{}:{}'.format(i, job_info.num_export_jobs), '-v']
@@ -74,13 +73,13 @@ def export_samples(array_uri, samples_uri, bed_uri, attributes, dest_s3,
 
 
 @click.command()
-@click.option('--array', required=True,
-              help='S3 URI of TileDB array to read from.', metavar='URI')
+@click.option('--dataset-uri', required=True,
+              help='S3 URI of TileDB-VCF dataset to read from.', metavar='URI')
 @click.option('--dest-s3', required=True,
               help='S3 URI where exported BCFs will be stored.', metavar='URI')
 @click.option('--samples', required=True,
               help='S3 URI of file containing a list of sample names (one per'
-                   ' line) to export.',
+                   ' line) to export. Must be on S3.',
               metavar='URI')
 @click.option('--bed', required=True,
               help='S3 URI of BED file containing sample regions to export.',
@@ -89,10 +88,6 @@ def export_samples(array_uri, samples_uri, bed_uri, attributes, dest_s3,
               help='Name of job queue to use for jobs.', metavar='NAME')
 @click.option('--job-definition', required=True,
               help='Name of job definition to use for jobs.', metavar='NAME')
-@click.option('--attributes',
-              help='Comma-separated list of BCF info and/or format field names '
-                   'that should be included in the exported BCFs.',
-              default='AD,GT,DP,GQ,MIN_DP', metavar='CSV')
 @click.option('--num-jobs', default=1,
               help='Number of jobs to submit for export. Each job will be '
                    'responsible for exporting nsamples/njobs samples from the '
@@ -106,7 +101,7 @@ def export_samples(array_uri, samples_uri, bed_uri, attributes, dest_s3,
               is_flag=True)
 @click.option('--tiledb-config', metavar='key1=val1,key2=val2...', default=None,
               help='Extra TileDB config parameters to specify to tilevcf.')
-def main(array, samples, attributes, job_queue, job_definition, region,
+def main(dataset_uri, samples, job_queue, job_definition, region,
          num_jobs, bed, dest_s3, retries, wait, tiledb_config):
     """Exports BCF sample data from a TileDB array via AWS Batch."""
 
@@ -125,8 +120,8 @@ def main(array, samples, attributes, job_queue, job_definition, region,
                 sys.exit(1)
             config_dict[key] = val
 
-    job_ids = export_samples(array, samples, bed, attributes, dest_s3,
-                             config_dict, job_info)
+    job_ids = export_samples(dataset_uri, samples, bed, dest_s3, config_dict,
+                             job_info)
 
     if wait:
         stats = batchmetrics.wait_all(job_ids, job_info.client)
