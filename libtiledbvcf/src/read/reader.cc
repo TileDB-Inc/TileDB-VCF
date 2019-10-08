@@ -608,7 +608,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions(
 
   // Search backwards to find the first region that intersects the cell.
   size_t first = nil;
-  for (size_t i = *new_region_idx; i >= 0; i--) {
+  for (size_t i = *new_region_idx;; i--) {
     bool intersects = intersects_p(regions[i], start, real_end);
     if (i > 0) {
       bool prev_intersects = intersects_p(regions[i - 1], start, real_end);
