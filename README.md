@@ -11,7 +11,7 @@ The high-level APIs are bundled in this repo, see the instructions below on how 
 When building the Python API from source, `conda` is used for package dependencies. To install the Python `tiledbvcf` module:
 ```bash
 cd apis/python
-conda create -f conda-env.yml
+conda env create -f conda-env.yml
 conda activate tiledbvcf-py
 python setup.py install
 ```
