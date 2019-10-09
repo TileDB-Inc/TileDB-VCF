@@ -68,6 +68,14 @@ To run the CLI client tests:
 $ ../test/run-cli-tests.sh . ../test/inputs
 ```
 
+## Build cleanup
+
+If you need to clean up from past builds, there are several directories that should be removed:
+* `rm -r TileDB-VCF/dist`
+* `rm -r TileDB-VCF/libtiledbvcf/build`
+
+Separately for the APIs, you can run `python setup.py clean` and `./gradlew clean` to clean up the per-API build state.
+
 ## Dependencies
 
 Many common systems already have the required dependencies installed, so you may not need to install them explicitly. TileDB-VCF will download and build the dependencies it needs automatically (with exceptions listed below).
