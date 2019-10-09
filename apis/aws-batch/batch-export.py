@@ -47,6 +47,7 @@ def export_samples(array_uri, samples_uri, bed_uri, dest_s3,
         tilevcf_args = ['export', '-u', array_uri,
                         '-R', bed_uri, '-f', samples_uri,
                         '-d', scratch_path, '--upload-dir', dest_s3,
+                        '--mem-budget-mb', '1500',
                         '--sample-partition',
                         '{}:{}'.format(i, job_info.num_export_jobs), '-v']
         for k, v in config_dict.items():
