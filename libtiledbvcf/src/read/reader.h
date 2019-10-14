@@ -88,12 +88,21 @@ struct ExportParams {
 /*              READER               */
 /* ********************************* */
 
+/**
+ * The Reader class exposes an interface for performing exports from a
+ * TileDB-VCF dataset.
+ *
+ * The same algorithm is used regardless of whether we are exporting to disk
+ * or to a set of in-memory buffers (via the C API). The interface also allows
+ * for partitioning the export either across samples, or regions, or both.
+ */
 class Reader {
  public:
   /* ********************************* */
   /*            PUBLIC API             */
   /* ********************************* */
 
+  /** Constructor. */
   Reader();
 
   /** Unimplemented rule-of-5. */
@@ -189,10 +198,7 @@ class Reader {
   /** Gets the version number of the open dataset. */
   void dataset_version(int32_t* version) const;
 
-  /**
-   * Returns the size of the result last exported for the given
-   * attribute.
-   */
+  /** Returns the size of the result last exported for the given attribute. */
   void result_size(
       const std::string& attribute,
       int64_t* num_offsets,
@@ -213,15 +219,31 @@ class Reader {
   /** Returns the number of in-memory user buffers that have been set. */
   void num_buffers(int32_t* num_buffers) const;
 
+  /**
+   * Gets the name and pointer of the attribute data buffer previously set. This
+   * is for in-memory export only.
+   */
   void get_buffer_values(
       int32_t buffer_idx, const char** name, void** data_buff) const;
 
+  /**
+   * Gets the name and pointer of the attribute offsets buffer previously set.
+   * This is for in-memory export only.
+   */
   void get_buffer_offsets(
       int32_t buffer_idx, const char** name, int32_t** buff) const;
 
+  /**
+   * Gets the name and pointer of the attribute list offsets buffer previously
+   * set. This is for in-memory export only.
+   */
   void get_buffer_list_offsets(
       int32_t buffer_idx, const char** name, int32_t** buff) const;
 
+  /**
+   * Gets the name and pointer of the attribute validity buffer previously set.
+   * This is for in-memory export only.
+   */
   void get_buffer_validity_bitmap(
       int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
@@ -230,33 +252,80 @@ class Reader {
   /*           PRIVATE DATATYPES       */
   /* ********************************* */
 
+  /** Helper struct containing a column range being queried. */
   struct QueryRegion {
     uint32_t col_min;
     uint32_t col_max;
   };
 
+  /**
+   * Structure holding all of the state for the current read operation. The read
+   * state tracks all of the information that is required to implement
+   * incomplete queries (e.g. if an in-memory export runs out of space when
+   * copying to user buffers).
+   */
   struct ReadState {
+    /** Status of the current read operation. */
     ReadStatus status = ReadStatus::UNINITIALIZED;
+
+    /** Lower sample ID of the sample (row) range currently being queried. */
     uint32_t sample_min = 0;
+
+    /** Upper sample ID of the sample (row) range currently being queried. */
     uint32_t sample_max = 0;
+
+    /** Map of current relative sample ID -> sample name. */
     std::vector<SampleAndId> current_samples;
+
+    /** Map of current relative sample ID -> VCF header instance. */
     std::vector<SafeBCFHdr> current_hdrs;
+
+    /** Map of current relative sample ID -> last real_end reported. */
     std::vector<uint32_t> last_reported_end;
 
+    /**
+     * Current index into the `regions` vector, used for finding intersecting
+     * regions efficiently.
+     */
     size_t region_idx = 0;
+
+    /** The original genomic regions specified by the user to export. */
     std::vector<Region> regions;
+
+    /**
+     * The corresponding widened and merged regions that will be used as the
+     * column ranges in the TileDB query.
+     */
     std::vector<QueryRegion> query_regions;
 
+    /** The index of the current batch of samples being exported. */
     size_t batch_idx = 0;
+
+    /** The samples being exported, batched by space tile. */
     std::vector<std::vector<SampleAndId>> sample_batches;
 
+    /** Total number of records exported across all incomplete reads. */
     uint64_t total_num_records_exported = 0;
+
+    /** The number of records exported during the last read, complete or not. */
     uint64_t last_num_records_exported = 0;
 
+    /** Underlying TileDB array. */
     std::unique_ptr<Array> array;
+
+    /** TileDB query object. */
     std::unique_ptr<Query> query;
+
+    /** Struct containing query results from last TileDB query. */
     ReadQueryResults query_results;
+
+    /** Future status, used for making the TileDB queries asynchronously. */
     std::future<tiledb::Query::Status> async_query;
+
+    /**
+     * Current index of cell being processed in query results. Used to support
+     * resuming incomplete reads.
+     */
     uint64_t cell_idx = 0;
   };
 
@@ -264,41 +333,115 @@ class Reader {
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
 
+  /** Parameters controlling the export. */
   ExportParams params_;
+
+  /** TileDB context. */
   std::unique_ptr<tiledb::Context> ctx_;
+
+  /** TileDB VFS instance. */
   std::unique_ptr<tiledb::VFS> vfs_;
+
+  /** Handle on the dataset being exported from. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
+
+  /** Exporter instance (BCF, TSV, in-mem, etc). May be null. */
   std::unique_ptr<Exporter> exporter_;
+
+  /** The read state. */
   ReadState read_state_;
+
+  /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_a;
+
+  /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_b;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */
   /* ********************************* */
 
+  /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();
 
+  /**
+   * Starts the next read batch (i.e. next space tile), initializing the read
+   * state. Returns true if there was a next batch, or false if there were no
+   * more batches.
+   */
   bool next_read_batch();
 
-  void init_for_reads();
-
-  void init_exporter();
-
+  /**
+   * Runs the TileDB-VCF read algorithm for the current batch. Returns false if,
+   * during in-memory export, a user buffer filled up (which means it was an
+   * incomplete read operation). Else, returns true.
+   */
   bool read_current_batch();
 
-  std::vector<std::vector<SampleAndId>> prepare_sample_batches();
+  /** Initializes the batches and exporter before the first read. */
+  void init_for_reads();
 
+  /** Initializes the exporter before the first read. */
+  void init_exporter();
+
+  /**
+   * Prepares the batches (per space tile) of samples to be exported. This
+   * merges the list of sample names with the contents of the samples file,
+   * sorts by sample ID, and batches by space tile.
+   */
+  std::vector<std::vector<SampleAndId>> prepare_sample_batches() const;
+
+  /** Merges the list of sample names with the contents of the samples file. */
   std::vector<SampleAndId> prepare_sample_names() const;
 
+  /**
+   * Prepares the regions to be queried and exported. This merges the list of
+   * regions with the contents of the regions file, sorts, and performs the
+   * anchor gap widening and merging process.
+   */
   void prepare_regions(
       std::vector<Region>* regions,
       std::vector<QueryRegion>* query_regions) const;
 
+  /** Allocates required attribute buffers to receive TileDB query data. */
   void prepare_attribute_buffers();
 
+  /**
+   * Processes the result cells from the last TileDB query. Returns false if,
+   * during in-memory export, a user buffer filled up (which means it was an
+   * incomplete read operation). Else, returns true.
+   */
   bool process_query_results();
 
+  /**
+   * Reports (exports or copies into external buffers) the cell in the current
+   * query results at the given index. Returns false if, during in-memory
+   * export, a user buffer filled up (which means it was an incomplete read
+   * operation). Else, returns true.
+   */
+  bool report_cell(
+      const Region& region, uint32_t contig_offset, uint64_t cell_idx);
+
+  /** Initializes the TileDB context and VFS instances. */
+  void init_tiledb();
+
+  /**
+   * Finds the interval of indexes in the sorted regions vector that intersect
+   * a record with the given start/end/real_end coordinates.
+   *
+   * This performs a linear search starting at the given index to find the first
+   * intersecting index, and then iterates forward to find the last index.
+   *
+   * @param regions Sorted regions vector to search
+   * @param region_idx Index to start iteration
+   * @param start Start pos of record to check for intersection
+   * @param end End pos of record to check for intersection
+   * @param real_end Real end pos of record to check for intersection
+   * @param new_region_idx Will be set to the upper bound index (i.e. the second
+   *    element in the return value).
+   * @return A pair (lower, upper) of the interval of intersecting regions. If
+   *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
+   */
   static std::pair<size_t, size_t> get_intersecting_regions(
       const std::vector<Region>& regions,
       size_t region_idx,
@@ -306,16 +449,6 @@ class Reader {
       uint32_t end,
       uint32_t real_end,
       size_t* new_region_idx);
-
-  /**
-   * Reports (exports or copies into external buffers) the cell in the current
-   * query results at the given index.
-   */
-  bool report_cell(
-      const Region& region, uint32_t contig_offset, uint64_t cell_idx);
-
-  /** Initializes the TileDB context and VFS instances. */
-  void init_tiledb();
 
   /** Checks that the partitioning values are valid. */
   static void check_partitioning(

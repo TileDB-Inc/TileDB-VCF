@@ -45,45 +45,95 @@
 namespace tiledb {
 namespace vcf {
 
+/**
+ * A WriterWorker is responsible for parsing a particular genomic region from a
+ * set of VCFs, into a set of attribute buffers that will be used to submit
+ * a TileDB query.
+ *
+ * The buffering process ensures that the cells are sorted according to the
+ * TileDB-VCF array schema's global order, which is column-major (no tiling
+ * across columns).
+ */
 class WriterWorker {
  public:
+  /** Constructor. */
   WriterWorker();
 
+  /**
+   * Initializes: opens the specified VCF files and allocates empty attribute
+   * buffers.
+   */
   void init(
       const TileDBVCFDataset& dataset,
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples);
 
+  /**
+   * Parse the given region from all samples into the attribute buffers.
+   *
+   * @param region Genomic region to read
+   * @return True if all records from all samples were loaded into the buffers.
+   *    False if the buffers ran out of space, and there are more records
+   *    to be read.
+   */
   bool parse(const Region& region);
 
+  /**
+   * Resumes parsing from the current state. This is used if the buffers are too
+   * small to fit all records in the genomic region in memory.
+   *
+   * @return True if the last record from all samples was buffered. False if the
+   *    buffers ran out of space, and there are more records to be read.
+   */
   bool resume();
 
+  /** Return a handle to the attribute buffers */
   const AttributeBufferSet& buffers() const;
 
+  /** Returns the number of records buffered by the last parse operation. */
   uint64_t records_buffered() const;
 
+  /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
 
  private:
+  /** Attribute buffers holding parsed data. */
   AttributeBufferSet buffers_;
 
+  /** The destination dataset. */
   const TileDBVCFDataset* dataset_;
 
+  /** Vector of VCF files being parsed. */
   std::vector<std::unique_ptr<VCF>> vcfs_;
 
+  /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
 
+  /** Current number of records buffered. */
   uint64_t records_buffered_;
+
+  /** Current number of anchors buffered. */
   uint64_t anchors_buffered_;
 
+  /** Region being parsed. */
   Region region_;
 
+  /** Record heap for sorting records across samples. */
   RecordHeap record_heap_;
 
+  /**
+   * Copies all fields of a VCF record or anchor into the attribute buffers.
+   *
+   * @param contig_offset Offset of the record's contig
+   * @param node Record to buffer
+   * @return True if copy succeeded; false on buffer overflow.
+   */
   bool buffer_record(uint32_t contig_offset, const RecordHeap::Node& node);
 
+  /** Helper function to buffer the alleles attribute. */
   static void buffer_alleles(bcf1_t* record, Buffer* buffer);
 
+  /** Helper function to buffer an INFO field. */
   static void buffer_info_field(
       const bcf_hdr_t* hdr,
       bcf1_t* r,
@@ -92,6 +142,7 @@ class WriterWorker {
       HtslibValueMem* val,
       Buffer* buff);
 
+  /** Helper function to buffer a FMT field. */
   static void buffer_fmt_field(
       const bcf_hdr_t* hdr,
       bcf1_t* r,
