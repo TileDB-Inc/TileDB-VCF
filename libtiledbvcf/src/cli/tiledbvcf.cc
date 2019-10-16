@@ -267,12 +267,23 @@ int main(int argc, char** argv) {
                "Directory used for local storage of downloaded remote samples" &
            value("path", store_args.scratch_space.path),
        option("-s", "--scratch-mb") %
-               "Amount of local storage that can be used for downloading "
-               "remote samples (MB)" &
+               defaulthelp(
+                   "Amount of local storage that can be used for downloading "
+                   "remote samples (MB)",
+                   store_args.scratch_space.size_mb) &
            value("MB", store_args.scratch_space.size_mb),
        option("-n", "--max-record-buff") %
-               "Max number of BCF records to buffer per file" &
+               defaulthelp(
+                   "Max number of BCF records to buffer per file",
+                   store_args.max_record_buffer_size) &
            value("N", store_args.max_record_buffer_size),
+       option("-k", "--thread-task-size") %
+               defaulthelp(
+                   "Max length (# columns) of an ingestion task. Affects load "
+                   "balancing of ingestion work across threads, and total "
+                   "memory consumption.",
+                   store_args.thread_task_size) &
+           value("N", store_args.thread_task_size),
        option("-v", "--verbose").set(store_args.verbose) %
            "Enable verbose output",
        option("--remove-sample-file").set(store_args.remove_samples_file) %

@@ -43,31 +43,53 @@ namespace vcf {
  */
 struct ReadQueryResults {
  public:
+  /** Constructor. */
   ReadQueryResults();
 
+  /** Initializes this instance with the given query results. */
   void set_results(
       const TileDBVCFDataset& dataset,
       const AttributeBufferSet* buffers,
       const tiledb::Query& query);
 
+  /** Returns a pointer to the set of buffers actually holding the data. */
   const AttributeBufferSet* buffers() const;
 
+  /** Returns the number of cells in the query results. */
   uint64_t num_cells() const;
 
+  /** Returns the query status. */
   tiledb::Query::Status query_status() const;
 
+  /** Returns the size of the alleles attribute results. */
   const std::pair<uint64_t, uint64_t>& alleles_size() const;
+
+  /** Returns the size of the id attribute results. */
   const std::pair<uint64_t, uint64_t>& id_size() const;
+
+  /** Returns the size of the filter ids attribute results. */
   const std::pair<uint64_t, uint64_t>& filter_ids_size() const;
+
+  /** Returns the size of the info attribute results. */
   const std::pair<uint64_t, uint64_t>& info_size() const;
+
+  /** Returns the size of the fmt attribute results. */
   const std::pair<uint64_t, uint64_t>& fmt_size() const;
+
+  /** Returns a map of the size of the "extra" attribute results. */
   const std::unordered_map<std::string, std::pair<uint64_t, uint64_t>>&
   extra_attrs_size() const;
 
  private:
+  /** Pointer to buffer set holding the actual data. */
   const AttributeBufferSet* buffers_;
+
+  /** TileDB query status */
   tiledb::Query::Status query_status_;
+
+  /** Number of cells in the query results */
   uint64_t num_cells_;
+
   std::pair<uint64_t, uint64_t> alleles_size_;
   std::pair<uint64_t, uint64_t> id_size_;
   std::pair<uint64_t, uint64_t> filter_ids_size_;

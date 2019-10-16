@@ -67,10 +67,27 @@ class InMemoryExporter : public Exporter {
   void set_buffer_validity_bitmap(
       const std::string& attribute, uint8_t* buff, int64_t buff_size);
 
+  /**
+   * Based on the buffers that have been set, returns the list of array
+   * attributes that must be read from the TileDB array.
+   */
   std::set<std::string> array_attributes_required() const override;
 
+  /** Resets any state of the exporter. */
   void reset() override;
 
+  /**
+   * Exports a cell by copying to the user's buffers.
+   *
+   * @param sample Sample that the record belongs to
+   * @param hdr BCF header instance for the sample
+   * @param query_region Original query region that intersects the cell
+   * @param contig_offset Offset of the cell's contig
+   * @param query_results Handle on the query results / buffers
+   * @param cell_idx Index of cell to export
+   * @return True if export succeeded; false if the user buffers ran out of
+   *    space.
+   */
   bool export_record(
       const SampleAndId& sample,
       const bcf_hdr_t* hdr,

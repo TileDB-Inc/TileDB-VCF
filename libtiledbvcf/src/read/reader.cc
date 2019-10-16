@@ -658,7 +658,7 @@ bool Reader::report_cell(
   return true;
 }
 
-std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() {
+std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() const {
   // Get the list of all sample names and ID
   auto samples = prepare_sample_names();
 
