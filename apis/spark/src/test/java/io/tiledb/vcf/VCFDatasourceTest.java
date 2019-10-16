@@ -160,7 +160,14 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   @Test
   public void testSchemaPushDownSamples() {
-    Dataset<Row> dfRead = testSampleDataset();
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("tiledb.vfs.num_threads", 1)
+            .load();
     dfRead.createOrReplaceTempView("vcf");
     List<Row> rows =
         sparkSession
