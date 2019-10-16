@@ -23,13 +23,15 @@ public class VCFDataSourceReader
   private URI uri;
   private VCFDataSourceOptions options;
   private VCFSparkSchema schema;
-  private List<String> pushedSamples;
+  private List<String> pushedSampleNames;
+  private List<Filter> pushedFilters;
 
   public VCFDataSourceReader(URI uri, VCFDataSourceOptions options) {
     this.uri = uri;
     this.options = options;
     this.schema = new VCFSparkSchema();
-    this.pushedSamples = new ArrayList<>();
+    this.pushedSampleNames = new ArrayList<>();
+    this.pushedFilters = new ArrayList<>();
   }
 
   @Override
@@ -47,21 +49,36 @@ public class VCFDataSourceReader
 
   @Override
   public Filter[] pushFilters(Filter[] filters) {
-    pushedSamples.clear();
+    List<Filter> nonPushedFilters = new ArrayList<>();
+    pushedFilters.clear();
+    pushedSampleNames.clear();
     for (Filter f : filters) {
+      boolean pushed = false;
       if (f instanceof EqualTo) {
-        if (((EqualTo) f).attribute() == "sampleName") {
+        if (((EqualTo) f).attribute().equals("sampleName")) {
           String value = (String) ((EqualTo) f).value();
-          pushedSamples.add(value);
+          pushedSampleNames.add(value);
+          pushed = true;
         }
       }
+
+      if (pushed) {
+        pushedFilters.add(f);
+      } else {
+        nonPushedFilters.add(f);
+      }
     }
-    return filters;
+
+    Filter[] arr = new Filter[nonPushedFilters.size()];
+    nonPushedFilters.toArray(arr);
+    return arr;
   }
 
   @Override
   public Filter[] pushedFilters() {
-    return new Filter[] {};
+    Filter[] arr = new Filter[pushedFilters.size()];
+    pushedFilters.toArray(arr);
+    return arr;
   }
 
   @Override
@@ -73,9 +90,15 @@ public class VCFDataSourceReader
   @Override
   public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
     HashSet<String> dedupSamples = new HashSet<>();
-    dedupSamples.addAll(pushedSamples);
+    dedupSamples.addAll(pushedSampleNames);
     Optional<String[]> optionSamples = options.getSamples();
     if (optionSamples.isPresent()) {
+      if (!pushedSampleNames.isEmpty()) {
+        // TODO: we can override one or the other here, it's just not clear what the right choice
+        // is.
+        throw new RuntimeException(
+            "Cannot combine 'samples' DF option with 'where sampleName' filtering");
+      }
       for (String sample : optionSamples.get()) {
         dedupSamples.add(sample);
       }
