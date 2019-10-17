@@ -29,9 +29,8 @@
 namespace tiledb {
 namespace vcf {
 
-VariantFilter::VariantFilter() {
-  type_ = Type::Include;
-  variants_.push_back(Variant::Any);
+VariantFilter::VariantFilter()
+    : type_(Type::Include) {
 }
 
 VariantFilter::VariantFilter(Type type)
@@ -45,9 +44,6 @@ void VariantFilter::get_required_attributes(
       case Variant::Ref:
         attrs->insert(TileDBVCFDataset::AttrNames::alleles);
         break;
-      case Variant::Any:
-        // None required.
-        break;
       default:
         throw std::runtime_error("Unimplemented variant type for filtering");
     }
@@ -60,17 +56,14 @@ void VariantFilter::add_variant(Variant variant) {
 
 bool VariantFilter::evaluate(
     const ReadQueryResults& results, uint64_t cell_idx) const {
-  if (variants_.size() == 1 && variants_[0] == Variant::Any)
+  if (variants_.empty())
     return type_ == Type::Include;
 
-  bool is_one_of_variants = true;
+  bool is_one_of_variants = false;
   for (const auto v : variants_) {
     switch (v) {
       case Variant::Ref:
         is_one_of_variants |= is_ref(results, cell_idx);
-        break;
-      case Variant::Any:
-        // Do nothing.
         break;
       default:
         throw std::runtime_error("Unimplemented variant type for filtering");
@@ -91,10 +84,10 @@ bool VariantFilter::is_ref(const ReadQueryResults& results, uint64_t cell_idx) {
   const uint64_t nbytes = next_offset - offset;
   const char* data = results.buffers()->alleles().data<char>() + offset;
 
-  // Find the first comma (alleles attribute is CSV).
-  const char* p = data;
-  while (*p != ',' && (p - data) < nbytes)
-    ++p;
+  // Find the last comma (alleles attribute is CSV).
+  const char* p = data + nbytes;
+  while (*p != ',' && p > data)
+    --p;
   if (*p != ',')
     throw std::runtime_error(
         "Variant filter error; alleles value '" + std::string(data, nbytes) +

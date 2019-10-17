@@ -38,7 +38,7 @@ namespace vcf {
  */
 class VariantFilter {
  public:
-  enum class Variant { Any, SNP, Indel, MNP, Ref, Bnd };
+  enum class Variant { SNP, Indel, MNP, Ref, Bnd };
   enum class Type { Include, Exclude };
 
   /** Constructor. */
@@ -69,7 +69,12 @@ class VariantFilter {
   Type type_;
   std::vector<Variant> variants_;
 
-  /** Returns true if the cell is a "ref" record. */
+  /**
+   * Returns true if the cell is a "ref" record.
+   *
+   * The definition of a ref record is one whose final ALT is equal to
+   * "<NON_REF>".
+   */
   static bool is_ref(const ReadQueryResults& results, uint64_t cell_idx);
 };
 

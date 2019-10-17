@@ -1557,3 +1557,103 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
   if (vfs.is_dir(output_dir))
     vfs.remove_dir(output_dir);
 }
+
+TEST_CASE(
+    "TileDB-VCF: Test export with variant filters",
+    "[tiledbvcf][export][filter]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  std::string output_dir = "test_dataset_out";
+  if (vfs.is_dir(output_dir))
+    vfs.remove_dir(output_dir);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  TileDBVCFDataset::create(create_args);
+
+  // Register two samples
+  {
+    TileDBVCFDataset ds;
+    ds.open(dataset_uri);
+    RegistrationParams args;
+    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small3.bcf"};
+    ds.register_samples(args);
+  }
+
+  // Ingest the samples
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {
+        input_dir + "/small.bcf",
+        input_dir + "/small3.bcf",
+    };
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Query a few regions
+  {
+    Reader reader;
+
+    // Allocate some buffers to receive data
+    UserBuffer sample_name, pos, end;
+    sample_name.resize(1024);
+    sample_name.offsets().resize(100);
+    pos.resize(1024);
+    end.resize(1024);
+
+    // Set buffers on the reader
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
+        "sample_name",
+        sample_name.offsets().data(),
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.output_dir = output_dir;
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 73);
+
+    // Set a ref variant filter and resubmit
+    VariantFilter vf(VariantFilter::Type::Exclude);
+    vf.add_variant(VariantFilter::Variant::Ref);
+    reader.set_variant_filter(vf);
+    reader.reset();
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 2);
+    check_string_result(
+        reader, "sample_name", sample_name, {"HG00280", "HG00280"});
+    check_result<uint32_t>(reader, "pos_start", pos, {866511, 1289367});
+    check_result<uint32_t>(reader, "pos_end", end, {866511, 1289369});
+
+    // Invert the filter and resubmit
+    vf = VariantFilter(VariantFilter::Type::Include);
+    vf.add_variant(VariantFilter::Variant::Ref);
+    reader.set_variant_filter(vf);
+    reader.reset();
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 71);
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+  if (vfs.is_dir(output_dir))
+    vfs.remove_dir(output_dir);
+}
