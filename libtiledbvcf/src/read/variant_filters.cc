@@ -29,8 +29,22 @@
 namespace tiledb {
 namespace vcf {
 
-VariantFilters::VariantFilters(VariantFilters::Type type)
+VariantFilter::VariantFilter() {
+  type_ = Type::Include;
+  variants_.push_back(Variant::Any);
+}
+
+VariantFilter::VariantFilter(Type type)
     : type_(type) {
+}
+
+void VariantFilter::add_variant(Variant variant) {
+  variants_.push_back(variant);
+}
+
+bool VariantFilter::evaluate(
+    const ReadQueryResults& results, uint64_t cell_idx) const {
+  return true;
 }
 
 }  // namespace vcf

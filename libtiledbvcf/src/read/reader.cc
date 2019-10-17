@@ -152,6 +152,10 @@ void Reader::set_tiledb_config(const std::string& config_str) {
   init_tiledb();
 }
 
+void Reader::set_variant_filter(const VariantFilter& filter) {
+  variant_filter_ = filter;
+}
+
 ReadStatus Reader::read_status() const {
   return read_state_.status;
 }
@@ -503,6 +507,10 @@ bool Reader::process_query_results() {
     const uint32_t end = results.buffers()->coords().value<uint32_t>(2 * i + 1);
     const uint32_t start = results.buffers()->pos().value<uint32_t>(i);
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
+
+    // Skip cell if it does not pass the configured filters.
+    if (!variant_filter_.evaluate(read_state_.query_results, i))
+      continue;
 
     // Skip cell if we've already reported the gVCF record for it.
     if (real_end ==

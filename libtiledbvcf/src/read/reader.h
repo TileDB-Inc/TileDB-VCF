@@ -44,6 +44,7 @@
 #include "read/exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
+#include "read/variant_filters.h"
 
 namespace tiledb {
 namespace vcf {
@@ -188,6 +189,9 @@ class Reader {
 
   /** Sets TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);
+
+  /** Sets a variant filter for export. */
+  void set_variant_filter(const VariantFilter& filter);
 
   /** Returns the read status of the last read operation. */
   ReadStatus read_status() const;
@@ -356,6 +360,9 @@ class Reader {
 
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_b;
+
+  /** The variant filter (optional). */
+  VariantFilter variant_filter_;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */

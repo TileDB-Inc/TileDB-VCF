@@ -36,16 +36,32 @@ namespace vcf {
  * Helper class that can perform filtering on records during export for types of
  * variants. Implements similar functionality to `bcftools view -v/-V`.
  */
-class VariantFilters {
+class VariantFilter {
  public:
-  enum class Variant { SNP, Indel, MNP, Ref, Bnd };
+  enum class Variant { Any, SNP, Indel, MNP, Ref, Bnd };
   enum class Type { Include, Exclude };
 
-  explicit VariantFilters(VariantFilters::Type type);
+  /** Constructor. */
+  VariantFilter();
+
+  /** Constructor. */
+  explicit VariantFilter(Type type);
+
+  /** Adds a variant to this filter. */
+  void add_variant(Variant variant);
+
+  /**
+   * Evaluates the given cell against the configured variant filter.
+   *
+   * @param results TileDB query results
+   * @param cell_idx Index of cell in query results
+   * @return True if the cell passes the filter, false if it does not.
+   */
+  bool evaluate(const ReadQueryResults& results, uint64_t cell_idx) const;
 
  private:
-  Variant variant_;
   Type type_;
+  std::vector<Variant> variants_;
 };
 
 }  // namespace vcf
