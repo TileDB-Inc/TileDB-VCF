@@ -240,6 +240,27 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1sample_1parti
 }
 
 JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1variant_1filter(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jboolean include,
+    jstring typesCSV) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* c_types = (*env)->GetStringUTFChars(env, typesCSV, 0);
+  int rc =
+      tiledb_vcf_reader_set_variant_filter(reader, include ? 1 : 0, c_types);
+  (*env)->ReleaseStringUTFChars(env, c_types, c_types);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1values(
     JNIEnv* env,
     jclass self,

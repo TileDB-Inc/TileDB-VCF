@@ -246,6 +246,16 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     vcfReader.setSamplePartition(
         samplePartitionInfo.getNumPartitions(), samplePartitionInfo.getIndex());
 
+    // Set variant filters
+    Optional<String> includeVariants = options.getVariantFiltersInclude();
+    if (includeVariants.isPresent()) {
+      vcfReader.setVariantFilters(includeVariants.get(), true);
+    }
+    Optional<String> excludeVariants = options.getVariantFiltersExclude();
+    if (excludeVariants.isPresent()) {
+      vcfReader.setVariantFilters(excludeVariants.get(), false);
+    }
+
     // Get a count of the number of buffers we need to allocate.
     StructField[] sparkFields = schema.getSparkFields();
     String[] attrNames = schema.getVCFAttributes();

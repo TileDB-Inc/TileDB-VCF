@@ -105,6 +105,22 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Optional CSV String of include variant filters */
+  public Optional<String> getVariantFiltersInclude() {
+    if (options.containsKey("include_variants")) {
+      return Optional.of(options.get("include_variants"));
+    }
+    return Optional.empty();
+  }
+
+  /** @return Optional CSV String of exclude variant filters */
+  public Optional<String> getVariantFiltersExclude() {
+    if (options.containsKey("exclude_variants")) {
+      return Optional.of(options.get("exclude_variants"));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     ArrayList<String> configEntries = new ArrayList<>();

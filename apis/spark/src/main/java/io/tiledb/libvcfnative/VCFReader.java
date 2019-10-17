@@ -185,6 +185,15 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setVariantFilters(String csvTypes, boolean include) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_variant_filter(readerPtr, include, csvTypes);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting variant filters: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader setMemoryBudget(Integer mb) {
     if (mb < 1) {
       throw new RuntimeException("memory budget must be >= 1 MB");

@@ -415,4 +415,27 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead = dfRead.withColumn("fmt_map", callUDF("fmt_to_map", dfRead.col("fmt")));
     dfRead.select("fmt_map").show(10, false);
   }
+
+  @Test
+  public void testVariantFilter() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("exclude_variants", "ref")
+            .load();
+    List<Row> rows = dfRead.select("posStart").collectAsList();
+    Assert.assertEquals(0, rows.size());
+
+    dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("include_variants", "ref")
+            .load();
+    rows = dfRead.select("posStart").collectAsList();
+    Assert.assertEquals(14, rows.size());
+  }
 }

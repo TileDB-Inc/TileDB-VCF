@@ -46,6 +46,9 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_set_sample_partition(
       long readerPtr, int partition, int numPartitions);
 
+  public static final native int tiledb_vcf_reader_set_variant_filter(
+      long readerPtr, boolean include, String typesCSV);
+
   public static final native int tiledb_vcf_reader_set_buffer_values(
       long queryPtr, String attribute, ByteBuffer buffer);
 

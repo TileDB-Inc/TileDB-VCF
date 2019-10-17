@@ -89,6 +89,14 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_variant_filter
+ * Signature: (JZLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1variant_1filter
+  (JNIEnv *, jclass, jlong, jboolean, jstring);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_buffer_values
  * Signature: (JLjava/lang/String;Ljava/nio/ByteBuffer;)I
  */
