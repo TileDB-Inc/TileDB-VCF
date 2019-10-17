@@ -42,6 +42,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/read_query_results.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/read/variant_filters.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/sample_utils.cc
