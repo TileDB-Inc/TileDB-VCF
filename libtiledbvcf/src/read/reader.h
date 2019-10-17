@@ -193,6 +193,9 @@ class Reader {
   /** Sets a variant filter for export. */
   void set_variant_filter(const VariantFilter& filter);
 
+  /** Sets a variant filter for export. */
+  void set_variant_filter(bool include, const std::string& csv_types);
+
   /** Returns the read status of the last read operation. */
   ReadStatus read_status() const;
 

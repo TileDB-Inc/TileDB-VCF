@@ -156,6 +156,22 @@ void Reader::set_variant_filter(const VariantFilter& filter) {
   variant_filter_ = filter;
 }
 
+void Reader::set_variant_filter(bool include, const std::string& csv_types) {
+  variant_filter_ = VariantFilter(
+      include ? VariantFilter::Type::Include : VariantFilter::Type::Exclude);
+  auto types = utils::split(csv_types, ',');
+  for (const std::string& s : types) {
+    if (s == "ref") {
+      variant_filter_.add_variant(VariantFilter::Variant::Ref);
+    } else {
+      throw std::runtime_error(
+          "Error setting variant filter; unknown or unsupported variant type "
+          "'" +
+          s + "'.");
+    }
+  }
+}
+
 ReadStatus Reader::read_status() const {
   return read_state_.status;
 }

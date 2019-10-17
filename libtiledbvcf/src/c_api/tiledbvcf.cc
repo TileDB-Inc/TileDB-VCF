@@ -255,6 +255,18 @@ int32_t tiledb_vcf_reader_set_sample_partition(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_variant_filter(
+    tiledb_vcf_reader_t* reader, int32_t include, const char* types) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_variant_filter(include == 1, types)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_set_buffer_values(
     tiledb_vcf_reader_t* reader,
     const char* attribute,

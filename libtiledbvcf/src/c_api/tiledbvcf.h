@@ -250,6 +250,19 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_partition(
     tiledb_vcf_reader_t* reader, int32_t partition, int32_t num_partitions);
 
 /**
+ * Sets a filter on record variant types that are included/excluded during
+ * export.
+ *
+ * @param reader VCF reader object
+ * @param include If `1`, the variant types will be included. Else they will be
+ *      excluded.
+ * @param types CSV string of variant types to filter, one of 'ref'.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_variant_filter(
+    tiledb_vcf_reader_t* reader, int32_t include, const char* types);
+
+/**
  * Sets a buffer to hold values for a specific attribute being read. This is the
  * main interface by which VCF data is returned from a read operation.
  *
