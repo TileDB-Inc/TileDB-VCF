@@ -47,6 +47,12 @@ class VariantFilter {
   /** Constructor. */
   explicit VariantFilter(Type type);
 
+  /**
+   * Returns the set of dataset attributes that are required to be read in
+   * order to perform this filter.
+   */
+  void get_required_attributes(std::set<std::string>* attrs) const;
+
   /** Adds a variant to this filter. */
   void add_variant(Variant variant);
 
@@ -62,6 +68,9 @@ class VariantFilter {
  private:
   Type type_;
   std::vector<Variant> variants_;
+
+  /** Returns true if the cell is a "ref" record. */
+  static bool is_ref(const ReadQueryResults& results, uint64_t cell_idx);
 };
 
 }  // namespace vcf

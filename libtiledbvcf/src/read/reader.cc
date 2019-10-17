@@ -848,6 +848,9 @@ void Reader::prepare_attribute_buffers() {
         "requirements.");
   }
 
+  // Get any attributes required for filters
+  variant_filter_.get_required_attributes(&attrs);
+
   // We get half of the memory budget for the query buffers.
   const unsigned alloc_budget = params_.memory_budget_mb / 4;
   buffers_a->allocate_fixed(attrs, alloc_budget);
