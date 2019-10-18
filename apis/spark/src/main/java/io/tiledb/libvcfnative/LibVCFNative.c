@@ -255,7 +255,7 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1variant_1filt
   const char* c_types = (*env)->GetStringUTFChars(env, typesCSV, 0);
   int rc =
       tiledb_vcf_reader_set_variant_filter(reader, include ? 1 : 0, c_types);
-  (*env)->ReleaseStringUTFChars(env, c_types, c_types);
+  (*env)->ReleaseStringUTFChars(env, typesCSV, c_types);
 
   return rc;
 }

@@ -84,10 +84,10 @@ bool VariantFilter::is_ref(const ReadQueryResults& results, uint64_t cell_idx) {
   const uint64_t nbytes = next_offset - offset;
   const char* data = results.buffers()->alleles().data<char>() + offset;
 
-  // Find the last comma (alleles attribute is CSV).
-  const char* p = data + nbytes;
-  while (*p != ',' && p > data)
-    --p;
+  // Find the first comma (alleles attribute is CSV).
+  const char* p = data;
+  while (*p != ',' && uint64_t(p - data) < nbytes)
+    ++p;
   if (*p != ',')
     throw std::runtime_error(
         "Variant filter error; alleles value '" + std::string(data, nbytes) +
@@ -95,7 +95,9 @@ bool VariantFilter::is_ref(const ReadQueryResults& results, uint64_t cell_idx) {
   ++p;
 
   // Check the second element (ALT) against the constant string <NON_REF>.
-  return strncmp("<NON_REF>", p, 9) == 0;
+  return p[0] == '<' && p[1] == 'N' && p[2] == 'O' && p[3] == 'N' &&
+         p[4] == '_' && p[5] == 'R' && p[6] == 'E' && p[7] == 'F' &&
+         p[8] == '>' && p[9] == '\0';
 }
 
 }  // namespace vcf
