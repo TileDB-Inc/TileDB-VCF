@@ -82,15 +82,15 @@ Many common systems already have the required dependencies installed, so you may
 
 * CMake is required to build the native library, all required dependencies, and the APIs, and must be installed beforehand.
 * Git is required to build the native library (for fetching the commit hash).
-* If HTSlib is not installed on your system, you must install automake and autoconf. These are used when building a local copy of HTSlib, which TileDB-VCF will do automatically.
-  * Linux: `sudo apt install autoconf automake` or `sudo yum install automake`
+* If HTSlib is not installed on your system, you must install several packages beforehand. These are used when building a local copy of HTSlib, which TileDB-VCF will do automatically.
+  * Linux (Ubuntu/Debian): `sudo apt install autoconf automake zlib1g-dev libbz2-dev liblzma-dev`
   * macOS: `brew install autoconf`
 
 ### AWS Linux
 
 To build on AWS Linux (such as for a Spark environment) you may need a few extra steps.
 
-Install a newer gcc version:
+Install a newer gcc (>= 4.9) version:
 ```bash
 sudo yum install -y epel-release gcc gcc-c++
 sudo yum install -y centos-release-scl

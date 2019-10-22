@@ -1,0 +1,54 @@
+#
+# Dockerfile-py
+#
+#
+# The MIT License
+#
+# Copyright (c) 2018 TileDB, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# This Dockerfile builds a TileDB-VCF Python image suitable for use in a dask
+# environment.
+#
+
+FROM daskdev/dask:latest
+
+RUN conda config --prepend channels conda-forge
+
+# Install some dependencies
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+         wget cmake git gcc g++ build-essential autoconf automake \
+         libssl-dev libbz2-dev liblz4-dev libcurl4-openssl-dev \
+         zlib1g-dev liblzma-dev \
+         python3 python3-dev python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the TileDB-VCF Python directory and build it.
+WORKDIR /tmp/
+COPY . tiledbvcf
+RUN cd tiledbvcf \
+    && rm -rf libtiledbvcf/build dist \
+    && cd apis/python \
+    && conda env update -n base -f conda-env.yml \
+    && python setup.py install \
+    && cd /tmp \
+    && rm -rf tiledbvcf \
+    && conda clean -a -y

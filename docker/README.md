@@ -27,3 +27,12 @@ $ docker run --rm -it --entrypoint python tiledbvcf-py
 >>> import tiledbvcf
 >>> # If no errors occur when importing, installation succeeded.
 ```
+
+
+## `Dockerfile-dask-py`
+
+This image builds a TileDB-VCF Python image suitable for use as the image for a dask worker:
+```bash
+$ cd TileDB-VCF/
+$ docker build -f docker/Dockerfile-dask-py -t tiledbvcf-dask-py .
+```
