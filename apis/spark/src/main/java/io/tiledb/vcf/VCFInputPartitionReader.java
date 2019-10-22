@@ -251,7 +251,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // Get the memory budget, if specified.
     Optional<Integer> memoryBudget = options.getMemoryBudget();
-    int memBudgetMB = DEFAULT_MEM_BUDGET_MB;
+    long memBudgetMB = DEFAULT_MEM_BUDGET_MB;
     if (memoryBudget.isPresent()) {
       memBudgetMB = memoryBudget.get();
     }
@@ -264,7 +264,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       memBudgetMB /= 2;
 
       // Compute allocation size; check against some reasonable minimum.
-      int bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
+      long bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
       if (bufferSizeMB < 10) {
         log.warn(
             "Warning: TileDB-VCF-Spark buffer allocation of "
@@ -274,7 +274,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
                 + " MB.");
       }
 
-      int bufferSizeBytes = bufferSizeMB * (1024 * 1024);
+      long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
 
       releaseArrowVectors();
       for (int idx = 0; idx < numColumns; idx++) {
@@ -283,7 +283,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     }
 
-    vcfReader.setMemoryBudget(memBudgetMB);
+    vcfReader.setMemoryBudget((int) memBudgetMB);
 
     if (enableStatsLogging) {
       log.info(
@@ -304,12 +304,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
    *     attributes have multiple buffers allocated (data values, offsets), in which case this size
    *     is used for all buffers individually.
    */
-  private void allocateAndSetBuffer(String fieldName, String attrName, int attributeBufferSize) {
+  private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
     // Max number of rows is nbytes / sizeof(int32_t), i.e. the max number of offsets that can be
     // stored.
-    int maxNumRows = attributeBufferSize / 4;
+    int maxNumRows = (int) (attributeBufferSize / 4);
 
     // Allocate an Arrow-backed buffer for the attribute.
     ValueVector valueVector = makeArrowVector(fieldName, info);
