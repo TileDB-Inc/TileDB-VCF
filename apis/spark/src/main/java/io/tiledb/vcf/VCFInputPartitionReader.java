@@ -234,6 +234,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setBedFile(bedURI.get().toString());
     }
 
+    // Set sort regions
+    Optional<Boolean> sortRegions = options.getSortRegions();
+    if (sortRegions.isPresent()) {
+      vcfReader.setSortRegions(sortRegions.get().booleanValue());
+    }
+
     // Set logical partition in array
     vcfReader.setRangePartition(
         rangePartitionInfo.getNumPartitions(), rangePartitionInfo.getIndex());
