@@ -34,6 +34,12 @@ class TileDBVCFDataset(object):
         self.cfg = cfg
         if self.mode == 'r':
             self.reader = libtiledbvcf.Reader()
+
+            # TileDB config needs to be set first in case TBB threads are
+            # specified.
+            if cfg is not None and cfg.tiledb_config is not None:
+                self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
+
             self.reader.init(uri)
             self._set_read_cfg(cfg)
         elif self.mode == 'w':
@@ -45,6 +51,9 @@ class TileDBVCFDataset(object):
             raise Exception('Unsupported dataset mode {}'.format(mode))
 
     def _set_read_cfg(self, cfg):
+        """Sets reader options based on the given config.
+
+        Note: cfg.tiledb_config is not handled here; set that separately."""
         if cfg is None:
             return
         if cfg.limit is not None:
@@ -57,8 +66,6 @@ class TileDBVCFDataset(object):
             self.reader.set_sort_regions(cfg.sort_regions)
         if cfg.memory_budget_mb is not None:
             self.reader.set_memory_budget(cfg.memory_budget_mb)
-        if cfg.tiledb_config is not None:
-            self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):

@@ -529,6 +529,10 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_max_num_records(
  * The string should be of the format: "sm.option1=1000,sm.option2=baz,..."
  * with multiple TileDB config params separated by commas.
  *
+ * **Note**: if using this to change the number of TBB threads, you must call
+ * this function before any others (including `tiledb_vcf_reader_init()`) to
+ * avoid errors initializing TBB.
+ *
  * @param reader VCF reader object
  * @param config CSV string of TileDB config param values.
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
