@@ -49,6 +49,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Whether or not to sort the regions */
+  public Optional<Boolean> getSortRegions() {
+    if (options.containsKey("sortRegions")) {
+      return Optional.of(Boolean.parseBoolean(options.get("sortRegions")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional maximum memory budget (MB) */
   public Optional<Integer> getMemoryBudget() {
     if (options.containsKey("memory")) {
