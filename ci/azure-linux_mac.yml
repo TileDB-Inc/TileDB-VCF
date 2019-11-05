@@ -112,7 +112,7 @@ steps:
       # Display log files if the build failed
       echo "Dumping log files for failed build"
       echo "----------------------------------"
-      for f in $(find $BUILD_REPOSITORY_LOCALPATH/build -name *.log);
+      for f in $(find $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build -name *.log);
         do echo "------"
            echo $f
            echo "======"

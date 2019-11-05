@@ -109,3 +109,20 @@ Install required dependencies:
 ```bash
 sudo yum install -y git automake
 ```
+
+# Development
+
+## Regenerating test arrays
+
+If the format changes, regenerate the unit test arrays:
+```bash
+rm -r libtiledbvcf/test/inputs/arrays*
+
+tiledbvcf create -u libtiledbvcf/test/inputs/arrays/ingested_2samples
+tiledbvcf register -u libtiledbvcf/test/inputs/arrays/ingested_2samples libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
+tiledbvcf store -u libtiledbvcf/test/inputs/arrays/ingested_2samples libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
+
+tiledbvcf create -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ -a fmt_GT,fmt_DP,fmt_PL
+tiledbvcf register -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
+tiledbvcf store -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
+```

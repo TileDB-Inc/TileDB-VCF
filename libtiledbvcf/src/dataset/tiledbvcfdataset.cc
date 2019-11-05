@@ -74,7 +74,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (vfs.is_dir(params.uri)) {
     // If the directory exists, check if it's a dataset. If so, return with no
     // error (allows for multiple no-op create calls).
-    if (vfs.is_file(general_metadata_uri(params.uri)))
+    if (vfs.is_dir(data_array_uri(params.uri)))
       return;
 
     throw std::runtime_error(
@@ -91,6 +91,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   create_empty_metadata(ctx, params.uri, metadata);
   create_empty_data_array(ctx, params.uri, metadata);
+  write_metadata(ctx, params.uri, metadata);
 }
 
 void TileDBVCFDataset::check_attribute_names(
@@ -124,7 +125,6 @@ void TileDBVCFDataset::create_empty_metadata(
     const Context& ctx, const std::string& root_uri, const Metadata& metadata) {
   create_group(ctx, utils::uri_join(root_uri, "metadata"));
   create_sample_header_array(ctx, root_uri);
-  write_metadata(ctx, root_uri, metadata);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
@@ -234,7 +234,10 @@ void TileDBVCFDataset::open(const std::string& uri) {
   metadata_ = read_metadata(ctx, root_uri_);
   if (metadata_.version != TILEVCF_ARRAY_VERSION)
     throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset version mismatch.");
+        "Cannot open TileDB-VCF dataset; dataset is version " +
+        std::to_string(metadata_.version) +
+        " but TileDB-VCF library version is " +
+        std::to_string(TILEVCF_ARRAY_VERSION) + ".");
 
   load_field_type_maps();
 
@@ -487,57 +490,77 @@ std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
 
 TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
     const Context& ctx, const std::string& root_uri) {
-  std::string uri = general_metadata_uri(root_uri);
-  VFS vfs(ctx);
-
+  Array data_array(ctx, data_array_uri(root_uri), TILEDB_READ);
   Metadata metadata;
-  auto per_line = [&metadata](std::string* line) {
-    auto kv_pair = utils::split(*line, '\t');
-    if (kv_pair.size() < 2)
-      return;
-    std::string key = kv_pair[0];
-    if (key == "version") {
-      metadata.version = (unsigned)std::stoul(kv_pair[1]);
-    } else if (key == "tile_capacity") {
-      metadata.tile_capacity = std::stoul(kv_pair[1]);
-    } else if (key == "row_tile_extent") {
-      metadata.row_tile_extent = (uint32_t)std::stoul(kv_pair[1]);
-    } else if (key == "anchor_gap") {
-      metadata.anchor_gap = (uint32_t)std::stoul(kv_pair[1]);
-    } else if (key == "extra_attributes") {
-      metadata.extra_attributes = utils::split(base64_decode(kv_pair[1]), ',');
-    } else if (key == "free_sample_id") {
-      metadata.free_sample_id = (uint32_t)std::stoul(kv_pair[1]);
-    } else if (key == "all_samples") {
-      metadata.all_samples = utils::split(base64_decode(kv_pair[1]), ',');
-    } else if (key == "sample_ids") {
-      auto pairs = utils::split(base64_decode(kv_pair[1]), ',');
-      for (const auto& p : pairs) {
-        auto pair = utils::split(p, '\t');
-        metadata.sample_ids[pair[0]] = (uint32_t)std::stoul(pair[1]);
-      }
-    } else if (key == "contig_offsets") {
-      auto pairs = utils::split(base64_decode(kv_pair[1]), ',');
-      for (const auto& p : pairs) {
-        auto pair = utils::split(p, '\t');
-        metadata.contig_offsets[pair[0]] = (uint32_t)std::stoul(pair[1]);
-      }
-    } else if (key == "contig_lengths") {
-      auto pairs = utils::split(base64_decode(kv_pair[1]), ',');
-      for (const auto& p : pairs) {
-        auto pair = utils::split(p, '\t');
-        metadata.contig_lengths[pair[0]] = (uint32_t)std::stoul(pair[1]);
-      }
-    } else if (key == "total_contig_length") {
-      metadata.total_contig_length = (uint32_t)std::stoul(kv_pair[1]);
-    } else {
+
+  /** Helper function to get a scalar metadata value. */
+  const auto get_md_value = [&data_array](
+                                const std::string& name,
+                                tiledb_datatype_t expected_dtype,
+                                void* dest) {
+    const void* ptr = nullptr;
+    tiledb_datatype_t dtype;
+    uint32_t value_num = 0;
+    data_array.get_metadata(name, &dtype, &value_num, &ptr);
+    if (dtype != expected_dtype || ptr == nullptr)
       throw std::runtime_error(
-          "Error reading metadata; unknown key '" + key + "'");
+          "Error loading metadata; '" + name + "' field has invalid value.");
+    std::memcpy(dest, ptr, tiledb_datatype_size(dtype) * value_num);
+  };
+
+  /** Helper function to read a CSV string metadata value. */
+  const auto get_csv_md_value = [&data_array](
+                                    const std::string& name,
+                                    std::vector<std::string>* result) {
+    const void* ptr = nullptr;
+    tiledb_datatype_t dtype;
+    uint32_t value_num = 0;
+    data_array.get_metadata(name, &dtype, &value_num, &ptr);
+    if (ptr != nullptr) {
+      if (dtype != TILEDB_CHAR)
+        throw std::runtime_error(
+            "Error loading metadata; '" + name + "' field has invalid value.");
+      std::string b64_str(static_cast<const char*>(ptr), value_num);
+      *result = utils::split(base64_decode(b64_str), ',');
     }
   };
 
-  // Populate the metadata struct
-  utils::read_file_lines(vfs, uri, per_line);
+  /** Helper function to read a CSV list of pairs metadata value. */
+  const auto get_csv_pairs_md_value =
+      [&data_array](
+          const std::string& name, std::map<std::string, uint32_t>* result) {
+        const void* ptr = nullptr;
+        tiledb_datatype_t dtype;
+        uint32_t value_num = 0;
+        data_array.get_metadata(name, &dtype, &value_num, &ptr);
+        if (ptr != nullptr) {
+          if (dtype != TILEDB_CHAR)
+            throw std::runtime_error(
+                "Error loading metadata; '" + name +
+                "' field has invalid value.");
+          std::string b64_str(static_cast<const char*>(ptr), value_num);
+          auto pairs = utils::split(base64_decode(b64_str), ',');
+          for (const auto& p : pairs) {
+            auto pair = utils::split(p, '\t');
+            (*result)[pair[0]] = (uint32_t)std::stoul(pair[1]);
+          }
+        }
+      };
+
+  get_md_value("version", TILEDB_UINT32, &metadata.version);
+  get_md_value("tile_capacity", TILEDB_UINT64, &metadata.tile_capacity);
+  get_md_value("row_tile_extent", TILEDB_UINT32, &metadata.row_tile_extent);
+  get_md_value("anchor_gap", TILEDB_UINT32, &metadata.anchor_gap);
+  get_md_value("free_sample_id", TILEDB_UINT32, &metadata.free_sample_id);
+  get_md_value(
+      "total_contig_length", TILEDB_UINT32, &metadata.total_contig_length);
+
+  get_csv_md_value("extra_attributes", &metadata.extra_attributes);
+  get_csv_md_value("all_samples", &metadata.all_samples);
+
+  get_csv_pairs_md_value("sample_ids", &metadata.sample_ids);
+  get_csv_pairs_md_value("contig_offsets", &metadata.contig_offsets);
+  get_csv_pairs_md_value("contig_lengths", &metadata.contig_lengths);
 
   // Derive the sample id -> name map.
   metadata.sample_names.resize(metadata.sample_ids.size());
@@ -549,86 +572,67 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
 
 void TileDBVCFDataset::write_metadata(
     const Context& ctx, const std::string& root_uri, const Metadata& metadata) {
-  // Serialize the metadata
-  std::stringstream ss;
-  ss << "version\t" << metadata.version << "\n";
-  ss << "tile_capacity\t" << metadata.tile_capacity << "\n";
-  ss << "row_tile_extent\t" << metadata.row_tile_extent << "\n";
-  ss << "anchor_gap\t" << metadata.anchor_gap << "\n";
-  ss << "free_sample_id\t" << metadata.free_sample_id << "\n";
+  Array data_array(ctx, data_array_uri(root_uri), TILEDB_WRITE);
 
-  std::string attrs;
-  for (unsigned i = 0; i < metadata.extra_attributes.size(); i++) {
-    attrs += metadata.extra_attributes[i];
-    if (i < metadata.extra_attributes.size() - 1)
-      attrs.push_back(',');
-  }
-  ss << "extra_attributes\t" << base64_encode(attrs.c_str(), attrs.size())
-     << "\n";
+  /**
+   * Helper function to CSV-join a list of values and store the base64 encoded
+   * result as an array metadata item.
+   */
+  const auto put_csv_metadata = [&data_array](
+                                    const std::string& name,
+                                    const std::vector<std::string>& values) {
+    std::string val_str;
+    for (unsigned i = 0; i < values.size(); i++) {
+      val_str += values[i];
+      if (i < values.size() - 1)
+        val_str.push_back(',');
+    }
+    std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
+    data_array.put_metadata(name, TILEDB_CHAR, b64_str.size(), b64_str.data());
+  };
 
-  std::string all_samples;
-  for (unsigned i = 0; i < metadata.all_samples.size(); i++) {
-    all_samples += metadata.all_samples[i];
-    if (i < metadata.all_samples.size() - 1)
-      all_samples.push_back(',');
-  }
-  ss << "all_samples\t"
-     << base64_encode(all_samples.c_str(), all_samples.size()) << "\n";
+  /**
+   * Helper function to CSV-join a list of pairs of values and store the base64
+   * encoded result as an array metadata item.
+   */
+  const auto put_csv_pairs_metadata =
+      [&data_array](
+          const std::string& name,
+          const std::map<std::string, uint32_t>& values) {
+        std::string val_str;
+        for (const auto& s : values) {
+          val_str += s.first;
+          val_str.push_back('\t');
+          val_str += std::to_string(s.second);
+          val_str.push_back(',');
+        }
+        if (!val_str.empty())
+          val_str.pop_back();
+        std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
+        data_array.put_metadata(
+            name, TILEDB_CHAR, b64_str.size(), b64_str.data());
+      };
 
-  std::string sample_ids;
-  for (const auto& s : metadata.sample_ids) {
-    sample_ids += s.first;
-    sample_ids.push_back('\t');
-    sample_ids += std::to_string(s.second);
-    sample_ids.push_back(',');
-  }
-  if (!sample_ids.empty())
-    sample_ids.pop_back();
-  ss << "sample_ids\t" << base64_encode(sample_ids.c_str(), sample_ids.size())
-     << "\n";
+  // Scalar values
+  data_array.put_metadata("version", TILEDB_UINT32, 1, &metadata.version);
+  data_array.put_metadata(
+      "tile_capacity", TILEDB_UINT64, 1, &metadata.tile_capacity);
+  data_array.put_metadata(
+      "row_tile_extent", TILEDB_UINT32, 1, &metadata.row_tile_extent);
+  data_array.put_metadata("anchor_gap", TILEDB_UINT32, 1, &metadata.anchor_gap);
+  data_array.put_metadata(
+      "free_sample_id", TILEDB_UINT32, 1, &metadata.free_sample_id);
+  data_array.put_metadata(
+      "total_contig_length", TILEDB_UINT32, 1, &metadata.total_contig_length);
 
-  std::string contig_offsets;
-  for (const auto& s : metadata.contig_offsets) {
-    contig_offsets += s.first;
-    contig_offsets.push_back('\t');
-    contig_offsets += std::to_string(s.second);
-    contig_offsets.push_back(',');
-  }
-  if (!contig_offsets.empty())
-    contig_offsets.pop_back();
-  ss << "contig_offsets\t"
-     << base64_encode(contig_offsets.c_str(), contig_offsets.size()) << "\n";
+  // Base64 encoded CSV strings
+  put_csv_metadata("extra_attributes", metadata.extra_attributes);
+  put_csv_metadata("all_samples", metadata.all_samples);
 
-  std::string contig_lengths;
-  for (const auto& s : metadata.contig_lengths) {
-    contig_lengths += s.first;
-    contig_lengths.push_back('\t');
-    contig_lengths += std::to_string(s.second);
-    contig_lengths.push_back(',');
-  }
-  if (!contig_lengths.empty())
-    contig_lengths.pop_back();
-  ss << "contig_lengths\t"
-     << base64_encode(contig_lengths.c_str(), contig_lengths.size()) << "\n";
-
-  ss << "total_contig_length\t" << metadata.total_contig_length << "\n";
-
-  // Write serialized metadata
-  VFS vfs(ctx);
-  VFS::filebuf buff(vfs);
-  buff.open(general_metadata_uri(root_uri), std::ios::out);
-  std::ostream os(&buff);
-  if (!os.good() || os.fail() || os.bad()) {
-    const char* err_c_str = strerror(errno);
-    throw std::runtime_error(
-        "Error opening metadata file '" + general_metadata_uri(root_uri) +
-        "' for writing: " + std::string(err_c_str));
-  }
-
-  auto str = ss.str();
-  os.write(str.data(), str.size());
-  os.flush();
-  buff.close();
+  // Base64 encoded TSV+CSV strings
+  put_csv_pairs_metadata("sample_ids", metadata.sample_ids);
+  put_csv_pairs_metadata("contig_offsets", metadata.contig_offsets);
+  put_csv_pairs_metadata("contig_lengths", metadata.contig_lengths);
 }
 
 void TileDBVCFDataset::write_vcf_headers(
@@ -759,12 +763,6 @@ int TileDBVCFDataset::fmt_field_type(const std::string& name) const {
 
 std::string TileDBVCFDataset::data_array_uri(const std::string& root_uri) {
   return utils::uri_join(root_uri, "data");
-}
-
-std::string TileDBVCFDataset::general_metadata_uri(
-    const std::string& root_uri) {
-  auto grp = utils::uri_join(root_uri, "metadata");
-  return utils::uri_join(grp, "general.txt");
 }
 
 std::string TileDBVCFDataset::vcf_headers_uri(const std::string& root_uri) {

@@ -40,7 +40,7 @@ else()
 
     ExternalProject_Add(ep_tiledb
       PREFIX "externals"
-      URL "https://github.com/TileDB-Inc/TileDB/archive/1.6.2.zip"
+      URL "https://github.com/TileDB-Inc/TileDB/archive/1.7.0.zip"
       # URL_HASH SHA1=bccd93ad3cee39c3d08eee68d45b3e11910299f2
       DOWNLOAD_NAME "tiledb.zip"
       CMAKE_ARGS
@@ -49,6 +49,7 @@ else()
         -DCMAKE_BUILD_TYPE=Release
         -DTILEDB_S3=ON
         -DTILEDB_VERBOSE=ON
+        -DTILEDB_SERIALIZATION=ON
       UPDATE_COMMAND ""
       INSTALL_COMMAND
         ${CMAKE_COMMAND} --build . --target install-tiledb
