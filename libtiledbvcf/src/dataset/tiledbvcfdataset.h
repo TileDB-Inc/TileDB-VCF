@@ -196,7 +196,7 @@ class TileDBVCFDataset {
 
  private:
   /** Current version of the TileDBVCF format. */
-  static const unsigned TILEVCF_ARRAY_VERSION = 1;
+  static const unsigned TILEVCF_ARRAY_VERSION = 2;
 
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -316,9 +316,6 @@ class TileDBVCFDataset {
 
   /** Returns the URI of the sample data array for the dataset. */
   static std::string data_array_uri(const std::string& root_uri);
-
-  /** Returns the URI of the metadata file for the dataset. */
-  static std::string general_metadata_uri(const std::string& root_uri);
 
   /** Returns the URI of the VCF header data array for the dataset. */
   static std::string vcf_headers_uri(const std::string& root_uri);
