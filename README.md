@@ -1,13 +1,12 @@
+<a href="https://tiledb.com"><img src="https://github.com/TileDB-Inc/TileDB/raw/dev/doc/source/_static/tiledb-logo_color_no_margin@4x.png" alt="TileDB logo" width="400"></a>
+
 # TileDB-VCF
 
 TileDB-VCF is a library for efficient storage and retrieval of genomics variant-call data. With it, you can easily ingest large amounts of variant-call data from the VCF (or BCF) format into a 2D sparse TileDB array that allows for highly compressed storage and efficient, parallelized queries on the variant data. The motivation and idea behind storing VCF data in a 2D sparse array is described in our [Genomics use case docs](https://docs.tiledb.com/main/use-cases/genomics).
 
-The TileDB-VCF library exposes several interfaces for ingestion and reading of variant data, linking with the TileDB storage manager library itself for persisting the data. TileDB-VCF uses [htslib](htslib.org) during the ingestion phase to parse the VCF/BCF files, and thereafter uses a custom algorithm for ingestion of the data as well as extraction.
-
-Once ingested, TileDB-VCF allows you to rapidly query variant data by genomic regions across arbitrary numbers of samples, returning all VCF records that intersect any of the query regions. TileDB-VCF takes advantage of all features of core TileDB, such as cloud-optimized queries, parallelism, etc. With TileDB-VCF you can enjoy linear scalability for VCF data storage, and many times faster queries than using `bcftools -R` or other existing methods.
-
 ## Quick Links
 
+* Motivation and use case: https://docs.tiledb.com/main/use-cases/genomics
 * Installation: https://docs.tiledb.com/developer/tiledbvcf/installation
 * Usage: https://docs.tiledb.com/developer/tiledbvcf/usage
 * Further reading: https://docs.tiledb.com/developer/tiledbvcf/advanced
