@@ -10,20 +10,3 @@ TileDB-VCF is a library for efficient storage and retrieval of genomics variant-
 * Installation: https://docs.tiledb.com/developer/tiledbvcf/installation
 * Usage: https://docs.tiledb.com/developer/tiledbvcf/usage
 * Further reading: https://docs.tiledb.com/developer/tiledbvcf/advanced
-
-## Development
-
-## Regenerating test arrays
-
-If the format changes, regenerate the unit test arrays:
-```bash
-rm -r libtiledbvcf/test/inputs/arrays*
-
-tiledbvcf create -u libtiledbvcf/test/inputs/arrays/ingested_2samples
-tiledbvcf register -u libtiledbvcf/test/inputs/arrays/ingested_2samples libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
-tiledbvcf store -u libtiledbvcf/test/inputs/arrays/ingested_2samples libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
-
-tiledbvcf create -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ -a fmt_GT,fmt_DP,fmt_PL
-tiledbvcf register -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
-tiledbvcf store -u libtiledbvcf/test/inputs/arrays/ingested_2samples_GT_DP_PL/ libtiledbvcf/test/inputs/small2.bcf libtiledbvcf/test/inputs/small.bcf
-```
