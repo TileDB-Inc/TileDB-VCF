@@ -10,3 +10,4 @@ TileDB-VCF is a library for efficient storage and retrieval of genomics variant-
 * Installation: https://docs.tiledb.com/developer/tiledbvcf/installation
 * Usage: https://docs.tiledb.com/developer/tiledbvcf/usage
 * Further reading: https://docs.tiledb.com/developer/tiledbvcf/advanced
+* TileDB-VCF developer resources: https://github.com/TileDB-Inc/TileDB-VCF/wiki
