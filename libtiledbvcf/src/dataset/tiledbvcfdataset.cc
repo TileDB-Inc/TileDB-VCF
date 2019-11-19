@@ -244,18 +244,18 @@ void TileDBVCFDataset::open(
         " but TileDB-VCF library version is " +
         std::to_string(TILEVCF_ARRAY_VERSION) + ".");
 
-  load_field_type_maps();
+  load_field_type_maps(ctx);
 
   open_ = true;
 }
 
-void TileDBVCFDataset::load_field_type_maps() {
+void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
   // Empty array (no samples registered); do nothing.
   if (metadata_.sample_ids.empty())
     return;
 
   auto first_sample = metadata_.sample_ids.at(metadata_.sample_names.at(0));
-  auto hdrs = fetch_vcf_headers(first_sample, first_sample);
+  auto hdrs = fetch_vcf_headers(ctx, first_sample, first_sample);
   if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
@@ -381,12 +381,9 @@ std::string TileDBVCFDataset::data_uri() const {
 }
 
 std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
+    const tiledb::Context& ctx,
     uint32_t sample_id_min,
-    uint32_t sample_id_max,
-    const std::vector<std::string>& tiledb_config) const {
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
-  Context ctx(cfg);
+    uint32_t sample_id_max) const {
   std::vector<SafeBCFHdr> result;
   std::string array_uri = vcf_headers_uri(root_uri_);
   std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};

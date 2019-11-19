@@ -162,9 +162,9 @@ class TileDBVCFDataset {
   std::string data_uri() const;
 
   std::vector<SafeBCFHdr> fetch_vcf_headers(
+      const tiledb::Context& ctx,
       uint32_t sample_id_min,
-      uint32_t sample_id_max,
-      const std::vector<std::string>& tiledb_config = {}) const;
+      uint32_t sample_id_max) const;
 
   std::string first_contig() const;
 
@@ -335,7 +335,7 @@ class TileDBVCFDataset {
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
-  void load_field_type_maps();
+  void load_field_type_maps(const tiledb::Context& ctx);
 };
 
 }  // namespace vcf
