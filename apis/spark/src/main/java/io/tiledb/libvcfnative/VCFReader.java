@@ -65,16 +65,6 @@ public class VCFReader implements AutoCloseable {
       throw new RuntimeException("Error allocating reader object");
     }
 
-    rc = LibVCFNative.tiledb_vcf_reader_init(readerPtrArray[0], uri);
-    if (rc != 0) {
-      String msg = getLastErrorMessage();
-      LibVCFNative.tiledb_vcf_reader_free(readerPtrArray[0]);
-      if (msg == null) {
-        msg = "";
-      }
-      throw new RuntimeException("Error initializing reader object: " + msg);
-    }
-
     if (config.isPresent()) {
       rc = LibVCFNative.tiledb_vcf_reader_set_tiledb_config(readerPtrArray[0], config.get());
       if (rc != 0) {
@@ -85,6 +75,16 @@ public class VCFReader implements AutoCloseable {
         }
         throw new RuntimeException("Error setting TileDB config options on reader object: " + msg);
       }
+    }
+
+    rc = LibVCFNative.tiledb_vcf_reader_init(readerPtrArray[0], uri);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      LibVCFNative.tiledb_vcf_reader_free(readerPtrArray[0]);
+      if (msg == null) {
+        msg = "";
+      }
+      throw new RuntimeException("Error initializing reader object: " + msg);
     }
 
     if (samples.length > 0) {

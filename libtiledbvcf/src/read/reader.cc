@@ -37,10 +37,11 @@ namespace tiledb {
 namespace vcf {
 
 Reader::Reader() {
-  init_tiledb();
 }
 
 void Reader::open_dataset(const std::string& dataset_uri) {
+  init_tiledb();
+
   dataset_.reset(new TileDBVCFDataset);
   dataset_->open(dataset_uri, params_.tiledb_config);
 }
@@ -69,6 +70,9 @@ void Reader::set_sort_regions(bool sort_regions) {
 }
 
 void Reader::set_samples_file(const std::string& uri) {
+  if (vfs_ == nullptr)
+    init_tiledb();
+
   if (!vfs_->is_file(uri))
     throw std::runtime_error(
         "Error setting samples file; '" + uri + "' does not exist.");
@@ -76,6 +80,9 @@ void Reader::set_samples_file(const std::string& uri) {
 }
 
 void Reader::set_bed_file(const std::string& uri) {
+  if (vfs_ == nullptr)
+    init_tiledb();
+
   if (!vfs_->is_file(uri))
     throw std::runtime_error(
         "Error setting BED file; '" + uri + "' does not exist.");
@@ -327,7 +334,7 @@ bool Reader::next_read_batch() {
   // Headers
   read_state_.current_hdrs.clear();
   read_state_.current_hdrs = dataset_->fetch_vcf_headers(
-      read_state_.sample_min, read_state_.sample_max);
+      *ctx_, read_state_.sample_min, read_state_.sample_max);
 
   // Sample handles
   read_state_.current_samples.clear();

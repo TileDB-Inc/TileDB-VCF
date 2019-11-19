@@ -34,8 +34,8 @@ class TileDBVCFDataset(object):
         self.cfg = cfg
         if self.mode == 'r':
             self.reader = libtiledbvcf.Reader()
-            self.reader.init(uri)
             self._set_read_cfg(cfg)
+            self.reader.init(uri)
         elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
             self.writer.init(uri)
