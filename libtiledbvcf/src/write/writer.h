@@ -59,6 +59,7 @@ struct IngestionParams {
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
   uint64_t max_record_buffer_size = 50000;
+  std::vector<std::string> tiledb_config;
 
   /**
    * Max length (# columns) of an ingestion "task". This value is derived

@@ -121,14 +121,13 @@ std::vector<std::string> SampleUtils::download_sample_names(
 }
 
 std::vector<SampleAndIndex> SampleUtils::build_samples_uri_list(
+    const tiledb::VFS& vfs,
     const std::string& samples_file_uri,
     const std::vector<std::string>& samples_uri_list) {
   std::vector<SampleAndIndex> result;
 
   // First add samples from the given samples file, if present.
   if (!samples_file_uri.empty()) {
-    Context ctx;
-    VFS vfs(ctx);
     auto per_line = [&result](std::string* line) {
       auto pair = utils::split(*line, '\t');
       if (pair.empty())

@@ -168,7 +168,7 @@ void do_create(const CreationParams& args) {
 /** Register. */
 void do_register(const RegistrationParams& args) {
   TileDBVCFDataset dataset;
-  dataset.open(args.uri);
+  dataset.open(args.uri, args.tiledb_config);
   dataset.register_samples(args);
 }
 
@@ -190,14 +190,14 @@ void do_export(const ExportParams& args) {
 /** List. */
 void do_list(const ListParams& args) {
   TileDBVCFDataset dataset;
-  dataset.open(args.uri);
+  dataset.open(args.uri, args.tiledb_config);
   dataset.print_samples_list();
 }
 
 /** Stat. */
 void do_stat(const StatParams& args) {
   TileDBVCFDataset dataset;
-  dataset.open(args.uri);
+  dataset.open(args.uri, args.tiledb_config);
   dataset.print_dataset_stats();
 }
 
@@ -230,7 +230,13 @@ int main(int argc, char** argv) {
            value("N", create_args.row_tile_extent),
        option("-g", "--anchor-gap") %
                defaulthelp("Anchor gap size to use", create_args.anchor_gap) &
-           value("N", create_args.anchor_gap));
+           value("N", create_args.anchor_gap),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&create_args](const std::string& s) {
+             create_args.tiledb_config = utils::split(s, ',');
+           }));
 
   RegistrationParams register_args;
   auto register_mode =
@@ -243,6 +249,12 @@ int main(int argc, char** argv) {
                "Amount of local storage that can be used for downloading "
                "remote samples (MB)" &
            value("MB", register_args.scratch_space.size_mb),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&register_args](const std::string& s) {
+             register_args.tiledb_config = utils::split(s, ',');
+           }),
        (option("-f", "--samples-file") %
             "File with 1 VCF path to be registered per line. The format can "
             "also include an explicit index path on each line, in the format "
@@ -289,6 +301,12 @@ int main(int argc, char** argv) {
        option("--remove-sample-file").set(store_args.remove_samples_file) %
            "If specified, the samples file ('-f' argument) is deleted after "
            "successful ingestion",
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&store_args](const std::string& s) {
+             store_args.tiledb_config = utils::split(s, ',');
+           }),
        (option("-f", "--samples-file") %
             "File with 1 VCF path to be ingested per line. The format can "
             "also include an explicit index path on each line, in the format "
@@ -365,6 +383,12 @@ int main(int argc, char** argv) {
                "If set, all output file(s) from the export process will be "
                "copied to the given directory (or S3 prefix) upon completion." &
            value("path", export_args.upload_dir),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&export_args](const std::string& s) {
+             export_args.tiledb_config = utils::split(s, ',');
+           }),
        option("-v", "--verbose").set(export_args.verbose) %
            "Enable verbose output",
        option("-c", "--count-only").call([&export_args]() {
@@ -390,12 +414,24 @@ int main(int argc, char** argv) {
   ListParams list_args;
   auto list_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
-       value("uri", list_args.uri));
+           value("uri", list_args.uri),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&list_args](const std::string& s) {
+             list_args.tiledb_config = utils::split(s, ',');
+           }));
 
   StatParams stat_args;
   auto stat_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
-       value("uri", stat_args.uri));
+           value("uri", stat_args.uri),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&stat_args](const std::string& s) {
+             stat_args.tiledb_config = utils::split(s, ',');
+           }));
 
   auto cli =
       (command("--version", "-v", "version").set(opmode, Mode::Version) %

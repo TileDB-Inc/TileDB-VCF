@@ -66,7 +66,9 @@ TileDBVCFDataset::TileDBVCFDataset()
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
-  Context ctx;
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  Context ctx(cfg);
   VFS vfs(ctx);
 
   check_attribute_names(params.extra_attributes);
@@ -218,14 +220,17 @@ void TileDBVCFDataset::create_sample_header_array(
   Array::create(vcf_headers_uri(root_uri), schema);
 }
 
-void TileDBVCFDataset::open(const std::string& uri) {
+void TileDBVCFDataset::open(
+    const std::string& uri, const std::vector<std::string>& tiledb_config) {
   if (open_)
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset already open.");
   root_uri_ = uri;
 
-  Context ctx;
-  VFS vfs(ctx);
+  Config cfg;
+  utils::set_tiledb_config(tiledb_config, &cfg);
+  Context ctx(cfg);
+  VFS vfs(ctx, cfg);
   if (!vfs.is_dir(root_uri_))
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
@@ -286,15 +291,18 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
     throw std::invalid_argument(
         "Cannot register samples; dataset is not open.");
 
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  Context ctx(cfg);
+  VFS vfs(ctx, cfg);
+
   std::vector<SampleAndIndex> samples = SampleUtils::build_samples_uri_list(
-      params.sample_uris_file, params.sample_uris);
+      vfs, params.sample_uris_file, params.sample_uris);
   if (samples.empty())
     throw std::invalid_argument(
         "Cannot register samples; samples list is empty.");
 
   // Registration proceeds in batches, double-buffering the downloads.
-  Context ctx;
-  VFS vfs(ctx);
   std::set<std::string> sample_set(
       metadata_.all_samples.begin(), metadata_.all_samples.end());
   std::map<uint32_t, std::string> sample_headers;
@@ -373,8 +381,12 @@ std::string TileDBVCFDataset::data_uri() const {
 }
 
 std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
-    uint32_t sample_id_min, uint32_t sample_id_max) const {
-  Context ctx;
+    uint32_t sample_id_min,
+    uint32_t sample_id_max,
+    const std::vector<std::string>& tiledb_config) const {
+  Config cfg;
+  utils::set_tiledb_config(tiledb_config, &cfg);
+  Context ctx(cfg);
   std::vector<SafeBCFHdr> result;
   std::string array_uri = vcf_headers_uri(root_uri_);
   std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
