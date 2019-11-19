@@ -302,6 +302,13 @@ void append_from_file(const std::string& uri, std::vector<std::string>* lines);
 /** Return size (in bytes) of an htslib type. */
 int bcf_type_size(const int type);
 
+/**
+ * Parses the given list of params (of the format 'param.name=value') and sets
+ * them on the given Config instance.
+ */
+void set_tiledb_config(
+    const std::vector<std::string>& params, tiledb::Config* cfg);
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

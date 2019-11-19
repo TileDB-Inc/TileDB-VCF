@@ -52,6 +52,7 @@ struct CreationParams {
   uint64_t tile_capacity = 10000;
   uint32_t row_tile_extent = 10;
   uint32_t anchor_gap = 1000;
+  std::vector<std::string> tiledb_config;
 };
 
 /** Arguments/params for dataset registration. */
@@ -60,16 +61,19 @@ struct RegistrationParams {
   std::string sample_uris_file;
   std::vector<std::string> sample_uris;
   ScratchSpaceInfo scratch_space;
+  std::vector<std::string> tiledb_config;
 };
 
 /** Arguments/params for the list operation. */
 struct ListParams {
   std::string uri;
+  std::vector<std::string> tiledb_config;
 };
 
 /** Arguments/params for the stat operation. */
 struct StatParams {
   std::string uri;
+  std::vector<std::string> tiledb_config;
 };
 
 /* ********************************* */
@@ -143,7 +147,9 @@ class TileDBVCFDataset {
 
   static void create(const CreationParams& params);
 
-  void open(const std::string& uri);
+  void open(
+      const std::string& uri,
+      const std::vector<std::string>& tiledb_config = {});
 
   void register_samples(const RegistrationParams& params);
 
@@ -156,7 +162,9 @@ class TileDBVCFDataset {
   std::string data_uri() const;
 
   std::vector<SafeBCFHdr> fetch_vcf_headers(
-      uint32_t sample_id_min, uint32_t sample_id_max) const;
+      uint32_t sample_id_min,
+      uint32_t sample_id_max,
+      const std::vector<std::string>& tiledb_config = {}) const;
 
   std::string first_contig() const;
 

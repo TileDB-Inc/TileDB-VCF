@@ -42,7 +42,7 @@ Reader::Reader() {
 
 void Reader::open_dataset(const std::string& dataset_uri) {
   dataset_.reset(new TileDBVCFDataset);
-  dataset_->open(dataset_uri);
+  dataset_->open(dataset_uri, params_.tiledb_config);
 }
 
 void Reader::reset() {
@@ -854,15 +854,7 @@ void Reader::init_tiledb() {
   cfg["sm.memory_budget_var"] = tiledb_mem_budget / 2;
 
   // User overrides
-  for (const auto& s : params_.tiledb_config) {
-    auto kv = utils::split(s, '=');
-    if (kv.size() != 2)
-      throw std::runtime_error(
-          "Error setting TileDB config parameter; bad value '" + s + "'");
-    utils::trim(&kv[0]);
-    utils::trim(&kv[1]);
-    cfg[kv[0]] = kv[1];
-  }
+  utils::set_tiledb_config(params_.tiledb_config, &cfg);
 
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));

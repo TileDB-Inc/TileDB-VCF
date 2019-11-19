@@ -126,6 +126,7 @@ class SampleUtils {
    * single list.
    */
   static std::vector<SampleAndIndex> build_samples_uri_list(
+      const tiledb::VFS& vfs,
       const std::string& samples_file_uri,
       const std::vector<std::string>& samples_uri_list);
 

@@ -48,8 +48,11 @@ void Writer::init(
   (*tiledb_config_)["vfs.s3.multipart_part_size"] =
       params.part_size_mb * 1024 * 1024;
 
+  // User overrides
+  utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
+
   ctx_.reset(new Context(*tiledb_config_));
-  vfs_.reset(new VFS(*ctx_));
+  vfs_.reset(new VFS(*ctx_, *tiledb_config_));
   array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
@@ -82,7 +85,7 @@ void Writer::create_dataset() {
 
 void Writer::register_samples() {
   TileDBVCFDataset dataset;
-  dataset.open(registration_params_.uri);
+  dataset.open(registration_params_.uri, ingestion_params_.tiledb_config);
   dataset.register_samples(registration_params_);
 }
 
@@ -90,7 +93,7 @@ void Writer::ingest_samples() {
   auto start_all = std::chrono::steady_clock::now();
 
   TileDBVCFDataset dataset;
-  dataset.open(ingestion_params_.uri);
+  dataset.open(ingestion_params_.uri, ingestion_params_.tiledb_config);
   init(dataset, ingestion_params_);
 
   // Get the list of samples to ingest, sorted on ID
@@ -291,7 +294,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 std::vector<SampleAndIndex> Writer::prepare_sample_list(
     const TileDBVCFDataset& dataset, const IngestionParams& params) const {
   auto samples = SampleUtils::build_samples_uri_list(
-      params.samples_file_uri, params.sample_uris);
+      *vfs_, params.samples_file_uri, params.sample_uris);
 
   // Get sample names
   auto sample_names =

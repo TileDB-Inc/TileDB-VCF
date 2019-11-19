@@ -276,6 +276,19 @@ int bcf_type_size(const int type) {
   }
 }
 
+void set_tiledb_config(
+    const std::vector<std::string>& params, tiledb::Config* cfg) {
+  for (const auto& s : params) {
+    auto kv = utils::split(s, '=');
+    if (kv.size() != 2)
+      throw std::runtime_error(
+          "Error setting TileDB config parameter; bad value '" + s + "'");
+    utils::trim(&kv[0]);
+    utils::trim(&kv[1]);
+    (*cfg)[kv[0]] = kv[1];
+  }
+}
+
 uint32_t ceil(uint32_t x, uint32_t y) {
   if (y == 0)
     return 0;
