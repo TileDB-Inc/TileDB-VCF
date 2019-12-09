@@ -30,9 +30,12 @@ import java.io.InputStream;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.UUID;
+import org.apache.log4j.Logger;
 
 /** Helper class that finds native libraries embedded as resources and loads them dynamically. */
 public class NativeLibLoader {
+  static Logger log = Logger.getLogger(NativeLibLoader.class.getName());
+
   private static final String UNKNOWN = "unknown";
 
   /** Path (relative to jar) where native libraries are located. */
@@ -50,6 +53,10 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      log.trace(
+          "Unable to load "
+              + versionedLibName
+              + " from jar, falling back to system in hopes it is installed there");
     }
   }
 
@@ -62,6 +69,8 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      log.trace(
+          "Unable to load tiledbvcf from jar, falling back to system in hopes it is installed there");
     }
   }
 
@@ -74,6 +83,8 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      log.trace(
+          "Unable to load tiledbvcfjni from jar, falling back to system in hopes it is installed there");
     }
   }
 
@@ -89,6 +100,10 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      log.trace(
+          "Unable to load "
+              + versionedLibName
+              + " from jar, falling back to system in hopes it is installed there");
     }
   }
 
@@ -285,6 +300,7 @@ public class NativeLibLoader {
               && extractedLibFile.setExecutable(true);
       if (!success) {
         // Setting file flag may fail, but in this case another error will be thrown in later phase
+        log.error("Unable to set executable flag on library " + extractedLibFile);
       }
 
       // Check whether the contents are properly copied from the resource folder
@@ -330,6 +346,7 @@ public class NativeLibLoader {
 
     boolean hasNativeLib = hasResource(libPath.getAbsolutePath());
     if (!hasNativeLib) {
+      log.trace("Could not find " + libPath.getAbsolutePath() + " in jar");
       return null;
     }
 
@@ -338,6 +355,7 @@ public class NativeLibLoader {
     if (!tempFolder.exists()) {
       boolean created = tempFolder.mkdirs();
       if (!created) {
+        log.error("Failed to call mkdirs on " + tempFolder.toString());
         // if created == false, it will fail eventually in the later part
       }
     }
@@ -358,6 +376,12 @@ public class NativeLibLoader {
       // Load extracted or specified native library.
       System.load(nativeLibFile.getAbsolutePath());
     } else {
+      log.trace(
+          "Unable to load "
+              + libraryName
+              + " from jar, falling back to -Djava.library.path ("
+              + System.getProperty("java.library.path")
+              + ")");
       // Try loading preinstalled library (in the path -Djava.library.path)
       System.loadLibrary(mapLibraryName ? System.mapLibraryName(libraryName) : libraryName);
     }
