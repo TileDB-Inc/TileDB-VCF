@@ -2041,7 +2041,8 @@ TEST_CASE("C API: Reader get error message", "[capi][reader]") {
   const char* msg = nullptr;
   std::string expected_msg =
       "TileDB-VCF exception: Cannot open TileDB-VCF dataset; dataset 'abc' "
-      "does not exist.";
+      "or its metadata does not exist. TileDB error message: "
+      "[TileDB::StorageManager] Error: Cannot open array; Array does not exist";
   REQUIRE(tiledb_vcf_error_get_message(error, &msg) == TILEDB_VCF_OK);
   REQUIRE(std::string(msg) == expected_msg);
   tiledb_vcf_error_free(&error);

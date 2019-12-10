@@ -230,12 +230,6 @@ void TileDBVCFDataset::open(
   Config cfg;
   utils::set_tiledb_config(tiledb_config, &cfg);
   Context ctx(cfg);
-  VFS vfs(ctx, cfg);
-  if (!vfs.is_dir(root_uri_))
-    throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
-        "' does not exist.");
-
   metadata_ = read_metadata(ctx, root_uri_);
   if (metadata_.version != TILEVCF_ARRAY_VERSION)
     throw std::runtime_error(
@@ -499,7 +493,16 @@ std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
 
 TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
     const Context& ctx, const std::string& root_uri) {
-  Array data_array(ctx, data_array_uri(root_uri), TILEDB_READ);
+  std::unique_ptr<Array> data_array;
+  try {
+    data_array.reset(new Array(ctx, data_array_uri(root_uri), TILEDB_READ));
+  } catch (const tiledb::TileDBError& ex) {
+    throw std::runtime_error(
+        "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
+        "' or its metadata does not exist. TileDB error message: " +
+        std::string(ex.what()));
+  }
+
   Metadata metadata;
 
   /** Helper function to get a scalar metadata value. */
@@ -510,7 +513,7 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
     const void* ptr = nullptr;
     tiledb_datatype_t dtype;
     uint32_t value_num = 0;
-    data_array.get_metadata(name, &dtype, &value_num, &ptr);
+    data_array->get_metadata(name, &dtype, &value_num, &ptr);
     if (dtype != expected_dtype || ptr == nullptr)
       throw std::runtime_error(
           "Error loading metadata; '" + name + "' field has invalid value.");
@@ -524,7 +527,7 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
     const void* ptr = nullptr;
     tiledb_datatype_t dtype;
     uint32_t value_num = 0;
-    data_array.get_metadata(name, &dtype, &value_num, &ptr);
+    data_array->get_metadata(name, &dtype, &value_num, &ptr);
     if (ptr != nullptr) {
       if (dtype != TILEDB_CHAR)
         throw std::runtime_error(
@@ -541,7 +544,7 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
         const void* ptr = nullptr;
         tiledb_datatype_t dtype;
         uint32_t value_num = 0;
-        data_array.get_metadata(name, &dtype, &value_num, &ptr);
+        data_array->get_metadata(name, &dtype, &value_num, &ptr);
         if (ptr != nullptr) {
           if (dtype != TILEDB_CHAR)
             throw std::runtime_error(
