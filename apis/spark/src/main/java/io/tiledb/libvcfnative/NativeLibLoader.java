@@ -41,7 +41,7 @@ public class NativeLibLoader {
   /** Finds and loads native TileDB. */
   static void loadNativeTileDB() {
     String os = getOSClassifier();
-    String versionedLibName = os.startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so.1.6.2";
+    String versionedLibName = os.startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so.1.7";
     try {
       // Don't use name mapping to get the versioned tiledb
       loadNativeLib(versionedLibName, false);
