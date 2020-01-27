@@ -84,6 +84,21 @@ def find_libtiledbvcf():
     return None
 
 
+def get_cmake_env_config():
+    conf = list()
+
+    key = "TILEDBVCF_CMAKE_PREFIX_PATH"
+    val = os.environ.get(key, None)
+    if val:
+        conf.append("-DCMAKE_PREFIX_PATH={}".format(val))
+
+    key = "TILEDBVCF_FORCE_EXTERNAL_HTSLIB"
+    val = os.environ.get(key, None)
+    if val:
+        conf.append("-DTILEDBVCF_FORCE_EXTERNAL_HTSLIB={}".format(val))
+
+    return conf
+
 def build_libtiledbvcf():
     p = PathConfig()
 
@@ -98,6 +113,10 @@ def build_libtiledbvcf():
                  '-DFORCE_EXTERNAL_HTSLIB=ON',
                  '-DCMAKE_BUILD_TYPE=Release',
                  src_dir]
+
+    env_conf = get_cmake_env_config()
+    cmake_cmd.extend(env_conf)
+
     build_cmd = ['make', '-j{}'.format(multiprocessing.cpu_count() or 2)]
     install_cmd = ['make', 'install-libtiledbvcf']
 
