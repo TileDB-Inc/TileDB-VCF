@@ -37,7 +37,15 @@ import multiprocessing
 import os
 import shutil
 import subprocess
+import sys
 
+args = sys.argv[:]
+for arg in args:
+  if arg.find('--debug') == 0:
+      TILEDBVCF_DEBUG_BUILD = True
+      sys.argv.remove(arg)
+  else:
+      TILEDBVCF_DEBUG_BUILD = False
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -84,7 +92,8 @@ def find_libtiledbvcf():
     return None
 
 
-def get_cmake_env_config():
+def get_cmake_overrides():
+    import sys
     conf = list()
 
     key = "TILEDBVCF_CMAKE_PREFIX_PATH"
@@ -96,6 +105,9 @@ def get_cmake_env_config():
     val = os.environ.get(key, None)
     if val:
         conf.append("-DTILEDBVCF_FORCE_EXTERNAL_HTSLIB={}".format(val))
+
+    if TILEDBVCF_DEBUG_BUILD :
+        conf.append("-DCMAKE_BUILD_TYPE=Debug")
 
     return conf
 
@@ -114,7 +126,7 @@ def build_libtiledbvcf():
                  '-DCMAKE_BUILD_TYPE=Release',
                  src_dir]
 
-    env_conf = get_cmake_env_config()
+    env_conf = get_cmake_overrides()
     cmake_cmd.extend(env_conf)
 
     build_cmd = ['make', '-j{}'.format(multiprocessing.cpu_count() or 2)]
@@ -182,7 +194,9 @@ class BuildExtCmd(build_ext):
     """Builds the Pybind11 extension module."""
 
     def build_extensions(self):
-        opts = ['-std=c++11', '-g', '-O2']
+        opts = ['-std=c++11', '-g']
+        if not TILEDBVCF_DEBUG_BUILD:
+            opts.append('-O2')
         link_opts = []
         for ext in self.extensions:
             ext.extra_compile_args = opts
@@ -207,7 +221,6 @@ class BdistWheelCmd(bdist_wheel):
     def run(self):
         find_or_build_libtiledbvcf(self)
         bdist_wheel.run(self)
-
 
 setup(
     name='tiledbvcf',
