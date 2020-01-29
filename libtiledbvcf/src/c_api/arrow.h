@@ -290,7 +290,7 @@ class Arrow {
     std::shared_ptr<arrow::Buffer> arrow_nulls;
     if (buffer_info.nullable)
       arrow_nulls = arrow::Buffer::Wrap(
-          buffer_info.bitmap_buff, ceil(num_data_elements, 8));
+          buffer_info.bitmap_buff, ceil(num_records, 8));
 
     if (buffer_info.list) {
       // List of var-len char attribute.
@@ -330,7 +330,7 @@ class Arrow {
     std::shared_ptr<arrow::Buffer> arrow_nulls;
     if (buffer_info.nullable)
       arrow_nulls = arrow::Buffer::Wrap(
-          buffer_info.bitmap_buff, ceil(num_data_elements, 8));
+          buffer_info.bitmap_buff, ceil(num_records, 8));
 
     std::shared_ptr<arrow::Array> values_array(
         new ArrayT(num_data_elements, arrow_values));
