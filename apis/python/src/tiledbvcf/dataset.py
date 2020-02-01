@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 
 from collections import namedtuple
 from . import libtiledbvcf
@@ -58,7 +59,24 @@ class TileDBVCFDataset(object):
         if cfg.memory_budget_mb is not None:
             self.reader.set_memory_budget(cfg.memory_budget_mb)
         if cfg.tiledb_config is not None:
-            self.reader.set_tiledb_config(','.join(cfg.tiledb_config))
+            tiledb_config_list = list()
+            if  isinstance(cfg.tiledb_config, list):
+                tiledb_config_list = cfg.tiledb_config
+            # Support dictionaries and tiledb.Config objects also
+            elif isinstance(cfg.tiledb_config, dict):
+                for key in cfg.tiledb_config:
+                    if cfg.tiledb_config[key] != "":
+                        tiledb_config_list.append("{}={}".format(key, cfg.tiledb_config[key]))
+            else:
+                try:
+                    import tiledb
+                    if isinstance(cfg.tiledb_config, tiledb.Config):
+                        for key in cfg.tiledb_config:
+                            if cfg.tiledb_config[key] != "":
+                                tiledb_config_list.append("{}={}".format(key, cfg.tiledb_config[key]))
+                except ImportError:
+                    pass
+            self.reader.set_tiledb_config(','.join(tiledb_config_list))
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):
