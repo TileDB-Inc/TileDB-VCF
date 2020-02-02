@@ -11,3 +11,11 @@ TileDB-VCF is a library for efficient storage and retrieval of genomics variant-
 * Usage: https://docs.tiledb.com/developer/tiledbvcf/usage
 * Further reading: https://docs.tiledb.com/developer/tiledbvcf/advanced
 * TileDB-VCF developer resources: https://github.com/TileDB-Inc/TileDB-VCF/wiki
+
+# Code of Conduct
+
+All participants in TileDB spaces are expected to adhere to high standards of
+professionalism in all interactions. This repository is governed by the
+specific standards and reporting procedures detailed in depth in the
+[TileDB core repository Code Of Conduct](
+https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
