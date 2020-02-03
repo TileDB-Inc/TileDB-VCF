@@ -111,10 +111,11 @@ std::string uri_filename(const std::string& uri) {
   return path_parts.back();
 }
 
-std::string uri_join(const std::string& dir, const std::string& filename) {
+std::string uri_join(
+    const std::string& dir, const std::string& filename, const char delimiter) {
   std::string result = dir;
-  if (!ends_with(result, "/") && !result.empty())
-    result += "/";
+  if (!ends_with(result, std::string(1, delimiter)) && !result.empty())
+    result += delimiter;
   result += filename;
   return result;
 }
