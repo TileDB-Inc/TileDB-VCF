@@ -239,7 +239,10 @@ std::string uri_filename(const std::string& uri);
 /**
  * Joins a filename to a directory URI (adds a '/' between them).
  */
-std::string uri_join(const std::string& dir, const std::string& filename);
+std::string uri_join(
+    const std::string& dir,
+    const std::string& filename,
+    const char delimiter = '/');
 
 /**
  * Downloads a file to local storage.

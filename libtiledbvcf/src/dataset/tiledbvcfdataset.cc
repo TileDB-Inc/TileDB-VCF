@@ -379,15 +379,33 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     uint32_t sample_id_min,
     uint32_t sample_id_max) const {
   std::vector<SafeBCFHdr> result;
-  std::string array_uri = vcf_headers_uri(root_uri_);
-  std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
+  std::unique_ptr<Array> array;
+  try {
+    // First let's try to open the metadata using proper cloud detection
+    std::string array_uri = vcf_headers_uri(root_uri_, true);
+    // Set up and submit query
+    array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+  } catch (const tiledb::TileDBError& ex) {
+    try {
+      // Fall back to use s3 style paths, this handle datasets that are
+      // registered on the cloud but not with the proper naming scheme. Allows
+      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
+      std::string array_uri = vcf_headers_uri(root_uri_, false);
 
-  // Set up and submit query
-  Array array(ctx, array_uri, TILEDB_READ);
-  auto max_el = array.max_buffer_elements(subarray);
+      // Set up and submit query
+      array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+    } catch (const tiledb::TileDBError& ex) {
+      throw std::runtime_error(
+          "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
+          "' or its metadata does not exist. TileDB error message: " +
+          std::string(ex.what()));
+    }
+  }
+  std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
+  auto max_el = array->max_buffer_elements(subarray);
   std::vector<uint64_t> offsets(max_el["header"].first);
   std::vector<char> data(max_el["header"].second);
-  Query query(ctx, array);
+  Query query(ctx, *array);
   query.set_layout(TILEDB_ROW_MAJOR)
       .set_subarray(subarray)
       .set_buffer("header", offsets, data);
@@ -425,7 +443,7 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   }
 
   return result;
-}
+}  // namespace vcf
 
 std::string TileDBVCFDataset::first_contig() const {
   for (const auto& pair : metadata_.contig_offsets) {
@@ -495,12 +513,22 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
     const Context& ctx, const std::string& root_uri) {
   std::unique_ptr<Array> data_array;
   try {
-    data_array.reset(new Array(ctx, data_array_uri(root_uri), TILEDB_READ));
+    // First let's try to open the metadata using proper cloud detection
+    data_array.reset(
+        new Array(ctx, data_array_uri(root_uri, true), TILEDB_READ));
   } catch (const tiledb::TileDBError& ex) {
-    throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
-        "' or its metadata does not exist. TileDB error message: " +
-        std::string(ex.what()));
+    try {
+      // Fall back to use s3 style paths, this handle datasets that are
+      // registered on the cloud but not with the proper naming scheme. Allows
+      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
+      data_array.reset(
+          new Array(ctx, data_array_uri(root_uri, false), TILEDB_READ));
+    } catch (const tiledb::TileDBError& ex) {
+      throw std::runtime_error(
+          "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
+          "' or its metadata does not exist. TileDB error message: " +
+          std::string(ex.what()));
+    }
   }
 
   Metadata metadata;
@@ -604,8 +632,8 @@ void TileDBVCFDataset::write_metadata(
   };
 
   /**
-   * Helper function to CSV-join a list of pairs of values and store the base64
-   * encoded result as an array metadata item.
+   * Helper function to CSV-join a list of pairs of values and store the
+   * base64 encoded result as an array metadata item.
    */
   const auto put_csv_pairs_metadata =
       [&data_array](
@@ -688,7 +716,8 @@ void TileDBVCFDataset::register_samples_helper(
     auto hdr_samples = VCF::hdr_get_samples(hdr.get());
     if (hdr_samples.size() > 1)
       throw std::invalid_argument(
-          "Error registering samples; a file has more than 1 sample. Ingestion "
+          "Error registering samples; a file has more than 1 sample. "
+          "Ingestion "
           "from cVCF is not supported.");
 
     const auto& s = hdr_samples[0];
@@ -773,13 +802,33 @@ int TileDBVCFDataset::fmt_field_type(const std::string& name) const {
   return it->second;
 }
 
-std::string TileDBVCFDataset::data_array_uri(const std::string& root_uri) {
-  return utils::uri_join(root_uri, "data");
+std::string TileDBVCFDataset::data_array_uri(
+    const std::string& root_uri, bool check_for_cloud) {
+  char delimiter = '/';
+  // Check if we want to use the cloud array naming format which does not
+  // support slashes This will be replaced in the future with more proper
+  // group support in the cloud
+  if (check_for_cloud && cloud_dataset(root_uri))
+    delimiter = '-';
+
+  return utils::uri_join(root_uri, "data", delimiter);
 }
 
-std::string TileDBVCFDataset::vcf_headers_uri(const std::string& root_uri) {
-  auto grp = utils::uri_join(root_uri, "metadata");
-  return utils::uri_join(grp, "vcf_headers");
+std::string TileDBVCFDataset::vcf_headers_uri(
+    const std::string& root_uri, bool check_for_cloud) {
+  char delimiter = '/';
+  // Check if we want to use the cloud array naming format which does not
+  // support slashes This will be replaced in the future with more proper
+  // group support in the cloud
+  if (check_for_cloud && cloud_dataset(root_uri))
+    delimiter = '-';
+
+  auto grp = utils::uri_join(root_uri, "metadata", delimiter);
+  return utils::uri_join(grp, "vcf_headers", delimiter);
+}
+
+bool TileDBVCFDataset::cloud_dataset(std::string root_uri) {
+  return utils::starts_with(root_uri, "tiledb://");
 }
 
 }  // namespace vcf

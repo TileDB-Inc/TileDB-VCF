@@ -323,10 +323,15 @@ class TileDBVCFDataset {
       std::map<uint32_t, std::string>* sample_headers);
 
   /** Returns the URI of the sample data array for the dataset. */
-  static std::string data_array_uri(const std::string& root_uri);
+  static std::string data_array_uri(
+      const std::string& root_uri, bool check_for_cloud = true);
 
   /** Returns the URI of the VCF header data array for the dataset. */
-  static std::string vcf_headers_uri(const std::string& root_uri);
+  static std::string vcf_headers_uri(
+      const std::string& root_uri, bool check_for_cloud = true);
+
+  /** Returns true if the array starts with the tiledb:// URI **/
+  static bool cloud_dataset(std::string root_uri);
 
   /* ********************************* */
   /*          PRIVATE METHODS          */
