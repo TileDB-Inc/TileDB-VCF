@@ -367,7 +367,20 @@ std::string VCF::hdr_to_string(bcf_hdr_t* hdr) {
         "Cannot convert header to string; bad VCF header.");
   kstring_t t = {0, 0, 0};
   auto tmp = bcf_hdr_dup(hdr);
-  bcf_hdr_set_samples(tmp, 0, 0);
+
+  int res = 0;
+  res = bcf_hdr_set_samples(tmp, 0, 0);
+  if (res != 0) {
+    if (res == -1) {
+      throw std::invalid_argument(
+        "Cannot set VCF samples; possibly bad VCF header.");
+    } else if (res > 0) {
+      throw std::runtime_error(
+        std::string("Cannot set VCF samples: list contains samples not present in VCF header, sample #:") +
+        std::to_string(res)
+      );
+    }
+  }
   bcf_hdr_format(tmp, 0, &t);
   std::string ret(t.s, t.l);
   bcf_hdr_destroy(tmp);

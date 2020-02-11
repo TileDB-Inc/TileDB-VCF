@@ -438,7 +438,11 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
           "Error fetching VCF header data; error allocating VCF header.");
     bcf_hdr_parse(hdr, const_cast<char*>(header_str.c_str()));
     bcf_hdr_add_sample(hdr, metadata_.sample_names.at(i).c_str());
-    bcf_hdr_sync(hdr);
+
+    if (bcf_hdr_sync(hdr) < 0)
+      throw std::runtime_error(
+          "Error in bcftools: failed to update VCF header.");
+
     result.emplace_back(hdr, bcf_hdr_destroy);
   }
 
