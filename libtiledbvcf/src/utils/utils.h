@@ -38,6 +38,7 @@
 
 namespace tiledb {
 namespace vcf {
+
 namespace utils {
 
 /** Commit hash of TileDB-VCF (#defined by CMake) */
