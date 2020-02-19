@@ -105,7 +105,7 @@ void Writer::ingest_samples() {
 
   // Batch the list of samples per space tile.
   auto batches =
-      utils::batch_elements(samples, dataset.metadata().row_tile_extent);
+      batch_elements_by_tile(samples, dataset.metadata().row_tile_extent);
 
   // Set up parameters for two scratch spaces.
   const auto scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
@@ -315,8 +315,12 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
       });
 
   std::vector<SampleAndIndex> result;
-  for (const auto& pair : sorted)
-    result.push_back(pair.first);
+  // Set sample id for later use
+  for (const auto& pair : sorted) {
+    auto s = pair.first;
+    s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    result.push_back(s);
+  }
 
   return result;
 }

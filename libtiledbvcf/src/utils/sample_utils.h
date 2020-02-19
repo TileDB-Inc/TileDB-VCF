@@ -66,6 +66,7 @@ struct ScratchSpaceInfo {
 struct SampleAndIndex {
   std::string sample_uri;
   std::string index_uri;
+  uint32_t sample_id;
 };
 
 /** Pair of sample name and ID (row coord). */
@@ -226,6 +227,23 @@ class SampleUtils {
     return result;
   }
 };
+
+/**
+ * Batches the given vector into a vector of vectors based on the tile_size .
+ * Ideally the vectors will be fixed (even) sized. However if the sample ids
+ * cross tile extents we must stop the batch as we can not load across tile
+ * extents.
+ *
+ * In the worst case, if a user tried to load multiple samples but all from
+ * unique tile extents this will devolve into single sample batches
+ *
+ *
+ * @param vec Vector to batch
+ * @param batch_size Number of elements per tile extent
+ * @return Batched result
+ */
+std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile(
+    const std::vector<SampleAndIndex>& vec, uint64_t tile_size);
 
 }  // namespace vcf
 }  // namespace tiledb
