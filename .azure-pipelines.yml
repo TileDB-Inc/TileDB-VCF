@@ -9,7 +9,7 @@ jobs:
   strategy:
     matrix:
       ubuntu_16:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-18.04'
         python.version: '3.x'
         CXX: g++
         BUILD_PYTHON_API: ON
