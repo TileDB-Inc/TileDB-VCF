@@ -39,13 +39,18 @@ import shutil
 import subprocess
 import sys
 
+TILEDBVCF_DEBUG_BUILD = False
+LIBTILEDBVCF_PATH = None
+
 args = sys.argv[:]
 for arg in args:
   if arg.find('--debug') == 0:
       TILEDBVCF_DEBUG_BUILD = True
       sys.argv.remove(arg)
-  else:
-      TILEDBVCF_DEBUG_BUILD = False
+  if arg.find('--libtiledbvcf') == 0:
+      LIBTILEDBVCF_PATH = arg.split('=')[1]
+      sys.argv.remove(arg)
+
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -81,6 +86,10 @@ class PathConfig(object):
 
 def find_libtiledbvcf():
     p = PathConfig()
+
+    if LIBTILEDBVCF_PATH:
+        p.native_lib_install_dirs = [LIBTILEDBVCF_PATH]
+
     libdirs = ['lib']
     libnames = ['libtiledbvcf.dylib', 'libtiledbvcf.so']
     for root in p.native_lib_install_dirs:
@@ -161,16 +170,17 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
     tiledbvcf_ext.include_dirs += [inc_dir]
 
     # Copy native libs into the package dir so they can be found by package_data
-    native_libs = [os.path.join(lib_dir, f) for f in os.listdir(lib_dir)]
-    p = PathConfig()
-    package_data = []
-    for obj in native_libs:
-        shutil.copy(obj, p.pkg_src)
-        package_data.append(os.path.basename(obj))
+    if LIBTILEDBVCF_PATH is None:
+        native_libs = [os.path.join(lib_dir, f) for f in os.listdir(lib_dir)]
+        p = PathConfig()
+        package_data = []
+        for obj in native_libs:
+            shutil.copy(obj, p.pkg_src)
+            package_data.append(os.path.basename(obj))
 
-    # Install shared libraries inside the Python module via package_data.
-    print('Adding to package_data: {}'.format(package_data))
-    setuptools_cmd.distribution.package_data.update({'tiledbvcf': package_data})
+        # Install shared libraries inside the Python module via package_data.
+        print('Adding to package_data: {}'.format(package_data))
+        setuptools_cmd.distribution.package_data.update({'tiledbvcf': package_data})
 
 
 def get_ext_modules():
@@ -195,8 +205,11 @@ class BuildExtCmd(build_ext):
 
     def build_extensions(self):
         opts = ['-std=c++11', '-g']
-        if not TILEDBVCF_DEBUG_BUILD:
-            opts.append('-O2')
+        if TILEDBVCF_DEBUG_BUILD:
+            opts.extend(['-O0'])
+        else:
+            opts.extend(['-O2'])
+
         link_opts = []
         for ext in self.extensions:
             ext.extra_compile_args = opts
@@ -205,6 +218,8 @@ class BuildExtCmd(build_ext):
             import pyarrow
             ext.include_dirs.append(pyarrow.get_include())
             ext.libraries.extend(pyarrow.get_libraries())
+            # don't overlink the arrow core library
+            if 'arrow' in ext.libraries: ext.libraries.remove('arrow')
             ext.library_dirs.extend(pyarrow.get_library_dirs())
 
         find_or_build_libtiledbvcf(self)

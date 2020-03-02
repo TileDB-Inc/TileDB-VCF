@@ -37,9 +37,6 @@ steps:
   displayName: 'Install dependencies'
 
 - bash: |
-    # DELETEME work-around for https://github.com/microsoft/azure-pipelines-image-generation/issues/969
-    sudo chown root.root /
-
     # azure bash does not treat intermediate failure as error
     # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
     set -e pipefail
@@ -61,12 +58,12 @@ steps:
     make check
     ../test/run-cli-tests.sh . ../test/inputs
 
-    sudo make install-libtiledbvcf
+    make install-libtiledbvcf
 
   displayName: 'Build and test TileDB-VCF'
 
 - bash: |
-    set -e pipefail
+    set -ex pipefail
 
     if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
       # Add conda to PATH
