@@ -17,11 +17,11 @@ public class VCFInfoFmtDecoder {
   private static final int BCF_HT_STR = 3;
 
   /**
-   * Given a the binary byte array of encoded INFO/FMT fields, return a mapping of field name ->
+   * Given a the binary byte array of encoded INFO/FMT fields, return a mapping of field name to
    * string representation of the field value.
    *
    * @param infoFmtBytes Byte array of encoded INFO/FMT fields values.
-   * @return Map of field name -> field value.
+   * @return Map of field name to field value.
    */
   public static Map<String, String> decodeInfoFmtBytes(ByteBuffer infoFmtBytes) {
     Map<String, String> result = new HashMap<>();

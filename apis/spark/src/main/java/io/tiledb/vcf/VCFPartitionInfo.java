@@ -12,12 +12,20 @@ public class VCFPartitionInfo implements Serializable {
     this.numPartitions = numPartitions;
   }
 
-  /** The partition index */
+  /**
+   * The partition index
+   *
+   * @return index
+   */
   public int getIndex() {
     return index;
   }
 
-  /** The total number of partitions */
+  /**
+   * The total number of partitions
+   *
+   * @return total number of partitions
+   */
   public int getNumPartitions() {
     return numPartitions;
   }
