@@ -105,6 +105,9 @@ class Reader {
   /** Constructor. */
   Reader();
 
+  /** Destructor. */
+  ~Reader();
+
   /** Unimplemented rule-of-5. */
   Reader(Reader&&) = delete;
   Reader(const Reader&) = delete;
