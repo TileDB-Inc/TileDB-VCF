@@ -407,10 +407,15 @@ bool Reader::read_current_batch() {
       return false;  // Still incomplete.
 
     // If we finished processing previous results and the TileDB query is now
-    // complete, we are done.
+    // complete, we are done. We check both the query_results and the query
+    // itself to capture the case of a new underlying tiledb query for the next
+    // range/sample partitioning since we partition samples on tile_extent
     if (read_state_.query_results.query_status() !=
-        tiledb::Query::Status::INCOMPLETE)
+            tiledb::Query::Status::INCOMPLETE &&
+        read_state_.query->query_status() !=
+            tiledb::Query::Status::UNINITIALIZED) {
       return true;
+    }
   }
 
   // If a past TileDB query was in-flight (from incomplete reads), it was using
