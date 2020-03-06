@@ -39,6 +39,16 @@ namespace vcf {
 Reader::Reader() {
 }
 
+Reader::~Reader() {
+  if (read_state_.async_query.valid()) {
+    // We must wait for the inflight query to finish before we destroy
+    // everything. If we don't its possible to delete the buffers in the middle
+    // of an active query
+    ctx_->cancel_tasks();
+    read_state_.async_query.wait();
+  }
+}
+
 void Reader::open_dataset(const std::string& dataset_uri) {
   init_tiledb();
 
