@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'idea'
+    id 'maven-publish'
     id 'com.github.sherter.google-java-format' version '0.7.1'
     id 'com.github.johnrengelman.shadow' version '4.0.3'
 }
@@ -10,6 +11,19 @@ version '0.1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+    test {
+        java {
+            srcDir 'test/java'
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -148,4 +162,30 @@ task findNativeLib {
 
 assemble {
     dependsOn findNativeLib, installJNITask
+}
+
+task sourceJar(type: Jar) {
+    classifier "sources"
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives jar
+    archives sourceJar
+    archives javadocJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+            artifact sourceJar
+            artifact javadocJar
+        }
+    }
 }
