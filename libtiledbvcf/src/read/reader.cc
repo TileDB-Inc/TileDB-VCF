@@ -313,6 +313,10 @@ bool Reader::next_read_batch() {
       read_state_.total_num_records_exported >= params_.max_num_records)
     return false;
 
+  // Handle edge case of an empty region partition
+  if (read_state_.query_regions.empty())
+    return false;
+
   // Start the first batch, or advance to the next one if possible.
   if (read_state_.status == ReadStatus::UNINITIALIZED) {
     read_state_.batch_idx = 0;
@@ -774,6 +778,8 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
 void Reader::prepare_regions(
     std::vector<Region>* regions,
     std::vector<QueryRegion>* query_regions) const {
+  const uint32_t g = dataset_->metadata().anchor_gap;
+
   // Manually-specified regions (-r) are 1-indexed and inclusive
   for (const std::string& r : params_.regions)
     regions->emplace_back(r, Region::Type::OneIndexedInclusive);
@@ -786,18 +792,68 @@ void Reader::prepare_regions(
   if (regions->empty())
     *regions = dataset_->all_contigs();
 
+  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
+  std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
+  const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
+  regionNonEmptyDomain = nonEmptyDomain[1].second;
+  std::vector<Region> filtered_regions;
+  // Loop through all contigs to query and pre-filter to ones which fall inside
+  // the nonEmptyDomain This will balance the partitioning better my removing
+  // empty regions
+  for (auto& r : *regions) {
+    uint32_t contig_offset;
+    try {
+      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(
+          "Error preparing regions for export; no contig named '" + r.seq_name +
+          "' in dataset.");
+    }
+
+    r.seq_offset = contig_offset;
+    const uint32_t reg_min = contig_offset + r.min;
+    const uint32_t reg_max = contig_offset + r.max;
+
+    // Widen the query region by the anchor gap value, avoiding overflow.
+    uint64_t widened_reg_max = reg_max + g;
+    widened_reg_max = std::min<uint64_t>(
+        widened_reg_max, std::numeric_limits<uint32_t>::max());
+    if (reg_min <= regionNonEmptyDomain.second &&
+        widened_reg_max >= regionNonEmptyDomain.first) {
+      filtered_regions.emplace_back(r);
+    }
+  }
+  *regions = filtered_regions;
+
   // Sort all by global column coord.
   if (params_.sort_regions)
     Region::sort(dataset_->metadata().contig_offsets, regions);
 
   // Apply region partitioning before expanding.
-  utils::partition_vector(
-      params_.region_partitioning.partition_index,
-      params_.region_partitioning.num_partitions,
-      regions);
+  // If we have less regions than requested partitions, handle that by allowing
+  // empty partitions
+  if (regions->size() < params_.region_partitioning.num_partitions) {
+    // Make sure that we are not trying to fetch a partition that is out of
+    // bounds
+    if (params_.region_partitioning.partition_index >=
+        params_.region_partitioning.num_partitions)
+      throw std::runtime_error(
+          "Error partitioning vector; partition index " +
+          std::to_string(params_.region_partitioning.partition_index) +
+          " >= num partitions " +
+          std::to_string(params_.region_partitioning.num_partitions) + ".");
+    std::vector<Region> tmp;
+    if (params_.region_partitioning.partition_index < regions->size())
+      tmp.emplace_back((*regions)[params_.region_partitioning.partition_index]);
+    *regions = tmp;
+  } else {
+    utils::partition_vector(
+        params_.region_partitioning.partition_index,
+        params_.region_partitioning.num_partitions,
+        regions);
+  }
 
   // Expand individual regions to a minimum width of the anchor gap.
-  const uint32_t g = dataset_->metadata().anchor_gap;
   uint32_t prev_reg_max = 0;
   for (auto& r : *regions) {
     uint32_t contig_offset;

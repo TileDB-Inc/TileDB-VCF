@@ -358,12 +358,12 @@ def test_region_partitioned_read():
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
 
-    # Error: too many partitions
+    # Too many partitions still produces results
     cfg = tiledbvcf.ReadConfig(region_partition=(1, 3))
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
-    with pytest.raises(RuntimeError):
-        df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
-                     regions=['1:12000-13000', '1:17000-18000'])
+    df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
+                 regions=['1:12000-13000', '1:17000-18000'])
+    assert len(df) == 2
 
     # Error: index >= num partitions
     cfg = tiledbvcf.ReadConfig(region_partition=(2, 2))
