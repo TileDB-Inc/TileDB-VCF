@@ -160,7 +160,8 @@ class InMemoryExporter : public Exporter {
     Qual,
     Fmt,
     Info,
-    InfoOrFmt
+    InfoOrFmt,
+    RealEnd
   };
 
   /** Struct holding size info of user buffers. */

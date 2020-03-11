@@ -477,6 +477,9 @@ std::vector<Region> TileDBVCFDataset::all_contigs() const {
     if (prev_offset != std::numeric_limits<uint32_t>::max()) {
       uint32_t prev_len = c.first - prev_offset;
       result.emplace_back(prev_contig, 0, prev_len - 1);
+      if (prev_len == 26664835 || prev_len - 1 == 26664835) {
+        std::cout << "contig=" << c.second << ", offset=" << c.first << std::endl;
+      }
     }
     prev_offset = c.first;
     prev_contig = c.second;

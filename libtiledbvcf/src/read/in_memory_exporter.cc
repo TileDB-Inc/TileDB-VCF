@@ -127,6 +127,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
       case ExportableAttribute::PosEnd:
         result.insert(TILEDB_COORDS);
         break;
+      case ExportableAttribute::RealEnd:
+        result.insert(TileDBVCFDataset::AttrNames::real_end);
+        break;
       case ExportableAttribute::PosStart:
         result.insert(TileDBVCFDataset::AttrNames::pos);
         break;
@@ -265,21 +268,37 @@ bool InMemoryExporter::export_record(
     // With no user buffers to receive data, just degenerate to a count.
     return true;
   }
+  const auto* buffers = curr_query_results_->buffers();
+  const uint32_t real_end =
+      (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
 
-  // Record current buffer sizes in case of overflow on some attribute.
+  const uint32_t sample_id =
+      buffers->coords().value<uint32_t>(2 * cell_idx + 0);
+  const std::string& sample_name =
+      dataset_->metadata().sample_names[sample_id];
+
+
+    // Record current buffer sizes in case of overflow on some attribute.
   std::vector<UserBufferSizes> saved_sizes(user_buffers_.size());
   for (size_t i = 0; i < user_buffers_.size(); i++)
     saved_sizes[i] = user_buffers_by_idx_[i]->curr_sizes;
 
   // For all user buffers, copy the appropriate data.
-  const auto* buffers = curr_query_results_->buffers();
+//  const auto* buffers = curr_query_results_->buffers();
   bool overflow = false;
   for (auto& it : user_buffers_) {
-    if (overflow)
+    if (overflow) {
+      if (real_end == 26664835 && sample_name == "v2-IiOpvyno") {
+        std::cout << "overflow=" << overflow << " for sample v2-IiOpvyno and end=26664835" << std::endl;
+      }
       break;
+    }
 
     UserBuffer& user_buff = it.second;
-    switch (user_buff.attr) {
+    if (real_end == 26664835 && sample_name == "v2-IiOpvyno") {
+      std::cout << "copying attribute " << user_buff.attr_name << std::endl;
+    }
+      switch (user_buff.attr) {
       case ExportableAttribute::SampleName: {
         const uint32_t sample_id =
             buffers->coords().value<uint32_t>(2 * cell_idx + 0);
@@ -309,6 +328,24 @@ bool InMemoryExporter::export_record(
       case ExportableAttribute::PosEnd: {
         const uint32_t real_end =
             (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
+
+        const uint32_t sample_id =
+            buffers->coords().value<uint32_t>(2 * cell_idx + 0);
+        const std::string& sample_name =
+            dataset_->metadata().sample_names[sample_id];
+        overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+        if (real_end == 26664835 && sample_name == "v2-IiOpvyno") {
+//          std::cout << "overflow=" << overflow << std::endl;
+          std::cout << "contig_offset=" << contig_offset << std::endl;
+          std::cout << "buffers->real_end().value<uint32_t>(cell_idx)=" << buffers->real_end().value<uint32_t>(cell_idx) << std::endl;
+          std::cout << "buffers->real_end().value<uint32_t>(cell_idx) - contig_offset =" << buffers->real_end().value<uint32_t>(cell_idx)  - contig_offset << std::endl;
+          std::cout << "buffers->real_end().value<uint32_t>(cell_idx) - contig_offset + 1 =" << buffers->real_end().value<uint32_t>(cell_idx) - contig_offset + 1 << std::endl;
+          std::cout << "sample_name=" << sample_name << ", start=" << (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1 << ", real_end=" << real_end << std::endl;
+        }
+        break;
+      }
+      case ExportableAttribute::RealEnd: {
+        const uint32_t real_end = buffers->real_end().value<uint32_t>(cell_idx);
         overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
         break;
       }
@@ -414,6 +451,7 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
       {"qual", ExportableAttribute::Qual},
       {"fmt", ExportableAttribute::Fmt},
       {"info", ExportableAttribute::Info},
+      {"real_end", ExportableAttribute::RealEnd},
   };
 
   auto it = mapping.find(lname);
@@ -425,7 +463,7 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
 
 bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
   std::set<std::string> fixed_len = {
-      "pos_start", "pos_end", "query_bed_start", "query_bed_end", "qual"};
+      "pos_start", "pos_end", "query_bed_start", "query_bed_end", "qual", "real_end"};
   return fixed_len.count(attr) > 0;
 }
 
@@ -459,6 +497,9 @@ void InMemoryExporter::attribute_datatype(
       *datatype = AttrDatatype::INT32;
       break;
     case ExportableAttribute::PosStart:
+      *datatype = AttrDatatype::INT32;
+      break;
+    case ExportableAttribute::RealEnd:
       *datatype = AttrDatatype::INT32;
       break;
     case ExportableAttribute::Alleles:
