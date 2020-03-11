@@ -27,29 +27,38 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /** Helper class that finds native libraries embedded as resources and loads them dynamically. */
 public class NativeLibLoader {
   private static final String UNKNOWN = "unknown";
+  private static final Logger logger = Logger.getLogger(NativeLibLoader.class.getName());
 
   /** Path (relative to jar) where native libraries are located. */
   private static final String LIB_RESOURCE_DIR = "/lib";
 
   /** Finds and loads native TileDB. */
   static void loadNativeTileDB() {
-    String os = getOSClassifier();
-    String versionedLibName = os.startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so.1.6.2";
+    String versionedLibName = null;
     try {
-      // Don't use name mapping to get the versioned tiledb
+      versionedLibName = getVersionedName();
+      logger.info("Loaded libtiledb library: "+versionedLibName);
       loadNativeLib(versionedLibName, false);
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      logger.warning(e.getMessage());
+    }
+    catch (IOException ioe) {
+      logger.warning(ioe.getMessage());
     }
   }
 
@@ -361,6 +370,27 @@ public class NativeLibLoader {
       // Try loading preinstalled library (in the path -Djava.library.path)
       System.loadLibrary(mapLibraryName ? System.mapLibraryName(libraryName) : libraryName);
     }
+  }
+
+  private static String getVersionedName() throws IOException {
+    URL jarLocation = NativeLibLoader.class.getProtectionDomain().getCodeSource().getLocation();
+    ZipInputStream zipInputStream = new ZipInputStream(jarLocation.openStream());
+    ZipEntry e;
+
+    String libName = getOSClassifier().startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so";
+
+    while(true) {
+      e = zipInputStream.getNextEntry();
+
+      if (e == null)
+        break;
+
+      if (e.toString().contains(libName)) {
+        String[] splitName = e.toString().split("\\/");
+        return splitName[splitName.length - 1];
+      }
+    }
+    return null;
   }
 
   private static boolean hasResource(String path) {
