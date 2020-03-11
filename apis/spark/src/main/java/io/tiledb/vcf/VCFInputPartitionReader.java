@@ -165,6 +165,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
       resultBatch = new ColumnarBatch(colVecs);
     }
+
     resultBatch.setNumRows(numRecords.intValue());
     long t2 = System.nanoTime();
 

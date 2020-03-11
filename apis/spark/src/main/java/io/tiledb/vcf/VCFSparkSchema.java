@@ -78,6 +78,8 @@ public class VCFSparkSchema implements Serializable {
         return "query_bed_start";
       case "queryBedEnd":
         return "query_bed_end";
+      case "realEnd":
+        return "real_end";
       default:
         throw new RuntimeException("Unknown VCF schema field name: " + fieldName);
     }
@@ -103,6 +105,10 @@ public class VCFSparkSchema implements Serializable {
     metadata = new MetadataBuilder();
     metadata.putString("comment", "POS + END -1 if END is defined, else POS");
     schema = schema.add(new StructField("posEnd", DataTypes.IntegerType, false, metadata.build()));
+    // Real End
+    metadata = new MetadataBuilder();
+    metadata.putString("comment", "real end");
+    schema = schema.add(new StructField("realEnd", DataTypes.IntegerType, false, metadata.build()));
     // List of REF, ALT fields in BCF
     metadata = new MetadataBuilder();
     metadata.putString("comment", "List of REF, ALT fields in BCF");

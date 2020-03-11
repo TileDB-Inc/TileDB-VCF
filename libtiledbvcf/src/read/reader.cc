@@ -523,10 +523,20 @@ bool Reader::process_query_results() {
     const uint32_t start = results.buffers()->pos().value<uint32_t>(i);
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
 
+    if (sample_id == 3 && end == 3057707251) {//(end - read_state_.regions[read_state_.region_idx].seq_offset + 1 == 26664835)) {
+      std::cout << "found 26664835 which is actually end=3057707251, computed=" << end - contig_info.first + 1 << ", read_state_.last_num_records_exported=" << read_state_.last_num_records_exported << std::endl;
+    }
+//    if (sample_id == 3 && start <= 26664835 && (end >= 26664835 || real_end >= 26664835)) {
+//      std::cout << "found 26664835" << ", sample_id=" << sample_id <<  ", start= " << start << ", end=" << end << ", real_end=" << real_end << std::endl;
+//    }
+
     // Skip cell if we've already reported the gVCF record for it.
     if (real_end ==
-        read_state_.last_reported_end[sample_id - read_state_.sample_min])
+        read_state_.last_reported_end[sample_id - read_state_.sample_min]) {
+      if (sample_id == 3 && end == 3057707251)
+        std::cout << "skipping record as real_end marked as report with [" << start - read_state_.regions[read_state_.region_idx].seq_offset + 1 << ", " << end - read_state_.regions[read_state_.region_idx].seq_offset + 1 << "] and start=" << start <<", end=" << end << ",real_end=" << real_end << ", read_state_.region_idx=" << read_state_.region_idx << ", seq_name=" << read_state_.regions[read_state_.region_idx].seq_name << ", offset=" << read_state_.regions[read_state_.region_idx].seq_offset << std::endl;
       continue;
+    }
 
     // If we've passed into a new contig, get the new info for it.
     if (end >= contig_info.first + contig_info.second)
@@ -543,8 +553,14 @@ bool Reader::process_query_results() {
         real_end,
         &new_region_idx);
     if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
-        intersecting.second == std::numeric_limits<uint32_t>::max())
+        intersecting.second == std::numeric_limits<uint32_t>::max()) {
+      std::cout << "skipping record with read_state_.region_idx=" << read_state_.region_idx << ", read_state_.regions[read_state_.region_idx].seq_name=" << read_state_.regions[read_state_.region_idx].seq_name << ", read_state_.regions[read_state_.region_idx].offset=" << read_state_.regions[read_state_.region_idx].seq_offset << std::endl;
       continue;
+    }
+
+    if (read_state_.regions[read_state_.region_idx].seq_name == "chrY" && read_state_.region_idx != new_region_idx && sample_id == 3) {
+      std::cout << "region index changing from " << read_state_.region_idx << " to " << new_region_idx << std::endl;
+    }
 
     // Report all intersections.
     for (size_t j = intersecting.first; j <= intersecting.second; j++) {
@@ -557,8 +573,11 @@ bool Reader::process_query_results() {
             "Error in query result processing; range unexpectedly does not "
             "intersect cell.");
 
-      if (!report_cell(reg, contig_offset, i))
+      if (!report_cell(reg, contig_offset, i)) {
+        if (sample_id == 3 && end == 3057707251)
+          std::cout << "reporting false for 3057707251 because report_cell returned false" << std::endl;
         return false;
+      }
 
       // Return early if we've hit the record limit.
       if (read_state_.total_num_records_exported >= params_.max_num_records)
@@ -568,6 +587,8 @@ bool Reader::process_query_results() {
     read_state_.last_reported_end[sample_id - read_state_.sample_min] =
         real_end;
     read_state_.region_idx = new_region_idx;
+    if (sample_id == 3 && end == 3057707251)
+      std::cout << "ended export loop for cell we are tracking 3057707251, read_state_.last_num_records_exported=" << read_state_.last_num_records_exported << std::endl;
   }
 
   return true;
@@ -591,7 +612,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions(
   // Find the index of the last region that intersects the cell's END position.
   // This is stored in the output variable for the new region index.
   size_t last = nil;
-  for (size_t i = region_idx; i < regions.size(); i++) {
+  for (size_t i = 0; i < regions.size(); i++) {
     // Regions are sorted on END, so stop searching early if possible.
     if (end < regions[i].seq_offset + regions[i].min)
       break;
@@ -874,9 +895,17 @@ void Reader::prepare_regions(
     widened_reg_max = std::min<uint64_t>(
         widened_reg_max, std::numeric_limits<uint32_t>::max());
 
+    if (reg_min <= 26664835 and reg_max >= 26664835) {
+      std::cout << "found 26664835 " <<  ", widened_reg_max=" << widened_reg_max << std::endl;
+    }
+
     if (prev_reg_max + 1 >= reg_min && !query_regions->empty()) {
       // Previous widened region overlaps this one; merge.
       query_regions->back().col_max = widened_reg_max;
+      if (reg_min <= 26664835 and reg_max >= 26664835) {
+        std::cout << "Previous widened region overlaps this one; merge." << std::endl;
+        std::cout << "[query_regions->back().col_min, query_regions->back().col_max]= [" << query_regions->back().col_min << ", " << query_regions->back().col_max << "]" << std::endl;
+      }
     } else {
       // Start a new query region.
       query_regions->push_back({});
