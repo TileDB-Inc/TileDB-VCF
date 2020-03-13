@@ -2,6 +2,9 @@ package io.tiledb.vcf;
 
 import io.netty.buffer.ArrowBuf;
 import io.tiledb.libvcfnative.VCFReader;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -17,6 +20,7 @@ import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -77,6 +81,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   /** Stats counter: number of bytes in allocated buffers. */
   private long statsTotalBufferBytes;
 
+  private long partitionRows;
+  private static long currentTotal = 0L;
+
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -114,6 +121,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     } else {
       this.samples = new String[] {};
     }
+
+    this.partitionRows = 0L;
+
+    if (this.rangePartitionInfo.getIndex() == 0)
+      currentTotal = 0L;
   }
 
   @Override
@@ -163,6 +175,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (resultBatch == null) {
       ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
       for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
+
       resultBatch = new ColumnarBatch(colVecs);
     }
 
@@ -175,13 +188,35 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
               "STATS Partition %d Copy vcfReader: %d time (nanos): %d for %d record(s)",
               this.partitionId, statsSubmissions, t2 - t1, numRecords));
     }
-
+    partitionRows += resultBatch.numRows();
+    currentTotal += resultBatch.numRows();
     return resultBatch;
   }
 
   @Override
   public void close() {
     log.info("Closing VCFReader for partition " + (this.partitionId));
+
+    System.out.println("Total rows of part with ID: "+this.partitionId+"-> "+this.partitionRows);
+
+    try {
+      FileWriter output = new FileWriter(new File("/tmp/stats_"+ this.rangePartitionInfo.getNumPartitions() +".out"), true);
+      output.append("partition:"+this.partitionId);
+      output.append(",");
+      output.append("range_partition_id:"+this.rangePartitionInfo.getIndex());
+      output.append(",");
+      output.append("outRows:"+this.partitionRows);
+      output.append(",");
+      output.append("currentTotal:"+currentTotal);
+      output.append("\n");
+
+      System.out.println("Written!");
+
+      output.close();
+    }
+    catch(Exception e){
+      System.out.println(e);
+    }
 
     if (vcfReader != null) {
       vcfReader.close();
