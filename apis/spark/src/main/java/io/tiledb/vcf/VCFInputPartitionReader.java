@@ -23,11 +23,13 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
+import org.apache.spark.sql.execution.vectorized.OnHeapColumnVector;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
-import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.*;
 import org.apache.spark.sql.vectorized.ArrowColumnVector;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+import org.apache.spark.unsafe.types.UTF8String;
 
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
@@ -173,8 +175,41 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // First batch of results
     if (resultBatch == null) {
-      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
-      for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
+      OnHeapColumnVector[] colVecs = OnHeapColumnVector.allocateColumns(numRecords.intValue(), schema.getSparkSchema());
+
+      int[] elementsCount = new int[arrowVectors.size()];
+
+      for (int row=0; row<numRecords; ++row){
+        for (int col=0; col < arrowVectors.size(); ++col) {
+          ArrowColumnVector v = arrowVectors.get(col);
+          ArrayType dt = (ArrayType) v.dataType();
+
+          if (dt.elementType() instanceof IntegerType) {
+            int size = 0;
+            for (Object b : v.getArray(row).array()) {
+              colVecs[col].arrayData().appendInt((Integer) b);
+              size += 1;
+            }
+            colVecs[col].putArray(row, elementsCount[col], size);
+            elementsCount[col] += size;
+          }
+          else if (dt.elementType() instanceof StringType) {
+            int size=0;
+            for (Object b : v.getArray(row).array()) {
+              byte[] bytes = ((UTF8String)b).getBytes();
+              colVecs[col].arrayData().appendByteArray(bytes, 0, bytes.length);
+              size += 1;
+            }
+            colVecs[col].putArray(row, elementsCount[col], size);
+            elementsCount[col] += size;
+          }
+        }
+
+      }
+
+//      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
+//      for (int i=0; i<arrowVectors.size(); ++i)
+//        colVecs[i] = arrowVectors.get(i);
 
       resultBatch = new ColumnarBatch(colVecs);
     }
