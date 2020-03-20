@@ -27,11 +27,13 @@ sourceSets {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
     compile 'org.apache.spark:spark-sql_2.12:2.4.3'
     compile 'org.apache.spark:spark-core_2.12:2.4.3'
+    compile group: 'io.tiledb', name: 'tiledb-java', version: '0.2.4-SNAPSHOT'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

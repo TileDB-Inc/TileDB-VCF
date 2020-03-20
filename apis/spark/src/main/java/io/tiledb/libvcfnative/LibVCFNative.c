@@ -409,6 +409,32 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
     return rc;
 }
 
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1validity_1bitmap_1void(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jstring attribute,
+    jlong bitmap,
+    jlong bufferSize) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int64_t c_buffer_size = (int64_t)bufferSize;
+  uint8_t* c_buffer = (uint8_t*)(bitmap);
+
+  const char* c_attribute = (*env)->GetStringUTFChars(env, attribute, 0);
+  int rc = tiledb_vcf_reader_set_buffer_validity_bitmap(
+      reader, c_attribute, c_buffer_size, c_buffer);
+  (*env)->ReleaseStringUTFChars(env, attribute, c_attribute);
+
+  return rc;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1memory_1budget(
     JNIEnv* env, jclass self, jlong readerPtr, jint memoryBudget) {

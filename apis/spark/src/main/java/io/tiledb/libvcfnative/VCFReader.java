@@ -1,7 +1,9 @@
 package io.tiledb.libvcfnative;
 
+import io.tiledb.java.api.Datatype;
+import io.tiledb.java.api.NativeArray;
+import io.tiledb.java.api.TileDBError;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -11,14 +13,14 @@ import java.util.Optional;
 public class VCFReader implements AutoCloseable {
   private long readerPtr;
 
-  private class BufferInfo {
-    public ByteBuffer values;
-    public ByteBuffer offsets;
-    public ByteBuffer listOffsets;
-    public ByteBuffer bitmap;
+  public class BufferInfo {
+    public NativeArray values;
+    public NativeArray offsets;
+    public NativeArray listOffsets;
+    public NativeArray bitmap;
 
     public BufferInfo(
-        ByteBuffer values, ByteBuffer offsets, ByteBuffer listOffsets, ByteBuffer bitmap) {
+        NativeArray values, NativeArray offsets, NativeArray listOffsets, NativeArray bitmap) {
       this.values = values;
       this.offsets = offsets;
       this.listOffsets = listOffsets;
@@ -39,7 +41,23 @@ public class VCFReader implements AutoCloseable {
     CHAR,
     UINT8,
     INT32,
-    FLOAT32
+    FLOAT32;
+
+    public Datatype toTileDBDatatype() {
+      switch (this) {
+        case CHAR:
+          {
+            return Datatype.TILEDB_CHAR;
+          }
+        case INT32:
+          return Datatype.TILEDB_INT32;
+        case UINT8:
+          return Datatype.TILEDB_UINT8;
+        case FLOAT32:
+          return Datatype.TILEDB_FLOAT32;
+      }
+      return Datatype.TILEDB_ANY;
+    }
   }
 
   public class AttributeTypeInfo {
@@ -206,15 +224,96 @@ public class VCFReader implements AutoCloseable {
     }
     return this;
   }
+  /*
 
-  public VCFReader setBuffer(String attribute, java.nio.ByteBuffer buffer) {
-    if (!buffer.isDirect()) {
-      throw new RuntimeException("Error setting buffer, buffer not a direct ByteBuffer");
+    public VCFReader setBuffer(String attribute, java.nio.ByteBuffer buffer) {
+      if (!buffer.isDirect()) {
+        throw new RuntimeException("Error setting buffer, buffer not a direct ByteBuffer");
+      }
+      if (buffer.capacity() == 0) {
+        throw new RuntimeException("Error setting buffer, buffer has 0 capacity");
+      }
+      int rc = LibVCFNative.tiledb_vcf_reader_set_buffer_values(this.readerPtr, attribute, buffer);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException("Error setting buffer (attribute: " + attribute + "): " + msg);
+      }
+
+      BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(buffer, null, null, null));
+      info.values = buffer;
+
+      return this;
     }
-    if (buffer.capacity() == 0) {
+
+    public VCFReader setBufferOffsets(String attribute, java.nio.ByteBuffer buffer) {
+      if (!buffer.isDirect()) {
+        throw new RuntimeException("Error setting offsets buffer, buffer not a direct ByteBuffer");
+      }
+      if (buffer.capacity() == 0) {
+        throw new RuntimeException("Error setting offsets buffer, buffer has 0 capacity");
+      }
+      int rc = LibVCFNative.tiledb_vcf_reader_set_buffer_offsets(this.readerPtr, attribute, buffer);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException(
+            "Error setting offsets buffer (attribute: " + attribute + "): " + msg);
+      }
+
+      BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, buffer, null, null));
+      info.offsets = buffer;
+
+      return this;
+    }
+
+    public VCFReader setBufferListOffsets(String attribute, java.nio.ByteBuffer buffer) {
+      if (!buffer.isDirect()) {
+        throw new RuntimeException(
+            "Error setting list offsets buffer, buffer not a direct ByteBuffer");
+      }
+      if (buffer.capacity() == 0) {
+        throw new RuntimeException("Error setting list offsets buffer, buffer has 0 capacity");
+      }
+      int rc =
+          LibVCFNative.tiledb_vcf_reader_set_buffer_list_offsets(this.readerPtr, attribute, buffer);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException(
+            "Error setting list offsets buffer (attribute: " + attribute + "): " + msg);
+      }
+
+      BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, buffer, null));
+      info.listOffsets = buffer;
+
+      return this;
+    }
+
+    public VCFReader setBufferValidityBitmap(String attribute, java.nio.ByteBuffer buffer) {
+      if (!buffer.isDirect()) {
+        throw new RuntimeException("Error setting bitmap buffer, buffer not a direct ByteBuffer");
+      }
+      int rc =
+          LibVCFNative.tiledb_vcf_reader_set_buffer_validity_bitmap(
+              this.readerPtr, attribute, buffer);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException(
+            "Error setting bitmap buffer (attribute: " + attribute + "): " + msg);
+      }
+
+      BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, null, buffer));
+      info.bitmap = buffer;
+
+      return this;
+    }
+  */
+
+  public VCFReader setBufferNativeArray(String attribute, NativeArray buffer) throws TileDBError {
+    if (buffer.getSize() == 0) {
       throw new RuntimeException("Error setting buffer, buffer has 0 capacity");
     }
-    int rc = LibVCFNative.tiledb_vcf_reader_set_buffer_values(this.readerPtr, attribute, buffer);
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_buffer_values_void(
+            this.readerPtr, attribute, buffer.toCPointer(), buffer.getNBytes());
     if (rc != 0) {
       String msg = getLastErrorMessage();
       throw new RuntimeException("Error setting buffer (attribute: " + attribute + "): " + msg);
@@ -226,14 +325,14 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
-  public VCFReader setBufferOffsets(String attribute, java.nio.ByteBuffer buffer) {
-    if (!buffer.isDirect()) {
-      throw new RuntimeException("Error setting offsets buffer, buffer not a direct ByteBuffer");
-    }
-    if (buffer.capacity() == 0) {
+  public VCFReader setBufferOffsetsNativeArray(String attribute, NativeArray buffer)
+      throws TileDBError {
+    if (buffer.getSize() == 0) {
       throw new RuntimeException("Error setting offsets buffer, buffer has 0 capacity");
     }
-    int rc = LibVCFNative.tiledb_vcf_reader_set_buffer_offsets(this.readerPtr, attribute, buffer);
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_buffer_offsets_void(
+            this.readerPtr, attribute, buffer.toCPointer(), buffer.getNBytes());
     if (rc != 0) {
       String msg = getLastErrorMessage();
       throw new RuntimeException(
@@ -246,16 +345,14 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
-  public VCFReader setBufferListOffsets(String attribute, java.nio.ByteBuffer buffer) {
-    if (!buffer.isDirect()) {
-      throw new RuntimeException(
-          "Error setting list offsets buffer, buffer not a direct ByteBuffer");
-    }
-    if (buffer.capacity() == 0) {
+  public VCFReader setBufferListOffsetsNativeArray(String attribute, NativeArray buffer)
+      throws TileDBError {
+    if (buffer.getSize() == 0) {
       throw new RuntimeException("Error setting list offsets buffer, buffer has 0 capacity");
     }
     int rc =
-        LibVCFNative.tiledb_vcf_reader_set_buffer_list_offsets(this.readerPtr, attribute, buffer);
+        LibVCFNative.tiledb_vcf_reader_set_buffer_list_offsets_void(
+            this.readerPtr, attribute, buffer.toCPointer(), buffer.getNBytes());
     if (rc != 0) {
       String msg = getLastErrorMessage();
       throw new RuntimeException(
@@ -268,13 +365,11 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
-  public VCFReader setBufferValidityBitmap(String attribute, java.nio.ByteBuffer buffer) {
-    if (!buffer.isDirect()) {
-      throw new RuntimeException("Error setting bitmap buffer, buffer not a direct ByteBuffer");
-    }
+  public VCFReader setBufferValidityBitmapNativeArray(String attribute, NativeArray buffer)
+      throws TileDBError {
     int rc =
-        LibVCFNative.tiledb_vcf_reader_set_buffer_validity_bitmap(
-            this.readerPtr, attribute, buffer);
+        LibVCFNative.tiledb_vcf_reader_set_buffer_validity_bitmap_void(
+            this.readerPtr, attribute, buffer.toCPointer(), buffer.getNBytes());
     if (rc != 0) {
       String msg = getLastErrorMessage();
       throw new RuntimeException(
@@ -361,12 +456,20 @@ public class VCFReader implements AutoCloseable {
     while (it.hasNext()) {
       Map.Entry pair = (Map.Entry) it.next();
       BufferInfo info = (BufferInfo) pair.getValue();
-      if (info.values != null) info.values.position(0);
-      if (info.offsets != null) info.offsets.position(0);
-      if (info.listOffsets != null) info.listOffsets.position(0);
-      if (info.bitmap != null) info.bitmap.position(0);
+      //      if (info.values != null) info.values.position(0);
+      //      if (info.offsets != null) info.offsets.position(0);
+      //      if (info.listOffsets != null) info.listOffsets.position(0);
+      //      if (info.bitmap != null) info.bitmap.position(0);
     }
     return this;
+  }
+
+  public Map<String, BufferInfo> getBuffers() {
+    return buffers;
+  }
+
+  public BufferInfo getBuffer(String name) {
+    return buffers.get(name);
   }
 
   @Override

@@ -1,29 +1,33 @@
 package io.tiledb.vcf;
 
 import io.netty.buffer.ArrowBuf;
+import io.tiledb.java.api.*;
 import io.tiledb.libvcfnative.VCFReader;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.Float4Vector;
-import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.VarBinaryVector;
-import org.apache.arrow.vector.VarCharVector;
-import org.apache.arrow.vector.complex.ListVector;
-import org.apache.arrow.vector.types.FloatingPointPrecision;
-import org.apache.arrow.vector.types.pojo.ArrowType;
-import org.apache.arrow.vector.types.pojo.FieldType;
+import java.util.*;
+//import org.apache.arrow.memory.RootAllocator;
+//import org.apache.arrow.vector.Float4Vector;
+//import org.apache.arrow.vector.IntVector;
+//import org.apache.arrow.vector.ValueVector;
+//import org.apache.arrow.vector.VarBinaryVector;
+//import org.apache.arrow.vector.VarCharVector;
+//import org.apache.arrow.vector.complex.ListVector;
+//import org.apache.arrow.vector.types.FloatingPointPrecision;
+//import org.apache.arrow.vector.types.pojo.ArrowType;
+//import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
+import org.apache.spark.sql.execution.vectorized.OnHeapColumnVector;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.vectorized.ArrowColumnVector;
+//import org.apache.spark.sql.vectorized.ArrowColumnVector;
+//import org.apache.spark.sql.vectorized.O;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
+
+import static io.tiledb.java.api.Datatype.TILEDB_UINT64;
+import static io.tiledb.java.api.Datatype.TILEDB_UINT8;
 
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
@@ -48,7 +52,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private VCFReader vcfReader;
 
   /** List of the allocated Arrow vectors used to hold columnar data. */
-  private List<ArrowColumnVector> arrowVectors;
+//  private List<ArrowColumnVector> arrowVectors;
+//  private List<> arrowVectors;
+  private OnHeapColumnVector[] resultVectors;
+  /**
+   * List of NativeArray buffers used in the query object. This is indexed based on columnHandles
+   * indexing (aka query field indexes)
+   */
+//  private ArrayList<Pair<NativeArray, NativeArray>> queryBuffers;
 
   /** The current batch of results. */
   private ColumnarBatch resultBatch;
@@ -77,6 +88,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   /** Stats counter: number of bytes in allocated buffers. */
   private long statsTotalBufferBytes;
 
+  private Context ctx;
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -94,9 +106,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       List<String> samples,
       VCFPartitionInfo rangePartitionInfo,
       VCFPartitionInfo samplePartitionInfo) {
+    try {
+      this.ctx = new Context();
+    } catch (TileDBError tileDBError) {
+      tileDBError.printStackTrace();
+    }
     this.datasetURI = uri;
     this.schema = schema;
-    this.arrowVectors = new ArrayList<>();
+//    this.queryBuffers = new ArrayList<>();
     this.options = options;
     this.rangePartitionInfo = rangePartitionInfo;
     this.samplePartitionInfo = samplePartitionInfo;
@@ -155,25 +172,36 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public ColumnarBatch get() {
     long t1 = System.nanoTime();
 
-    Long numRecords = vcfReader.getNumRecords();
-    if (numRecords == 0 && vcfReader.getStatus() == VCFReader.Status.INCOMPLETE)
-      throw new RuntimeException("Unexpected VCF incomplete vcfReader with 0 results.");
+    try {
+      Long numRecords = vcfReader.getNumRecords();
+      if (numRecords == 0 && vcfReader.getStatus() == VCFReader.Status.INCOMPLETE)
+        throw new RuntimeException("Unexpected VCF incomplete vcfReader with 0 results.");
 
-    // First batch of results
-    if (resultBatch == null) {
-      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
-      for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
-      resultBatch = new ColumnarBatch(colVecs);
-    }
+      // First batch of results
+//    if (resultBatch == null) {
+//      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
+//      for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
+//      resultBatch = new ColumnarBatch(colVecs);
+//    }
 
-    resultBatch.setNumRows(numRecords.intValue());
-    long t2 = System.nanoTime();
+      // loop over all Spark attributes (DataFrame columns) and copy the query result set
+      int index = 0;
+      for (StructField field : schema.getSparkFields()) {
+        getColumnBatch(field, index);
+        index++;
+      }
 
-    if (enableStatsLogging) {
-      log.info(
-          String.format(
-              "STATS Partition %d Copy vcfReader: %d time (nanos): %d for %d record(s)",
-              this.partitionId, statsSubmissions, t2 - t1, numRecords));
+      resultBatch.setNumRows(numRecords.intValue());
+      long t2 = System.nanoTime();
+
+      if (enableStatsLogging) {
+        log.info(
+                String.format(
+                        "STATS Partition %d Copy vcfReader: %d time (nanos): %d for %d record(s)",
+                        this.partitionId, statsSubmissions, t2 - t1, numRecords));
+      }
+    } catch (TileDBError tileDBError) {
+      tileDBError.printStackTrace();
     }
 
     return resultBatch;
@@ -188,21 +216,55 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader = null;
     }
 
-    releaseArrowVectors();
+//    releaseArrowVectors();
+    closeQueryNativeArrays();
 
     if (resultBatch != null) {
       resultBatch.close();
       resultBatch = null;
     }
+
+    // Close out spark buffers
+    closeOnHeapColumnVectors();
   }
 
-  /** Closes any allocated Arrow vectors and clears the list. */
+/*  *//** Closes any allocated Arrow vectors and clears the list. *//*
   private void releaseArrowVectors() {
     if (arrowVectors != null) {
       for (ArrowColumnVector v : arrowVectors) v.close();
       arrowVectors.clear();
     }
+  }*/
+  /** Close out all the NativeArray objects */
+  private void closeQueryNativeArrays() {
+    for (Map.Entry<String, VCFReader.BufferInfo> bufferSet : vcfReader.getBuffers().entrySet()) {
+      if (bufferSet == null) {
+        continue;
+      }
+      VCFReader.BufferInfo bufferInfo = bufferSet.getValue();
+      if (bufferInfo.values != null) {
+        bufferInfo.values.close();
+      }
+      if (bufferInfo.offsets != null) {
+        bufferInfo.offsets.close();
+      }
+      if (bufferInfo.listOffsets != null) {
+        bufferInfo.listOffsets.close();
+      }
+      if (bufferInfo.bitmap != null) {
+        bufferInfo.bitmap.close();
+      }
+    }
   }
+
+  /** Close out onheap column vectors */
+  private void closeOnHeapColumnVectors() {
+    // Close the OnHeapColumnVector buffers
+    for (OnHeapColumnVector buff : resultVectors) {
+      buff.close();
+    }
+  }
+
 
   /**
    * Initializes the native TileDB-VCF reader instance by setting partitioning info, allocating
@@ -283,11 +345,22 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
       long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
 
-      releaseArrowVectors();
+//      releaseArrowVectors();
+      try {
+        closeQueryNativeArrays();
       for (int idx = 0; idx < numColumns; idx++) {
-        allocateAndSetBuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes);
+//        allocateAndSetBuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes);
+          allocateQuerybuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes);
         this.statsTotalBufferBytes += numBuffersForField(attrNames[idx]) * bufferSizeBytes;
       }
+      } catch (TileDBError tileDBError) {
+        tileDBError.printStackTrace();
+      }
+
+      int maxNumRows = (int) (bufferSizeBytes / 4);
+      // Allocate result set batch based on the estimated (upper bound) number of rows / cells
+      resultVectors = OnHeapColumnVector.allocateColumns(maxNumRows, schema.getSparkSchema());
+      resultBatch = new ColumnarBatch(resultVectors);
     }
 
     vcfReader.setMemoryBudget((int) memBudgetMB);
@@ -311,7 +384,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
    *     attributes have multiple buffers allocated (data values, offsets), in which case this size
    *     is used for all buffers individually.
    */
-  private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
+ /* private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
     // Max number of rows is nbytes / sizeof(int32_t), i.e. the max number of offsets that can be
@@ -376,16 +449,55 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     }
 
     this.arrowVectors.add(new ArrowColumnVector(valueVector));
-  }
+  }*/
 
   /**
-   * Creates and returns an empty Arrow vector with the appropriate type for the given field.
    *
-   * @param fieldName Name of the Spark field for the column
-   * @param typeInfo Type information for the Arrow vector
-   * @return Arrow ValueVector
+   * @param fieldName
+   * @param attrName
+   * @param readBufferSize
+   * @throws TileDBError
    */
-  private static ValueVector makeArrowVector(
+  private void allocateQuerybuffer(String fieldName, String attrName, long readBufferSize) throws TileDBError {
+    int maxNumRows = (int) (readBufferSize / 4);
+    VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
+//          int nvalues = Math.toIntExact(readBufferSize / attr.getType().getNativeSize());
+        NativeArray data = new NativeArray(ctx, maxNumRows, info.datatype.toTileDBDatatype());
+          // attribute is variable length, init the varlen result buffers using the est num offsets
+    vcfReader.setBufferNativeArray(attrName, data);
+    if (info.isList) {
+      int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
+      NativeArray offsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
+      NativeArray listOffsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
+//            query.setBuffer(name, offsets, data);
+      vcfReader.setBufferOffsetsNativeArray(attrName, offsets);
+      vcfReader.setBufferListOffsetsNativeArray(attrName, listOffsets);
+//      queryBuffers.add(new Pair<>(offsets, data));
+    } else if (info.isVarLen) {
+            int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
+            NativeArray offsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
+//            query.setBuffer(name, offsets, data);
+      vcfReader.setBufferOffsetsNativeArray(attrName, offsets);
+//      queryBuffers.add(new Pair<>(offsets, data));
+          } else {
+            // attribute is fixed length, use the result size estimate for allocation
+//            query.setBuffer(name, new NativeArray(ctx, nvalues, attr.getType()));
+//            queryBuffers.add(new Pair<>(null, data));
+          }
+    if (info.isNullable) {
+      NativeArray bitmap = new NativeArray(ctx, maxNumRows, TILEDB_UINT8);
+      vcfReader.setBufferValidityBitmapNativeArray(attrName, bitmap);
+    }
+  }
+
+    /**
+     * Creates and returns an empty Arrow vector with the appropriate type for the given field.
+     *
+     * @param fieldName Name of the Spark field for the column
+     * @param typeInfo Type information for the Arrow vector
+     * @return Arrow ValueVector
+     */
+/*  private static ValueVector makeArrowVector(
       String fieldName, VCFReader.AttributeTypeInfo typeInfo) {
     // TODO: any way to get Arrow to not allocate bitmaps for non-nullable attributes?
     RootAllocator allocator = ArrowUtils.rootAllocator();
@@ -446,7 +558,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     }
 
     return valueVector;
-  }
+  }*/
 
   /**
    * Returns the number of buffers needed to hold results for the attribute at the given schema
@@ -459,5 +571,171 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     numBuffers += info.isNullable ? 1 : 0; // Nullable bitmap
     numBuffers += info.isList ? 1 : 0; // List offsets bitmap
     return numBuffers;
+  }
+
+
+  /**
+   * For a given Spark field name, dispatch between attribute and dimension buffer copying
+   *
+   * @param field Spark field to copy query result set
+   * @return number of values copied into the columnar batch result buffers
+   * @throws TileDBError A TileDB exception
+   */
+  private int getColumnBatch(StructField field, int index) throws TileDBError {
+    String name = field.name();
+    return getAttributeColumn(name, index);
+  }
+
+  /**
+   * For a given attribute name, dispatch between variable length and scalar buffer copying
+   *
+   * @param name Attribute name
+   * @param index The Attribute index in the columnar buffer array
+   * @return number of values copied into the columnar batch result buffers
+   * @throws TileDBError A TileDB exception
+   */
+  private int getAttributeColumn(String name, int index) throws TileDBError {
+    VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(name);
+      if (info.isVarLen || info.isList) {
+        // variable length values added as arrays
+        return getVarLengthAttributeColumn(name, info, index);
+      } else {
+        // one value per cell
+        return getScalarValueAttributeColumn(name, info, index);
+      }
+  }
+
+  private int getScalarValueAttributeColumn(String name, VCFReader.AttributeTypeInfo info, int index)
+          throws TileDBError {
+    int numValues;
+    int bufferLength;
+    VCFReader.BufferInfo bufferInfo = vcfReader.getBuffer(name);
+    switch (info.datatype) {
+      case FLOAT32:
+      {
+        float[] buff = (float[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        numValues = bufferLength;
+        resultVectors[index].reset();
+        resultVectors[index].putFloats(0, bufferLength, buff, 0);
+        break;
+      }
+      case CHAR:
+      {
+        byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        numValues = bufferLength;
+        resultVectors[index].reset();
+        resultVectors[index].putBytes(0, bufferLength, buff, 0);
+        break;
+      }
+      case UINT8:
+      {
+        short[] buff = (short[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        numValues = bufferLength;
+        resultVectors[index].reset();
+        resultVectors[index].putShorts(0, bufferLength, buff, 0);
+        break;
+      }
+      case INT32:
+      {
+        int[] buff = (int[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        numValues = bufferLength;
+        resultVectors[index].reset();
+        resultVectors[index].putInts(0, bufferLength, buff, 0);
+        break;
+      }
+      default:
+      {
+        throw new TileDBError("Not supported type " + info.datatype);
+      }
+    }
+    return numValues;
+  }
+
+  private int getVarLengthAttributeColumn(String name, VCFReader.AttributeTypeInfo info, int index)
+          throws TileDBError {
+    int numValues = 0;
+    int bufferLength = 0;
+    // reset columnar batch start index
+    resultVectors[index].reset();
+    resultVectors[index].getChild(0).reset();
+    VCFReader.BufferInfo bufferInfo = vcfReader.getBuffer(name);
+    switch (info.datatype) {
+      case FLOAT32:
+      {
+        float[] buff = (float[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        resultVectors[index].getChild(0).reserve(bufferLength);
+        resultVectors[index].getChild(0).putFloats(0, bufferLength, buff, 0);
+        break;
+      }
+      case CHAR:
+      {
+        byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        resultVectors[index].getChild(0).reserve(bufferLength);
+        resultVectors[index].getChild(0).putBytes(0, bufferLength, buff, 0);
+        break;
+      }
+      case UINT8:
+      {
+        short[] buff = (short[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        resultVectors[index].getChild(0).reserve(bufferLength);
+        resultVectors[index].getChild(0).putShorts(0, bufferLength, buff, 0);
+        break;
+      }
+      case INT32:
+      {
+        int[] buff = (int[]) bufferInfo.values.toJavaArray();
+        bufferLength = buff.length;
+        resultVectors[index].getChild(0).reserve(bufferLength);
+        resultVectors[index].getChild(0).putInts(0, bufferLength, buff, 0);
+        break;
+      }
+      default:
+      {
+        throw new TileDBError("Not supported type " + info.datatype);
+      }
+    }
+
+    // TODO: this isList section I don't think is right..
+    if (info.isList) {
+      long[] offsets = (long[]) bufferInfo.offsets.toJavaArray();
+      numValues = offsets.length;
+      // number of bytes per (scalar) element in
+      int typeSize = info.datatype.toTileDBDatatype().getNativeSize();
+      long numBytes = bufferLength * typeSize;
+      for (int j = 0; j < numValues; j++) {
+        int off1 = Math.toIntExact(offsets[j] / typeSize);
+        int off2 = Math.toIntExact((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
+        resultVectors[index].putArray(j, off1, off2 - off1);
+      }
+    } else {
+      // add var length offsets
+      long[] offsets = (long[]) bufferInfo.offsets.toJavaArray();
+      numValues = offsets.length;
+      // number of bytes per (scalar) element in
+      int typeSize = info.datatype.toTileDBDatatype().getNativeSize();
+      long numBytes = bufferLength * typeSize;
+      for (int j = 0; j < numValues; j++) {
+        int off1 = Math.toIntExact(offsets[j] / typeSize);
+        int off2 = Math.toIntExact((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
+        resultVectors[index].putArray(j, off1, off2 - off1);
+      }
+    }
+//    } else {
+//      bufferInfo.listOffsets;
+//       fixed sized array attribute
+//      int cellNum = (int) attribute.getCellValNum();
+//      numValues = bufferLength / cellNum;
+//      for (int j = 0; j < numValues; j++) {
+//        resultVectors[index].putArray(j, cellNum * j, cellNum);
+//      }
+//    }
+    return numValues;
   }
 }

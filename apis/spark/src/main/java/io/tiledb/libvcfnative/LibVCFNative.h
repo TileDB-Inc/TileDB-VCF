@@ -122,7 +122,7 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_buffer_values_void
- * Signature: (JLjava/lang/String;J[J)I
+ * Signature: (JLjava/lang/String;J;J)I
  */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1values_1void
   (JNIEnv *, jclass, jlong, jstring, jlong, jlong);
@@ -130,7 +130,7 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_buffer_offsets_void
- * Signature: (JLjava/lang/String;J[J)I
+ * Signature: (JLjava/lang/String;J;J)I
  */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1offsets_1void
   (JNIEnv *, jclass, jlong, jstring, jlong, jlong);
@@ -138,9 +138,17 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_buffer_list_offsets_void
- * Signature: (JLjava/lang/String;J[J)I
+ * Signature: (JLjava/lang/String;J;J)I
  */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1list_1offsets_1void
+  (JNIEnv *, jclass, jlong, jstring, jlong, jlong);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_buffer_validity_bitmap_void
+ * Signature: (JLjava/lang/String;J;J)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1validity_1bitmap_1void
   (JNIEnv *, jclass, jlong, jstring, jlong, jlong);
 
 /*

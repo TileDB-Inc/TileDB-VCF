@@ -59,13 +59,16 @@ public class LibVCFNative {
       long queryPtr, String attribute, ByteBuffer buffer);
 
   public static final native int tiledb_vcf_reader_set_buffer_values_void(
-          long queryPtr, String attribute, long bufferPtr, long bufferSize);
+      long queryPtr, String attribute, long bufferPtr, long bufferSize);
 
   public static final native int tiledb_vcf_reader_set_buffer_offsets_void(
-          long queryPtr, String attribute, long bufferPtr, long bufferSize);
+      long queryPtr, String attribute, long bufferPtr, long bufferSize);
 
   public static final native int tiledb_vcf_reader_set_buffer_list_offsets_void(
-          long queryPtr, String attribute, long bufferPtr, long bufferSize);
+      long queryPtr, String attribute, long bufferPtr, long bufferSize);
+
+  public static final native int tiledb_vcf_reader_set_buffer_validity_bitmap_void(
+      long queryPtr, String attribute, long bufferPtr, long bufferSize);
 
   public static final native int tiledb_vcf_reader_set_memory_budget(long readerPtr, int memoryMB);
 
