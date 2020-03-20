@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import org.apache.arrow.memory.RootAllocator;
@@ -85,6 +86,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
   private long partitionRows;
   private static long currentTotal = 0L;
+  private static long filteredTotal = 0L;
+  private static long negativeArraySizeExc = 0L;
+  private static long otherExc = 0L;
+
+  private HashMap<String, ByteBuffer> attrToBuffer;
 
   /**
    * Creates a TileDB-VCF reader.
@@ -128,6 +134,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     if (this.rangePartitionInfo.getIndex() == 0)
       currentTotal = 0L;
+
+    this.attrToBuffer = new HashMap<>();
   }
 
   @Override
@@ -175,6 +183,13 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // First batch of results
     if (resultBatch == null) {
+//      Old - Arrow Code
+//      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
+//      for (int i=0; i<arrowVectors.size(); ++i)
+//        colVecs[i] = arrowVectors.get(i);
+//
+//      resultBatch = new ColumnarBatch(colVecs);
+
       OnHeapColumnVector[] colVecs = OnHeapColumnVector.allocateColumns(numRecords.intValue(), schema.getSparkSchema());
 
       int[] elementsCount = new int[arrowVectors.size()];
@@ -206,11 +221,6 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
         }
 
       }
-
-//      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
-//      for (int i=0; i<arrowVectors.size(); ++i)
-//        colVecs[i] = arrowVectors.get(i);
-
       resultBatch = new ColumnarBatch(colVecs);
     }
 
@@ -232,7 +242,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public void close() {
     log.info("Closing VCFReader for partition " + (this.partitionId));
 
-    System.out.println("Total rows of part with ID: "+this.partitionId+"-> "+this.partitionRows);
+    System.out.println("Total rows of part with ID: "+this.partitionId+"-> "+partitionRows);
+    System.out.println("Total filtered rows of part with ID: "+this.partitionId+"-> "+filteredTotal);
+    System.out.println("Total negative array size exc of part with ID: "+this.partitionId+"-> "+negativeArraySizeExc);
+    System.out.println("Total other exc part with ID: "+this.partitionId+"-> "+otherExc);
 
     try {
       FileWriter output = new FileWriter(new File("/tmp/stats_"+ this.rangePartitionInfo.getNumPartitions() +".out"), true);
@@ -398,11 +411,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     valueVector.allocateNew();
 
     // Get the underlying data values buffer.
-    ByteBuffer data;
     if (valueVector instanceof ListVector) {
       ListVector lv = (ListVector) valueVector;
       ArrowBuf arrowData = lv.getDataVector().getDataBuffer();
-      data = arrowData.nioBuffer(0, arrowData.capacity());
+      attrToBuffer.put(attrName, arrowData.nioBuffer(0, arrowData.capacity()));
 
       // For null list entries, TileDB-VCF will set the outer bitmap.
       // The inner (values) bitmap should be initialized to all non-null.
@@ -413,11 +425,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     } else {
       ArrowBuf arrowData = valueVector.getDataBuffer();
-      data = arrowData.nioBuffer(0, arrowData.capacity());
+      attrToBuffer.put(attrName, arrowData.nioBuffer(0, arrowData.capacity()));
     }
 
     // Set the value buffer (and offsets if applicable).
-    vcfReader.setBuffer(attrName, data);
+    vcfReader.setBuffer(attrName, attrToBuffer.get(attrName));
 
     if (info.isList) {
       ListVector lv = (ListVector) valueVector;
