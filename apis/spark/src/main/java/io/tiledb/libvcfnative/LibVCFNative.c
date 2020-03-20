@@ -351,6 +351,64 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1valid
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1values_1void
+  (JNIEnv* env, jclass self, jlong readerPtr, jstring attribute, jlong buffer, jlong bufferSize) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int64_t c_buffer_size = (int64_t)bufferSize;
+    void* c_buffer = (void*)buffer;
+
+    const char* c_attribute = (*env)->GetStringUTFChars(env, attribute, 0);
+    int rc = tiledb_vcf_reader_set_buffer_values(
+        reader, c_attribute, c_buffer_size, c_buffer);
+    (*env)->ReleaseStringUTFChars(env, attribute, c_attribute);
+
+    return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1offsets_1void
+  (JNIEnv* env, jclass self, jlong readerPtr, jstring attribute, jlong buffer, jlong bufferSize) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int64_t c_buffer_size = (int64_t)bufferSize;
+    void* c_buffer = (void*)buffer;
+
+    const char* c_attribute = (*env)->GetStringUTFChars(env, attribute, 0);
+    int rc = tiledb_vcf_reader_set_buffer_offsets(
+        reader, c_attribute, c_buffer_size, c_buffer);
+    (*env)->ReleaseStringUTFChars(env, attribute, c_attribute);
+
+    return rc;
+}
+
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1list_1offsets_1void
+  (JNIEnv* env, jclass self, jlong readerPtr, jstring attribute, jlong buffer, jlong bufferSize) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int64_t c_buffer_size = (int64_t)bufferSize;
+    void* c_buffer = (void*)buffer;
+
+    const char* c_attribute = (*env)->GetStringUTFChars(env, attribute, 0);
+    int rc = tiledb_vcf_reader_set_buffer_list_offsets(
+        reader, c_attribute, c_buffer_size, c_buffer);
+    (*env)->ReleaseStringUTFChars(env, attribute, c_attribute);
+
+    return rc;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1memory_1budget(
     JNIEnv* env, jclass self, jlong readerPtr, jint memoryBudget) {
