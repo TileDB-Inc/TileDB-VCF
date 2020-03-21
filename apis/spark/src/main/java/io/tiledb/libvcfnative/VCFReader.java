@@ -321,6 +321,7 @@ public class VCFReader implements AutoCloseable {
 
     BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(buffer, null, null, null));
     info.values = buffer;
+    buffers.put(attribute, info);
 
     return this;
   }
@@ -341,6 +342,7 @@ public class VCFReader implements AutoCloseable {
 
     BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, buffer, null, null));
     info.offsets = buffer;
+    buffers.put(attribute, info);
 
     return this;
   }
@@ -361,6 +363,7 @@ public class VCFReader implements AutoCloseable {
 
     BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, buffer, null));
     info.listOffsets = buffer;
+    buffers.put(attribute, info);
 
     return this;
   }
@@ -378,6 +381,7 @@ public class VCFReader implements AutoCloseable {
 
     BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, null, buffer));
     info.bitmap = buffer;
+    buffers.put(attribute, info);
 
     return this;
   }

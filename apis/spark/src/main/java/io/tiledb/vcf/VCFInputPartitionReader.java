@@ -26,9 +26,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
-import static io.tiledb.java.api.Datatype.TILEDB_UINT64;
-import static io.tiledb.java.api.Datatype.TILEDB_UINT8;
-
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
   private static Logger log = Logger.getLogger(VCFInputPartitionReader.class.getName());
@@ -89,6 +86,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private long statsTotalBufferBytes;
 
   private Context ctx;
+  private Long numRecords;
+
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -147,6 +146,20 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     }
     boolean prevNext = hasNext;
     long t1 = System.currentTimeMillis();
+    log.info("vcfReader, buffer sizes: " + vcfReader.getBuffers().size());
+    for (Map.Entry<String, VCFReader.BufferInfo> buffers : vcfReader.getBuffers().entrySet()) {
+      VCFReader.BufferInfo buffer = buffers.getValue();
+      log.info("Buffer " + buffers.getKey() + " has value size: " + buffer.values.getSize());
+      if (buffer.offsets != null) {
+        log.info("Buffer " + buffers.getKey() + " has offset size: " + buffer.offsets.getSize());
+      }
+      if (buffer.listOffsets != null) {
+        log.info("Buffer " + buffers.getKey() + " has listOffsets size: " + buffer.listOffsets.getSize());
+      }
+      if (buffer.bitmap != null) {
+        log.info("Buffer " + buffers.getKey() + " has bitmap size: " + buffer.bitmap.getSize());
+      }
+    }
     vcfReader.submit();
     long t2 = System.currentTimeMillis();
     if (enableStatsLogging) {
@@ -173,7 +186,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     long t1 = System.nanoTime();
 
     try {
-      Long numRecords = vcfReader.getNumRecords();
+      numRecords = vcfReader.getNumRecords();
       if (numRecords == 0 && vcfReader.getStatus() == VCFReader.Status.INCOMPLETE)
         throw new RuntimeException("Unexpected VCF incomplete vcfReader with 0 results.");
 
@@ -211,13 +224,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public void close() {
     log.info("Closing VCFReader for partition " + (this.partitionId));
 
+
+//    releaseArrowVectors();
+    closeQueryNativeArrays();
+
     if (vcfReader != null) {
       vcfReader.close();
       vcfReader = null;
     }
-
-//    releaseArrowVectors();
-    closeQueryNativeArrays();
 
     if (resultBatch != null) {
       resultBatch.close();
@@ -237,24 +251,29 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   }*/
   /** Close out all the NativeArray objects */
   private void closeQueryNativeArrays() {
-    for (Map.Entry<String, VCFReader.BufferInfo> bufferSet : vcfReader.getBuffers().entrySet()) {
-      if (bufferSet == null) {
-        continue;
+      if (vcfReader != null) {
+        Map<String, VCFReader.BufferInfo> buffers = vcfReader.getBuffers();
+        if (buffers != null) {
+          for (Map.Entry<String, VCFReader.BufferInfo> bufferSet : buffers.entrySet()) {
+            if (bufferSet == null) {
+              continue;
+            }
+            VCFReader.BufferInfo bufferInfo = bufferSet.getValue();
+            if (bufferInfo.values != null) {
+              bufferInfo.values.close();
+            }
+            if (bufferInfo.offsets != null) {
+              bufferInfo.offsets.close();
+            }
+            if (bufferInfo.listOffsets != null) {
+              bufferInfo.listOffsets.close();
+            }
+            if (bufferInfo.bitmap != null) {
+              bufferInfo.bitmap.close();
+            }
+          }
+        }
       }
-      VCFReader.BufferInfo bufferInfo = bufferSet.getValue();
-      if (bufferInfo.values != null) {
-        bufferInfo.values.close();
-      }
-      if (bufferInfo.offsets != null) {
-        bufferInfo.offsets.close();
-      }
-      if (bufferInfo.listOffsets != null) {
-        bufferInfo.listOffsets.close();
-      }
-      if (bufferInfo.bitmap != null) {
-        bufferInfo.bitmap.close();
-      }
-    }
   }
 
   /** Close out onheap column vectors */
@@ -466,26 +485,26 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
           // attribute is variable length, init the varlen result buffers using the est num offsets
     vcfReader.setBufferNativeArray(attrName, data);
     if (info.isList) {
-      int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
-      NativeArray offsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
-      NativeArray listOffsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
+//      int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
+      NativeArray offsets = new NativeArray(ctx, maxNumRows, Datatype.TILEDB_INT32);
+      NativeArray listOffsets = new NativeArray(ctx, maxNumRows, Datatype.TILEDB_INT32);
 //            query.setBuffer(name, offsets, data);
       vcfReader.setBufferOffsetsNativeArray(attrName, offsets);
       vcfReader.setBufferListOffsetsNativeArray(attrName, listOffsets);
 //      queryBuffers.add(new Pair<>(offsets, data));
     } else if (info.isVarLen) {
-            int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
-            NativeArray offsets = new NativeArray(ctx, noffsets, TILEDB_UINT64);
+//            int noffsets = Math.toIntExact(readBufferSize / TILEDB_UINT64.getNativeSize());
+            NativeArray offsets = new NativeArray(ctx, maxNumRows, Datatype.TILEDB_INT32);
 //            query.setBuffer(name, offsets, data);
       vcfReader.setBufferOffsetsNativeArray(attrName, offsets);
 //      queryBuffers.add(new Pair<>(offsets, data));
-          } else {
+//          } else {
             // attribute is fixed length, use the result size estimate for allocation
 //            query.setBuffer(name, new NativeArray(ctx, nvalues, attr.getType()));
 //            queryBuffers.add(new Pair<>(null, data));
           }
     if (info.isNullable) {
-      NativeArray bitmap = new NativeArray(ctx, maxNumRows, TILEDB_UINT8);
+      NativeArray bitmap = new NativeArray(ctx, maxNumRows, Datatype.TILEDB_UINT8);
       vcfReader.setBufferValidityBitmapNativeArray(attrName, bitmap);
     }
   }
@@ -582,8 +601,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
    * @throws TileDBError A TileDB exception
    */
   private int getColumnBatch(StructField field, int index) throws TileDBError {
-    String name = field.name();
-    return getAttributeColumn(name, index);
+//    String name = field.name();
+    String[] attrNames = schema.getVCFAttributes();
+    return getAttributeColumn(attrNames[index], index);
   }
 
   /**
@@ -663,6 +683,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     resultVectors[index].reset();
     resultVectors[index].getChild(0).reset();
     VCFReader.BufferInfo bufferInfo = vcfReader.getBuffer(name);
+    StructField field = schema.getSparkFields()[index];
+    log.info("buffer_name: " + name + ", field_index_name=" + field.name());
+    log.info(resultVectors[index]);
     switch (info.datatype) {
       case FLOAT32:
       {
@@ -674,10 +697,28 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
       case CHAR:
       {
-        byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
-        bufferLength = buff.length;
-        resultVectors[index].getChild(0).reserve(bufferLength);
-        resultVectors[index].getChild(0).putBytes(0, bufferLength, buff, 0);
+        int[] listOffsets = (int[]) bufferInfo.listOffsets.toJavaArray();
+        int[] offsets = (int[]) bufferInfo.offsets.toJavaArray();
+        if (info.isList) {
+          resultVectors[index].getChild(0).reserve(bufferLength);
+//          resultVectors[index].getChild(0).
+            for (int i = 0; i < numRecords; i++) {
+              int offset = listOffsets[i];
+              int end = listOffsets[i + 1];
+              if(offset >= bufferInfo.values.getSize() || end >= bufferInfo.values.getSize() || offset == 2231685 || end == 2231685) {
+                log.info(i);
+                log.info(offsets[i]);
+                log.info(listOffsets[i]);
+              }
+              byte[] buff = (byte[]) bufferInfo.values.toJavaArray(offset, end-offset);
+              resultVectors[index].getChild(0).putByteArray(i, buff);
+            }
+        } else {
+          byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
+          bufferLength = buff.length;
+          resultVectors[index].getChild(0).reserve(bufferLength);
+          resultVectors[index].getChild(0).putBytes(0, bufferLength, buff, 0);
+        }
         break;
       }
       case UINT8:
@@ -693,7 +734,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
         int[] buff = (int[]) bufferInfo.values.toJavaArray();
         bufferLength = buff.length;
         resultVectors[index].getChild(0).reserve(bufferLength);
-        resultVectors[index].getChild(0).putInts(0, bufferLength, buff, 0);
+          resultVectors[index].getChild(0).putInts(0, bufferLength, buff, 0);
         break;
       }
       default:
@@ -702,9 +743,31 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     }
 
+    if (info.isNullable) {
+      short[] bitmap = (short[])bufferInfo.bitmap.toJavaArray();
+        long bits = 0;
+        for(int i = 0; i < bitmap.length; i++) {
+          short bit = bitmap[i];
+          if (bits >= numRecords) {
+            break;
+          }
+
+          for (int j = 0; j < Integer.SIZE; j++) {
+            if (bits >= numRecords) {
+              break;
+            }
+              if ((bit & 0x1) == 1) {
+                resultVectors[index].putNull(Math.toIntExact(bits));
+              }
+            bit >>= 1;
+            bits++;
+          }
+        }
+    }
+
     // TODO: this isList section I don't think is right..
     if (info.isList) {
-      long[] offsets = (long[]) bufferInfo.offsets.toJavaArray();
+      int[] offsets = (int[]) bufferInfo.offsets.toJavaArray();
       numValues = offsets.length;
       // number of bytes per (scalar) element in
       int typeSize = info.datatype.toTileDBDatatype().getNativeSize();
@@ -713,10 +776,13 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
         int off1 = Math.toIntExact(offsets[j] / typeSize);
         int off2 = Math.toIntExact((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
         resultVectors[index].putArray(j, off1, off2 - off1);
+//        Long off1 = (offsets[j] / typeSize);
+//        Long off2 = ((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
+//        resultVectors[index].putArray(j, off1.intValue(), ((Long)(off2 - off1)).intValue());
       }
     } else {
       // add var length offsets
-      long[] offsets = (long[]) bufferInfo.offsets.toJavaArray();
+      int[] offsets = (int[]) bufferInfo.offsets.toJavaArray();
       numValues = offsets.length;
       // number of bytes per (scalar) element in
       int typeSize = info.datatype.toTileDBDatatype().getNativeSize();
@@ -725,6 +791,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
         int off1 = Math.toIntExact(offsets[j] / typeSize);
         int off2 = Math.toIntExact((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
         resultVectors[index].putArray(j, off1, off2 - off1);
+//        Long off1 = (offsets[j] / typeSize);
+//        Long off2 = ((j < numValues - 1 ? offsets[j + 1] : numBytes) / typeSize);
+//        resultVectors[index].putArray(j, off1.intValue(), ((Long)(off2 - off1)).intValue());
       }
     }
 //    } else {
