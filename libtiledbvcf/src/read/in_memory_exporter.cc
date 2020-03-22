@@ -265,6 +265,7 @@ bool InMemoryExporter::export_record(
   curr_query_results_ = &query_results;
 
   if (user_buffers_.empty()) {
+    std::cout << "user buffers are empty in export_record returning true" << std::endl;
     // With no user buffers to receive data, just degenerate to a count.
     return true;
   }
@@ -426,8 +427,23 @@ bool InMemoryExporter::export_record(
   // data. Restore old buffer sizes so the user can process the incomplete
   // results.
   if (overflow) {
-    for (size_t i = 0; i < user_buffers_.size(); i++)
+    std::cout << "copying back saved sizes" << std::endl;
+    for (size_t i = 0; i < user_buffers_.size(); i++) {
+      auto current_sizes = user_buffers_by_idx_[i]->curr_sizes;
+      auto saved_size = saved_sizes[i];
+
+      std::cout << "buffer: " << user_buffers_by_idx_[i]->attr_name << std::endl;
+
+      std::cout << "current_sizes: data_nelts=" << current_sizes.data_nelts <<", data_bytes=" << current_sizes.data_bytes
+      << ", num_offsets=" << current_sizes.num_offsets << ", num_list_offsets=" << current_sizes.num_list_offsets
+      << ", bitmap_bytes=" << current_sizes.bitmap_bytes << std::endl;
+
+      std::cout << "saved_size: data_nelts=" << saved_size.data_nelts <<", data_bytes=" << saved_size.data_bytes
+                << ", num_offsets=" << saved_size.num_offsets << ", num_list_offsets=" << saved_size.num_list_offsets
+                << ", bitmap_bytes=" << saved_size.bitmap_bytes << std::endl;
+
       user_buffers_by_idx_[i]->curr_sizes = saved_sizes[i];
+    }
     return false;
   }
 
@@ -639,6 +655,11 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
     int64_t index,
     bool is_null,
     int32_t num_list_values) const {
+
+  if (num_list_values == 0)
+    throw std::runtime_error(
+        "Error copying alleles list; number of list values is zero");
+
   const bool nullable = dest->bitmap_buff != nullptr;
   const bool list = dest->list_offsets != nullptr;
 
@@ -680,6 +701,7 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
 }
 
 bool InMemoryExporter::add_zero_length_offset(UserBuffer* dest) const {
+  std::cout << "add_zero_length_offset is being called" << std::endl;
   // Sanity check
   if (dest->offsets == nullptr)
     throw std::runtime_error(
@@ -739,11 +761,22 @@ bool InMemoryExporter::copy_alleles_list(
     num_parts++;
   }
 
+  if (num_parts == 0) {
+    std::cout << "Returning false because num_parts is 0" << std::endl;
+    return false;
+  }
+
   // Add null offset if necessary.
   bool is_null = data == nullptr ||
                  (nbytes == 1 && *static_cast<const char*>(data) == '\0');
-  if (is_null && !add_zero_length_offset(dest))
-    return false;
+//  if (is_null && !add_zero_length_offset(dest))
+//    return false;
+  if(is_null) {
+    std::cout << "inside is_null for alleles with idx=" <<index << std::endl;
+    if (!add_zero_length_offset(dest)) {
+      return false;
+    }
+  }
 
   // Update list offsets and bitmap.
   if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts))
@@ -803,6 +836,11 @@ bool InMemoryExporter::copy_info_fmt_value(
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
   get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
+
+  if (nelts == 0) {
+      std::cout << "Returning false because num_parts is 0" << std::endl;
+      return false;
+  }
 
   if (is_gt) {
     // Genotype needs special handling to be decoded.

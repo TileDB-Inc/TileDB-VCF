@@ -685,6 +685,8 @@ bool Reader::report_cell(
   if (exporter_ == nullptr) {
     read_state_.last_num_records_exported++;
     read_state_.total_num_records_exported++;
+    std::cout << "exported_ is null, incrementing records exported, read_state_.last_num_records_exported=" << read_state_.last_num_records_exported
+              << "read_state_.total_num_records_exported=" << read_state_.total_num_records_exported << std::endl;
     return true;
   }
 
@@ -696,8 +698,11 @@ bool Reader::report_cell(
   const auto& hdr = read_state_.current_hdrs[samp_idx];
 
   if (!exporter_->export_record(
-          sample, hdr.get(), region, contig_offset, results, cell_idx))
+          sample, hdr.get(), region, contig_offset, results, cell_idx)) {
+    std::cout << "returning false because export_record returned false with read_state_.last_num_records_exported=" << read_state_.last_num_records_exported
+    << ", cell_idx=" << cell_idx << std::endl;
     return false;
+  }
 
   // If no overflow, increment num records count.
   read_state_.last_num_records_exported++;
