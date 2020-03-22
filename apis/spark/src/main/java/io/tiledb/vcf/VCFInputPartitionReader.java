@@ -18,6 +18,7 @@ import java.util.*;
 //import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
+import org.apache.spark.sql.execution.vectorized.OffHeapColumnVector;
 import org.apache.spark.sql.execution.vectorized.OnHeapColumnVector;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
@@ -138,28 +139,28 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (vcfReader == null) {
       initVCFReader();
       hasNext = true;
-    } else {
-      vcfReader.resetBuffers();
+//    } else {
+//      vcfReader.resetBuffers();
     }
     if (!hasNext) {
       return false;
     }
     boolean prevNext = hasNext;
     long t1 = System.currentTimeMillis();
-    log.info("vcfReader, buffer sizes: " + vcfReader.getBuffers().size());
-    for (Map.Entry<String, VCFReader.BufferInfo> buffers : vcfReader.getBuffers().entrySet()) {
-      VCFReader.BufferInfo buffer = buffers.getValue();
-      log.info("Buffer " + buffers.getKey() + " has value size: " + buffer.values.getSize());
-      if (buffer.offsets != null) {
-        log.info("Buffer " + buffers.getKey() + " has offset size: " + buffer.offsets.getSize());
-      }
-      if (buffer.listOffsets != null) {
-        log.info("Buffer " + buffers.getKey() + " has listOffsets size: " + buffer.listOffsets.getSize());
-      }
-      if (buffer.bitmap != null) {
-        log.info("Buffer " + buffers.getKey() + " has bitmap size: " + buffer.bitmap.getSize());
-      }
-    }
+//    log.info("vcfReader, buffer sizes: " + vcfReader.getBuffers().size());
+//    for (Map.Entry<String, VCFReader.BufferInfo> buffers : vcfReader.getBuffers().entrySet()) {
+//      VCFReader.BufferInfo buffer = buffers.getValue();
+//      log.info("Buffer " + buffers.getKey() + " has value size: " + buffer.values.getSize());
+//      if (buffer.offsets != null) {
+//        log.info("Buffer " + buffers.getKey() + " has offset size: " + buffer.offsets.getSize());
+//      }
+//      if (buffer.listOffsets != null) {
+//        log.info("Buffer " + buffers.getKey() + " has listOffsets size: " + buffer.listOffsets.getSize());
+//      }
+//      if (buffer.bitmap != null) {
+//        log.info("Buffer " + buffers.getKey() + " has bitmap size: " + buffer.bitmap.getSize());
+//      }
+//    }
     vcfReader.submit();
     long t2 = System.currentTimeMillis();
     if (enableStatsLogging) {
@@ -378,6 +379,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
       int maxNumRows = (int) (bufferSizeBytes / 4);
       // Allocate result set batch based on the estimated (upper bound) number of rows / cells
+//      resultVectors = OffHeapColumnVector.allocateColumns(maxNumRows, schema.getSparkSchema());
       resultVectors = OnHeapColumnVector.allocateColumns(maxNumRows, schema.getSparkSchema());
       resultBatch = new ColumnarBatch(resultVectors);
     }
@@ -684,8 +686,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     resultVectors[index].getChild(0).reset();
     VCFReader.BufferInfo bufferInfo = vcfReader.getBuffer(name);
     StructField field = schema.getSparkFields()[index];
-    log.info("buffer_name: " + name + ", field_index_name=" + field.name());
-    log.info(resultVectors[index]);
+//    log.info("buffer_name: " + name + ", field_index_name=" + field.name());
+//    log.info(resultVectors[index]);
     switch (info.datatype) {
       case FLOAT32:
       {
@@ -698,23 +700,32 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       case CHAR:
       {
         int[] listOffsets = (int[]) bufferInfo.listOffsets.toJavaArray();
-        int[] offsets = (int[]) bufferInfo.offsets.toJavaArray();
+//        int[] offsets = (int[]) bufferInfo.offsets.toJavaArray();
+        byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
         if (info.isList) {
           resultVectors[index].getChild(0).reserve(bufferLength);
 //          resultVectors[index].getChild(0).
             for (int i = 0; i < numRecords; i++) {
               int offset = listOffsets[i];
               int end = listOffsets[i + 1];
-              if(offset >= bufferInfo.values.getSize() || end >= bufferInfo.values.getSize() || offset == 2231685 || end == 2231685) {
+//              if(offset >= bufferInfo.values.getSize() || end >= bufferInfo.values.getSize() || offset == 2231685 || end == 2231685) {
+//                log.info(i);
+//                log.info(offsets[i]);
+//                log.info(listOffsets[i]);
+//              }
+//              byte[] buff = (byte[]) bufferInfo.values.toJavaArray(offset, end-offset);
+              if (offset > end) {
+                log.info(name);
                 log.info(i);
-                log.info(offsets[i]);
-                log.info(listOffsets[i]);
+                log.info("offsets vs end = " + offset + " vs " + end);
+                log.info("buff.length=" + buff.length);
+                log.info("pause");
               }
-              byte[] buff = (byte[]) bufferInfo.values.toJavaArray(offset, end-offset);
-              resultVectors[index].getChild(0).putByteArray(i, buff);
+                byte[] buff_limited =  Arrays.copyOfRange(buff, offset, end);
+              resultVectors[index].getChild(0).putByteArray(i, buff_limited);
             }
         } else {
-          byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
+//          byte[] buff = (byte[]) bufferInfo.values.toJavaArray();
           bufferLength = buff.length;
           resultVectors[index].getChild(0).reserve(bufferLength);
           resultVectors[index].getChild(0).putBytes(0, bufferLength, buff, 0);
