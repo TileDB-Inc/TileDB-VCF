@@ -268,6 +268,13 @@ void Reader::read() {
       break;
   }
 
+  // If we are using the InMemoryExporter we need to reset the user buffer
+  // sizes at the start of each query
+  if (!params_.export_to_disk && exporter_ != nullptr) {
+    auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+    exp->reset_current_sizes();
+  }
+
   while (pending_work) {
     bool complete = read_current_batch();
     if (!complete) {
@@ -416,7 +423,6 @@ bool Reader::read_current_batch() {
 
     // If the read status was incomplete, pick up processing the previous TileDB
     // query results.
-    exp->reset_current_sizes();
     if (!process_query_results())
       return false;  // Still incomplete.
 
