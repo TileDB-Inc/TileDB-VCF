@@ -268,6 +268,12 @@ void Reader::read() {
       break;
   }
 
+  if (!params_.export_to_disk) {
+    std::cout << "resetting sizes" << std::endl;
+    auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
+    exp->reset_current_sizes();
+  }
+
   while (pending_work) {
     bool complete = read_current_batch();
     if (!complete) {
@@ -416,7 +422,7 @@ bool Reader::read_current_batch() {
 
     // If the read status was incomplete, pick up processing the previous TileDB
     // query results.
-    exp->reset_current_sizes();
+//    exp->reset_current_sizes();
     if (!process_query_results())
       return false;  // Still incomplete.
 
