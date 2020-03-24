@@ -28,12 +28,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.UUID;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.commons.io.FileUtils;
 
 /** Helper class that finds native libraries embedded as resources and loads them dynamically. */
 public class NativeLibLoader {
@@ -45,10 +45,10 @@ public class NativeLibLoader {
 
   /** Finds and loads native TileDB. */
   static void loadNativeTileDB() {
-    String versionedLibName = null;
+    String versionedLibName;
     try {
       versionedLibName = getVersionedName();
-      logger.info("Loaded libtiledb library: "+versionedLibName);
+      logger.info("Loaded libtiledb library: " + versionedLibName);
       loadNativeLib(versionedLibName, false);
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
@@ -56,8 +56,7 @@ public class NativeLibLoader {
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
       logger.warning(e.getMessage());
-    }
-    catch (IOException ioe) {
+    } catch (IOException ioe) {
       logger.warning(ioe.getMessage());
     }
   }
@@ -373,24 +372,38 @@ public class NativeLibLoader {
   }
   /**
    * Extracts the versioned libtiledb library name
+   *
    * @return The library name
    */
   private static String getVersionedName() throws IOException {
     URL jarLocation = NativeLibLoader.class.getProtectionDomain().getCodeSource().getLocation();
-    ZipInputStream zipInputStream = new ZipInputStream(jarLocation.openStream());
-    ZipEntry e;
 
     String libName = getOSClassifier().startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so";
 
-    while(true) {
-      e = zipInputStream.getNextEntry();
+    // Not running from a .jar file
+    if (!jarLocation.toString().endsWith(".jar")) {
+      String currentPath = Paths.get(".").toAbsolutePath().normalize().toString();
+      String libPath = currentPath + "/build/resources/main/lib";
+      Collection<File> files = FileUtils.listFiles(new File(libPath), null, false);
 
-      if (e == null)
-        break;
+      for (File f : files) {
+        if (f.toString().contains(libName)) return f.getName();
+      }
+    }
+    // Jar file
+    else {
+      ZipInputStream zipInputStream = new ZipInputStream(jarLocation.openStream());
+      ZipEntry e;
 
-      if (e.toString().contains(libName)) {
-        String[] splitName = e.toString().split("\\/");
-        return splitName[splitName.length - 1];
+      while (true) {
+        e = zipInputStream.getNextEntry();
+
+        if (e == null) break;
+
+        if (e.toString().contains(libName)) {
+          String[] splitName = e.toString().split("\\/");
+          return splitName[splitName.length - 1];
+        }
       }
     }
     return null;
