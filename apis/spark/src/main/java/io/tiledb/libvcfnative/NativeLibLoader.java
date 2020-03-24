@@ -27,29 +27,37 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.UUID;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import org.apache.commons.io.FileUtils;
 
 /** Helper class that finds native libraries embedded as resources and loads them dynamically. */
 public class NativeLibLoader {
   private static final String UNKNOWN = "unknown";
+  private static final Logger logger = Logger.getLogger(NativeLibLoader.class.getName());
 
   /** Path (relative to jar) where native libraries are located. */
   private static final String LIB_RESOURCE_DIR = "/lib";
 
   /** Finds and loads native TileDB. */
   static void loadNativeTileDB() {
-    String os = getOSClassifier();
-    String versionedLibName = os.startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so.1.6.2";
+    String versionedLibName;
     try {
-      // Don't use name mapping to get the versioned tiledb
+      versionedLibName = getVersionedName();
+      logger.info("Loaded libtiledb library: " + versionedLibName);
       loadNativeLib(versionedLibName, false);
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      logger.warning(e.getMessage());
+    } catch (IOException ioe) {
+      logger.warning(ioe.getMessage());
     }
   }
 
@@ -361,6 +369,44 @@ public class NativeLibLoader {
       // Try loading preinstalled library (in the path -Djava.library.path)
       System.loadLibrary(mapLibraryName ? System.mapLibraryName(libraryName) : libraryName);
     }
+  }
+  /**
+   * Extracts the versioned libtiledb library name
+   *
+   * @return The library name
+   */
+  private static String getVersionedName() throws IOException {
+    URL jarLocation = NativeLibLoader.class.getProtectionDomain().getCodeSource().getLocation();
+
+    String libName = getOSClassifier().startsWith("osx") ? "libtiledb.dylib" : "libtiledb.so";
+
+    // Not running from a .jar file
+    if (!jarLocation.toString().endsWith(".jar")) {
+      String currentPath = Paths.get(".").toAbsolutePath().normalize().toString();
+      String libPath = currentPath + "/build/resources/main/lib";
+      Collection<File> files = FileUtils.listFiles(new File(libPath), null, false);
+
+      for (File f : files) {
+        if (f.toString().contains(libName)) return f.getName();
+      }
+    }
+    // Jar file
+    else {
+      ZipInputStream zipInputStream = new ZipInputStream(jarLocation.openStream());
+      ZipEntry e;
+
+      while (true) {
+        e = zipInputStream.getNextEntry();
+
+        if (e == null) break;
+
+        if (e.toString().contains(libName)) {
+          String[] splitName = e.toString().split("\\/");
+          return splitName[splitName.length - 1];
+        }
+      }
+    }
+    return null;
   }
 
   private static boolean hasResource(String path) {
