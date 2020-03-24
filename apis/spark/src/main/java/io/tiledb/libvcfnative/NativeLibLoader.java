@@ -371,7 +371,10 @@ public class NativeLibLoader {
       System.loadLibrary(mapLibraryName ? System.mapLibraryName(libraryName) : libraryName);
     }
   }
-
+  /**
+   * Extracts the versioned libtiledb library name
+   * @return The library name
+   */
   private static String getVersionedName() throws IOException {
     URL jarLocation = NativeLibLoader.class.getProtectionDomain().getCodeSource().getLocation();
     ZipInputStream zipInputStream = new ZipInputStream(jarLocation.openStream());
