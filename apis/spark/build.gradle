@@ -59,7 +59,9 @@ task pathConfig {
 task makeVCFJava(type: Exec) {
     workingDir = "${pathConfig.vcfJavaPath}"
     executable = "./gradlew"
-    args 'publishToMavenLocal'
+    args "clean"
+    args "assemble"
+    args "publishToMavenLocal"
 }
 
 task format(type: GoogleJavaFormat) {
