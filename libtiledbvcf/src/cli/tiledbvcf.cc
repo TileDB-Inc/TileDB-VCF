@@ -236,6 +236,17 @@ int main(int argc, char** argv) {
                "specifying optional TileDB configuration parameter settings." &
            value("params").call([&create_args](const std::string& s) {
              create_args.tiledb_config = utils::split(s, ',');
+           }),
+       option("--checksum") %
+               "Checksum to use for dataset validation on read and writes, "
+               "defauls to 'sha256'" &
+           value("checksum").call([&create_args](const std::string& s) {
+             if (s == "sha256")
+               create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+             else if (s == "md5")
+               create_args.checksum = TILEDB_FILTER_CHECKSUM_MD5;
+             else if (s == "none")
+               create_args.checksum = TILEDB_FILTER_NONE;
            }));
 
   RegistrationParams register_args;

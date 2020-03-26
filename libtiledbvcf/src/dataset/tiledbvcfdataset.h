@@ -53,6 +53,7 @@ struct CreationParams {
   uint32_t row_tile_extent = 10;
   uint32_t anchor_gap = 1000;
   std::vector<std::string> tiledb_config;
+  tiledb_filter_type_t checksum = TILEDB_FILTER_CHECKSUM_SHA256;
 };
 
 /** Arguments/params for dataset registration. */
@@ -241,11 +242,13 @@ class TileDBVCFDataset {
    * @param ctx TileDB context
    * @param root_uri Root URI of the dataset
    * @param metadata General dataset metadata to write
+   * @param checksum optional checksum filter
    */
   static void create_empty_metadata(
       const Context& ctx,
       const std::string& root_uri,
-      const Metadata& metadata);
+      const Metadata& metadata,
+      const tiledb_filter_type_t& checksum);
 
   /**
    * Creates the empty sample data array for a new dataset.
@@ -253,11 +256,13 @@ class TileDBVCFDataset {
    * @param ctx TileDB context
    * @param root_uri Root URI of the dataset
    * @param metadata Dataset metadata containing tile capacity etc. to use
+   * @param checksum optional checksum filter
    */
   static void create_empty_data_array(
       const Context& ctx,
       const std::string& root_uri,
-      const Metadata& metadata);
+      const Metadata& metadata,
+      const tiledb_filter_type_t& checksum);
 
   /**
    * Creates the empty sample header array for a new dataset.
@@ -268,9 +273,12 @@ class TileDBVCFDataset {
    *
    * @param ctx TileDB context
    * @param root_uri Root URI of the dataset
+   * @param checksum optional checksum filter
    */
   static void create_sample_header_array(
-      const Context& ctx, const std::string& root_uri);
+      const Context& ctx,
+      const std::string& root_uri,
+      const tiledb_filter_type_t& checksum);
 
   /**
    * Write the given Metadata instance into the dataset.

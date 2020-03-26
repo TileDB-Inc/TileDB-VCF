@@ -33,7 +33,6 @@
 
 #include <cstring>
 #include <iostream>
-#include <tiledb/tiledb>
 
 static const std::string INPUT_DIR =
     TILEDB_VCF_TEST_INPUT_DIR + std::string("/");
@@ -57,6 +56,56 @@ TEST_CASE("C API: Writer create default", "[capi][writer]") {
   tiledb_vcf_writer_t* writer = nullptr;
   REQUIRE(tiledb_vcf_writer_alloc(&writer) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_writer_init(writer, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
+
+  tiledb::vcf::TileDBVCFDataset ds;
+  REQUIRE_NOTHROW(ds.open(dataset_uri));
+
+  tiledb_vcf_writer_free(&writer);
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
+TEST_CASE("C API: Writer create md5 checksum", "[capi][writer]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  tiledb_vcf_writer_t* writer = nullptr;
+  REQUIRE(tiledb_vcf_writer_alloc(&writer) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_init(writer, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_writer_set_checksum_type(writer, TILEDB_VCF_CHECKSUM_MD5) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
+
+  tiledb::vcf::TileDBVCFDataset ds;
+  REQUIRE_NOTHROW(ds.open(dataset_uri));
+
+  tiledb_vcf_writer_free(&writer);
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
+TEST_CASE("C API: Writer create no checksum", "[capi][writer]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  tiledb_vcf_writer_t* writer = nullptr;
+  REQUIRE(tiledb_vcf_writer_alloc(&writer) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_init(writer, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_writer_set_checksum_type(writer, TILEDB_VCF_CHECKSUM_NONE) ==
+      TILEDB_VCF_OK);
 
   REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
 

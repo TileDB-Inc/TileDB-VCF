@@ -91,8 +91,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   metadata.extra_attributes = params.extra_attributes;
   metadata.free_sample_id = 0;
 
-  create_empty_metadata(ctx, params.uri, metadata);
-  create_empty_data_array(ctx, params.uri, metadata);
+  create_empty_metadata(ctx, params.uri, metadata, params.checksum);
+  create_empty_data_array(ctx, params.uri, metadata, params.checksum);
   write_metadata(ctx, params.uri, metadata);
 }
 
@@ -124,13 +124,19 @@ void TileDBVCFDataset::check_attribute_names(
 }
 
 void TileDBVCFDataset::create_empty_metadata(
-    const Context& ctx, const std::string& root_uri, const Metadata& metadata) {
+    const Context& ctx,
+    const std::string& root_uri,
+    const Metadata& metadata,
+    const tiledb_filter_type_t& checksum) {
   create_group(ctx, utils::uri_join(root_uri, "metadata"));
-  create_sample_header_array(ctx, root_uri);
+  create_sample_header_array(ctx, root_uri, checksum);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
-    const Context& ctx, const std::string& root_uri, const Metadata& metadata) {
+    const Context& ctx,
+    const std::string& root_uri,
+    const Metadata& metadata,
+    const tiledb_filter_type_t& checksum) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_COL_MAJOR, TILEDB_COL_MAJOR}});
@@ -148,35 +154,46 @@ void TileDBVCFDataset::create_empty_data_array(
     domain.add_dimensions(sample, end_pos);
   }
   schema.set_domain(domain);
-  schema.set_offsets_filter_list(default_offsets_filter_list(ctx));
+  auto offsets_filter_list = default_offsets_filter_list(ctx);
 
   // Set coords filters
   FilterList coords_filter_list(ctx);
   coords_filter_list.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  schema.set_coords_filter_list(coords_filter_list);
 
   // Create a byteshuffle -> zstd filter list used by a few attributes
   FilterList byteshuffle_zstd_filters(ctx);
   byteshuffle_zstd_filters.add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
 
+  auto attribute_filter_list = default_attribute_filter_list(ctx);
+  if (checksum != TILEDB_FILTER_NONE) {
+    Filter checksum_filter(ctx, checksum);
+
+    attribute_filter_list.add_filter(checksum_filter);
+    byteshuffle_zstd_filters.add_filter(checksum_filter);
+    coords_filter_list.add_filter(checksum_filter);
+    offsets_filter_list.add_filter(checksum_filter);
+  }
+  schema.set_coords_filter_list(coords_filter_list);
+  schema.set_offsets_filter_list(offsets_filter_list);
+
   auto pos = Attribute::create<uint32_t>(
       ctx, AttrNames::pos, byteshuffle_zstd_filters);
   auto real_end = Attribute::create<uint32_t>(
       ctx, AttrNames::real_end, byteshuffle_zstd_filters);
-  auto qual = Attribute::create<float>(
-      ctx, AttrNames::qual, default_attribute_filter_list(ctx));
+  auto qual =
+      Attribute::create<float>(ctx, AttrNames::qual, attribute_filter_list);
   auto alleles = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::alleles, default_attribute_filter_list(ctx));
+      ctx, AttrNames::alleles, attribute_filter_list);
   auto id = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::id, default_attribute_filter_list(ctx));
+      ctx, AttrNames::id, attribute_filter_list);
   auto filters_ids = Attribute::create<std::vector<int32_t>>(
       ctx, AttrNames::filter_ids, byteshuffle_zstd_filters);
   auto info = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::info, default_attribute_filter_list(ctx));
+      ctx, AttrNames::info, attribute_filter_list);
   auto fmt = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::fmt, default_attribute_filter_list(ctx));
+      ctx, AttrNames::fmt, attribute_filter_list);
   schema.add_attributes(
       pos, real_end, qual, alleles, id, filters_ids, info, fmt);
 
@@ -187,14 +204,16 @@ void TileDBVCFDataset::create_empty_data_array(
       continue;
     used.insert(attr);
     schema.add_attribute(Attribute::create<std::vector<uint8_t>>(
-        ctx, attr, default_attribute_filter_list(ctx)));
+        ctx, attr, attribute_filter_list));
   }
 
   Array::create(data_array_uri(root_uri), schema);
 }
 
 void TileDBVCFDataset::create_sample_header_array(
-    const Context& ctx, const std::string& root_uri) {
+    const Context& ctx,
+    const std::string& root_uri,
+    const tiledb_filter_type_t& checksum) {
   ArraySchema schema(ctx, TILEDB_DENSE);
 
   // Set domain
@@ -209,10 +228,19 @@ void TileDBVCFDataset::create_sample_header_array(
 
   // Set offsets filters
   FilterList offsets_filter_list = default_offsets_filter_list(ctx);
-  schema.set_offsets_filter_list(offsets_filter_list);
 
   // Add a single 'header' string attribute.
   FilterList attribute_filter_list = default_attribute_filter_list(ctx);
+  if (checksum != TILEDB_FILTER_NONE) {
+    Filter checksum_filter(ctx, checksum);
+
+    attribute_filter_list.add_filter(checksum_filter);
+    offsets_filter_list.add_filter(checksum_filter);
+    FilterList coords_filter_list(ctx);
+    coords_filter_list.add_filter(checksum_filter);
+    schema.set_coords_filter_list(coords_filter_list);
+  }
+  schema.set_offsets_filter_list(offsets_filter_list);
   auto attr_header = Attribute::create<std::vector<char>>(
       ctx, "header", attribute_filter_list);
   schema.add_attributes(attr_header);

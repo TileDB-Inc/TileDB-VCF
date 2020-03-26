@@ -58,6 +58,11 @@ class Writer {
    */
   void set_extra_attributes(const std::string& attributes);
 
+  /**
+    [Creation only] Sets the checksum type to be used of the arrays
+  */
+  void set_checksum(const std::string& checksum);
+
   void create_dataset();
 
   void register_samples();

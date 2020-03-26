@@ -71,6 +71,14 @@ typedef enum {
 #undef TILEDB_VCF_ATTR_DATATYPE_ENUM
 } tiledb_vcf_attr_datatype_t;
 
+/** Checksum filter types. */
+typedef enum {
+/** Helper macro for defining subset of tiledb filter type enums. */
+#define TILEDB_VCF_CHECKSUM_TYPE_ENUM(id) TILEDB_VCF_##id
+#include "tiledbvcf_enum.h"
+#undef TILEDB_VCF_CHECKSUM_TYPE_ENUM
+} tiledb_vcf_checksum_type_t;
+
 /* ********************************* */
 /*           STRUCT TYPES            */
 /* ********************************* */
@@ -762,6 +770,21 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_samples(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_extra_attributes(
     tiledb_vcf_writer_t* writer, const char* attributes);
+
+/**
+ * [Creation only] Sets the checksum type to be used for the underlying arrays
+ *
+ * The checksum type can be set to TILEDB_VCF_CHECKSUM_MD5,
+ * TILEDB_VCF_CHECKSUM_SHA256 or TILEDB_VCF_CHECKSUM_NONE to disable.
+ *
+ * TILEDB_VCF_CHECKSUM_SHA256 is the default
+ *
+ * @param writer VCF writer object
+ * @param checksum_type tiledb checksum filter type to be use
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_checksum_type(
+    tiledb_vcf_writer_t* writer, tiledb_vcf_checksum_type_t checksum);
 
 /**
  * Creates a new TileDB-VCF dataset, using previously set parameters.
