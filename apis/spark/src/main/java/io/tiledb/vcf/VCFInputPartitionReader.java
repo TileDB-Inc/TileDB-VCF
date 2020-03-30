@@ -282,8 +282,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
 
       if (bufferSizeMB > 2048) {
-        log.warn("Size of individfaual buffers is larger than 2048 MB. Consider setting a smaller " +
-                "memory budget ('memory' option)");
+        memBudgetMB = nBuffers * 2048;
+        bufferSizeMB = 2048;
+        log.warn(
+            String.format(
+                ""
+                    + "Size of individfaual buffers is larger than 2048 MB which is not supported by Arrow 0.10.0 (Spark 2.4). "
+                    + "Using %d buffers, a reasonable memory budget is %d."
+                    + "Setting buffer size to 2048 instead.",
+                nBuffers, memBudgetMB));
       }
 
       long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
