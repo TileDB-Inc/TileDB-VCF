@@ -165,7 +165,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
       resultBatch = new ColumnarBatch(colVecs);
     }
-    resultBatch.setNumRows(numRecords.intValue());
+    resultBatch.setNumRows(Util.longToInt(numRecords));
     long t2 = System.nanoTime();
 
     if (enableStatsLogging) {
@@ -271,6 +271,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
       // Compute allocation size; check against some reasonable minimum.
       long bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
+
       if (bufferSizeMB < 10) {
         log.warn(
             "Warning: TileDB-VCF-Spark buffer allocation of "
@@ -278,6 +279,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
                 + " is small. Increase the memory budget from its current setting of "
                 + (memBudgetMB * 2)
                 + " MB.");
+      }
+
+      if (bufferSizeMB > 2048) {
+        log.warn("Size of individfaual buffers is larger than 2048 MB. Consider setting a smaller " +
+                "memory budget ('memory' option)");
       }
 
       long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
@@ -289,7 +295,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     }
 
-    vcfReader.setMemoryBudget((int) memBudgetMB);
+    vcfReader.setMemoryBudget(Util.longToInt(memBudgetMB));
 
     if (enableStatsLogging) {
       log.info(
@@ -313,9 +319,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
+    long maxRowsL = (attributeBufferSize / 4L);
+
     // Max number of rows is nbytes / sizeof(int32_t), i.e. the max number of offsets that can be
     // stored.
-    int maxNumRows = (int) (attributeBufferSize / 4);
+    int maxNumRows = Util.longToInt(maxRowsL);
 
     // Allocate an Arrow-backed buffer for the attribute.
     ValueVector valueVector = makeArrowVector(fieldName, info);
