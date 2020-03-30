@@ -189,8 +189,7 @@ public class VCFReader implements AutoCloseable {
     if (mb < 1) {
       throw new RuntimeException("memory budget must be >= 1 MB");
     }
-    int budget = mb.intValue();
-    int rc = LibVCFNative.tiledb_vcf_reader_set_memory_budget(this.readerPtr, budget);
+    int rc = LibVCFNative.tiledb_vcf_reader_set_memory_budget(this.readerPtr, mb);
     if (rc != 0) {
       String msg = getLastErrorMessage();
       throw new RuntimeException("Error setting query memory budget: " + msg);
