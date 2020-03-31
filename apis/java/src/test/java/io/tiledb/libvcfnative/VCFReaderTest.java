@@ -165,7 +165,7 @@ public class VCFReaderTest {
     @Test
     public void testSetSingleBuffer() throws IOException {
         VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
-        ByteBuffer data = ByteBuffer.allocate(1024);
+        ByteBuffer data = ByteBuffer.allocateDirect(1024);
         reader.setBuffer("sample_name", data);
 
         int results = 0;
@@ -177,6 +177,6 @@ public class VCFReaderTest {
         while(reader.getStatus().equals(VCFReader.Status.INCOMPLETE))
             reader.submit();
 
-        Assert.assertEquals(results, TOTAL_EXPECTED_RECORDS);
+        Assert.assertEquals(results, BED_FILE_EXPECTED_RECORDS);
     }
 }
