@@ -56,6 +56,8 @@ void Writer::init(
   array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+  creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
 }
 
 void Writer::set_all_params(const IngestionParams& params) {
@@ -77,6 +79,14 @@ void Writer::set_sample_uris(const std::string& sample_uris) {
 void Writer::set_extra_attributes(const std::string& attributes) {
   auto attrs = utils::split(attributes, ",");
   creation_params_.extra_attributes = attrs;
+}
+
+void Writer::set_checksum_type(const int& checksum) {
+  set_checksum_type((tiledb_filter_type_t)checksum);
+}
+
+void Writer::set_checksum_type(const tiledb_filter_type_t& checksum) {
+  creation_params_.checksum = checksum;
 }
 
 void Writer::create_dataset() {

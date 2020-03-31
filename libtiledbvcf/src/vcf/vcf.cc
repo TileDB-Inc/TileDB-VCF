@@ -373,12 +373,12 @@ std::string VCF::hdr_to_string(bcf_hdr_t* hdr) {
   if (res != 0) {
     if (res == -1) {
       throw std::invalid_argument(
-        "Cannot set VCF samples; possibly bad VCF header.");
+          "Cannot set VCF samples; possibly bad VCF header.");
     } else if (res > 0) {
       throw std::runtime_error(
-        std::string("Cannot set VCF samples: list contains samples not present in VCF header, sample #:") +
-        std::to_string(res)
-      );
+          std::string("Cannot set VCF samples: list contains samples not "
+                      "present in VCF header, sample #:") +
+          std::to_string(res));
     }
   }
   bcf_hdr_format(tmp, 0, &t);

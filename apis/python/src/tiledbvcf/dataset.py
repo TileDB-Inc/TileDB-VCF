@@ -167,12 +167,25 @@ class TileDBVCFDataset(object):
 
         return self.reader.result_num_records()
 
-    def ingest_samples(self, sample_uris=None, extra_attrs=None):
+    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None):
+        """Ingest samples
+
+        :param list of str samples: CSV list of sample names to include in
+            the count.
+        :param list of str extra_attrs: CSV list of extra attributes to
+            materialize from fmt field
+        :param str checksum_type: Optional override checksum type for creating new dataset
+            valid values are sha256, md5 or none.
+        """
         if self.mode != 'w':
             raise Exception('Dataset not open in write mode')
 
         if sample_uris is None:
             return
+
+        if checksum_type is not None:
+            checksum_type = checksum_type.lower()
+            self.writer.set_checksum(checksum_type)
 
         self.writer.set_samples(','.join(sample_uris))
 

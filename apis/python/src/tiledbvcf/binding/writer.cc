@@ -82,6 +82,20 @@ void Writer::set_extra_attributes(const std::string& attributes) {
       tiledb_vcf_writer_set_extra_attributes(writer, attributes.c_str()));
 }
 
+void Writer::set_checksum(const std::string& checksum) {
+  auto writer = ptr.get();
+  tiledb_vcf_checksum_type_t checksum_type = TILEDB_VCF_CHECKSUM_SHA256;
+
+  if (checksum == "md5")
+    checksum_type = TILEDB_VCF_CHECKSUM_MD5;
+  else if (checksum == "sha256")
+    checksum_type = TILEDB_VCF_CHECKSUM_SHA256;
+  else if (checksum == "none")
+    checksum_type = TILEDB_VCF_CHECKSUM_NONE;
+
+  check_error(writer, tiledb_vcf_writer_set_checksum_type(writer, checksum_type));
+}
+
 void Writer::create_dataset() {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_create_dataset(writer));

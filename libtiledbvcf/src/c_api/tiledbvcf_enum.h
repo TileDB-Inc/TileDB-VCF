@@ -43,3 +43,12 @@ TILEDB_VCF_READ_STATUS_ENUM(FAILED) = 0,
     /** 32-bit floating-point  */
     TILEDB_VCF_ATTR_DATATYPE_ENUM(FLOAT32) = 3,
 #endif
+
+#ifdef TILEDB_VCF_CHECKSUM_TYPE_ENUM
+    /** No-op filter */
+    TILEDB_VCF_CHECKSUM_TYPE_ENUM(CHECKSUM_NONE) = 0,
+    /** MD5 checksum filter. */
+    TILEDB_VCF_CHECKSUM_TYPE_ENUM(CHECKSUM_MD5) = 12,
+    /** SHA256 checksum filter. */
+    TILEDB_VCF_CHECKSUM_TYPE_ENUM(CHECKSUM_SHA256) = 13,
+#endif

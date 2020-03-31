@@ -40,6 +40,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("init", &Writer::init)
       .def("set_samples", &Writer::set_samples)
       .def("set_extra_attributes", &Writer::set_extra_attributes)
+      .def("set_checksum", &Writer::set_checksum)
       .def("create_dataset", &Writer::create_dataset)
       .def("register_samples", &Writer::register_samples)
       .def("ingest_samples", &Writer::ingest_samples);

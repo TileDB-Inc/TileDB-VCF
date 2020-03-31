@@ -122,6 +122,14 @@ class Writer {
    */
   void set_extra_attributes(const std::string& attributes);
 
+  /**
+   * Sets the checksum type for filter on new dataset arrays
+   *
+   * @param checksum
+   */
+  void set_checksum_type(const int& checksum);
+  void set_checksum_type(const tiledb_filter_type_t& checksum);
+
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();
 
