@@ -355,7 +355,7 @@ int main(int argc, char** argv) {
                "the TSV. A field name can be one of 'SAMPLE', 'ID', 'REF', "
                "'ALT', 'QUAL', 'POS', 'CHR', 'FILTER'. Additionally, INFO "
                "fields can be specified by 'I:<name>' and FMT fields with "
-               "'S:<name>'. To export the intersectiong query region for each "
+               "'S:<name>'. To export the intersecting query region for each "
                "row in the output, use the field names 'Q:POS' and 'Q:END'." &
            value("fields").call([&export_args](const std::string& s) {
              export_args.tsv_fields = utils::split(s, ',');
