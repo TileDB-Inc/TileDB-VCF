@@ -39,7 +39,7 @@ public class VCFDataSourceOptionsTest {
     Optional<String[]> samples = options.getSamples();
     Assert.assertTrue(samples.isPresent());
     Assert.assertArrayEquals(
-        new String[] {"sample1", "sample2", "sample3", "sample4"}, samples.get());
+            new String[]{"sample1", "sample2", "sample3", "sample4"}, samples.get());
   }
 
   @Test
@@ -55,7 +55,7 @@ public class VCFDataSourceOptionsTest {
     VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(optionMap));
     Optional<String[]> ranges = options.getRanges();
     Assert.assertTrue(ranges.isPresent());
-    Assert.assertArrayEquals(new String[] {"CHR1:1-100", "CHR2:2-200"}, ranges.get());
+    Assert.assertArrayEquals(new String[]{"CHR1:1-100", "CHR2:2-200"}, ranges.get());
   }
 
   @Test
@@ -137,5 +137,12 @@ public class VCFDataSourceOptionsTest {
     Optional<String> config = options.getConfigCSV();
     Assert.assertTrue(config.isPresent());
     Assert.assertEquals("sm.num_reader_threads=5,sm.num_writer_threads=10", config.get());
+  }
+
+  @Test
+  public void testCombineCSV() {
+    Assert.assertEquals(VCFDataSourceOptions.combineCsvOptions(Optional.empty(), Optional.of("a")), Optional.of("a"));
+    Assert.assertEquals(VCFDataSourceOptions.combineCsvOptions(Optional.of("b"), Optional.empty()), Optional.of("b"));
+    Assert.assertEquals(VCFDataSourceOptions.combineCsvOptions(Optional.of("a"), Optional.of("b")), Optional.of("a,b"));
   }
 }

@@ -36,3 +36,7 @@ examples/cmake_project/build
 **/__pycache__
 *.so
 *.dylib
+
+### Gradle ###
+.gradle
+/build/
