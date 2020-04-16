@@ -1,19 +1,21 @@
 package io.tiledb.vcf;
 
+import com.amazonaws.auth.AWSSessionCredentialsProvider;
+import io.tiledb.util.CredentialProviderUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.spark.sql.sources.v2.DataSourceOptions;
+
 import java.io.Serializable;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
-import scala.collection.mutable.StringBuilder;
+import java.util.stream.Collectors;
 
 /** Class holding option values for TileDB-VCF. */
 public class VCFDataSourceOptions implements Serializable {
-  private HashMap<String, String> options;
+  private Map<String, String> options;
 
   /**
    * Parses TileDB-VCF specific options from generic Spark Datasource options
@@ -21,7 +23,7 @@ public class VCFDataSourceOptions implements Serializable {
    * @param options Spark Datasource options
    */
   public VCFDataSourceOptions(DataSourceOptions options) {
-    this.options = new HashMap<String, String>();
+    this.options = new HashMap<>();
     this.options.putAll(options.asMap());
   }
 
@@ -105,33 +107,44 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Optional credentials provider for managing AWS access to array buckets. */
+  public Optional<AWSSessionCredentialsProvider> getCredentialsProvider() {
+    if (options.containsKey("aws_role_arn") && options.containsKey("aws_credentials_provider")) {
+      return CredentialProviderUtils.get(options.get("aws_credentials_provider"), options.get("aws_role_arn"));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
-    ArrayList<String> configEntries = new ArrayList<>();
-    Iterator<Map.Entry<String, String>> entries = options.entrySet().iterator();
-    while (entries.hasNext()) {
-      Map.Entry<String, String> entry = entries.next();
-      String key = entry.getKey();
-      if (key.startsWith("tiledb.")) {
-        StringBuilder kv = new StringBuilder();
-        kv.append(key.substring(7));
-        kv.append("=");
-        kv.append(entry.getValue());
-        configEntries.add(kv.toString());
-      }
+    return getConfigCSV(options);
+  }
+
+  /**
+   * Generic parser of key-value property maps into a CSV.
+   * @return Optional CSV String of config parameters
+   */
+  protected static Optional<String> getConfigCSV(final Map<String, String> configMap) {
+
+    List<String> entries = configMap.entrySet().stream()
+            .filter(e -> e.getKey().startsWith("tiledb."))
+            .map(e -> String.format("%s=%s", e.getKey().substring(7) /* strip prefix */, e.getValue()))
+            .collect(Collectors.toList());
+
+    return entries.isEmpty() ? Optional.empty() : Optional.of(StringUtils.join(entries, ","));
+  }
+
+  /**
+   * Combines two optional configuration into one.
+   * @return Optional CSV String of config parameters.
+   */
+  protected static Optional<String> combineCsvOptions(Optional<String> first, Optional<String> second) {
+    if (!first.isPresent()) {
+      return second;
+    } else if (!second.isPresent()) {
+      return first;
+    } else {
+      return Optional.of(first.get().concat(",").concat(second.get()));
     }
-    Collections.sort(configEntries);
-    int numEntries = configEntries.size();
-    if (numEntries == 0) {
-      return Optional.empty();
-    }
-    StringBuilder configCSV = new StringBuilder();
-    for (int i = 0; i < numEntries; i++) {
-      configCSV.append(configEntries.get(i));
-      if (i < (numEntries - 1)) {
-        configCSV.append(",");
-      }
-    }
-    return Optional.of(configCSV.toString());
   }
 }

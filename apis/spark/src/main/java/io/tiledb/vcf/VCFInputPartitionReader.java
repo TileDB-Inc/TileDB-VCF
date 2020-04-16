@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import io.tiledb.util.CredentialProviderUtils;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.Float4Vector;
 import org.apache.arrow.vector.IntVector;
@@ -220,7 +222,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             + " of "
             + samplePartitionInfo.getNumPartitions());
     String uriString = datasetURI.toString();
-    vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), options.getConfigCSV());
+
+    Optional<String> credentialsCsv = options.getCredentialsProvider()
+            .map(CredentialProviderUtils::buildConfigMap)
+            .flatMap(VCFDataSourceOptions::getConfigCSV);
+
+    Optional<String> configCsv = VCFDataSourceOptions.combineCsvOptions(options.getConfigCSV(), credentialsCsv);
+
+    vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), configCsv);
 
     // Set ranges
     Optional<String[]> ranges = options.getRanges();
