@@ -2,9 +2,6 @@ package io.tiledb.vcf;
 
 import com.amazonaws.auth.AWSSessionCredentialsProvider;
 import io.tiledb.util.CredentialProviderUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.spark.sql.sources.v2.DataSourceOptions;
-
 import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
@@ -12,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.spark.sql.sources.v2.DataSourceOptions;
 
 /** Class holding option values for TileDB-VCF. */
 public class VCFDataSourceOptions implements Serializable {
@@ -110,7 +109,8 @@ public class VCFDataSourceOptions implements Serializable {
   /** @return Optional credentials provider for managing AWS access to array buckets. */
   public Optional<AWSSessionCredentialsProvider> getCredentialsProvider() {
     if (options.containsKey("aws_role_arn") && options.containsKey("aws_credentials_provider")) {
-      return CredentialProviderUtils.get(options.get("aws_credentials_provider"), options.get("aws_role_arn"));
+      return CredentialProviderUtils.get(
+          options.get("aws_credentials_provider"), options.get("aws_role_arn"));
     }
     return Optional.empty();
   }
@@ -122,13 +122,18 @@ public class VCFDataSourceOptions implements Serializable {
 
   /**
    * Generic parser of key-value property maps into a CSV.
+   *
    * @return Optional CSV String of config parameters
    */
   protected static Optional<String> getConfigCSV(final Map<String, String> configMap) {
 
-    List<String> entries = configMap.entrySet().stream()
+    List<String> entries =
+        configMap.entrySet().stream()
             .filter(e -> e.getKey().startsWith("tiledb."))
-            .map(e -> String.format("%s=%s", e.getKey().substring(7) /* strip prefix */, e.getValue()))
+            .map(
+                e ->
+                    String.format(
+                        "%s=%s", e.getKey().substring(7) /* strip prefix */, e.getValue()))
             .collect(Collectors.toList());
 
     return entries.isEmpty() ? Optional.empty() : Optional.of(StringUtils.join(entries, ","));
@@ -136,9 +141,11 @@ public class VCFDataSourceOptions implements Serializable {
 
   /**
    * Combines two optional configuration into one.
+   *
    * @return Optional CSV String of config parameters.
    */
-  protected static Optional<String> combineCsvOptions(Optional<String> first, Optional<String> second) {
+  protected static Optional<String> combineCsvOptions(
+      Optional<String> first, Optional<String> second) {
     if (!first.isPresent()) {
       return second;
     } else if (!second.isPresent()) {
