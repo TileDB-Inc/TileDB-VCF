@@ -2,13 +2,12 @@ package io.tiledb.vcf;
 
 import io.netty.buffer.ArrowBuf;
 import io.tiledb.libvcfnative.VCFReader;
+import io.tiledb.util.CredentialProviderUtils;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import io.tiledb.util.CredentialProviderUtils;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.Float4Vector;
 import org.apache.arrow.vector.IntVector;
@@ -223,11 +222,14 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             + samplePartitionInfo.getNumPartitions());
     String uriString = datasetURI.toString();
 
-    Optional<String> credentialsCsv = options.getCredentialsProvider()
+    Optional<String> credentialsCsv =
+        options
+            .getCredentialsProvider()
             .map(CredentialProviderUtils::buildConfigMap)
             .flatMap(VCFDataSourceOptions::getConfigCSV);
 
-    Optional<String> configCsv = VCFDataSourceOptions.combineCsvOptions(options.getConfigCSV(), credentialsCsv);
+    Optional<String> configCsv =
+        VCFDataSourceOptions.combineCsvOptions(options.getConfigCSV(), credentialsCsv);
 
     vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), configCsv);
 
