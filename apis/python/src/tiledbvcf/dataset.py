@@ -17,7 +17,8 @@ ReadConfig = namedtuple('ReadConfig', [
     'memory_budget_mb',
     # List of strings of format 'option=value'
     'tiledb_config'
-], defaults=[None] * 6)
+])
+ReadConfig.__new__.__defaults__ = (None,) * 6#len(ReadConfig._fields)
 
 
 class TileDBVCFDataset(object):
