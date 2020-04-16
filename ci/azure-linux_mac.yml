@@ -16,3 +16,21 @@ steps:
     fi
 
   displayName: 'Build and test TileDB-VCF Spark API'
+
+- bash: |
+      set -e pipefail
+
+      if [[ "$BUILD_JAVA_API" == "ON" ]]; then
+        pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+
+        ./gradlew assemble
+
+        ./gradlew jar
+
+        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
+        ./gradlew test
+
+        ./gradlew checkFormat
+      fi
+
+  displayName: 'Build and test TileDB-VCF Java API'
