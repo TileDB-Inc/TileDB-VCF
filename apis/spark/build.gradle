@@ -65,6 +65,11 @@ task makeVCFJava(type: Exec) {
     args "publishToMavenLocal"
 }
 
+googleJavaFormat {
+    toolVersion = '1.7'
+    options style: 'GOOGLE'
+}
+
 task format(type: GoogleJavaFormat) {
     source = sourceSets*.allJava
     include '**/*.java'
@@ -79,7 +84,7 @@ task checkFormat(type: VerifyGoogleJavaFormat) {
 allprojects {
     afterEvaluate {
         for(def task in it.tasks)
-            if(task != rootProject.tasks.makeVCFJava)
+            if(task != rootProject.tasks.makeVCFJava && task != rootProject.tasks.format && task != rootProject.tasks.checkFormat)
                 task.dependsOn makeVCFJava
     }
 }
