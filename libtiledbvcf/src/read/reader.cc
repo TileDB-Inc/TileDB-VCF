@@ -359,8 +359,9 @@ bool Reader::next_read_batch() {
 
   // Sample handles
   read_state_.current_samples.clear();
-  // Resize based on capacity. If the samples are not linear the the index might be larger than the size
-  read_state_.current_samples.resize(samples.capacity());
+  // The samples should be of size to cover the entire range of the sample ids
+  read_state_.current_samples.resize(
+      read_state_.sample_max - read_state_.sample_min + 1);
   for (const auto& s : samples) {
     read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
   }
