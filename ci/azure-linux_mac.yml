@@ -1,4 +1,15 @@
 steps:
+
+- bash: |
+    echo "'uname -s' is:"
+    echo "uname: " $(uname)
+    echo "uname -m: " $(uname -m)
+    echo "uname -r:" $(uname -r)
+    echo "uname -s: " $(uname -s)
+    echo "uname -v: " $(uname -v)
+    printenv
+  displayName: 'Print env'
+
 - bash: |
     set -e pipefail
     brew install clang-format
