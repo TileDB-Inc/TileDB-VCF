@@ -93,4 +93,4 @@ steps:
   inputs:
     script: '../test/run-cli-tests.sh . ../test/inputs'
     workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
-    failOnStderr: true
+    failOnStderr: false
