@@ -100,8 +100,8 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      conda env create --file conda-env.yml
-      conda activate tiledbvcf-py
+      conda env create --quiet --file conda-env.yml
+      source activate tiledbvcf-py
       python setup.py install --user
     workingDirectory: '$(Build.SourcesDirectory)/apis/python'
     failOnStderr: true
