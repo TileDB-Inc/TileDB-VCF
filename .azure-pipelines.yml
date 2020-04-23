@@ -4,26 +4,93 @@ trigger:
     - master
     - release-*
 
-jobs:
-- job:
-  strategy:
-    matrix:
-      linux:
-        imageName: 'ubuntu-18.04'
-        python.version: '3.x'
-        CXX: g++
-        BUILD_PYTHON_API: ON
-        BUILD_SPARK_API: ON
-      macOS:
-        imageName: 'macOS-10.14'
-        python.version: '3.x'
-        CXX: clang++
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-18.04'
+      python.version: '3.x'
+      CXX: g++
+      BUILD_PYTHON_API: ON
+      BUILD_SPARK_API: ON
+    mac:
+      imageName: 'macOS-10.14'
+      python.version: '3.x'
+      CXX: clang++
 
-  pool:
-    vmImage: $(imageName)
+pool:
+  vmImage: $(imageName)
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '$(python.version)'
-      architecture: 'x64'
-  - template: ci/azure-linux_mac.yml
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+        architecture: 'x64'
+    - template: ci/azure-linux_mac.yml
+
+steps:
+
+- task: CmdLine@2
+  displayName: Print Environment
+  inputs:
+    script: |
+      echo "'uname -s' is:"
+      echo "uname: " $(uname)
+      echo "uname -m: " $(uname -m)
+      echo "uname -r:" $(uname -r)
+      echo "uname -s: " $(uname -s)
+      echo "uname -v: " $(uname -v)
+      printenv
+
+- task: CmdLine@2
+  displayName: Install Dependencies
+  inputs:
+    script: |
+      sudo apt update && sudo apt install -y \
+      automake \
+      autoconf \
+      libssl-dev \
+      libbz2-dev \
+      liblz4-dev \
+      libtbb-dev \
+      libcurl4-openssl-dev \
+      zlib1g-dev
+
+- task: CmdLine@2
+  displayName: Install bcftools
+  inputs:
+    script: |
+      wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
+      tar xfj bcftools-1.9.tar.bz2
+      cd bcftools-1.9
+      ./configure --prefix=/usr
+      make -j2
+      sudo make install
+    workingDirectory: '/tmp'
+    failOnStderr: true
+
+- task: CMake@1
+  inputs:
+    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+    cmakeArgs: -DCMAKE_INSTALL_PREFIX=$(Build.SourcesDirectory)/dist ..
+
+- task: CmdLine@2
+  displayName: Build
+  inputs:
+    script: |
+      make -j4
+      make -j4 -C libtiledbvcf tiledb_vcf_unit
+    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+    failOnStderr: true
+
+- task: CmdLine@2
+  displayName: Test C/C++ Libraries
+  inputs:
+    script: 'make check'
+    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+    failOnStderr: true
+
+- task: CmdLine@2
+  displayName: Test CLI
+  inputs:
+    script: '../test/run-cli-tests.sh . ../test/inputs'
+    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+    failOnStderr: true
