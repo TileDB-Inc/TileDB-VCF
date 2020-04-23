@@ -19,102 +19,10 @@ strategy:
 
 pool:
   vmImage: $(imageName)
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python.version)'
-        architecture: 'x64'
-    - template: ci/azure-linux_mac.yml
 
 steps:
-
-- task: CmdLine@2
-  displayName: Print Environment
+- task: UsePythonVersion@0
   inputs:
-    script: |
-      echo "'uname -s' is:"
-      echo "uname: " $(uname)
-      echo "uname -m: " $(uname -m)
-      echo "uname -r:" $(uname -r)
-      echo "uname -s: " $(uname -s)
-      echo "uname -v: " $(uname -v)
-      printenv
-
-- task: CmdLine@2
-  displayName: Install Dependencies
-  inputs:
-    script: |
-      sudo apt update && sudo apt install -y \
-      automake \
-      autoconf \
-      libssl-dev \
-      libbz2-dev \
-      liblz4-dev \
-      libtbb-dev \
-      libcurl4-openssl-dev \
-      zlib1g-dev
-
-- task: CmdLine@2
-  displayName: Install bcftools
-  inputs:
-    script: |
-      wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
-      tar xfj bcftools-1.9.tar.bz2
-      cd bcftools-1.9
-      ./configure --prefix=/usr
-      make -j2
-      sudo make install
-    workingDirectory: '/tmp'
-    failOnStderr: false
-
-- task: CMake@1
-  inputs:
-    workingDirectory: 'libtiledbvcf/build'
-    cmakeArgs: -DCMAKE_INSTALL_PREFIX=$(Build.SourcesDirectory)/dist ..
-
-- task: CmdLine@2
-  displayName: Build
-  inputs:
-    script: |
-      make -j4
-      make -j4 -C libtiledbvcf tiledb_vcf_unit
-    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
-    failOnStderr: true
-
-- task: CmdLine@2
-  displayName: Test C/C++ Libraries
-  inputs:
-    script: 'make check'
-    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
-    failOnStderr: true
-
-- task: CmdLine@2
-  displayName: Test CLI
-  inputs:
-    script: '../test/run-cli-tests.sh . ../test/inputs'
-    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
-    failOnStderr: false
-
-- task: Bash@3
-  displayName: Setup Conda
-  inputs:
-    targetType: 'inline'
-    script: |
-      echo "##vso[task.prependpath]$CONDA/bin"
-      conda config --set always_yes yes
-      conda update -c defaults conda
-    workingDirectory: '$(Build.SourcesDirectory)/apis/python'
-    failOnStderr: true
-
-- task: Bash@3
-  displayName: Build and Test Python API
-  condition: eq(variables['BUILD_PYTHON_API'], 'ON')
-  inputs:
-    targetType: 'inline'
-    script: |
-      conda env create --file conda-env.yml
-      source activate tiledbvcf-py
-      python setup.py install --user
-      python setup.py pytest
-    workingDirectory: '$(Build.SourcesDirectory)/apis/python'
-    failOnStderr: false
+    versionSpec: '$(python.version)'
+    architecture: 'x64'
+- template: ci/azure-linux_mac.yml
