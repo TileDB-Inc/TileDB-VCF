@@ -95,17 +95,11 @@ steps:
     conda env create --file conda-env.yml
     source activate tiledbvcf-py
     python setup.py install --user
+    python setup.py pytest
   condition: eq(variables['BUILD_PYTHON_API'], 'ON')
   failOnStderr: false
   workingDirectory: '$(Build.SourcesDirectory)/apis/python'
-  displayName: Build Python API
-
-- bash: |
-      python setup.py pytest
-  dependsOn: Build Python API
-  condition: succeeded()
-  workingDirectory: '$(Build.SourcesDirectory)/apis/python'
-  displayName: Test Python API
+  displayName: Build and Test Python API
 
 - bash: |
     set -e pipefail
