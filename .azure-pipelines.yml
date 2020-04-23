@@ -65,7 +65,7 @@ steps:
       make -j2
       sudo make install
     workingDirectory: '/tmp'
-    failOnStderr: true
+    failOnStderr: false
 
 - task: CMake@1
   inputs:
