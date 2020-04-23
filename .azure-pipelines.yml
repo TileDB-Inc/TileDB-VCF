@@ -69,7 +69,7 @@ steps:
 
 - task: CMake@1
   inputs:
-    workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+    workingDirectory: 'libtiledbvcf/build'
     cmakeArgs: -DCMAKE_INSTALL_PREFIX=$(Build.SourcesDirectory)/dist ..
 
 - task: CmdLine@2
@@ -94,3 +94,23 @@ steps:
     script: '../test/run-cli-tests.sh . ../test/inputs'
     workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
     failOnStderr: false
+
+- task: Bash@3
+  displayName: Build Python API
+  inputs:
+    targetType: 'inline'
+    script: |
+      conda env create --file conda-env.yml
+      conda activate tiledbvcf-py
+      python setup.py install --user
+    workingDirectory: '$(Build.SourcesDirectory)/apis/python'
+    failOnStderr: true
+
+- task: PythonScript@0
+  displayName: Build Python API
+  inputs:
+    scriptSource: 'filePath'
+    scriptPath: 'setup.py'
+    arguments: 'pytest'
+    workingDirectory: '$(Build.SourcesDirectory)/apis/python'
+    failOnStderr: true
