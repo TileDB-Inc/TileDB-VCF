@@ -12,10 +12,10 @@ strategy:
       CXX: g++
       BUILD_PYTHON_API: ON
       BUILD_SPARK_API: ON
-    mac:
-      imageName: 'macOS-10.14'
-      python.version: '3.x'
-      CXX: clang++
+    # mac:
+    #   imageName: 'macOS-10.14'
+    #   python.version: '3.x'
+    #   CXX: clang++
 
 pool:
   vmImage: $(imageName)
