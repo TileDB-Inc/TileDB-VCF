@@ -108,6 +108,7 @@ steps:
 
 - task: Bash@3
   displayName: Build and Test Python API
+  condition: eq(variables['BUILD_PYTHON_API'], 'ON')
   inputs:
     targetType: 'inline'
     script: |
