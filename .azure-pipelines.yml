@@ -107,21 +107,13 @@ steps:
     failOnStderr: true
 
 - task: Bash@3
-  displayName: Build Python API
+  displayName: Build and Test Python API
   inputs:
     targetType: 'inline'
     script: |
       conda env create --file conda-env.yml
       source activate tiledbvcf-py
       python setup.py install --user
+      python setup.py pytest
     workingDirectory: '$(Build.SourcesDirectory)/apis/python'
     failOnStderr: false
-
-- task: PythonScript@0
-  displayName: Test Python API
-  inputs:
-    scriptSource: 'filePath'
-    scriptPath: 'setup.py'
-    arguments: 'pytest'
-    workingDirectory: '$(Build.SourcesDirectory)/apis/python'
-    failOnStderr: true
