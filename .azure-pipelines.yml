@@ -25,4 +25,27 @@ steps:
   inputs:
     versionSpec: '$(python.version)'
     architecture: 'x64'
-- template: ci/azure-linux_mac.yml
+# - template: ci/azure-linux_mac.yml
+- task: Docker@2
+  inputs:
+    containerRegistry: 'Docker Hub'
+    repository: 'aaronwolen/tiledbvcf-cli'
+    command: 'buildAndPush'
+    Dockerfile: 'docker/Dockerfile-cli'
+    buildContext: 'libtiledbvcf'
+
+- task: Docker@2
+  inputs:
+    containerRegistry: 'Docker Hub'
+    repository: 'aaronwolen/tiledbvcf-py'
+    command: 'buildAndPush'
+    Dockerfile: 'docker/Dockerfile-py'
+    buildContext: '.'
+
+- task: Docker@2
+  inputs:
+    containerRegistry: 'Docker Hub'
+    repository: 'aaronwolen/tiledbvcf-dask'
+    command: 'buildAndPush'
+    Dockerfile: 'docker/Dockerfile-dask-py'
+    buildContext: '.'
