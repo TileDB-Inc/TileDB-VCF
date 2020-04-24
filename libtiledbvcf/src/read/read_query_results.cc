@@ -42,7 +42,7 @@ void ReadQueryResults::set_results(
   query_status_ = query.query_status();
 
   auto result_el = query.result_buffer_elements();
-  num_cells_ = result_el[TILEDB_COORDS].second / 2;
+  num_cells_ = result_el["sample"].second;
   alleles_size_ = result_el["alleles"];
   id_size_ = result_el["id"];
   filter_ids_size_ = result_el["filter_ids"];

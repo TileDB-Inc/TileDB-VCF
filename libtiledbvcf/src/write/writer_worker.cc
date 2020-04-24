@@ -175,8 +175,8 @@ bool WriterWorker::buffer_record(
   const uint32_t pos = contig_offset + r->pos;
   const uint32_t real_end = contig_offset + VCF::get_end_pos(hdr, r, &val_);
 
-  buffers_.coords().append(&row, sizeof(uint32_t));
-  buffers_.coords().append(&col, sizeof(uint32_t));
+  buffers_.sample().append(&row, sizeof(uint32_t));
+  buffers_.end_pos().append(&col, sizeof(uint32_t));
   buffers_.qual().append(&r->qual, sizeof(float));
   buffers_.pos().append(&pos, sizeof(uint32_t));
   buffers_.real_end().append(&real_end, sizeof(uint32_t));

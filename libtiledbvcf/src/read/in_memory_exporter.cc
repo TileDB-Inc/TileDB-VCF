@@ -124,8 +124,10 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
   for (const auto& it : user_buffers_) {
     switch (it.second.attr) {
       case ExportableAttribute::SampleName:
+        result.insert(TileDBVCFDataset::DimensionNames::sample);
+        break;
       case ExportableAttribute::PosEnd:
-        result.insert(TILEDB_COORDS);
+        result.insert(TileDBVCFDataset::DimensionNames::end_pos);
         break;
       case ExportableAttribute::PosStart:
         result.insert(TileDBVCFDataset::AttrNames::pos);
@@ -281,8 +283,7 @@ bool InMemoryExporter::export_record(
     UserBuffer& user_buff = it.second;
     switch (user_buff.attr) {
       case ExportableAttribute::SampleName: {
-        const uint32_t sample_id =
-            buffers->coords().value<uint32_t>(2 * cell_idx + 0);
+        const uint32_t sample_id = buffers->sample().value<uint32_t>(cell_idx);
         const std::string& sample_name =
             dataset_->metadata().sample_names[sample_id];
         overflow = !copy_cell(

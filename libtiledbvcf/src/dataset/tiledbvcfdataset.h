@@ -129,6 +129,14 @@ class TileDBVCFDataset {
   /**
    * String names for built-in attribute names in the data array.
    */
+  struct DimensionNames {
+    static const std::string sample;
+    static const std::string end_pos;
+  };
+
+  /**
+   * String names for built-in attribute names in the data array.
+   */
   struct AttrNames {
     static const std::string pos;
     static const std::string real_end;

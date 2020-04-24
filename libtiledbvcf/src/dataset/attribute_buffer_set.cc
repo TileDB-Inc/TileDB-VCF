@@ -25,43 +25,49 @@ void AttributeBufferSet::allocate_fixed(
   nbytes = mem_budget_mb == 0 ? 1024 : (mem_budget_mb * 1024 * 1024);
   num_offsets = nbytes / sizeof(uint64_t);
 
-  using names = TileDBVCFDataset::AttrNames;
+  using attrNames = TileDBVCFDataset::AttrNames;
+  using dimNames = TileDBVCFDataset::DimensionNames;
   for (const auto& s : attr_names) {
-    if (s == TILEDB_COORDS) {
-      coords_.resize(nbytes);
+    if (s == dimNames::sample) {
+      sample_.resize(nbytes);
       fixed_alloc_.emplace_back(
-          false, TILEDB_COORDS, &coords_, sizeof(uint32_t));
-    } else if (s == names::pos) {
+          false, dimNames::sample, &sample_, sizeof(uint32_t));
+    } else if (s == dimNames::end_pos) {
+      end_pos_.resize(nbytes);
+      fixed_alloc_.emplace_back(
+          false, dimNames::end_pos, &end_pos_, sizeof(uint32_t));
+    } else if (s == attrNames::pos) {
       pos_.resize(nbytes);
-      fixed_alloc_.emplace_back(false, names::pos, &pos_, sizeof(uint32_t));
-    } else if (s == names::real_end) {
+      fixed_alloc_.emplace_back(false, attrNames::pos, &pos_, sizeof(uint32_t));
+    } else if (s == attrNames::real_end) {
       real_end_.resize(nbytes);
       fixed_alloc_.emplace_back(
-          false, names::real_end, &real_end_, sizeof(uint32_t));
-    } else if (s == names::qual) {
+          false, attrNames::real_end, &real_end_, sizeof(uint32_t));
+    } else if (s == attrNames::qual) {
       qual_.resize(nbytes);
-      fixed_alloc_.emplace_back(false, names::qual, &qual_, sizeof(float));
-    } else if (s == names::alleles) {
+      fixed_alloc_.emplace_back(false, attrNames::qual, &qual_, sizeof(float));
+    } else if (s == attrNames::alleles) {
       alleles_.resize(nbytes);
       alleles_.offsets().resize(num_offsets);
-      fixed_alloc_.emplace_back(true, names::alleles, &alleles_, sizeof(char));
-    } else if (s == names::id) {
+      fixed_alloc_.emplace_back(
+          true, attrNames::alleles, &alleles_, sizeof(char));
+    } else if (s == attrNames::id) {
       id_.resize(nbytes);
       id_.offsets().resize(num_offsets);
-      fixed_alloc_.emplace_back(true, names::id, &id_, sizeof(char));
-    } else if (s == names::filter_ids) {
+      fixed_alloc_.emplace_back(true, attrNames::id, &id_, sizeof(char));
+    } else if (s == attrNames::filter_ids) {
       filter_ids_.resize(nbytes);
       filter_ids_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(
-          true, names::filter_ids, &filter_ids_, sizeof(int32_t));
-    } else if (s == names::info) {
+          true, attrNames::filter_ids, &filter_ids_, sizeof(int32_t));
+    } else if (s == attrNames::info) {
       info_.resize(nbytes);
       info_.offsets().resize(num_offsets);
-      fixed_alloc_.emplace_back(true, names::info, &info_, sizeof(char));
-    } else if (s == names::fmt) {
+      fixed_alloc_.emplace_back(true, attrNames::info, &info_, sizeof(char));
+    } else if (s == attrNames::fmt) {
       fmt_.resize(nbytes);
       fmt_.offsets().resize(num_offsets);
-      fixed_alloc_.emplace_back(true, names::fmt, &fmt_, sizeof(char));
+      fixed_alloc_.emplace_back(true, attrNames::fmt, &fmt_, sizeof(char));
     } else {
       Buffer& buff = extra_attrs_[s];
       buff.resize(nbytes);
@@ -75,7 +81,8 @@ uint64_t AttributeBufferSet::total_size() const {
   uint64_t total_size = 0;
 
   // Fixed-len attributes
-  total_size += coords_.size();
+  total_size += sample_.size();
+  total_size += end_pos_.size();
   total_size += pos_.size();
   total_size += real_end_.size();
   total_size += qual_.size();
@@ -104,7 +111,8 @@ uint64_t AttributeBufferSet::total_size() const {
 
 void AttributeBufferSet::clear() {
   // Fixed-len attributes
-  coords_.clear();
+  sample_.clear();
+  end_pos_.clear();
   pos_.clear();
   real_end_.clear();
   qual_.clear();
@@ -132,7 +140,13 @@ void AttributeBufferSet::set_buffers(tiledb::Query* query) const {
   if (fixed_alloc_.empty()) {
     // Set all buffers
     query->set_buffer(
-        TILEDB_COORDS, coords_.data<void>(), coords_.nelts<uint32_t>());
+        TileDBVCFDataset::DimensionNames::sample,
+        sample_.data<void>(),
+        sample_.nelts<uint32_t>());
+    query->set_buffer(
+        TileDBVCFDataset::DimensionNames::end_pos,
+        end_pos_.data<void>(),
+        end_pos_.nelts<uint32_t>());
     query->set_buffer(
         TileDBVCFDataset::AttrNames::pos,
         pos_.data<void>(),
@@ -206,12 +220,20 @@ void AttributeBufferSet::set_buffers(tiledb::Query* query) const {
   }
 }
 
-const Buffer& AttributeBufferSet::coords() const {
-  return coords_;
+const Buffer& AttributeBufferSet::sample() const {
+  return sample_;
 }
 
-Buffer& AttributeBufferSet::coords() {
-  return coords_;
+Buffer& AttributeBufferSet::sample() {
+  return sample_;
+}
+
+const Buffer& AttributeBufferSet::end_pos() const {
+  return end_pos_;
+}
+
+Buffer& AttributeBufferSet::end_pos() {
+  return end_pos_;
 }
 
 const Buffer& AttributeBufferSet::pos() const {

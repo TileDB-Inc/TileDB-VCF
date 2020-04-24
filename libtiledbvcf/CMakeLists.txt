@@ -47,7 +47,7 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
 # Release builds by default.
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
 # Root directory default installation prefix
@@ -69,11 +69,13 @@ if (APPLE)
 endif()
 
 # Add some global compiler flags
-if (CMAKE_BUILD_TYPE MATCHES "Debug")
+string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
+if (BUILD_TYPE STREQUAL "DEBUG")
   add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
-elseif (CMAKE_BUILD_TYPE MATCHES "Release")
+elseif (BUILD_TYPE STREQUAL "RELEASE")
   add_compile_options(-DNDEBUG -O3 -Wall -Werror)
 endif()
+add_compile_options(-Wno-error=deprecated-declarations)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 ############################################################
