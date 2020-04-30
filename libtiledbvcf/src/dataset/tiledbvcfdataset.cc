@@ -36,6 +36,8 @@
 
 namespace tiledb {
 namespace vcf {
+const std::string TileDBVCFDataset::DimensionNames::sample = "sample";
+const std::string TileDBVCFDataset::DimensionNames::end_pos = "end_pos";
 
 const std::string TileDBVCFDataset::AttrNames::pos = "pos";
 const std::string TileDBVCFDataset::AttrNames::real_end = "real_end";
@@ -148,9 +150,15 @@ void TileDBVCFDataset::create_empty_data_array(
     const auto sample_dom_max =
         dom_max - static_cast<uint32_t>(metadata.row_tile_extent);
     auto sample = Dimension::create<uint32_t>(
-        ctx, "sample", {{dom_min, sample_dom_max}}, metadata.row_tile_extent);
+        ctx,
+        DimensionNames::sample,
+        {{dom_min, sample_dom_max}},
+        metadata.row_tile_extent);
     auto end_pos = Dimension::create<uint32_t>(
-        ctx, "end_pos", {{dom_min, dom_max}}, dom_max - dom_min + 1);
+        ctx,
+        DimensionNames::end_pos,
+        {{dom_min, dom_max}},
+        dom_max - dom_min + 1);
     domain.add_dimensions(sample, end_pos);
   }
   schema.set_domain(domain);
@@ -446,14 +454,14 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   auto result_el = query.result_buffer_elements();
   auto num_offsets = result_el["header"].first;
   auto num_chars = result_el["header"].second;
-  if (num_chars == 0 || subarray[1] - subarray[0] + 1 != num_offsets)
+  if (num_chars == 0 || sample_id_max - sample_id_min + 1 != num_offsets)
     throw std::runtime_error(
         "Error fetching VCF header data; unexpected query result size.");
 
   // Parse headers from text
-  for (uint32_t i = subarray[0]; i <= subarray[1]; i++) {
+  for (uint32_t i = sample_id_min; i <= sample_id_max; i++) {
     // Make a copy into a std::string to ensure null termination.
-    uint32_t ibase = i - subarray[0];
+    uint32_t ibase = i - sample_id_min;
     uint64_t offset = offsets[ibase];
     uint64_t next_offset =
         ibase < num_offsets - 1 ? offsets[ibase + 1] : num_chars;
@@ -806,8 +814,9 @@ std::set<std::string> TileDBVCFDataset::builtin_attributes() {
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
-  return attr == TILEDB_COORDS || attr == AttrNames::pos ||
-         attr == AttrNames::real_end || attr == AttrNames::qual;
+  return attr == DimensionNames::sample || attr == DimensionNames::end_pos ||
+         attr == AttrNames::pos || attr == AttrNames::real_end ||
+         attr == AttrNames::qual;
 }
 
 std::set<std::string> TileDBVCFDataset::all_attributes() const {

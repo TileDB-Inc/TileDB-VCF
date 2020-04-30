@@ -519,15 +519,14 @@ bool Reader::process_query_results() {
 
   // Get the contig offset and length of the first cell in the results.
   uint32_t first_col =
-      results.buffers()->coords().value<uint32_t>(2 * read_state_.cell_idx + 1);
+      results.buffers()->end_pos().value<uint32_t>(read_state_.cell_idx);
   auto contig_info = dataset_->contig_from_column(first_col);
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
-    const uint32_t sample_id =
-        results.buffers()->coords().value<uint32_t>(2 * i + 0);
-    const uint32_t end = results.buffers()->coords().value<uint32_t>(2 * i + 1);
+    const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
+    const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
     const uint32_t start = results.buffers()->pos().value<uint32_t>(i);
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
 
@@ -676,9 +675,8 @@ bool Reader::report_cell(
   }
 
   const auto& results = read_state_.query_results;
-  uint32_t samp_idx =
-      results.buffers()->coords().value<uint32_t>(2 * cell_idx + 0) -
-      read_state_.sample_min;
+  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx) -
+                      read_state_.sample_min;
   const auto& sample = read_state_.current_samples[samp_idx];
   const auto& hdr = read_state_.current_hdrs[samp_idx];
 
@@ -898,7 +896,8 @@ void Reader::prepare_regions(
 
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
-  std::set<std::string> attrs = {TILEDB_COORDS,
+  std::set<std::string> attrs = {TileDBVCFDataset::DimensionNames::sample,
+                                 TileDBVCFDataset::DimensionNames::end_pos,
                                  TileDBVCFDataset::AttrNames::pos,
                                  TileDBVCFDataset::AttrNames::real_end};
 

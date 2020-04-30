@@ -68,11 +68,17 @@ class AttributeBufferSet {
   /** Clears all buffers. */
   void clear();
 
-  /** Coords buffer. */
-  const Buffer& coords() const;
+  /** sample buffer. */
+  const Buffer& sample() const;
 
-  /** Coords buffer. */
-  Buffer& coords();
+  /** sample buffer. */
+  Buffer& sample();
+
+  /** end_pos buffer. */
+  const Buffer& end_pos() const;
+
+  /** end_pos buffer. */
+  Buffer& end_pos();
 
   /** pos buffer. */
   const Buffer& pos() const;
@@ -141,8 +147,11 @@ class AttributeBufferSet {
   bool extra_attr(const std::string& name, Buffer** buffer);
 
  private:
-  /** coords (uint32_t) */
-  Buffer coords_;
+  /** sample (uint32_t) */
+  Buffer sample_;
+
+  /** end_pos (uint32_t) */
+  Buffer end_pos_;
 
   /** pos attribute (uint32_t) */
   Buffer pos_;
