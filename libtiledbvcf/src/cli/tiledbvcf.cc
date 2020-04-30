@@ -247,7 +247,12 @@ int main(int argc, char** argv) {
                create_args.checksum = TILEDB_FILTER_CHECKSUM_MD5;
              else if (s == "none")
                create_args.checksum = TILEDB_FILTER_NONE;
-           }));
+           }),
+       option("-d", "--duplicates_allowed") %
+               defaulthelp(
+                   "Whether duplicate coordinates are allowed for the array ",
+                   create_args.allow_duplicates) &
+           value("N", create_args.allow_duplicates));
 
   RegistrationParams register_args;
   auto register_mode =

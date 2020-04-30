@@ -58,6 +58,7 @@ void Writer::init(
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+  creation_params_.allow_duplicates = true;
 }
 
 void Writer::set_all_params(const IngestionParams& params) {
@@ -87,6 +88,10 @@ void Writer::set_checksum_type(const int& checksum) {
 
 void Writer::set_checksum_type(const tiledb_filter_type_t& checksum) {
   creation_params_.checksum = checksum;
+}
+
+void Writer::set_allow_duplicates(const bool& allow_duplicates) {
+  creation_params_.allow_duplicates = allow_duplicates;
 }
 
 void Writer::create_dataset() {

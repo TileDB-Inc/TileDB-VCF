@@ -63,6 +63,11 @@ class Writer {
   */
   void set_checksum(const std::string& checksum);
 
+  /**
+    [Creation only] Sets whether duplicates are allowed in the array
+  */
+  void set_allow_duplicates(const bool& allow_duplicates);
+
   void create_dataset();
 
   void register_samples();

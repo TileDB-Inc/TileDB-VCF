@@ -168,7 +168,7 @@ class TileDBVCFDataset(object):
 
         return self.reader.result_num_records()
 
-    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None):
+    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True):
         """Ingest samples
 
         :param list of str samples: CSV list of sample names to include in
@@ -187,6 +187,8 @@ class TileDBVCFDataset(object):
         if checksum_type is not None:
             checksum_type = checksum_type.lower()
             self.writer.set_checksum(checksum_type)
+
+        self.writer.set_allow_duplicates(allow_duplicates)
 
         self.writer.set_samples(','.join(sample_uris))
 
