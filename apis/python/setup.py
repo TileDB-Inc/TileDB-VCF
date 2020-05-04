@@ -253,7 +253,8 @@ setup(
         'setuptools>=18.0',
         'setuptools_scm>=1.5.4',
         'wheel>=0.30',
-        'pybind11>=2.3.0'
+        'pybind11>=2.3.0',
+        'setuptools_scm_git_archive'
     ],
     install_requires=[],
     tests_require=[],
