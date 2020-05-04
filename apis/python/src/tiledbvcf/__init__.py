@@ -34,3 +34,5 @@ try:
     from . import dask_functions
 except ImportError:
     pass
+
+from .version import version

@@ -239,7 +239,6 @@ class BdistWheelCmd(bdist_wheel):
 
 setup(
     name='tiledbvcf',
-    version='0.1.0',
     description='Efficient variant-call data storage and retrieval library '
                 'using the TileDB storage library.',
     author='TileDB, Inc.',
@@ -250,7 +249,12 @@ setup(
     license='MIT',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    setup_requires=[],
+    setup_requires=[
+        'setuptools>=18.0',
+        'setuptools_scm>=1.5.4',
+        'wheel>=0.30',
+        'pybind11>=2.3.0'
+    ],
     install_requires=[],
     tests_require=[],
     test_suite='tests',
@@ -258,6 +262,13 @@ setup(
     cmdclass={'build_ext': BuildExtCmd, 'bdist_egg': BdistEggCmd,
               'bdist_wheel': BdistWheelCmd},
     zip_safe=False,
+    use_scm_version={
+        "version_scheme": "guess-next-dev",
+        "local_scheme": "dirty-tag",
+        "write_to": "apis/python/src/tiledbvcf/version.py",
+        "root": "../..",
+        "relative_to": __file__,
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
