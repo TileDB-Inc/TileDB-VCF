@@ -27,12 +27,14 @@ steps:
     architecture: 'x64'
 # - template: ci/azure-linux_mac.yml
 - task: Docker@2
+  condition: eq(variables['build.sourceBranch'], 'refs/heads/master')
   inputs:
     containerRegistry: 'Docker Hub'
     repository: 'aaronwolen/tiledbvcf-cli'
     command: 'buildAndPush'
     Dockerfile: 'docker/Dockerfile-cli'
     buildContext: 'libtiledbvcf'
+
 
 # - task: Docker@2
 #   inputs:
