@@ -42,15 +42,15 @@ jobs:
     matrix:
       cli:
         dockerfile: docker/Dockerfile-cli
-        repository: aaronwolen/tiledbvcf-cli
+        repository: tiledb/tiledbvcf-cli
         context: libtiledbvcf
       python:
         dockerfile: docker/Dockerfile-py
-        repository: aaronwolen/tiledbvcf-py
+        repository: tiledb/tiledbvcf-py
         context: .
       dask:
         dockerfile: docker/Dockerfile-dask-py
-        repository: aaronwolen/tiledbvcf-dask
+        repository: tiledb/tiledbvcf-dask
         context: .
 
   steps:
