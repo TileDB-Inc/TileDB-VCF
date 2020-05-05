@@ -1,4 +1,15 @@
 steps:
+
+- bash: |
+    echo "'uname -s' is:"
+    echo "uname: " $(uname)
+    echo "uname -m: " $(uname -m)
+    echo "uname -r:" $(uname -r)
+    echo "uname -s: " $(uname -s)
+    echo "uname -v: " $(uname -v)
+    printenv
+  displayName: Print Environment
+
 - bash: |
     set -e pipefail
     brew install clang-format
@@ -7,113 +18,110 @@ steps:
     ci/run-clang-format.sh $src clang-format 0 \
       $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
   condition: eq(variables['Agent.OS'], 'Darwin')
-  displayName: 'Check formatting (macOS only)'
+  displayName: Check formatting (macOS only)
 
 - bash: |
-    set -e pipefail
-    # Install bcftools (only required for running the CLI tests)
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        pushd /tmp
-        wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
-        tar xfj bcftools-1.9.tar.bz2
-        cd bcftools-1.9
-        ./configure --prefix=/usr
-        make -j2
-        sudo make install
-        popd
-    else
-        brew install bcftools
-    fi
+    sudo apt update && sudo apt install -y \
+      automake \
+      autoconf \
+      libssl-dev \
+      libbz2-dev \
+      liblz4-dev \
+      libtbb-dev \
+      libcurl4-openssl-dev \
+      zlib1g-dev
 
-    # Install autoconf/automake (required for htslib)
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        sudo apt update && sudo apt install -y automake autoconf
-    fi
-
-    # Install some extra dependencies to speed up the core TileDB build
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        sudo apt install -y libssl-dev libbz2-dev liblz4-dev libtbb-dev libcurl4-openssl-dev zlib1g-dev
-    fi
-  displayName: 'Install dependencies'
+    wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
+    tar xfj bcftools-1.9.tar.bz2
+    cd bcftools-1.9
+    ./configure --prefix=/usr
+    make -j2
+    sudo make install
+  condition: eq(variables['Agent.OS'], 'Linux')
+  workingDirectory: '/tmp'
+  displayName: Install Dependencies
 
 - bash: |
-    # azure bash does not treat intermediate failure as error
-    # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
-    set -e pipefail
+    brew install autoconf bcftools
+  condition: eq(variables['Agent.OS'], 'Darwin')
+  displayName: Install Dependencies
 
-    # Azure sets "SYSTEM=build" for unknown reasons, which breaks the OpenSSL configure script (in TileDB itself)
-    #   - openssl configure uses ENV{SYSTEM} if available:
-    #     https://github.com/openssl/openssl/blob/6d745d740d37d680ff696486218b650512bbbbc6/config#L56
-    #   - error description:
-    #     https://developercommunity.visualstudio.com/content/problem/602584/openssl-build-error-when-using-pipelines.htm
-    unset SYSTEM
+- task: CMake@1
+  displayName: Configure
+  inputs:
+    workingDirectory: 'libtiledbvcf/build'
+    cmakeArgs: -DCMAKE_INSTALL_PREFIX=$(Build.SourcesDirectory)/dist ..
 
-    # Configure and build TileDB-VCF
-    mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist ..
-
+- bash: |
     make -j4
     make -j4 -C libtiledbvcf tiledb_vcf_unit
+  workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+  displayName: Build
+
+- bash: |
     make check
-    ../test/run-cli-tests.sh . ../test/inputs
-
     make install-libtiledbvcf
+  workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+  displayName: Test C/C++ Libraries
 
-  displayName: 'Build and test TileDB-VCF'
+- bash: |
+    ../test/run-cli-tests.sh . ../test/inputs
+  workingDirectory: '$(Build.SourcesDirectory)/libtiledbvcf/build'
+  displayName: Test CLI
+
+- bash: |
+    echo "##vso[task.prependpath]$CONDA/bin"
+    if [[ "$AGENT_OS" == "Darwin" ]]; then
+      # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
+      # We need to take ownership if we want to update conda or install packages globally
+      sudo chown -R $USER $CONDA
+    fi
+    conda config --set always_yes yes
+    conda update -c defaults conda
+  condition: eq(variables['BUILD_PYTHON_API'], 'ON')
+  workingDirectory: '$(Build.SourcesDirectory)/apis/python'
+  displayName: Setup Conda
 
 - bash: |
     set -ex pipefail
-
-    if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-      # Add conda to PATH
-      echo "##vso[task.prependpath]$CONDA/bin"
-
-      if [[ "$AGENT_OS" == "Darwin" ]]; then
-        # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
-        # We need to take ownership if we want to update conda or install packages globally
-        sudo chown -R $USER $CONDA
-      fi
-
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
-      conda env create --file conda-env.yml
-      # Note that 'conda init' doesn't seem to work directly.
-      source $CONDA/etc/profile.d/conda.sh
-      conda activate tiledbvcf-py
-      python setup.py install --user
-      python setup.py pytest
+    echo "##vso[task.prependpath]$CONDA/bin"
+    if [[ "$AGENT_OS" == "Darwin" ]]; then
+      # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
+      # We need to take ownership if we want to update conda or install packages globally
+      sudo chown -R $USER $CONDA
     fi
-
-  displayName: 'Build and test TileDB-VCF Python API'
+    conda config --set always_yes yes
+    conda update -c defaults conda
+    conda env create --file conda-env.yml
+    source activate tiledbvcf-py
+    python setup.py install --user
+    python setup.py pytest
+  condition: eq(variables['BUILD_PYTHON_API'], 'ON')
+  failOnStderr: false
+  workingDirectory: '$(Build.SourcesDirectory)/apis/python'
+  displayName: Build and Test Python API
 
 - bash: |
     set -e pipefail
-
-    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
-
-      ./gradlew assemble
-
-      ./gradlew jar
-
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-      ./gradlew test
-
-      ./gradlew checkFormat
-    fi
-
-  displayName: 'Build and test TileDB-VCF Spark API'
+    ./gradlew assemble
+    ./gradlew jar
+    export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+    ./gradlew test
+    ./gradlew checkFormat
+  condition: eq(variables['BUILD_SPARK_API'], 'ON')
+  workingDirectory: '$(Build.SourcesDirectory)/apis/spark'
+  displayName: Build and Test Spark API
 
 - bash: |
-      set -e pipefail
-      # Display log files if the build failed
-      echo "Dumping log files for failed build"
-      echo "----------------------------------"
-      for f in $(find $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build -name *.log);
-        do echo "------"
-           echo $f
-           echo "======"
-           cat $f
-        done;
+    set -e pipefail
+    # Display log files if the build failed
+    echo "Dumping log files for failed build"
+    echo "----------------------------------"
+    for f in $(find $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build -name *.log);
+      do echo "------"
+          echo $f
+          echo "======"
+          cat $f
+      done;
   condition: failed() # only run this job if the build step failed
   displayName: "Print log files (failed build only)"

@@ -4,25 +4,50 @@ trigger:
     - master
     - release-*
 
-jobs:
-- job:
-  strategy:
-    matrix:
-      ubuntu_16:
-        imageName: 'ubuntu-18.04'
-        python.version: '3.x'
-        CXX: g++
-        BUILD_PYTHON_API: ON
-        BUILD_SPARK_API: ON
-#      macOS:
-#        imageName: 'macOS-10.13'
-#        CXX: clang++
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-18.04'
+      python.version: '3.x'
+      CXX: g++
+      BUILD_PYTHON_API: ON
+      BUILD_SPARK_API: ON
+    # mac:
+    #   imageName: 'macOS-10.14'
+    #   python.version: '3.x'
+    #   CXX: clang++
 
-  pool:
-    vmImage: $(imageName)
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '$(python.version)'
-      architecture: 'x64'
-  - template: ci/azure-linux_mac.yml
+pool:
+  vmImage: $(imageName)
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+    architecture: 'x64'
+# - template: ci/azure-linux_mac.yml
+- task: Docker@2
+  condition: eq(variables['build.sourceBranch'], 'refs/heads/master')
+  inputs:
+    containerRegistry: 'Docker Hub'
+    repository: 'aaronwolen/tiledbvcf-cli'
+    command: 'buildAndPush'
+    Dockerfile: 'docker/Dockerfile-cli'
+    buildContext: 'libtiledbvcf'
+
+
+# - task: Docker@2
+#   inputs:
+#     containerRegistry: 'Docker Hub'
+#     repository: 'aaronwolen/tiledbvcf-py'
+#     command: 'buildAndPush'
+#     Dockerfile: 'docker/Dockerfile-py'
+#     buildContext: '.'
+
+# - task: Docker@2
+#   inputs:
+#     containerRegistry: 'Docker Hub'
+#     repository: 'aaronwolen/tiledbvcf-dask'
+#     command: 'buildAndPush'
+#     Dockerfile: 'docker/Dockerfile-dask-py'
+#     buildContext: '.'
