@@ -8,7 +8,7 @@ jobs:
 - job:
   strategy:
     matrix:
-      ubuntu_16:
+      ubuntu_18:
         imageName: 'ubuntu-18.04'
         python.version: '3.x'
         CXX: g++
