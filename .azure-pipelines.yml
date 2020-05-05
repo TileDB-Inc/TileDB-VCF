@@ -30,7 +30,7 @@ jobs:
       architecture: 'x64'
   - template: ci/azure-linux_mac.yml
 
-- job:
+- job: Images
   dependsOn: Build
   condition: |
     or(
