@@ -7,7 +7,7 @@ steps:
       repository: $(repository)
       command: 'buildAndPush'
       Dockerfile: $(dockerfile)
-      buildContext: '.'
+      buildContext: $(context)
       tags: latest
 
   - task: Docker@2
@@ -18,5 +18,5 @@ steps:
       repository: $(repository)
       command: 'buildAndPush'
       Dockerfile: $(dockerfile)
-      buildContext: '.'
+      buildContext: $(context)
       tags: $(Build.SourceBranchName)
