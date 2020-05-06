@@ -1,0 +1,22 @@
+steps:
+
+  - task: Docker@2
+    displayName: Docker image (latest)
+    inputs:
+      containerRegistry: 'dockerHub'
+      repository: $(repository)
+      command: 'buildAndPush'
+      Dockerfile: $(dockerfile)
+      buildContext: $(context)
+      tags: latest
+
+  - task: Docker@2
+    displayName: Docker image (tagged release)
+    condition: startsWith(variables['build.sourceBranch'], 'refs/tags')
+    inputs:
+      containerRegistry: 'dockerHub'
+      repository: $(repository)
+      command: 'buildAndPush'
+      Dockerfile: $(dockerfile)
+      buildContext: $(context)
+      tags: $(Build.SourceBranchName)

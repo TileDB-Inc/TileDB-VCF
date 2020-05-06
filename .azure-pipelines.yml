@@ -3,12 +3,15 @@ trigger:
     include:
     - master
     - release-*
+  tags:
+    include:
+      - "*"
 
 jobs:
-- job:
+- job: Build
   strategy:
     matrix:
-      ubuntu_16:
+      ubuntu_18:
         imageName: 'ubuntu-18.04'
         python.version: '3.x'
         CXX: g++
@@ -26,3 +29,29 @@ jobs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
   - template: ci/azure-linux_mac.yml
+
+- job: Docker
+  dependsOn: Build
+  condition: |
+    or(
+      eq(variables['build.sourceBranch'], 'refs/heads/master'),
+      startsWith(variables['build.sourceBranch'], 'refs/tags')
+    )
+
+  strategy:
+    matrix:
+      cli:
+        dockerfile: docker/Dockerfile-cli
+        repository: tiledb/tiledbvcf-cli
+        context: libtiledbvcf
+      # python:
+      #   dockerfile: docker/Dockerfile-py
+      #   repository: tiledb/tiledbvcf-py
+      #   context: .
+      # dask:
+      #   dockerfile: docker/Dockerfile-dask-py
+      #   repository: tiledb/tiledbvcf-dask
+      #   context: .
+
+  steps:
+  - template: ci/build-images.yml
