@@ -19,7 +19,7 @@ function clean_up {
     rm -rf ingested_1 ingested_2 ingested_3 ingested_3_attrs \
            ingested_1_2 ingested_1_2_vcf ingested_3_samples ingested_comb ingested_append \
            ingested_from_file ingested_diff_order ingested_buffered \
-           ingested_sep_indexes \
+           ingested_sep_indexes ingested_dupe_end_pos \
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
            region-map.txt pfx.tsv
     rm -rf "$upload_dir"
