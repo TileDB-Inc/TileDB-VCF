@@ -199,6 +199,30 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1last_1error_1message
   (JNIEnv *, jclass, jlong);
 
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_tiledb_stats_enabled
+ * Signature: (JZ)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1stats_1enabled
+  (JNIEnv *, jclass, jlong, jboolean);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_tiledb_stats_enabled
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats_1enabled
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_tiledb_stats
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats
+  (JNIEnv *, jclass, jlong);
+
 #ifdef __cplusplus
 }
 #endif

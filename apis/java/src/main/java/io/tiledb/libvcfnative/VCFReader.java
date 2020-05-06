@@ -355,6 +355,27 @@ public class VCFReader implements AutoCloseable {
     }
   }
 
+  public VCFReader setStatsEnabled(boolean statsEnabled) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_tiledb_stats_enabled(this.readerPtr, statsEnabled);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting stats enabled: " + msg);
+    }
+    return this;
+  }
+
+  public boolean getStatsEnabled() {
+    boolean statsEnabled = LibVCFNative.tiledb_vcf_reader_tiledb_stats_enabled(this.readerPtr);
+
+    return statsEnabled;
+  }
+
+  public String stats() {
+    String stats = LibVCFNative.tiledb_vcf_reader_tiledb_stats(this.readerPtr);
+
+    return stats;
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {

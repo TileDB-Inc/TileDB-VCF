@@ -79,6 +79,7 @@ struct ExportParams {
   bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
+  bool tiledb_stats_enabled = false;
 
   // Memory/performance params:
   unsigned memory_budget_mb = 2 * 1024;
@@ -191,6 +192,15 @@ class Reader {
 
   /** Sets TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);
+
+  /** Enable tiledb stats */
+  void set_tiledb_stats_enabled(bool stats_enabled);
+
+  /** Returns if tiledb stats are enabled */
+  void tiledb_stats_enabled(bool* enabled);
+
+  /** Fetches tiledb stats as a string */
+  void tiledb_stats(char** stats);
 
   /** Returns the read status of the last read operation. */
   ReadStatus read_status() const;

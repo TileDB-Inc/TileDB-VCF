@@ -181,4 +181,29 @@ public class VCFReaderTest {
 
     Assert.assertEquals(results, BED_FILE_EXPECTED_RECORDS);
   }
+
+  @Test
+  public void testSetStatsEnabled() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+
+    reader.setStatsEnabled(true);
+  }
+
+  @Test
+  public void testGetStatsEnabled() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+
+    Assert.assertFalse(reader.getStatsEnabled());
+    reader.setStatsEnabled(true);
+    Assert.assertTrue(reader.getStatsEnabled());
+    reader.setStatsEnabled(false);
+    Assert.assertFalse(reader.getStatsEnabled());
+  }
+
+  @Test
+  public void testStats() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    reader.setStatsEnabled(true);
+    Assert.assertNotNull(reader.stats());
+  }
 }

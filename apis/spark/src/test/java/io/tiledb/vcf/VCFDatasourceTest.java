@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.log4j.Level;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -43,6 +44,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("samples", "HG01762,HG00280")
             .option("ranges", "1:12100-13360,1:13500-17350")
             .option("tiledb.vfs.num_threads", 1)
+            .option("tiledb_stats_log_level", Level.INFO.toString())
             .load();
     return dfRead;
   }

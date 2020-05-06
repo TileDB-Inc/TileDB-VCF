@@ -24,7 +24,7 @@ ReadConfig.__new__.__defaults__ = (None,) * 6#len(ReadConfig._fields)
 class TileDBVCFDataset(object):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode='r', cfg=None):
+    def __init__(self, uri, mode='r', cfg=None, stats=False):
         """ Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
@@ -38,6 +38,7 @@ class TileDBVCFDataset(object):
             self.reader = libtiledbvcf.Reader()
             self._set_read_cfg(cfg)
             self.reader.init(uri)
+            self.reader.set_tiledb_stats_enabled(stats)
         elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
             self.writer.init(uri)
@@ -199,3 +200,12 @@ class TileDBVCFDataset(object):
         self.writer.create_dataset()
         self.writer.register_samples()
         self.writer.ingest_samples()
+
+    def tiledb_stats(self):
+        if self.mode != 'r':
+            raise Exception('Stats can only be called for reader')
+
+        if not self.reader.get_tiledb_stats_enabled:
+            raise Exception('Stats not enabled')
+
+        return self.reader.get_tiledb_stats();

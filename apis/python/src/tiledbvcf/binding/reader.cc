@@ -76,6 +76,11 @@ void Reader::set_attributes(const std::vector<std::string>& attributes) {
   attributes_ = attributes;
 }
 
+void Reader::set_tiledb_stats_enabled(const bool stats_enabled) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_tiledb_stats_enabled(reader, stats_enabled));
+}
+
 void Reader::set_samples(const std::string& samples) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_samples(reader, samples.c_str()));
@@ -323,6 +328,20 @@ bool Reader::completed() {
   tiledb_vcf_read_status_t status;
   check_error(reader, tiledb_vcf_reader_get_status(reader, &status));
   return status == TILEDB_VCF_COMPLETED;
+}
+
+bool Reader::get_tiledb_stats_enabled() {
+  auto reader = ptr.get();
+  bool stats_enabled;
+  check_error(reader, tiledb_vcf_reader_get_tiledb_stats_enabled(reader, &stats_enabled));
+  return stats_enabled;
+}
+
+std::string  Reader::get_tiledb_stats() {
+  auto reader = ptr.get();
+  char* stats;
+  check_error(reader, tiledb_vcf_reader_get_tiledb_stats(reader, &stats));
+  return std::string(stats);
 }
 
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {

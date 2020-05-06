@@ -170,6 +170,20 @@ uint64_t Reader::num_records_exported() const {
   return read_state_.last_num_records_exported;
 }
 
+void Reader::set_tiledb_stats_enabled(bool stats_enabled) {
+  params_.tiledb_stats_enabled = stats_enabled;
+}
+
+void Reader::tiledb_stats_enabled(bool* enabled) {
+  *enabled = params_.tiledb_stats_enabled;
+}
+
+void Reader::tiledb_stats(char** stats) {
+  auto rc = tiledb_stats_dump_str(stats);
+  if (rc != TILEDB_OK)
+    throw std::runtime_error("Error dumping tiledb statistics");
+}
+
 void Reader::dataset_version(int32_t* version) const {
   if (dataset_ == nullptr)
     throw std::runtime_error(
@@ -246,6 +260,16 @@ void Reader::get_buffer_validity_bitmap(
 }
 
 void Reader::read() {
+  // If the user requests stats, enable them on read
+  // Multiple calls to enable stats has no effect
+  if (params_.tiledb_stats_enabled) {
+    tiledb::Stats::enable();
+  } else {
+    // Else we will make sure they are disable and reset
+    tiledb::Stats::disable();
+    tiledb::Stats::reset();
+  }
+
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;
   if (dataset_ == nullptr)

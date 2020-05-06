@@ -185,6 +185,13 @@ void do_export(const ExportParams& args) {
   reader.set_all_params(args);
   reader.open_dataset(args.uri);
   reader.read();
+
+  if (args.tiledb_stats_enabled) {
+    char* stats;
+    reader.tiledb_stats(&stats);
+    std::cout << "TileDB Internal Statistics:" << std::endl;
+    std::cout << stats << std::endl;
+  }
 }
 
 /** List. */
@@ -423,7 +430,9 @@ int main(int argc, char** argv) {
              "CSV list of sample names to export" &
          value("samples").call([&](const std::string& s) {
            export_args.sample_names = utils::split(s, ',');
-         }))));
+         }))),
+       option("--stats").set(export_args.tiledb_stats_enabled) %
+           "Enable TileDB stats");
 
   ListParams list_args;
   auto list_mode =

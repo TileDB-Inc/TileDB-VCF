@@ -18,6 +18,7 @@ import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
@@ -78,6 +79,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   /** Stats counter: number of bytes in allocated buffers. */
   private long statsTotalBufferBytes;
 
+  private Level enableStatsLogLevel;
+
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -114,6 +117,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       samples.toArray(this.samples);
     } else {
       this.samples = new String[] {};
+    }
+
+    this.enableStatsLogLevel = Level.OFF;
+    if (this.options.getTileDBStatsLogLevel().isPresent()) {
+      // If an invalid log level is set, the default is DEBUG
+      this.enableStatsLogLevel = Level.toLevel(this.options.getTileDBStatsLogLevel().get());
     }
   }
 
@@ -183,6 +192,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public void close() {
     log.info("Closing VCFReader for partition " + (this.partitionId));
 
+    if (!this.enableStatsLogLevel.equals(Level.OFF)) {
+      log.log(this.enableStatsLogLevel, this.vcfReader.stats());
+    }
+
     if (vcfReader != null) {
       vcfReader.close();
       vcfReader = null;
@@ -250,6 +263,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (sortRegions.isPresent()) {
       vcfReader.setSortRegions(sortRegions.get().booleanValue());
     }
+
+    // Enable VCFReader stats
+    if (!this.enableStatsLogLevel.equals(Level.OFF)) this.vcfReader.setStatsEnabled(true);
 
     // Set logical partition in array
     vcfReader.setRangePartition(
