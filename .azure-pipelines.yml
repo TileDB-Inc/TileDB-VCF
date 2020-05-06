@@ -33,7 +33,7 @@ jobs:
 - job: Docker
   dependsOn: Build
   pool:
-    imageName: 'ubuntu-18.04'
+    vmImage: 'ubuntu-18.04'
   condition: |
     or(
       eq(variables['build.sourceBranch'], 'refs/heads/master'),
