@@ -46,6 +46,7 @@ create_register_ingest ingested_3 ${input_dir}/small3.bcf
 create_register_ingest ingested_1_2 ${input_dir}/small2.bcf ${input_dir}/small.bcf
 create_register_ingest ingested_1_2_vcf ${input_dir}/small2.bcf ${input_dir}/small.vcf.gz
 create_register_ingest ingested_3_samples ${input_dir}/random_synthetic/G{1,2,3}.bcf
+create_register_ingest ingested_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
 
 $tilevcf create -u ingested_3_attrs -a fmt_DP,info_MLEAC,info_MLEAF,info_MQ,fmt_AD,info_GQ || exit 1
 $tilevcf register -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
