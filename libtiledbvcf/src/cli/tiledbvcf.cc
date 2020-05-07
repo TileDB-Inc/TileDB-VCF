@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
            }),
        option("--checksum") %
                "Checksum to use for dataset validation on read and writes, "
-               "defauls to 'sha256'" &
+               "defaults to 'sha256'" &
            value("checksum").call([&create_args](const std::string& s) {
              if (s == "sha256")
                create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
@@ -248,11 +248,9 @@ int main(int argc, char** argv) {
              else if (s == "none")
                create_args.checksum = TILEDB_FILTER_NONE;
            }),
-       option("-d", "--duplicates_allowed") %
-               defaulthelp(
-                   "Whether duplicate coordinates are allowed for the array ",
-                   create_args.allow_duplicates) &
-           value("N", create_args.allow_duplicates));
+       option("-n", "--no-duplicates").set(create_args.allow_duplicates, false) %
+           "Do not allow records with duplicate end positions to be written to "
+           "the array.");
 
   RegistrationParams register_args;
   auto register_mode =
