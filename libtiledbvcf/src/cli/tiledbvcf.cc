@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
            }),
        option("--checksum") %
                "Checksum to use for dataset validation on read and writes, "
-               "defauls to 'sha256'" &
+               "defaults to 'sha256'" &
            value("checksum").call([&create_args](const std::string& s) {
              if (s == "sha256")
                create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
