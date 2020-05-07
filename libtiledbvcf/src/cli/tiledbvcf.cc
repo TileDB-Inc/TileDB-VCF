@@ -249,7 +249,8 @@ int main(int argc, char** argv) {
                create_args.checksum = TILEDB_FILTER_NONE;
            }),
        option("-n", "--no-duplicates").set(create_args.allow_duplicates, false) %
-           "Duplicate coordinates are not allowed for the array ");
+           "Do not allow records with duplicate end positions to be written to "
+           "the array.");
 
   RegistrationParams register_args;
   auto register_mode =
