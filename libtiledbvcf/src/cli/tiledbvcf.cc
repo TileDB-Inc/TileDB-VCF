@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
            }),
        option("--checksum") %
                "Checksum to use for dataset validation on read and writes, "
-               "defauls to 'sha256'" &
+               "defaults to 'sha256'" &
            value("checksum").call([&create_args](const std::string& s) {
              if (s == "sha256")
                create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
@@ -247,7 +247,10 @@ int main(int argc, char** argv) {
                create_args.checksum = TILEDB_FILTER_CHECKSUM_MD5;
              else if (s == "none")
                create_args.checksum = TILEDB_FILTER_NONE;
-           }));
+           }),
+       option("-n", "--no-duplicates").set(create_args.allow_duplicates, false) %
+           "Do not allow records with duplicate end positions to be written to "
+           "the array.");
 
   RegistrationParams register_args;
   auto register_mode =

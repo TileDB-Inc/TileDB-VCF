@@ -37,6 +37,7 @@
 #include "tiledbvcf_export.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -785,6 +786,17 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_extra_attributes(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_checksum_type(
     tiledb_vcf_writer_t* writer, tiledb_vcf_checksum_type_t checksum);
+
+/**
+ * [Creation only] Sets whether duplicates are allowed in the underlying
+ * array or not. By default duplicates are allowed
+ *
+ * @param writer VCF writer object
+ * @param allow_duplicates boolean for allowing duplicates or not
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_allow_duplicates(
+    tiledb_vcf_writer_t* writer, bool allow_duplicates);
 
 /**
  * Creates a new TileDB-VCF dataset, using previously set parameters.

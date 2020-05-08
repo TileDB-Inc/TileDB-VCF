@@ -130,6 +130,12 @@ class Writer {
   void set_checksum_type(const int& checksum);
   void set_checksum_type(const tiledb_filter_type_t& checksum);
 
+  /**
+   * Sets whether duplicates are allowed in the sample array or not
+   * @param set_allow_duplicates
+   */
+  void set_allow_duplicates(const bool& allow_duplicates);
+
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();
 

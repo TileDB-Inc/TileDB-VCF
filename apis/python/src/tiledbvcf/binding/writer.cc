@@ -96,6 +96,11 @@ void Writer::set_checksum(const std::string& checksum) {
   check_error(writer, tiledb_vcf_writer_set_checksum_type(writer, checksum_type));
 }
 
+void Writer::set_allow_duplicates(const bool &allow_duplicates) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_allow_duplicates(writer, allow_duplicates));
+}
+
 void Writer::create_dataset() {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_create_dataset(writer));

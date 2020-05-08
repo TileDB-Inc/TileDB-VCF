@@ -54,6 +54,7 @@ struct CreationParams {
   uint32_t anchor_gap = 1000;
   std::vector<std::string> tiledb_config;
   tiledb_filter_type_t checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+  bool allow_duplicates = true;
 };
 
 /** Arguments/params for dataset registration. */
@@ -270,7 +271,8 @@ class TileDBVCFDataset {
       const Context& ctx,
       const std::string& root_uri,
       const Metadata& metadata,
-      const tiledb_filter_type_t& checksum);
+      const tiledb_filter_type_t& checksum,
+      const bool allow_duplicates);
 
   /**
    * Creates the empty sample header array for a new dataset.

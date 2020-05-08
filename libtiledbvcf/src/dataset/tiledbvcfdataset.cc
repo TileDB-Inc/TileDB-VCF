@@ -94,7 +94,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   metadata.free_sample_id = 0;
 
   create_empty_metadata(ctx, params.uri, metadata, params.checksum);
-  create_empty_data_array(ctx, params.uri, metadata, params.checksum);
+  create_empty_data_array(
+      ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
   write_metadata(ctx, params.uri, metadata);
 }
 
@@ -138,10 +139,12 @@ void TileDBVCFDataset::create_empty_data_array(
     const Context& ctx,
     const std::string& root_uri,
     const Metadata& metadata,
-    const tiledb_filter_type_t& checksum) {
+    const tiledb_filter_type_t& checksum,
+    const bool allow_duplicates) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_COL_MAJOR, TILEDB_COL_MAJOR}});
+  schema.set_allows_dups(allow_duplicates);
 
   Domain domain(ctx);
   {
