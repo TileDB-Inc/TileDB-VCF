@@ -29,11 +29,14 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_max_num_records", &Reader::set_max_num_records)
       .def("set_tiledb_config", &Reader::set_tiledb_config)
       .def("set_attributes", &Reader::set_attributes)
+      .def("set_tiledb_stats_enabled", &Reader::set_tiledb_stats_enabled)
       .def("read", &Reader::read)
       .def("get_buffers", &Reader::get_buffers)
       .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)
-      .def("result_num_records", &Reader::result_num_records);
+      .def("result_num_records", &Reader::result_num_records)
+      .def("get_tiledb_stats_enabled", &Reader::get_tiledb_stats_enabled)
+      .def("get_tiledb_stats", &Reader::get_tiledb_stats);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())

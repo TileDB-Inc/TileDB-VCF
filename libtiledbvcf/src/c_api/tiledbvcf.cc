@@ -354,6 +354,40 @@ int32_t tiledb_vcf_reader_set_tiledb_config(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_tiledb_stats_enabled(
+    tiledb_vcf_reader_t* reader, const bool stats_enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_tiledb_stats_enabled(stats_enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_stats_enabled(
+    tiledb_vcf_reader_t* reader, bool* enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->tiledb_stats_enabled(enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_stats(
+    tiledb_vcf_reader_t* reader, char** stats) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->tiledb_stats(stats)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_read(tiledb_vcf_reader_t* reader) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;

@@ -1,1 +1,2 @@
 src/tiledbvcf/version.py
+src/tiledbvcf/libhts.so.1.8

@@ -115,6 +115,15 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return The log level for the VCFReader stats reporting */
+  public Optional<String> getTileDBStatsLogLevel() {
+    if (options.containsKey("tiledb_stats_log_level")) {
+      String statsLogLevel = options.get("tiledb_stats_log_level");
+      return Optional.of(statsLogLevel);
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);
