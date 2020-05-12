@@ -106,17 +106,18 @@ def get_cmake_overrides():
     conf = list()
 
     key = "TILEDBVCF_CMAKE_PREFIX_PATH"
-    val = os.environ.get(key, None)
+    val = os.environ.get(key, default=None)
     if val:
         conf.append("-DCMAKE_PREFIX_PATH={}".format(val))
 
     key = "TILEDBVCF_FORCE_EXTERNAL_HTSLIB"
-    val = os.environ.get(key, None)
-    if val:
-        conf.append("-DFORCE_EXTERNAL_HTSLIB={}".format(val))
+    val = os.environ.get(key, default="ON")
+    conf.append("-DFORCE_EXTERNAL_HTSLIB={}".format(val))
 
-    if TILEDBVCF_DEBUG_BUILD :
-        conf.append("-DCMAKE_BUILD_TYPE=Debug")
+    val = "Debug" if TILEDBVCF_DEBUG_BUILD else "Release"
+    conf.append("-DCMAKE_BUILD_TYPE={}".format(val))
+
+    conf.append("-DENABLE_ARROW_EXPORT=ON")
 
     return conf
 
@@ -128,15 +129,11 @@ def build_libtiledbvcf():
     src_dir = p.native_lib_src_dir
     os.makedirs(build_dir, exist_ok=True)
 
-    cmake_exe = os.environ.get('CMAKE', 'cmake')
-    cmake_cmd = [cmake_exe,
-                 '-DENABLE_ARROW_EXPORT=ON',
-                 '-DFORCE_EXTERNAL_HTSLIB=ON',
-                 '-DCMAKE_BUILD_TYPE=Release',
-                 src_dir]
+    cmake_cmd = [os.environ.get('CMAKE', 'cmake')]
+    cmake_cmd.extend(get_cmake_overrides())
+    cmake_cmd.append(src_dir)
 
-    env_conf = get_cmake_overrides()
-    cmake_cmd.extend(env_conf)
+    print("CMake configure command: {}".format(cmake_cmd))
 
     build_cmd = ['make', '-j{}'.format(multiprocessing.cpu_count() or 2)]
     install_cmd = ['make', 'install-libtiledbvcf']
@@ -175,6 +172,7 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
         p = PathConfig()
         package_data = []
         for obj in native_libs:
+            print("Copying file {0} to {1}".format(obj, p.pkg_src))
             shutil.copy(obj, p.pkg_src)
             package_data.append(os.path.basename(obj))
 
