@@ -113,7 +113,7 @@ def get_cmake_overrides():
     key = "TILEDBVCF_FORCE_EXTERNAL_HTSLIB"
     val = os.environ.get(key, None)
     if val:
-        conf.append("-DTILEDBVCF_FORCE_EXTERNAL_HTSLIB={}".format(val))
+        conf.append("-DFORCE_EXTERNAL_HTSLIB={}".format(val))
 
     if TILEDBVCF_DEBUG_BUILD :
         conf.append("-DCMAKE_BUILD_TYPE=Debug")
