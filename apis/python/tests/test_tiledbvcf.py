@@ -31,7 +31,7 @@ def _check_dfs(expected, actual):
 @pytest.fixture
 def test_ds():
     return tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
 
 
 def test_basic_count(test_ds):
@@ -127,21 +127,21 @@ def test_bad_attr_raises_exception(test_ds):
 
 def test_read_write_mode_exceptions():
     ds = tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
                ['small.bcf', 'small2.bcf']]
     with pytest.raises(Exception):
         ds.ingest_samples(samples)
 
     ds = tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'), mode='w')
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'), mode='w')
     with pytest.raises(Exception):
         ds.count()
 
 
 def test_incomplete_reads():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
@@ -166,7 +166,7 @@ def test_incomplete_reads():
 
 def test_incomplete_read_generator():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
@@ -194,7 +194,7 @@ def test_read_filters(test_ds):
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
             'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
-                                     [None, None, ['LowQual'], None, None,
+                                     [None, None, None, None, None,
                                       None]))})
     _check_dfs(expected_df, df)
 
@@ -305,7 +305,7 @@ def test_read_null_attrs(tmp_path):
 
 
 def test_read_config():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig()
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
@@ -324,7 +324,7 @@ def test_read_config():
 # the number of TBB threads allowed).
 @pytest.mark.skip
 def test_tbb_threads_config():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(tiledb_config=['sm.num_tbb_threads=3'])
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
@@ -334,7 +334,7 @@ def test_tbb_threads_config():
 
 
 def test_read_limit():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(limit=3)
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
@@ -344,7 +344,7 @@ def test_read_limit():
 
 
 def test_region_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2))
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
@@ -372,7 +372,7 @@ def test_region_partitioned_read():
 
 
 def test_sample_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(0, 2))
     ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
@@ -402,7 +402,7 @@ def test_sample_partitioned_read():
 
 
 def test_sample_and_region_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2),
                                sample_partition=(0, 2))

@@ -94,7 +94,7 @@ class Exporter {
    * Returns a list of dataset array attribute names are required to be read to
    * satisfy the particular exporter requirements.
    */
-  virtual std::set<std::string> array_attributes_required() const = 0;
+  virtual std::unordered_set<std::string> array_attributes_required() const = 0;
 
  protected:
   /** The dataset. */

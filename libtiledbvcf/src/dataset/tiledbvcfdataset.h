@@ -31,6 +31,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -90,14 +91,59 @@ struct StatParams {
 class TileDBVCFDataset {
  public:
   /* ********************************* */
+  /*         PUBLIC ATTRIBUTES         */
+  /* ********************************* */
+
+  struct DimensionNames {
+    struct V3 {
+      static const std::string sample;
+      static const std::string start_pos;
+    };
+
+    struct V2 {
+      static const std::string sample;
+      static const std::string end_pos;
+    };
+  };
+
+  struct AttrNames {
+    struct V3 {
+      static const std::string real_start_pos;
+      static const std::string end_pos;
+      static const std::string qual;
+      static const std::string alleles;
+      static const std::string id;
+      static const std::string filter_ids;
+      static const std::string info;
+      static const std::string fmt;
+    };
+
+    struct V2 {
+      static const std::string pos;
+      static const std::string real_end;
+      static const std::string qual;
+      static const std::string alleles;
+      static const std::string id;
+      static const std::string filter_ids;
+      static const std::string info;
+      static const std::string fmt;
+    };
+  };
+
+  /* ********************************* */
   /*         PUBLIC DATATYPES          */
   /* ********************************* */
+
+  /**
+   * The format version.
+   */
+  enum Version { V2 = 2, V3 };
 
   /**
    * General metadata for a dataset. This should be kept relatively small.
    */
   struct Metadata {
-    unsigned version = TILEVCF_ARRAY_VERSION;
+    unsigned version = Version::V3;
     uint64_t tile_capacity;
     uint32_t row_tile_extent;
     uint32_t anchor_gap;
@@ -125,28 +171,6 @@ class TileDBVCFDataset {
 
     /** Sum of lengths of all contigs. */
     uint32_t total_contig_length;
-  };
-
-  /**
-   * String names for built-in attribute names in the data array.
-   */
-  struct DimensionNames {
-    static const std::string sample;
-    static const std::string end_pos;
-  };
-
-  /**
-   * String names for built-in attribute names in the data array.
-   */
-  struct AttrNames {
-    static const std::string pos;
-    static const std::string real_end;
-    static const std::string qual;
-    static const std::string alleles;
-    static const std::string id;
-    static const std::string filter_ids;
-    static const std::string info;
-    static const std::string fmt;
   };
 
   /* ********************************* */
@@ -197,14 +221,17 @@ class TileDBVCFDataset {
   static std::pair<std::string, std::string> split_info_fmt_attr_name(
       const std::string& attr_name);
 
-  /** Return a set of the attribute names for the "builtin" attributes. */
-  static std::set<std::string> builtin_attributes();
+  /** Return a set of the v3 attribute names for the "builtin" attributes. */
+  static std::unordered_set<std::string> builtin_attributes_v3();
+
+  /** Return a set of the v3 attribute names for the "builtin" attributes. */
+  static std::unordered_set<std::string> builtin_attributes_v2();
 
   /** Returns true if the builtin attribute is fixed-len in the schema. */
   static bool attribute_is_fixed_len(const std::string& attr);
 
   /** Returns a set of all the attribute names in the dataset. */
-  std::set<std::string> all_attributes() const;
+  std::unordered_set<std::string> all_attributes() const;
 
   /** Returns the BCF_HT_ type for the info field of the given name. */
   int info_field_type(const std::string& name) const;
@@ -213,9 +240,6 @@ class TileDBVCFDataset {
   int fmt_field_type(const std::string& name) const;
 
  private:
-  /** Current version of the TileDBVCF format. */
-  static const unsigned TILEVCF_ARRAY_VERSION = 2;
-
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */

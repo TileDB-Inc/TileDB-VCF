@@ -48,9 +48,11 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/region.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v2.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
 )
 
 set(TILEDB_VCF_EXTERNAL_SOURCES

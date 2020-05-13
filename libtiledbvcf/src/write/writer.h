@@ -39,7 +39,6 @@
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "vcf/htslib_value.h"
-#include "write/record_heap.h"
 
 namespace tiledb {
 namespace vcf {

@@ -31,6 +31,8 @@
 #include "utils/sample_utils.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
+#include "write/writer_worker_v2.h"
+#include "write/writer_worker_v3.h"
 
 namespace tiledb {
 namespace vcf {
@@ -223,9 +225,17 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
-  std::vector<WriterWorker> workers(params.num_threads);
-  for (auto& worker : workers)
-    worker.init(dataset, params, samples);
+  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  for (size_t i = 0; i < workers.size(); ++i) {
+    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
+    }
+
+    workers[i]->init(dataset, params, samples);
+  }
 
   // First compose the set of contigs that are nonempty.
   // This can significantly speed things up in the common case that the sample
@@ -245,7 +255,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   size_t region_idx = 0;
   std::vector<std::future<bool>> tasks;
   for (unsigned i = 0; i < workers.size(); i++) {
-    WriterWorker* worker = &workers[i];
+    WriterWorker* worker = workers[i].get();
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
@@ -265,14 +275,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       if (!tasks[i].valid())
         continue;
 
-      WriterWorker* worker = &workers[i];
+      WriterWorker* worker = workers[i].get();
       bool task_complete = false;
       while (!task_complete) {
         task_complete = tasks[i].get();
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
-          worker->buffers().set_buffers(query_.get());
+          worker->buffers().set_buffers(
+              query_.get(), dataset.metadata().version);
           auto st = query_->submit();
           if (st != Query::Status::COMPLETE)
             throw std::runtime_error(

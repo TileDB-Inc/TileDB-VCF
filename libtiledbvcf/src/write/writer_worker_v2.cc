@@ -24,16 +24,16 @@
  * THE SOFTWARE.
  */
 
-#include "write/writer_worker.h"
+#include "write/writer_worker_v2.h"
 
 namespace tiledb {
 namespace vcf {
 
-WriterWorker::WriterWorker()
+WriterWorkerV2::WriterWorkerV2()
     : dataset_(nullptr) {
 }
 
-void WriterWorker::init(
+void WriterWorkerV2::init(
     const TileDBVCFDataset& dataset,
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples) {
@@ -50,19 +50,19 @@ void WriterWorker::init(
     buffers_.extra_attrs()[attr] = Buffer();
 }
 
-const AttributeBufferSet& WriterWorker::buffers() const {
+const AttributeBufferSet& WriterWorkerV2::buffers() const {
   return buffers_;
 }
 
-uint64_t WriterWorker::records_buffered() const {
+uint64_t WriterWorkerV2::records_buffered() const {
   return records_buffered_;
 }
 
-uint64_t WriterWorker::anchors_buffered() const {
+uint64_t WriterWorkerV2::anchors_buffered() const {
   return anchors_buffered_;
 }
 
-bool WriterWorker::parse(const Region& region) {
+bool WriterWorkerV2::parse(const Region& region) {
   if (!record_heap_.empty())
     throw std::runtime_error(
         "Error in parsing; record heap unexpectedly not empty.");
@@ -96,7 +96,11 @@ bool WriterWorker::parse(const Region& region) {
       for (unsigned i = 1; i <= num_anchors; i++) {
         uint32_t anchor_end = start_pos + i * metadata.anchor_gap;
         record_heap_.insert(
-            vcf.get(), RecordHeap::NodeType::Anchor, r, anchor_end, sample_id);
+            vcf.get(),
+            RecordHeapV2::NodeType::Anchor,
+            r,
+            anchor_end,
+            sample_id);
         // Sanity check
         if (anchor_end >= end_pos)
           throw std::runtime_error("Ingestion error; anchor >= end.");
@@ -104,7 +108,7 @@ bool WriterWorker::parse(const Region& region) {
     }
 
     record_heap_.insert(
-        vcf.get(), RecordHeap::NodeType::Record, r, end_pos, sample_id);
+        vcf.get(), RecordHeapV2::NodeType::Record, r, end_pos, sample_id);
   }
 
   // Start buffering records (which can possibly be incomplete if the buffers
@@ -112,7 +116,7 @@ bool WriterWorker::parse(const Region& region) {
   return resume();
 }
 
-bool WriterWorker::resume() {
+bool WriterWorkerV2::resume() {
   buffers_.clear();
   records_buffered_ = 0;
   anchors_buffered_ = 0;
@@ -120,9 +124,9 @@ bool WriterWorker::resume() {
   const auto& metadata = dataset_->metadata();
   const uint32_t contig_offset = metadata.contig_offsets.at(region_.seq_name);
   while (!record_heap_.empty()) {
-    const RecordHeap::Node& top = record_heap_.top();
+    const RecordHeapV2::Node& top = record_heap_.top();
     const uint32_t sample_id = top.sample_id;
-    const bool is_anchor = top.type != RecordHeap::NodeType::Record;
+    const bool is_anchor = top.type != RecordHeapV2::NodeType::Record;
     VCF* vcf = top.vcf;
 
     // Copy the record into the buffers. If the record caused the buffers to
@@ -145,7 +149,7 @@ bool WriterWorker::resume() {
           for (unsigned i = 1; i <= num_anchors; i++) {
             uint32_t anchor_end = start_pos + i * metadata.anchor_gap;
             record_heap_.insert(
-                vcf, RecordHeap::NodeType::Anchor, r, anchor_end, sample_id);
+                vcf, RecordHeapV2::NodeType::Anchor, r, anchor_end, sample_id);
             // Sanity check
             if (anchor_end >= end_pos)
               throw std::runtime_error("Ingestion error; anchor >= end.");
@@ -153,7 +157,7 @@ bool WriterWorker::resume() {
         }
 
         record_heap_.insert(
-            vcf, RecordHeap::NodeType::Record, r, end_pos, sample_id);
+            vcf, RecordHeapV2::NodeType::Record, r, end_pos, sample_id);
       }
     }
 
@@ -164,8 +168,8 @@ bool WriterWorker::resume() {
   return true;
 }
 
-bool WriterWorker::buffer_record(
-    uint32_t contig_offset, const RecordHeap::Node& node) {
+bool WriterWorkerV2::buffer_record(
+    uint32_t contig_offset, const RecordHeapV2::Node& node) {
   VCF* vcf = node.vcf;
   bcf1_t* r = node.record;
   bcf_hdr_t* hdr = vcf->hdr();
@@ -269,7 +273,7 @@ bool WriterWorker::buffer_record(
   for (auto& it : buffers_.extra_attrs())
     it.second.stop_expecting();
 
-  if (node.type == RecordHeap::NodeType::Record)
+  if (node.type == RecordHeapV2::NodeType::Record)
     records_buffered_++;
   else
     anchors_buffered_++;
@@ -283,7 +287,7 @@ bool WriterWorker::buffer_record(
   return true;
 }
 
-void WriterWorker::buffer_alleles(bcf1_t* record, Buffer* buffer) {
+void WriterWorkerV2::buffer_alleles(bcf1_t* record, Buffer* buffer) {
   buffer->offsets().push_back(buffer->size());
 
   // Alleles list is null-separated but we store as null-terminated CSV to make
@@ -302,7 +306,7 @@ void WriterWorker::buffer_alleles(bcf1_t* record, Buffer* buffer) {
   buffer->append(&nul, sizeof(char));
 }
 
-void WriterWorker::buffer_info_field(
+void WriterWorkerV2::buffer_info_field(
     const bcf_hdr_t* hdr,
     bcf1_t* r,
     const bcf_info_t* info,
@@ -331,7 +335,7 @@ void WriterWorker::buffer_info_field(
   buff->append(val->dst, num_vals * utils::bcf_type_size(type));
 }
 
-void WriterWorker::buffer_fmt_field(
+void WriterWorkerV2::buffer_fmt_field(
     const bcf_hdr_t* hdr,
     bcf1_t* r,
     const bcf_fmt_t* fmt,

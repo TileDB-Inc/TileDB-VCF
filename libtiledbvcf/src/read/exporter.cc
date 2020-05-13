@@ -47,7 +47,14 @@ void Exporter::recover_record(
     throw std::runtime_error(
         "Record recovery error; no ID for contig name '" + contig_name + "'");
 
-  dst->pos = buffers->pos().value<uint32_t>(cell_idx) - contig_offset;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    dst->pos =
+        buffers->real_start_pos().value<uint32_t>(cell_idx) - contig_offset;
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
+    dst->pos = buffers->pos().value<uint32_t>(cell_idx) - contig_offset;
+  }
+
   dst->qual = buffers->qual().value<float>(cell_idx);
   dst->n_sample = 1;
 
@@ -69,7 +76,14 @@ void Exporter::recover_record(
         "Record recovery error; Error adding filter IDs, " +
         std::to_string(st));
 
-  int32_t end = buffers->real_end().value<uint32_t>(cell_idx) - contig_offset;
+  int32_t end;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    end = buffers->end_pos().value<uint32_t>(cell_idx) - contig_offset;
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
+    end = buffers->real_end().value<uint32_t>(cell_idx) - contig_offset;
+  }
+
   end += 1;
   st = bcf_update_info(hdr, dst, "END", &end, 1, BCF_HT_INT);
   if (st < 0)

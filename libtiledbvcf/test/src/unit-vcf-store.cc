@@ -449,3 +449,44 @@ TEST_CASE("TileDB-VCF: Test ingest 100", "[tiledbvcf][ingest]") {
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
 }
+
+TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  // Copy an array created with V2 to our test dataset location.
+  const std::string dataset_uri_src = input_dir + "/arrays/v2/ingested_1sample";
+
+  // This is obviously a system-specific directory copy but
+  // is OK for now because we only support Linux and run CI on Ubuntu.
+  const std::string cp_cmd = "cp -r " + dataset_uri_src + " " + dataset_uri;
+  FILE* const pipe = popen(cp_cmd.c_str(), "r");
+  REQUIRE(pipe != nullptr);
+  pclose(pipe);
+
+  // Open the existing array.
+  TileDBVCFDataset ds;
+  ds.open(dataset_uri);
+
+  // Register a new sample.
+  RegistrationParams args;
+  const std::string sample_uri = input_dir + "/small.bcf";
+  args.sample_uris.push_back(sample_uri);
+  ds.register_samples(args);
+
+  // Ingest the new sample.
+  Writer writer;
+  IngestionParams params;
+  params.uri = dataset_uri;
+  params.sample_uris = {sample_uri};
+  params.verbose = true;
+  writer.set_all_params(params);
+  writer.ingest_samples();
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}

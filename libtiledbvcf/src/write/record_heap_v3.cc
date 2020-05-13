@@ -24,28 +24,29 @@
  * THE SOFTWARE.
  */
 
-#include "write/record_heap.h"
+#include "write/record_heap_v3.h"
 
 namespace tiledb {
 namespace vcf {
 
-void RecordHeap::clear() {
+void RecordHeapV3::clear() {
   while (!heap_.empty())
     heap_.pop();
 }
 
-bool RecordHeap::empty() const {
+bool RecordHeapV3::empty() const {
   return heap_.empty();
 }
 
-void RecordHeap::insert(
+void RecordHeapV3::insert(
     VCF* vcf,
     NodeType type,
     bcf1_t* record,
-    uint32_t sort_end_pos,
-    uint32_t sample_id) {
-  // Sanity check start <= end
-  if (sort_end_pos < (uint32_t)record->pos) {
+    uint32_t sort_start_pos,
+    uint32_t sample_id,
+    bool end_node) {
+  // Sanity check sort_start_pos >= start.
+  if (sort_start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
     std::string contig(bcf_seqname(vcf->hdr(), record));
     std::string str_type = type == NodeType::Record ? "record" : "anchor";
@@ -54,7 +55,7 @@ void RecordHeap::insert(
         std::to_string(record->pos + 1) + "-" +
         std::to_string(VCF::get_end_pos(vcf->hdr(), record, &val) + 1) +
         "' into ingestion heap from sample ID " + std::to_string(sample_id) +
-        "; sort end position " + std::to_string(sort_end_pos + 1) +
+        "; sort start position " + std::to_string(sort_start_pos + 1) +
         " cannot be less than start.");
   }
 
@@ -62,16 +63,17 @@ void RecordHeap::insert(
   node->vcf = vcf;
   node->type = type;
   node->record = record;
-  node->sort_end_pos = sort_end_pos;
+  node->sort_start_pos = sort_start_pos;
   node->sample_id = sample_id;
+  node->end_node = end_node;
   heap_.push(std::move(node));
 }
 
-const RecordHeap::Node& RecordHeap::top() const {
+const RecordHeapV3::Node& RecordHeapV3::top() const {
   return *heap_.top();
 }
 
-void RecordHeap::pop() {
+void RecordHeapV3::pop() {
   heap_.pop();
 }
 

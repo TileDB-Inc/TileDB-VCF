@@ -50,7 +50,7 @@ class BCFExporter : public Exporter {
   void finalize_export(
       const SampleAndId& sample, const bcf_hdr_t* hdr) override;
 
-  std::set<std::string> array_attributes_required() const override;
+  std::unordered_set<std::string> array_attributes_required() const override;
 
  private:
   /** Number of records to buffer for a file before flushing to disk. */

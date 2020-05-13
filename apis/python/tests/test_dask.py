@@ -40,7 +40,7 @@ def _check_dfs(expected, actual):
 @pytest.fixture
 def test_ds():
     return tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
 
 
 def test_basic_reads(test_ds):
@@ -84,7 +84,7 @@ def test_basic_reads(test_ds):
 
 def test_incomplete_reads():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
@@ -142,7 +142,7 @@ def test_basic_map(test_ds):
 
 def test_map_incomplete():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
 
