@@ -82,29 +82,39 @@ bool WriterWorker::parse(const Region& region) {
     }
 
     // If a record exists but it's outside the region max, skip it.
-    const uint32_t local_end_pos = VCF::get_end_pos(vcf->hdr(), r, &val_);
-    if (local_end_pos > region.max)
+    if (static_cast<uint32_t>(r->pos) > region.max)
       continue;
 
     const uint32_t sample_id = metadata.sample_ids.at(vcf->sample_name());
-    const uint32_t end_pos = contig_offset + local_end_pos;
+    const uint32_t end_pos =
+        contig_offset + VCF::get_end_pos(vcf->hdr(), r, &val_);
     const uint32_t start_pos = contig_offset + r->pos;
     const uint32_t length = end_pos - start_pos + 1;
 
-    if (length > 1) {
-      unsigned num_anchors = (end_pos - start_pos - 1) / metadata.anchor_gap;
-      for (unsigned i = 1; i <= num_anchors; i++) {
-        uint32_t anchor_end = start_pos + i * metadata.anchor_gap;
-        record_heap_.insert(
-            vcf.get(), RecordHeap::NodeType::Anchor, r, anchor_end, sample_id);
-        // Sanity check
-        if (anchor_end >= end_pos)
-          throw std::runtime_error("Ingestion error; anchor >= end.");
-      }
-    }
+    const unsigned num_anchors =
+        length > 1 ? (end_pos - start_pos - 1) / metadata.anchor_gap : 0;
 
     record_heap_.insert(
-        vcf.get(), RecordHeap::NodeType::Record, r, end_pos, sample_id);
+        vcf.get(),
+        RecordHeap::NodeType::Record,
+        r,
+        start_pos,
+        sample_id,
+        num_anchors == 0 ? true : false);
+
+    for (unsigned i = 1; i <= num_anchors; i++) {
+      uint32_t anchor_start = start_pos + i * metadata.anchor_gap;
+      record_heap_.insert(
+          vcf.get(),
+          RecordHeap::NodeType::Anchor,
+          r,
+          anchor_start,
+          sample_id,
+          i == num_anchors);
+      // Sanity check
+      if (anchor_start >= end_pos)
+        throw std::runtime_error("Ingestion error; anchor >= end.");
+    }
   }
 
   // Start buffering records (which can possibly be incomplete if the buffers
@@ -122,7 +132,6 @@ bool WriterWorker::resume() {
   while (!record_heap_.empty()) {
     const RecordHeap::Node& top = record_heap_.top();
     const uint32_t sample_id = top.sample_id;
-    const bool is_anchor = top.type != RecordHeap::NodeType::Record;
     VCF* vcf = top.vcf;
 
     // Copy the record into the buffers. If the record caused the buffers to
@@ -130,7 +139,7 @@ bool WriterWorker::resume() {
     bool overflowed = !buffer_record(contig_offset, top);
 
     record_heap_.pop();
-    if (!is_anchor && vcf->is_open() && vcf->next()) {
+    if (top.end_node && vcf->is_open() && vcf->next()) {
       bcf1_t* r = vcf->curr_rec();
 
       const uint32_t local_end_pos = VCF::get_end_pos(vcf->hdr(), r, &val_);
@@ -139,21 +148,30 @@ bool WriterWorker::resume() {
         const uint32_t start_pos = contig_offset + r->pos;
         const uint32_t length = end_pos - start_pos + 1;
 
-        if (length > 1) {
-          unsigned num_anchors =
-              (end_pos - start_pos - 1) / metadata.anchor_gap;
-          for (unsigned i = 1; i <= num_anchors; i++) {
-            uint32_t anchor_end = start_pos + i * metadata.anchor_gap;
-            record_heap_.insert(
-                vcf, RecordHeap::NodeType::Anchor, r, anchor_end, sample_id);
-            // Sanity check
-            if (anchor_end >= end_pos)
-              throw std::runtime_error("Ingestion error; anchor >= end.");
-          }
-        }
+        const unsigned num_anchors =
+            length > 1 ? (end_pos - start_pos - 1) / metadata.anchor_gap : 0;
 
         record_heap_.insert(
-            vcf, RecordHeap::NodeType::Record, r, end_pos, sample_id);
+            vcf,
+            RecordHeap::NodeType::Record,
+            r,
+            start_pos,
+            sample_id,
+            num_anchors == 0 ? true : false);
+
+        for (unsigned i = 1; i <= num_anchors; i++) {
+          uint32_t anchor_start = start_pos + i * metadata.anchor_gap;
+          record_heap_.insert(
+              vcf,
+              RecordHeap::NodeType::Anchor,
+              r,
+              anchor_start,
+              sample_id,
+              i == num_anchors);
+          // Sanity check
+          if (anchor_start >= end_pos)
+            throw std::runtime_error("Ingestion error; anchor >= end.");
+        }
       }
     }
 
@@ -171,15 +189,15 @@ bool WriterWorker::buffer_record(
   bcf_hdr_t* hdr = vcf->hdr();
   const std::string contig = vcf->contig_name();
   const uint32_t row = node.sample_id;
-  const uint32_t col = node.sort_end_pos;
+  const uint32_t col = node.sort_start_pos;
   const uint32_t pos = contig_offset + r->pos;
-  const uint32_t real_end = contig_offset + VCF::get_end_pos(hdr, r, &val_);
+  const uint32_t end_pos = contig_offset + VCF::get_end_pos(hdr, r, &val_);
 
   buffers_.sample().append(&row, sizeof(uint32_t));
-  buffers_.end_pos().append(&col, sizeof(uint32_t));
+  buffers_.start_pos().append(&col, sizeof(uint32_t));
   buffers_.qual().append(&r->qual, sizeof(float));
-  buffers_.pos().append(&pos, sizeof(uint32_t));
-  buffers_.real_end().append(&real_end, sizeof(uint32_t));
+  buffers_.real_start_pos().append(&pos, sizeof(uint32_t));
+  buffers_.end_pos().append(&end_pos, sizeof(uint32_t));
 
   // ID string (include null terminator)
   const size_t id_size = strlen(r->d.id) + 1;

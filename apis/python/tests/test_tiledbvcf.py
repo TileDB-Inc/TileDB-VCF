@@ -194,7 +194,7 @@ def test_read_filters(test_ds):
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
             'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
-                                     [None, None, ['LowQual'], None, None,
+                                     [None, None, None, None, None,
                                       None]))})
     _check_dfs(expected_df, df)
 

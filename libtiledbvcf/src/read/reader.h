@@ -447,9 +447,9 @@ class Reader {
    *
    * @param regions Sorted regions vector to search
    * @param region_idx Index to start iteration
+   * @param real_start Real start pos of record to check for intersection
    * @param start Start pos of record to check for intersection
    * @param end End pos of record to check for intersection
-   * @param real_end Real end pos of record to check for intersection
    * @param new_region_idx Will be set to the upper bound index (i.e. the second
    *    element in the return value).
    * @return A pair (lower, upper) of the interval of intersecting regions. If
@@ -458,9 +458,9 @@ class Reader {
   static std::pair<size_t, size_t> get_intersecting_regions(
       const std::vector<Region>& regions,
       size_t region_idx,
+      uint32_t real_start,
       uint32_t start,
       uint32_t end,
-      uint32_t real_end,
       size_t* new_region_idx);
 
   /** Checks that the partitioning values are valid. */

@@ -126,11 +126,11 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
       case ExportableAttribute::SampleName:
         result.insert(TileDBVCFDataset::DimensionNames::sample);
         break;
-      case ExportableAttribute::PosEnd:
-        result.insert(TileDBVCFDataset::DimensionNames::end_pos);
-        break;
       case ExportableAttribute::PosStart:
-        result.insert(TileDBVCFDataset::AttrNames::pos);
+        result.insert(TileDBVCFDataset::DimensionNames::start_pos);
+        break;
+      case ExportableAttribute::PosEnd:
+        result.insert(TileDBVCFDataset::AttrNames::end_pos);
         break;
       case ExportableAttribute::Alleles:
         result.insert(TileDBVCFDataset::AttrNames::alleles);
@@ -302,15 +302,18 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::PosStart: {
-        const uint32_t pos =
-            (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1);
+        const uint32_t real_start_pos =
+            (buffers->real_start_pos().value<uint32_t>(cell_idx) -
+             contig_offset) +
+            1;
+        overflow =
+            !copy_cell(&user_buff, &real_start_pos, sizeof(real_start_pos), 1);
         break;
       }
       case ExportableAttribute::PosEnd: {
-        const uint32_t real_end =
-            (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+        const uint32_t end_pos =
+            (buffers->end_pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
+        overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1);
         break;
       }
       case ExportableAttribute::QueryBedStart: {

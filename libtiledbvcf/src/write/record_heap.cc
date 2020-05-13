@@ -42,10 +42,11 @@ void RecordHeap::insert(
     VCF* vcf,
     NodeType type,
     bcf1_t* record,
-    uint32_t sort_end_pos,
-    uint32_t sample_id) {
-  // Sanity check start <= end
-  if (sort_end_pos < (uint32_t)record->pos) {
+    uint32_t sort_start_pos,
+    uint32_t sample_id,
+    bool end_node) {
+  // Sanity check sort_start_pos >= start.
+  if (sort_start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
     std::string contig(bcf_seqname(vcf->hdr(), record));
     std::string str_type = type == NodeType::Record ? "record" : "anchor";
@@ -54,7 +55,7 @@ void RecordHeap::insert(
         std::to_string(record->pos + 1) + "-" +
         std::to_string(VCF::get_end_pos(vcf->hdr(), record, &val) + 1) +
         "' into ingestion heap from sample ID " + std::to_string(sample_id) +
-        "; sort end position " + std::to_string(sort_end_pos + 1) +
+        "; sort start position " + std::to_string(sort_start_pos + 1) +
         " cannot be less than start.");
   }
 
@@ -62,8 +63,9 @@ void RecordHeap::insert(
   node->vcf = vcf;
   node->type = type;
   node->record = record;
-  node->sort_end_pos = sort_end_pos;
+  node->sort_start_pos = sort_start_pos;
   node->sample_id = sample_id;
+  node->end_node = end_node;
   heap_.push(std::move(node));
 }
 

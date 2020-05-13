@@ -37,10 +37,11 @@
 namespace tiledb {
 namespace vcf {
 const std::string TileDBVCFDataset::DimensionNames::sample = "sample";
-const std::string TileDBVCFDataset::DimensionNames::end_pos = "end_pos";
+const std::string TileDBVCFDataset::DimensionNames::start_pos = "start_pos";
 
-const std::string TileDBVCFDataset::AttrNames::pos = "pos";
-const std::string TileDBVCFDataset::AttrNames::real_end = "real_end";
+const std::string TileDBVCFDataset::AttrNames::real_start_pos =
+    "real_start_pos";
+const std::string TileDBVCFDataset::AttrNames::end_pos = "end_pos";
 const std::string TileDBVCFDataset::AttrNames::qual = "qual";
 const std::string TileDBVCFDataset::AttrNames::alleles = "alleles";
 const std::string TileDBVCFDataset::AttrNames::id = "id";
@@ -157,12 +158,12 @@ void TileDBVCFDataset::create_empty_data_array(
         DimensionNames::sample,
         {{dom_min, sample_dom_max}},
         metadata.row_tile_extent);
-    auto end_pos = Dimension::create<uint32_t>(
+    auto start_pos = Dimension::create<uint32_t>(
         ctx,
-        DimensionNames::end_pos,
+        DimensionNames::start_pos,
         {{dom_min, dom_max}},
         dom_max - dom_min + 1);
-    domain.add_dimensions(sample, end_pos);
+    domain.add_dimensions(sample, start_pos);
   }
   schema.set_domain(domain);
   auto offsets_filter_list = default_offsets_filter_list(ctx);
@@ -189,10 +190,10 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_coords_filter_list(coords_filter_list);
   schema.set_offsets_filter_list(offsets_filter_list);
 
-  auto pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::pos, byteshuffle_zstd_filters);
-  auto real_end = Attribute::create<uint32_t>(
-      ctx, AttrNames::real_end, byteshuffle_zstd_filters);
+  auto real_start_pos = Attribute::create<uint32_t>(
+      ctx, AttrNames::real_start_pos, byteshuffle_zstd_filters);
+  auto end_pos = Attribute::create<uint32_t>(
+      ctx, AttrNames::end_pos, byteshuffle_zstd_filters);
   auto qual =
       Attribute::create<float>(ctx, AttrNames::qual, attribute_filter_list);
   auto alleles = Attribute::create<std::vector<char>>(
@@ -206,7 +207,7 @@ void TileDBVCFDataset::create_empty_data_array(
   auto fmt = Attribute::create<std::vector<uint8_t>>(
       ctx, AttrNames::fmt, attribute_filter_list);
   schema.add_attributes(
-      pos, real_end, qual, alleles, id, filters_ids, info, fmt);
+      real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
   // Remaining INFO/FMT fields extracted as separate attributes:
   std::set<std::string> used;
@@ -806,8 +807,8 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
 }
 
 std::set<std::string> TileDBVCFDataset::builtin_attributes() {
-  return {AttrNames::pos,
-          AttrNames::real_end,
+  return {AttrNames::real_start_pos,
+          AttrNames::end_pos,
           AttrNames::qual,
           AttrNames::alleles,
           AttrNames::id,
@@ -817,8 +818,8 @@ std::set<std::string> TileDBVCFDataset::builtin_attributes() {
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
-  return attr == DimensionNames::sample || attr == DimensionNames::end_pos ||
-         attr == AttrNames::pos || attr == AttrNames::real_end ||
+  return attr == DimensionNames::sample || attr == DimensionNames::start_pos ||
+         attr == AttrNames::real_start_pos || attr == AttrNames::end_pos ||
          attr == AttrNames::qual;
 }
 

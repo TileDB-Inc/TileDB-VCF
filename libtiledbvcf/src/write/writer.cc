@@ -223,7 +223,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
-  std::vector<WriterWorker> workers(params.num_threads);
+  std::vector<WriterWorker> workers(1 /* params.num_threads */);
   for (auto& worker : workers)
     worker.init(dataset, params, samples);
 

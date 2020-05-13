@@ -369,7 +369,7 @@ bool Reader::next_read_batch() {
   // User query regions
   read_state_.region_idx = 0;
 
-  // One element per sample (row) containing the real_end position of the last
+  // One element per sample (row) containing the end_pos position of the last
   // record that was reported.
   read_state_.last_reported_end.clear();
   read_state_.last_reported_end.resize(
@@ -543,19 +543,20 @@ bool Reader::process_query_results() {
 
   // Get the contig offset and length of the first cell in the results.
   uint32_t first_col =
-      results.buffers()->end_pos().value<uint32_t>(read_state_.cell_idx);
+      results.buffers()->start_pos().value<uint32_t>(read_state_.cell_idx);
   auto contig_info = dataset_->contig_from_column(first_col);
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
     const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
+    const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
+    const uint32_t real_start =
+        results.buffers()->real_start_pos().value<uint32_t>(i);
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
-    const uint32_t start = results.buffers()->pos().value<uint32_t>(i);
-    const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
 
     // Skip cell if we've already reported the gVCF record for it.
-    if (real_end ==
+    if (end ==
         read_state_.last_reported_end[sample_id - read_state_.sample_min])
       continue;
 
@@ -569,9 +570,9 @@ bool Reader::process_query_results() {
     std::pair<size_t, size_t> intersecting = get_intersecting_regions(
         read_state_.regions,
         read_state_.region_idx,
+        real_start,
         start,
         end,
-        real_end,
         &new_region_idx);
     if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
         intersecting.second == std::numeric_limits<uint32_t>::max())
@@ -582,7 +583,7 @@ bool Reader::process_query_results() {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
-      bool intersects = start <= reg_max && real_end >= reg_min;
+      bool intersects = real_start <= reg_max && end >= reg_min;
       if (!intersects)
         throw std::runtime_error(
             "Error in query result processing; range unexpectedly does not "
@@ -596,8 +597,7 @@ bool Reader::process_query_results() {
         return true;
     }
 
-    read_state_.last_reported_end[sample_id - read_state_.sample_min] =
-        real_end;
+    read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
     read_state_.region_idx = new_region_idx;
   }
 
@@ -607,9 +607,9 @@ bool Reader::process_query_results() {
 std::pair<size_t, size_t> Reader::get_intersecting_regions(
     const std::vector<Region>& regions,
     size_t region_idx,
+    uint32_t real_start,
     uint32_t start,
     uint32_t end,
-    uint32_t real_end,
     size_t* new_region_idx) {
   const auto intersects_p = [](const Region& r, uint32_t s, uint32_t e) {
     return s <= (r.seq_offset + r.max) && e >= (r.seq_offset + r.min);
@@ -650,9 +650,9 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions(
   // Next find the index of the last region that intersects the cell's REAL_END
   // position. This is used as the actual interval of intersection.
   for (size_t i = *new_region_idx; i < regions.size(); i++) {
-    bool intersects = intersects_p(regions[i], start, real_end);
+    bool intersects = intersects_p(regions[i], real_start, end);
     if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], start, real_end);
+      bool next_intersects = intersects_p(regions[i + 1], real_start, end);
       if (intersects && !next_intersects) {
         last = i;
         break;
@@ -666,9 +666,9 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions(
   // Search backwards to find the first region that intersects the cell.
   size_t first = nil;
   for (size_t i = *new_region_idx;; i--) {
-    bool intersects = intersects_p(regions[i], start, real_end);
+    bool intersects = intersects_p(regions[i], real_start, end);
     if (i > 0) {
-      bool prev_intersects = intersects_p(regions[i - 1], start, real_end);
+      bool prev_intersects = intersects_p(regions[i - 1], real_start, end);
       if (intersects && !prev_intersects) {
         first = i;
         break;
@@ -845,11 +845,9 @@ void Reader::prepare_regions(
     const uint32_t reg_max = contig_offset + r.max;
 
     // Widen the query region by the anchor gap value, avoiding overflow.
-    uint64_t widened_reg_max = reg_max + g;
-    widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
-    if (reg_min <= regionNonEmptyDomain.second &&
-        widened_reg_max >= regionNonEmptyDomain.first) {
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+    if (widened_reg_min <= regionNonEmptyDomain.second &&
+        reg_max >= regionNonEmptyDomain.first) {
       filtered_regions.emplace_back(r);
     }
   }
@@ -900,30 +898,28 @@ void Reader::prepare_regions(
     const uint32_t reg_max = contig_offset + r.max;
 
     // Widen the query region by the anchor gap value, avoiding overflow.
-    uint64_t widened_reg_max = reg_max + g;
-    widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
 
-    if (prev_reg_max + 1 >= reg_min && !query_regions->empty()) {
+    if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
       // Previous widened region overlaps this one; merge.
-      query_regions->back().col_max = widened_reg_max;
+      query_regions->back().col_max = reg_max;
     } else {
       // Start a new query region.
       query_regions->push_back({});
-      query_regions->back().col_min = reg_min;
-      query_regions->back().col_max = widened_reg_max;
+      query_regions->back().col_min = widened_reg_min;
+      query_regions->back().col_max = reg_max;
     }
 
-    prev_reg_max = widened_reg_max;
+    prev_reg_max = reg_max;
   }
 }
 
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
   std::set<std::string> attrs = {TileDBVCFDataset::DimensionNames::sample,
-                                 TileDBVCFDataset::DimensionNames::end_pos,
-                                 TileDBVCFDataset::AttrNames::pos,
-                                 TileDBVCFDataset::AttrNames::real_end};
+                                 TileDBVCFDataset::DimensionNames::start_pos,
+                                 TileDBVCFDataset::AttrNames::real_start_pos,
+                                 TileDBVCFDataset::AttrNames::end_pos};
 
   buffers_a.reset(new AttributeBufferSet);
   buffers_b.reset(new AttributeBufferSet);

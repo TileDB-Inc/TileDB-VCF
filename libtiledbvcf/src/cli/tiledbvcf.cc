@@ -255,7 +255,8 @@ int main(int argc, char** argv) {
              else if (s == "none")
                create_args.checksum = TILEDB_FILTER_NONE;
            }),
-       option("-n", "--no-duplicates").set(create_args.allow_duplicates, false) %
+       option("-n", "--no-duplicates")
+               .set(create_args.allow_duplicates, false) %
            "Do not allow records with duplicate end positions to be written to "
            "the array.");
 

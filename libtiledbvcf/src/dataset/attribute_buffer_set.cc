@@ -32,17 +32,18 @@ void AttributeBufferSet::allocate_fixed(
       sample_.resize(nbytes);
       fixed_alloc_.emplace_back(
           false, dimNames::sample, &sample_, sizeof(uint32_t));
-    } else if (s == dimNames::end_pos) {
+    } else if (s == dimNames::start_pos) {
+      start_pos_.resize(nbytes);
+      fixed_alloc_.emplace_back(
+          false, dimNames::start_pos, &start_pos_, sizeof(uint32_t));
+    } else if (s == attrNames::real_start_pos) {
+      real_start_pos_.resize(nbytes);
+      fixed_alloc_.emplace_back(
+          false, attrNames::real_start_pos, &real_start_pos_, sizeof(uint32_t));
+    } else if (s == attrNames::end_pos) {
       end_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(
-          false, dimNames::end_pos, &end_pos_, sizeof(uint32_t));
-    } else if (s == attrNames::pos) {
-      pos_.resize(nbytes);
-      fixed_alloc_.emplace_back(false, attrNames::pos, &pos_, sizeof(uint32_t));
-    } else if (s == attrNames::real_end) {
-      real_end_.resize(nbytes);
-      fixed_alloc_.emplace_back(
-          false, attrNames::real_end, &real_end_, sizeof(uint32_t));
+          false, attrNames::end_pos, &end_pos_, sizeof(uint32_t));
     } else if (s == attrNames::qual) {
       qual_.resize(nbytes);
       fixed_alloc_.emplace_back(false, attrNames::qual, &qual_, sizeof(float));
@@ -82,9 +83,9 @@ uint64_t AttributeBufferSet::total_size() const {
 
   // Fixed-len attributes
   total_size += sample_.size();
+  total_size += start_pos_.size();
+  total_size += real_start_pos_.size();
   total_size += end_pos_.size();
-  total_size += pos_.size();
-  total_size += real_end_.size();
   total_size += qual_.size();
 
   // Var-len attributes
@@ -112,9 +113,9 @@ uint64_t AttributeBufferSet::total_size() const {
 void AttributeBufferSet::clear() {
   // Fixed-len attributes
   sample_.clear();
+  start_pos_.clear();
+  real_start_pos_.clear();
   end_pos_.clear();
-  pos_.clear();
-  real_end_.clear();
   qual_.clear();
 
   // Var-len attributes
@@ -144,17 +145,17 @@ void AttributeBufferSet::set_buffers(tiledb::Query* query) const {
         sample_.data<void>(),
         sample_.nelts<uint32_t>());
     query->set_buffer(
-        TileDBVCFDataset::DimensionNames::end_pos,
+        TileDBVCFDataset::DimensionNames::start_pos,
+        start_pos_.data<void>(),
+        start_pos_.nelts<uint32_t>());
+    query->set_buffer(
+        TileDBVCFDataset::AttrNames::real_start_pos,
+        real_start_pos_.data<void>(),
+        real_start_pos_.nelts<uint32_t>());
+    query->set_buffer(
+        TileDBVCFDataset::AttrNames::end_pos,
         end_pos_.data<void>(),
         end_pos_.nelts<uint32_t>());
-    query->set_buffer(
-        TileDBVCFDataset::AttrNames::pos,
-        pos_.data<void>(),
-        pos_.nelts<uint32_t>());
-    query->set_buffer(
-        TileDBVCFDataset::AttrNames::real_end,
-        real_end_.data<void>(),
-        real_end_.nelts<uint32_t>());
     query->set_buffer(
         TileDBVCFDataset::AttrNames::qual,
         qual_.data<void>(),
@@ -228,28 +229,28 @@ Buffer& AttributeBufferSet::sample() {
   return sample_;
 }
 
+const Buffer& AttributeBufferSet::start_pos() const {
+  return start_pos_;
+}
+
+Buffer& AttributeBufferSet::start_pos() {
+  return start_pos_;
+}
+
+const Buffer& AttributeBufferSet::real_start_pos() const {
+  return real_start_pos_;
+}
+
+Buffer& AttributeBufferSet::real_start_pos() {
+  return real_start_pos_;
+}
+
 const Buffer& AttributeBufferSet::end_pos() const {
   return end_pos_;
 }
 
 Buffer& AttributeBufferSet::end_pos() {
   return end_pos_;
-}
-
-const Buffer& AttributeBufferSet::pos() const {
-  return pos_;
-}
-
-Buffer& AttributeBufferSet::pos() {
-  return pos_;
-}
-
-const Buffer& AttributeBufferSet::real_end() const {
-  return real_end_;
-}
-
-Buffer& AttributeBufferSet::real_end() {
-  return real_end_;
 }
 
 const Buffer& AttributeBufferSet::qual() const {

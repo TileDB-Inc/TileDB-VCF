@@ -74,23 +74,23 @@ class AttributeBufferSet {
   /** sample buffer. */
   Buffer& sample();
 
+  /** start_pos buffer. */
+  const Buffer& start_pos() const;
+
+  /** start_pos buffer. */
+  Buffer& start_pos();
+
+  /** pos buffer. */
+  const Buffer& real_start_pos() const;
+
+  /** pos buffer. */
+  Buffer& real_start_pos();
+
   /** end_pos buffer. */
   const Buffer& end_pos() const;
 
   /** end_pos buffer. */
   Buffer& end_pos();
-
-  /** pos buffer. */
-  const Buffer& pos() const;
-
-  /** pos buffer. */
-  Buffer& pos();
-
-  /** real_end buffer. */
-  const Buffer& real_end() const;
-
-  /** real_end buffer. */
-  Buffer& real_end();
 
   /** qual buffer. */
   const Buffer& qual() const;
@@ -150,14 +150,14 @@ class AttributeBufferSet {
   /** sample (uint32_t) */
   Buffer sample_;
 
-  /** end_pos (uint32_t) */
+  /** start_pos (uint32_t) */
+  Buffer start_pos_;
+
+  /** real_start_pos attribute (uint32_t) */
+  Buffer real_start_pos_;
+
+  /** end_pos attribute (uint32_t) */
   Buffer end_pos_;
-
-  /** pos attribute (uint32_t) */
-  Buffer pos_;
-
-  /** real_end attribute (uint32_t) */
-  Buffer real_end_;
 
   /** qual attribute (float) */
   Buffer qual_;
