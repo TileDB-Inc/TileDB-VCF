@@ -27,7 +27,7 @@
 # This Dockerfile builds the TileDB-VCF Python image.
 #
 
-FROM continuumio/miniconda3:4.5.12
+FROM continuumio/miniconda3:4.8.2
 ENV CFLAGS "-march=haswell"
 ENV CPPFLAGS "-march=haswell"
 
