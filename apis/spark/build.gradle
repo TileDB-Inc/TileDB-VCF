@@ -120,5 +120,8 @@ publishing {
             artifact sourceJar
             artifact javadocJar
         }
+	shadow(MavenPublication) { publication ->
+	    project.shadow.component(publication)
+        }
     }
 }
