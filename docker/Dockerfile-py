@@ -46,18 +46,15 @@ RUN apt-get update \
 WORKDIR /tmp
 COPY . tiledbvcf
 
-
-RUN cd tiledbvcf \
-    && rm -rf libtiledbvcf/build dist \
-    && cd apis/python \
-    && conda env update -n base -f conda-env.yml \
+WORKDIR /tmp/tiledbvcf/apis/python
+RUN conda env update -n base -f conda-env.yml \
     && conda install -y -c bioconda htslib \
     && conda install -y cmake \
     && conda clean -a -y
 
-RUN cd /tmp/tiledbvcf/apis/python \
-    && python setup.py install
+RUN python setup.py install
 
-RUN cd /tmp && rm -rf tiledbvcf
+WORKDIR /tmp
+RUN rm -rf tiledbvcf
 
 ENTRYPOINT ["/bin/bash"]

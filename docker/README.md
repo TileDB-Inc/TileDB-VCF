@@ -7,7 +7,7 @@ This directory contains the Dockerfiles to build containers for various componen
 This image builds the main TileDB-VCF library and CLI tool:
 ```bash
 $ cd TileDB-VCF/
-$ docker build -f docker/Dockerfile-cli -t tiledbvcf-cli libtiledbvcf
+$ docker build -f docker/Dockerfile-cli -t tiledbvcf-cli .
 
 # To test:
 $ docker run --rm -it tiledbvcf-cli --version  # or '--help'

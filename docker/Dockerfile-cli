@@ -41,19 +41,17 @@ RUN wget https://cmake.org/files/v3.12/cmake-3.12.3-Linux-x86_64.sh \
     && rm cmake-3.12.3-Linux-x86_64.sh
 
 # Copy the TileDB-VCF directory and build it.
-WORKDIR /tmp/
-COPY . libtiledbvcf
-RUN pushd libtiledbvcf \
-    && rm -rf build \
-    && mkdir build \
-    && cd build \
-    && cmake -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
-        -DOVERRIDE_INSTALL_PREFIX=OFF \
-        .. \
+WORKDIR /tmp
+COPY libtiledbvcf libtiledbvcf
+
+WORKDIR /tmp/libtiledbvcf/build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_INSTALL_PREFIX=/usr/local \
+             -DOVERRIDE_INSTALL_PREFIX=OFF \
     && make -j4 \
-    && make install-libtiledbvcf \
-    && popd \
-    && rm -rf libtiledbvcf
+    && make install-libtiledbvcf
+
+WORKDIR /tmp
+RUN rm -rf /tmp/libtiledbvcf
 
 ENTRYPOINT ["/usr/local/bin/tiledbvcf"]
