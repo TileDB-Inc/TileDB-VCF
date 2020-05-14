@@ -51,7 +51,6 @@ RUN cd tiledbvcf \
     && cd apis/python \
     && conda env update -n base -f conda-env.yml \
     && conda install -y -c bioconda htslib \
-    && conda install dask \
     && python setup.py install \
     && cd /tmp \
     && rm -rf tiledbvcf \
