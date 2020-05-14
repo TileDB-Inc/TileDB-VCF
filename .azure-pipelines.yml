@@ -45,11 +45,11 @@ jobs:
       cli:
         dockerfile: docker/Dockerfile-cli
         repository: tiledb/tiledbvcf-cli
-        context: libtiledbvcf
-      # python:
-      #   dockerfile: docker/Dockerfile-py
-      #   repository: tiledb/tiledbvcf-py
-      #   context: .
+        context: .
+      python:
+        dockerfile: docker/Dockerfile-py
+        repository: tiledb/tiledbvcf-py
+        context: .
       # dask:
       #   dockerfile: docker/Dockerfile-dask-py
       #   repository: tiledb/tiledbvcf-dask
