@@ -1,0 +1,5 @@
+.vscode*
+dist
+libtiledbvcf/build
+apis/python/build
+apis/python/.eggs
