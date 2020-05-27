@@ -2,11 +2,35 @@
 
 [![Build Status](https://dev.azure.com/TileDB-Inc/CI/_apis/build/status/TileDB-VCF?branchName=master)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=master)
 
-# TileDB-VCF
+# :dna: TileDB-VCF
 
-TileDB-VCF is a library for efficient storage and retrieval of genomics variant-call data. With it, you can easily ingest large amounts of variant-call data from the VCF (or BCF) format into a 2D sparse TileDB array that allows for highly compressed storage and efficient, parallelized queries on the variant data. The motivation and idea behind storing VCF data in a 2D sparse array is described in our [Genomics use case docs](https://docs.tiledb.com/genomics/).
+A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB][].
 
-## Quick Links
+## Features
+
+- Easily ingest large amounts of variant-call data at scale
+- Supports ingesting single sample VCF and BCF files
+- New samples are added *incrementally*, avoiding computationally expensive merging operations
+- Allows for highly compressed storage using TileDB sparse arrays
+- Efficient, parallelized queries of variant data stored locally or remotely on S3
+- Export lossless VCF/BCF files or extract specific slices of a dataset
+
+## What's Included?
+
+- Command line interface (CLI)
+- APIs for C, C++, Python, and Java
+- Integrates with Spark, Dask, and AWS Batch
+
+Check out our [docs][vcf] for installation and usage instructions:
+
+|           |       :package:       |       :memo:       |
+|----------:|:---------------------:|:------------------:|
+|       CLI | [Install][inst-cli]   | [Usage][use-cli]   |
+|    Python | [Install][inst-py]    | [Usage][use-py]    |
+|     Spark | [Install][inst-spark] | [Usage][use-spark] |
+| AWS Batch | [Install][inst-aws]   | [Usage][use-aws]   |
+
+## Documentation
 
 * Motivation and use case: https://docs.tiledb.com/genomics/
 * Installation: https://docs.tiledb.com/genomics/installation
@@ -21,3 +45,17 @@ professionalism in all interactions. This repository is governed by the
 specific standards and reporting procedures detailed in depth in the
 [TileDB core repository Code Of Conduct](
 https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
+
+<!-- links -->
+[tiledb]: https://tiledb.com
+[vcf]: https://docs.tiledb.com/genomics/
+
+[inst-cli]: https://docs.tiledb.com/genomics/installation/standalone-tiledb-vcf
+[inst-py]: https://docs.tiledb.com/genomics/installation/python
+[inst-spark]: https://docs.tiledb.com/genomics/installation/spark
+[inst-aws]: https://docs.tiledb.com/genomics/installation/aws-batch
+
+[use-cli]: https://docs.tiledb.com/genomics/usage/cli
+[use-py]: https://docs.tiledb.com/genomics/usage/python
+[use-spark]: https://docs.tiledb.com/genomics/usage/spark
+[use-aws]: https://docs.tiledb.com/genomics/usage/aws-batch
