@@ -30,6 +30,33 @@ Check out our [docs][vcf] for installation and usage instructions:
 |     Spark | [Install][inst-spark] | [Usage][use-spark] |
 | AWS Batch | [Install][inst-aws]   | [Usage][use-aws]   |
 
+## Quick Start
+
+The docs linked above provide more comprehensive examples but here a few quick exercises to get you started.
+
+By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our Docker images to test things out.
+
+### CLI
+
+Export complete BCF files for a subset of samples:
+
+```sh
+tiledbvcf export \
+  --uri vcf-samples-20 \
+  --sample-names v2-usVwJUmo,v2-WpXCYApL \
+  --output-dir bcfs
+```
+
+Create a table of all variants within one or more regions of interest:
+
+```sh
+tiledbvcf export \
+  --uri vcf-samples-20-files/vcf-samples-20 \
+  --sample-names v2-tJjMfKyL,v2-eBAdKwID \
+  -Ot --tsv-fields "CHR,POS,REF,S:GT" \
+  --regions "chr7:144000320-144008793,chr11:56490349-56491395"
+```
+
 ## Documentation
 
 * Motivation and use case: https://docs.tiledb.com/genomics/
