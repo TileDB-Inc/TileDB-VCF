@@ -57,7 +57,39 @@ tiledbvcf export \
   --regions "chr7:144000320-144008793,chr11:56490349-56491395"
 ```
 
-## Documentation
+
+### Python
+
+Run the same query in python
+
+```py
+import tiledbvcf
+
+ds = tiledbvcf.TileDBVCFDataset(uri="vcf-samples-20", mode="r")
+
+ds.read(
+    attrs=["sample_name", "pos_start", "fmt_GT"],
+    regions=["chr7:144000320-144008793", "chr11:56490349-56491395"],
+    samples=["v2-tJjMfKyL", "v2-eBAdKwID"]
+)
+```
+
+Results are returned as a pandas `DataFrame`
+
+```
+     sample_name  pos_start    fmt_GT
+0    v2-nGEAqwFT  143999569  [-1, -1]
+1    v2-tJjMfKyL  144000262  [-1, -1]
+2    v2-tJjMfKyL  144000518  [-1, -1]
+3    v2-nGEAqwFT  144000339  [-1, -1]
+4    v2-nzLyDgYW  144000102  [-1, -1]
+..           ...        ...       ...
+566  v2-nGEAqwFT   56491395    [0, 0]
+567  v2-ijrKdkKh   56491373    [0, 0]
+568  v2-eBAdKwID   56491391    [0, 0]
+569  v2-tJjMfKyL   56491392  [-1, -1]
+570  v2-nzLyDgYW   56491365  [-1, -1]
+```
 
 * Motivation and use case: https://docs.tiledb.com/genomics/
 * Installation: https://docs.tiledb.com/genomics/installation
