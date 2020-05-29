@@ -38,13 +38,13 @@ By the way, we host a publicly accessible version of the `vcf-samples-20` array 
 
 ### CLI
 
-Export complete BCF files for a subset of samples:
+Export complete chr1 BCF files for a subset of samples:
 
 ```sh
 tiledbvcf export \
   --uri vcf-samples-20 \
-  --sample-names v2-usVwJUmo,v2-WpXCYApL \
-  --output-dir bcfs
+  --regions chr1:1-248956422 \
+  --sample-names v2-usVwJUmo,v2-WpXCYApL
 ```
 
 Create a table of all variants within one or more regions of interest:
