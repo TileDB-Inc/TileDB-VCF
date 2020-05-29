@@ -51,16 +51,15 @@ Create a table of all variants within one or more regions of interest:
 
 ```sh
 tiledbvcf export \
-  --uri vcf-samples-20-files/vcf-samples-20 \
+  --uri vcf-samples-20 \
   --sample-names v2-tJjMfKyL,v2-eBAdKwID \
   -Ot --tsv-fields "CHR,POS,REF,S:GT" \
   --regions "chr7:144000320-144008793,chr11:56490349-56491395"
 ```
 
-
 ### Python
 
-Run the same query in python
+Running the same query in python
 
 ```py
 import tiledbvcf
@@ -74,7 +73,7 @@ ds.read(
 )
 ```
 
-Results are returned as a pandas `DataFrame`
+returns results as a pandas `DataFrame`
 
 ```
      sample_name  pos_start    fmt_GT
