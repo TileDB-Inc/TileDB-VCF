@@ -1,6 +1,8 @@
 <a href="https://tiledb.com"><img src="https://github.com/TileDB-Inc/TileDB/raw/dev/doc/source/_static/tiledb-logo_color_no_margin_@4x.png" alt="TileDB logo" width="400"></a>
 
 [![Build Status](https://dev.azure.com/TileDB-Inc/CI/_apis/build/status/TileDB-VCF?branchName=master)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=master)
+[![Docker-CLI](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-cli&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-cli)
+[![Docker-Py](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-py&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-py)
 
 # :dna: TileDB-VCF
 
