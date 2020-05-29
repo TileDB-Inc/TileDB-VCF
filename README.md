@@ -91,11 +91,12 @@ Results are returned as a pandas `DataFrame`
 570  v2-nzLyDgYW   56491365  [-1, -1]
 ```
 
-* Motivation and use case: https://docs.tiledb.com/genomics/
-* Installation: https://docs.tiledb.com/genomics/installation
-* Usage: https://docs.tiledb.com/genomics/usage
-* Further reading: https://docs.tiledb.com/genomics/advanced
-* TileDB-VCF developer resources: https://github.com/TileDB-Inc/TileDB-VCF/wiki
+## Want to Learn More?
+
+* [Motivation and idea behind storing VCF data in 2D sparse arrays](https://docs.tiledb.com/genomics/)
+* [Data Model](https://docs.tiledb.com/genomics/advanced/data-model)
+* [Ingestion Algorithm](https://docs.tiledb.com/genomics/advanced/ingestion-algorithm)
+* [Read Algorithm](https://docs.tiledb.com/genomics/advanced/read-algorithm)
 
 # Code of Conduct
 
