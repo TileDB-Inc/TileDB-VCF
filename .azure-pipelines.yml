@@ -1,8 +1,7 @@
 trigger:
   branches:
     include:
-    - master
-    - release-*
+    - "*"
   tags:
     include:
       - "*"
@@ -36,7 +35,7 @@ jobs:
     vmImage: 'ubuntu-18.04'
   condition: |
     or(
-      eq(variables['build.sourceBranch'], 'refs/heads/master'),
+      eq(variables['build.sourceBranch'], '*'),
       startsWith(variables['build.sourceBranch'], 'refs/tags')
     )
 
