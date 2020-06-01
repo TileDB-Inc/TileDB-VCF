@@ -11,11 +11,12 @@ A C++ library for efficient storage and retrieval of genomic variant-call data u
 ## Features
 
 - Easily ingest large amounts of variant-call data at scale
-- Supports ingesting single sample VCF and BCF files
+- Native support for reading single sample VCF and BCF files
 - New samples are added *incrementally*, avoiding computationally expensive merging operations
 - Allows for highly compressed storage using TileDB sparse arrays
 - Efficient, parallelized queries of variant data stored locally or remotely on S3
 - Export lossless VCF/BCF files or extract specific slices of a dataset
+- Optionally leverage [TileDB-Cloud](https://tiledb.com/cloud/) to easily/securely share your data
 
 ## What's Included?
 
