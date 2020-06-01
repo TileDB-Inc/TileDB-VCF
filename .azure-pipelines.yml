@@ -35,7 +35,7 @@ jobs:
     vmImage: 'ubuntu-18.04'
   condition: |
     or(
-      eq(variables['build.sourceBranch'], 'aw/fix-docker-builds'),
+      eq(variables['build.sourceBranch'], 'refs/heads/aw/fix-docker-builds'),
       startsWith(variables['build.sourceBranch'], 'refs/tags')
     )
 
