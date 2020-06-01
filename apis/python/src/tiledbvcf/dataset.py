@@ -172,12 +172,13 @@ class TileDBVCFDataset(object):
     def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True):
         """Ingest samples
 
-        :param list of str samples: CSV list of sample names to include in
-            the count.
+        :param list of str sample_uris: CSV list of sample VCF/BCF URIs to ingest
         :param list of str extra_attrs: CSV list of extra attributes to
             materialize from fmt field
         :param str checksum_type: Optional override checksum type for creating new dataset
-            valid values are sha256, md5 or none.
+            valid values are sha256, md5 or none
+        :param bool Controls whether records with duplicate end positions can be
+            ingested written to the dataset
         """
         if self.mode != 'w':
             raise Exception('Dataset not open in write mode')

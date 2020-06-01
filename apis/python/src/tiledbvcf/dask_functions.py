@@ -63,7 +63,7 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
 
 def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
               samples=None, regions=None, samples_file=None, bed_file=None):
-    """Reads data from a TileDB-VCF into a Dask DataFrame.
+    """Reads data from a TileDB-VCF dataset into a Dask DataFrame.
 
     Partitioning proceeds by a straightforward block distribution, parameterized
     by the total number of partitions and the particular partition index that
