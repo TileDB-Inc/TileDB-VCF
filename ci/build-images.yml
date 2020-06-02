@@ -18,5 +18,5 @@ steps:
       repository: $(repository)
       command: 'Push'
       tags: |
-        - latest
-        - $(Build.SourceBranchName)
+        latest
+        $(Build.SourceBranchName)
