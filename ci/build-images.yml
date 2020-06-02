@@ -17,6 +17,4 @@ steps:
       containerRegistry: 'dockerHub'
       repository: $(repository)
       command: 'Push'
-      tags: |
-        latest
-        $(Build.SourceBranchName)
+      tags: latest,$(Build.SourceBranchName)
