@@ -1,4 +1,6 @@
 steps:
+- bash: printenv
+  displayName: Print Env
 - bash: |
     set -e pipefail
     brew install clang-format
