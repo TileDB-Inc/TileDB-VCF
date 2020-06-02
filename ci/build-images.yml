@@ -19,4 +19,6 @@ steps:
       command: 'buildAndPush'
       Dockerfile: $(dockerfile)
       buildContext: $(context)
-      tags: $(Build.SourceBranchName)
+      tags: |
+        - stable
+        - $(Build.SourceBranchName)

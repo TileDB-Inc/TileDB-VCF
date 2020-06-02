@@ -1,2 +1,2 @@
 steps:
-- bash: exit 1
+- bash: exit 0
