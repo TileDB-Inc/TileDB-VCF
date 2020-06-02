@@ -1,11 +1,2 @@
 steps:
-- bash: |
-    set -e pipefail
-    brew install clang-format
-    src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
-    cd $BUILD_REPOSITORY_LOCALPATH
-    ci/run-clang-format.sh $src clang-format 0 \
-      $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
-  condition: eq(variables['Agent.OS'], 'Darwin')
-  displayName: 'Check formatting (macOS only)'
-
+- bash: exit 1
