@@ -7,7 +7,9 @@ steps:
       repository: $(repository)
       Dockerfile: $(dockerfile)
       buildContext: $(context)
-      tags: dev
+      tags: |
+        dev
+        latest
 
   - task: Docker@2
     displayName: Push Latest Tag (should only happen on master)
@@ -26,4 +28,3 @@ steps:
       repository: $(repository)
       tags: |
         latest
-        $(build.SourceBranchName)
