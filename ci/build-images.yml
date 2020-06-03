@@ -6,7 +6,8 @@ steps:
       command: build
       Dockerfile: $(dockerfile)
       buildContext: $(context)
-      tags: dev
+      tags: |
+        dev
 
   - task: Docker@2
     displayName: Push Latest Tag (should only happen on master)
@@ -14,7 +15,8 @@ steps:
       containerRegistry: 'dockerHub'
       repository: $(repository)
       command: push
-      tags: dev
+      tags: |
+        dev
 
   - task: Docker@2
     displayName: Push Release Tag
