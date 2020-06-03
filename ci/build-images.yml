@@ -28,3 +28,4 @@ steps:
       repository: $(repository)
       tags: |
         latest
+        $(build.SourceBranchName)
