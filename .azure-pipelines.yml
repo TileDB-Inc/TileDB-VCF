@@ -34,11 +34,7 @@ jobs:
   dependsOn: Build
   pool:
     vmImage: 'ubuntu-18.04'
-  condition: |
-    or(
-      eq(variables['build.sourceBranch'], 'refs/heads/master'),
-      startsWith(variables['build.sourceBranch'], 'refs/tags')
-    )
+  condition: succeeded()
 
   strategy:
     matrix:
