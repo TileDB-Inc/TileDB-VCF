@@ -4,6 +4,7 @@ steps:
     displayName: Build Image
     inputs:
       command: build
+      containerRegistry: 'dockerHub'
       Dockerfile: $(dockerfile)
       buildContext: $(context)
       tags: |
