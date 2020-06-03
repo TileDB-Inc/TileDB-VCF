@@ -3,18 +3,18 @@ steps:
   - task: Docker@2
     displayName: Build Image
     inputs:
-      command: 'Build'
+      command: build
       Dockerfile: $(dockerfile)
       buildContext: $(context)
+      tags: dev
 
   - task: Docker@2
-    displayName: Push Latest Tag
+    displayName: Push Latest Tag (should only happen on master)
     inputs:
       containerRegistry: 'dockerHub'
       repository: $(repository)
-      command: 'Push'
-      tags: |
-        dev
+      command: push
+      tags: dev
 
   - task: Docker@2
     displayName: Push Release Tag
@@ -22,6 +22,6 @@ steps:
     inputs:
       containerRegistry: 'dockerHub'
       repository: $(repository)
-      command: 'Push'
+      command: push
       tags: |
         $(build.SourceBranchName)
