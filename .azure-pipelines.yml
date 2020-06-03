@@ -1,8 +1,7 @@
 trigger:
   branches:
     include:
-    - master
-    - release-*
+      - "*"
   tags:
     include:
       - "*"
@@ -42,11 +41,11 @@ jobs:
     matrix:
       cli:
         dockerfile: docker/Dockerfile-cli
-        repository: tiledb/tiledbvcf-cli
+        repository: aaronwolen/tiledbvcf-cli
         context: .
       python:
         dockerfile: docker/Dockerfile-py
-        repository: tiledb/tiledbvcf-py
+        repository: aaronwolen/tiledbvcf-py
         context: .
       # dask:
       #   dockerfile: docker/Dockerfile-dask-py
