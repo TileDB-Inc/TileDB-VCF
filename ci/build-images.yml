@@ -10,6 +10,7 @@ steps:
       tags: |
         dev
         latest
+        $(build.SourceBranchName)
 
   - task: Docker@2
     displayName: Push Latest Tag (should only happen on master)
