@@ -4,7 +4,7 @@
 [![Docker-CLI](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-cli&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-cli)
 [![Docker-Py](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-py&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-py)
 
-# :dna: TileDB-VCF
+# TileDB-VCF
 
 A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB][].
 
