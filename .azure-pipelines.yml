@@ -28,6 +28,8 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
+  - script: printenv
+    displayName: 'Print Env'
   - template: ci/azure-linux_mac.yml
 
 - job: Docker
