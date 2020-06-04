@@ -40,6 +40,7 @@ import subprocess
 import sys
 
 TILEDBVCF_DEBUG_BUILD = False
+TILEDBVCF_S3 = True
 LIBTILEDBVCF_PATH = None
 
 args = sys.argv[:]
@@ -49,6 +50,9 @@ for arg in args:
       sys.argv.remove(arg)
   if arg.find('--libtiledbvcf') == 0:
       LIBTILEDBVCF_PATH = arg.split('=')[1]
+      sys.argv.remove(arg)
+  if arg.find('--disable-s3') == 0:
+      TILEDBVCF_S3 = False
       sys.argv.remove(arg)
 
 
@@ -113,6 +117,9 @@ def get_cmake_overrides():
     key = "TILEDBVCF_FORCE_EXTERNAL_HTSLIB"
     val = os.environ.get(key, default="ON")
     conf.append("-DFORCE_EXTERNAL_HTSLIB={}".format(val))
+
+    val = "ON" if TILEDBVCF_S3 else "OFF"
+    conf.append("-DTILEDB_S3={}".format(val))
 
     val = "Debug" if TILEDBVCF_DEBUG_BUILD else "Release"
     conf.append("-DCMAKE_BUILD_TYPE={}".format(val))

@@ -37,6 +37,9 @@ if (TILEDB_FOUND)
 else()
   if (SUPERBUILD)
     message(STATUS "Adding TileDB as an external project")
+    if (TILEDB_S3 STREQUAL "OFF")
+      message(STATUS "TileDB will be built WITHOUT S3 support")
+    endif()
 
     ExternalProject_Add(ep_tiledb
       PREFIX "externals"
@@ -47,7 +50,7 @@ else()
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_BUILD_TYPE=Release
-        -DTILEDB_S3=ON
+        -DTILEDB_S3=${TILEDB_S3}
         -DTILEDB_VERBOSE=ON
         -DTILEDB_SERIALIZATION=ON
       UPDATE_COMMAND ""
