@@ -34,8 +34,6 @@ ENV CPPFLAGS "-march=haswell"
 ENV TILEDBVCF_FORCE_EXTERNAL_HTSLIB=OFF
 ENV LD_LIBRARY_PATH=/usr/local/lib:/opt/conda/lib
 
-RUN conda config --prepend channels conda-forge
-
 # Install some dependencies
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -43,18 +41,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the TileDB-VCF Python directory and build it.
-WORKDIR /tmp
-COPY . tiledbvcf
-
-WORKDIR /tmp/tiledbvcf/apis/python
+COPY apis/python/conda-env.yml .
 RUN conda env update -n base -f conda-env.yml \
     && conda install -y -c bioconda htslib \
     && conda install -y cmake \
-    && conda clean -a -y
-
-RUN python setup.py install
+    && conda clean -a -y \
+    && rm conda-env.yml
 
 WORKDIR /tmp
-RUN rm -rf tiledbvcf
+COPY . tiledbvcf
+RUN cd tiledbvcf/apis/python && python setup.py install
 
+RUN cd /tmp && rm -rf tiledbvcf
 ENTRYPOINT ["/bin/bash"]
