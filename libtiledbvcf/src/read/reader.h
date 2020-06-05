@@ -293,6 +293,12 @@ class Reader {
     /** Map of current relative sample ID -> VCF header instance. */
     std::vector<SafeBCFHdr> current_hdrs;
 
+    /**
+     * Stores the index to a region that was unsuccessfully reported
+     * in the last read.
+     */
+    size_t last_intersecting_region_idx_;
+
     /** Map of current relative sample ID -> last real_end reported. */
     std::vector<uint32_t> last_reported_end;
 
