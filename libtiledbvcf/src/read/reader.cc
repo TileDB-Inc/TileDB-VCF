@@ -332,6 +332,7 @@ void Reader::read() {
 void Reader::init_for_reads() {
   read_state_.batch_idx = 0;
   read_state_.sample_batches = prepare_sample_batches();
+  read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
   prepare_regions(&read_state_.regions, &read_state_.query_regions);
@@ -577,8 +578,15 @@ bool Reader::process_query_results() {
         intersecting.second == std::numeric_limits<uint32_t>::max())
       continue;
 
-    // Report all intersections.
-    for (size_t j = intersecting.first; j <= intersecting.second; j++) {
+    // Report all intersections. If the previous read returned before
+    // reporting all intersecting regions, 'last_intersecting_region_idx_'
+    // will be non-zero. All regions with an index less-than
+    // 'last_intersecting_region_idx_' have already been reported, so we
+    // must avoid reporting them multiple times.
+    size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
+                   read_state_.last_intersecting_region_idx_ :
+                   intersecting.first;
+    for (; j <= intersecting.second; j++) {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
@@ -588,13 +596,23 @@ bool Reader::process_query_results() {
             "Error in query result processing; range unexpectedly does not "
             "intersect cell.");
 
-      if (!report_cell(reg, contig_offset, i))
+      // If we overflow when reporting this cell, save the index of the
+      // current region so that we restart from the same position on the
+      // next read. Otherwise, we will re-report the cells in regions with
+      // an index below 'j'.
+      if (!report_cell(reg, contig_offset, i)) {
+        read_state_.last_intersecting_region_idx_ = j;
         return false;
+      }
 
       // Return early if we've hit the record limit.
       if (read_state_.total_num_records_exported >= params_.max_num_records)
         return true;
     }
+
+    // Clear 'last_intersecting_region_idx_' after successfully reporting
+    // all cells in intersecting regions.
+    read_state_.last_intersecting_region_idx_ = 0;
 
     read_state_.last_reported_end[sample_id - read_state_.sample_min] =
         real_end;
