@@ -22,8 +22,10 @@ void AttributeBufferSet::allocate_fixed(
 
   // Requesting 0 MB will result in a 1 KB allocation. This is used by the
   // tests to test the path of incomplete TileDB queries.
-  nbytes = mem_budget_mb == 0 ? 1024 : (mem_budget_mb * 1024 * 1024);
-  num_offsets = nbytes / sizeof(uint64_t);
+  if (mem_budget_mb == 0) {
+    nbytes = 1024;
+    num_offsets = nbytes / sizeof(uint64_t);
+  }
 
   using attrNames = TileDBVCFDataset::AttrNames;
   using dimNames = TileDBVCFDataset::DimensionNames;
