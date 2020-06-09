@@ -288,7 +288,7 @@ class Reader {
     uint32_t sample_max = 0;
 
     /** Map of current relative sample ID -> sample name. */
-    std::vector<SampleAndId> current_samples;
+    std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
     std::vector<SafeBCFHdr> current_hdrs;
