@@ -384,9 +384,6 @@ bool Reader::next_read_batch() {
 
   // Sample handles
   read_state_.current_samples.clear();
-  // The samples should be of size to cover the entire range of the sample ids
-  read_state_.current_samples.resize(
-      read_state_.sample_max - read_state_.sample_min + 1);
   for (const auto& s : samples) {
     read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
   }
@@ -719,6 +716,12 @@ bool Reader::report_cell(
   const auto& results = read_state_.query_results;
   uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx) -
                       read_state_.sample_min;
+
+  // Skip this cell if we are not reporting its sample.
+  if (read_state_.current_samples.count(samp_idx) == 0) {
+    return true;
+  }
+
   const auto& sample = read_state_.current_samples[samp_idx];
   const auto& hdr = read_state_.current_hdrs[samp_idx];
 
