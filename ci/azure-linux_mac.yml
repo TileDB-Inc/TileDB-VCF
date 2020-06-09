@@ -8,7 +8,3 @@ steps:
       $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
   condition: eq(variables['Agent.OS'], 'Darwin')
   displayName: 'Check formatting (macOS only)'
-
-- script: |
-    printenv
-    displayName: 'Print env'
