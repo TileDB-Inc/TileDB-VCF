@@ -29,5 +29,6 @@ steps:
       containerRegistry: 'dockerHub'
       repository: $(repository)
       tags: |
+        dev
         latest
         $(build.SourceBranchName)
