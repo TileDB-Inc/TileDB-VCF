@@ -1300,11 +1300,12 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   ExportParams read_params;
   read_params.uri = dataset_uri;
   read_params.sample_names = {"G1", "G2", "G59"};
-  read_params.regions = {"1:12700-13400",
-                         "1:17000-17400",
-                         "2:1234-12340",
-                         "14:50000-100000",
-                         "14:100000-200000"};
+  read_params.regions = {
+      "1:12700-13400",
+      "1:17000-17400",
+      "2:1234-12340",
+      "14:50000-100000",
+      "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
@@ -1314,11 +1315,12 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   // Check with unsorted samples and regions
   reader.reset(new Reader);
   read_params.sample_names = {"G59", "G1", "G2"};
-  read_params.regions = {"1:12700-13400",
-                         "14:50000-100000",
-                         "2:1234-12340",
-                         "1:17000-17400",
-                         "14:100000-200000"};
+  read_params.regions = {
+      "1:12700-13400",
+      "14:50000-100000",
+      "2:1234-12340",
+      "1:17000-17400",
+      "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
