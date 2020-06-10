@@ -12,11 +12,12 @@ steps:
 - bash: |
     set -e pipefail
     # Install bcftools (only required for running the CLI tests)
+    version=1.10.2
     if [[ "$AGENT_OS" == "Linux" ]]; then
         pushd /tmp
-        wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2
-        tar xfj bcftools-1.9.tar.bz2
-        cd bcftools-1.9
+        wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2
+        tar xfj bcftools-${version}.tar.bz2
+        cd bcftools-${version}
         ./configure --prefix=/usr
         make -j2
         sudo make install
