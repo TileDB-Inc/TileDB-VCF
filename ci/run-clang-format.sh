@@ -26,17 +26,16 @@ shift
 APPLY_FIXES=$1
 shift
 
-# clang format will only find its configuration if we are in 
+# clang format will only find its configuration if we are in
 # the source tree or in a path relative to the source tree
-pushd $SOURCE_DIR
+pushd "$SOURCE_DIR" || exit
 if [ "$APPLY_FIXES" == "1" ]; then
-  $CLANG_FORMAT -i $@
+  $CLANG_FORMAT -i "$@"
 else
-
-  NUM_CORRECTIONS=`$CLANG_FORMAT -output-replacements-xml  $@ | grep offset | wc -l`
+  NUM_CORRECTIONS=$(CLANG_FORMAT --output-replacements-xml "$@" | grep --count )
   if [ "$NUM_CORRECTIONS" -gt "0" ]; then
-    echo "clang-format suggested changes, please run 'make format'!!!!"
+    echo "clang-format suggested changes, please run 'make format'!"
     exit 1
   fi
-fi 
-popd
+fi
+popd || exit
