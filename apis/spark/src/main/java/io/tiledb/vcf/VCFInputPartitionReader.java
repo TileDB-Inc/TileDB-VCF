@@ -353,14 +353,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
-    long maxRowsL = (attributeBufferSize / 4L);
+    // Allocate an Arrow-backed buffer for the attribute.
+    ValueVector valueVector = makeArrowVector(fieldName, info);
+
+    long maxRowsL = (attributeBufferSize / Util.getDefaultRecordByteCount(valueVector.getClass()));
 
     // Max number of rows is nbytes / sizeof(int32_t), i.e. the max number of offsets that can be
     // stored.
     int maxNumRows = Util.longToInt(maxRowsL);
 
-    // Allocate an Arrow-backed buffer for the attribute.
-    ValueVector valueVector = makeArrowVector(fieldName, info);
     if (valueVector instanceof ListVector) {
       ((ListVector) valueVector).setInitialCapacity(maxNumRows, 1);
     } else {
