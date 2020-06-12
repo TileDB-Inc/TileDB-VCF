@@ -50,7 +50,10 @@ RUN conda env update -n base -f conda-env.yml \
 
 WORKDIR /tmp
 COPY . tiledbvcf
-RUN cd tiledbvcf/apis/python && python setup.py install
 
-RUN cd /tmp && rm -rf tiledbvcf
+WORKDIR /tmp/tiledbvcf/apis/python
+RUN python setup.py install
+RUN rm -rf /tmp/tiledbvcf
+
+WORKDIR /data
 CMD ["python3"]
