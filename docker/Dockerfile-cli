@@ -50,8 +50,7 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
              -DOVERRIDE_INSTALL_PREFIX=OFF \
     && make -j4 \
     && make install-libtiledbvcf
-
-WORKDIR /tmp
 RUN rm -rf /tmp/libtiledbvcf
 
+WORKDIR /data
 ENTRYPOINT ["/usr/local/bin/tiledbvcf"]
