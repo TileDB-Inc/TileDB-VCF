@@ -53,4 +53,4 @@ COPY . tiledbvcf
 RUN cd tiledbvcf/apis/python && python setup.py install
 
 RUN cd /tmp && rm -rf tiledbvcf
-ENTRYPOINT ["/bin/bash"]
+CMD ["python3"]
