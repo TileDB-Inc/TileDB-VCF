@@ -731,8 +731,9 @@ void TileDBVCFDataset::write_vcf_headers(
 
   // Build data vector and subarray
   std::vector<std::string> headers;
-  std::vector<uint32_t> subarray = {std::numeric_limits<uint32_t>::max(),
-                                    std::numeric_limits<uint32_t>::min()};
+  std::vector<uint32_t> subarray = {
+      std::numeric_limits<uint32_t>::max(),
+      std::numeric_limits<uint32_t>::min()};
   for (const auto& pair : vcf_headers) {
     subarray[0] = std::min(subarray[0], pair.first);
     subarray[1] = std::max(subarray[1], pair.first);
@@ -806,14 +807,15 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
 }
 
 std::set<std::string> TileDBVCFDataset::builtin_attributes() {
-  return {AttrNames::pos,
-          AttrNames::real_end,
-          AttrNames::qual,
-          AttrNames::alleles,
-          AttrNames::id,
-          AttrNames::filter_ids,
-          AttrNames::info,
-          AttrNames::fmt};
+  return {
+      AttrNames::pos,
+      AttrNames::real_end,
+      AttrNames::qual,
+      AttrNames::alleles,
+      AttrNames::id,
+      AttrNames::filter_ids,
+      AttrNames::info,
+      AttrNames::fmt};
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {

@@ -941,10 +941,11 @@ void Reader::prepare_regions(
 
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
-  std::set<std::string> attrs = {TileDBVCFDataset::DimensionNames::sample,
-                                 TileDBVCFDataset::DimensionNames::end_pos,
-                                 TileDBVCFDataset::AttrNames::pos,
-                                 TileDBVCFDataset::AttrNames::real_end};
+  std::set<std::string> attrs = {
+      TileDBVCFDataset::DimensionNames::sample,
+      TileDBVCFDataset::DimensionNames::end_pos,
+      TileDBVCFDataset::AttrNames::pos,
+      TileDBVCFDataset::AttrNames::real_end};
 
   buffers_a.reset(new AttributeBufferSet);
   buffers_b.reset(new AttributeBufferSet);
