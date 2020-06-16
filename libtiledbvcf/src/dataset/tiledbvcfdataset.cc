@@ -36,17 +36,34 @@
 
 namespace tiledb {
 namespace vcf {
-const std::string TileDBVCFDataset::DimensionNames::sample = "sample";
-const std::string TileDBVCFDataset::DimensionNames::end_pos = "end_pos";
 
-const std::string TileDBVCFDataset::AttrNames::pos = "pos";
-const std::string TileDBVCFDataset::AttrNames::real_end = "real_end";
-const std::string TileDBVCFDataset::AttrNames::qual = "qual";
-const std::string TileDBVCFDataset::AttrNames::alleles = "alleles";
-const std::string TileDBVCFDataset::AttrNames::id = "id";
-const std::string TileDBVCFDataset::AttrNames::filter_ids = "filter_ids";
-const std::string TileDBVCFDataset::AttrNames::info = "info";
-const std::string TileDBVCFDataset::AttrNames::fmt = "fmt";
+using dimNamesV3 = TileDBVCFDataset::DimensionNames::V3;
+const std::string dimNamesV3::sample = "sample";
+const std::string dimNamesV3::start_pos = "start_pos";
+
+using dimNamesV2 = TileDBVCFDataset::DimensionNames::V2;
+const std::string dimNamesV2::sample = "sample";
+const std::string dimNamesV2::end_pos = "end_pos";
+
+using attrNamesV3 = TileDBVCFDataset::AttrNames::V3;
+const std::string attrNamesV3::real_start_pos = "real_start_pos";
+const std::string attrNamesV3::end_pos = "end_pos";
+const std::string attrNamesV3::qual = "qual";
+const std::string attrNamesV3::alleles = "alleles";
+const std::string attrNamesV3::id = "id";
+const std::string attrNamesV3::filter_ids = "filter_ids";
+const std::string attrNamesV3::info = "info";
+const std::string attrNamesV3::fmt = "fmt";
+
+using attrNamesV2 = TileDBVCFDataset::AttrNames::V2;
+const std::string attrNamesV2::pos = "pos";
+const std::string attrNamesV2::real_end = "real_end";
+const std::string attrNamesV2::qual = "qual";
+const std::string attrNamesV2::alleles = "alleles";
+const std::string attrNamesV2::id = "id";
+const std::string attrNamesV2::filter_ids = "filter_ids";
+const std::string attrNamesV2::info = "info";
+const std::string attrNamesV2::fmt = "fmt";
 
 namespace {
 FilterList default_attribute_filter_list(const Context& ctx) {
@@ -154,15 +171,15 @@ void TileDBVCFDataset::create_empty_data_array(
         dom_max - static_cast<uint32_t>(metadata.row_tile_extent);
     auto sample = Dimension::create<uint32_t>(
         ctx,
-        DimensionNames::sample,
+        DimensionNames::V3::sample,
         {{dom_min, sample_dom_max}},
         metadata.row_tile_extent);
-    auto end_pos = Dimension::create<uint32_t>(
+    auto start_pos = Dimension::create<uint32_t>(
         ctx,
-        DimensionNames::end_pos,
+        DimensionNames::V3::start_pos,
         {{dom_min, dom_max}},
         dom_max - dom_min + 1);
-    domain.add_dimensions(sample, end_pos);
+    domain.add_dimensions(sample, start_pos);
   }
   schema.set_domain(domain);
   auto offsets_filter_list = default_offsets_filter_list(ctx);
@@ -189,24 +206,24 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_coords_filter_list(coords_filter_list);
   schema.set_offsets_filter_list(offsets_filter_list);
 
-  auto pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::pos, byteshuffle_zstd_filters);
-  auto real_end = Attribute::create<uint32_t>(
-      ctx, AttrNames::real_end, byteshuffle_zstd_filters);
+  auto real_start_pos = Attribute::create<uint32_t>(
+      ctx, AttrNames::V3::real_start_pos, byteshuffle_zstd_filters);
+  auto end_pos = Attribute::create<uint32_t>(
+      ctx, AttrNames::V3::end_pos, byteshuffle_zstd_filters);
   auto qual =
-      Attribute::create<float>(ctx, AttrNames::qual, attribute_filter_list);
+      Attribute::create<float>(ctx, AttrNames::V3::qual, attribute_filter_list);
   auto alleles = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::alleles, attribute_filter_list);
+      ctx, AttrNames::V3::alleles, attribute_filter_list);
   auto id = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::id, attribute_filter_list);
+      ctx, AttrNames::V3::id, attribute_filter_list);
   auto filters_ids = Attribute::create<std::vector<int32_t>>(
-      ctx, AttrNames::filter_ids, byteshuffle_zstd_filters);
+      ctx, AttrNames::V3::filter_ids, byteshuffle_zstd_filters);
   auto info = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::info, attribute_filter_list);
+      ctx, AttrNames::V3::info, attribute_filter_list);
   auto fmt = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::fmt, attribute_filter_list);
+      ctx, AttrNames::V3::fmt, attribute_filter_list);
   schema.add_attributes(
-      pos, real_end, qual, alleles, id, filters_ids, info, fmt);
+      real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
   // Remaining INFO/FMT fields extracted as separate attributes:
   std::set<std::string> used;
@@ -270,12 +287,13 @@ void TileDBVCFDataset::open(
   utils::set_tiledb_config(tiledb_config, &cfg);
   Context ctx(cfg);
   metadata_ = read_metadata(ctx, root_uri_);
-  if (metadata_.version != TILEVCF_ARRAY_VERSION)
+
+  // We support V2 and V3 (current) formats.
+  if (metadata_.version != Version::V2 && metadata_.version != Version::V3)
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset is version " +
         std::to_string(metadata_.version) +
-        " but TileDB-VCF library version is " +
-        std::to_string(TILEVCF_ARRAY_VERSION) + ".");
+        " but only versions 2 and 3 are supported.");
 
   load_field_type_maps(ctx);
 
@@ -806,29 +824,52 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
   return {kind, name};
 }
 
-std::set<std::string> TileDBVCFDataset::builtin_attributes() {
-  return {
-      AttrNames::pos,
-      AttrNames::real_end,
-      AttrNames::qual,
-      AttrNames::alleles,
-      AttrNames::id,
-      AttrNames::filter_ids,
-      AttrNames::info,
-      AttrNames::fmt};
+std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
+  return {AttrNames::V3::real_start_pos,
+          AttrNames::V3::end_pos,
+          AttrNames::V3::qual,
+          AttrNames::V3::alleles,
+          AttrNames::V3::id,
+          AttrNames::V3::filter_ids,
+          AttrNames::V3::info,
+          AttrNames::V3::fmt};
+}
+
+std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
+  return {AttrNames::V2::pos,
+          AttrNames::V2::real_end,
+          AttrNames::V2::qual,
+          AttrNames::V2::alleles,
+          AttrNames::V2::id,
+          AttrNames::V2::filter_ids,
+          AttrNames::V2::info,
+          AttrNames::V2::fmt};
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
-  return attr == DimensionNames::sample || attr == DimensionNames::end_pos ||
-         attr == AttrNames::pos || attr == AttrNames::real_end ||
-         attr == AttrNames::qual;
+  return attr == DimensionNames::V3::sample ||
+         attr == DimensionNames::V3::start_pos ||
+         attr == DimensionNames::V2::sample ||
+         attr == DimensionNames::V2::end_pos ||
+         attr == AttrNames::V3::real_start_pos ||
+         attr == AttrNames::V3::end_pos || attr == AttrNames::V3::qual ||
+         attr == AttrNames::V2::pos || attr == AttrNames::V2::real_end ||
+         attr == AttrNames::V2::qual;
 }
 
-std::set<std::string> TileDBVCFDataset::all_attributes() const {
+std::unordered_set<std::string> TileDBVCFDataset::all_attributes() const {
   if (!open_)
     throw std::invalid_argument(
         "Cannot get attributes from dataset; dataset is not open.");
-  std::set<std::string> result = builtin_attributes();
+
+  std::unordered_set<std::string> result;
+  if (metadata_.version == Version::V2) {
+    result = builtin_attributes_v2();
+  } else {
+    assert(metadata_.version == Version::V3);
+    result = builtin_attributes_v3();
+  }
+
   for (const auto& s : metadata_.extra_attributes)
     result.insert(s);
   return result;

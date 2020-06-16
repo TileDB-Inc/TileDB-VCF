@@ -21,7 +21,7 @@ import org.junit.Test;
 public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   private String testSampleGroupURI(String sampleGroupName) {
-    Path arraysPath = Paths.get("src", "test", "resources", "arrays", sampleGroupName);
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v3", sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
@@ -273,14 +273,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     // check null values
     for (int i = 0; i < rows.size(); i++) {
       boolean isNull = rows.get(i).isNullAt(0);
-      if (i == 4) {
-        Assert.assertFalse(isNull);
-        List<String> row = rows.get(i).getList(0);
-        Assert.assertEquals(row.size(), 1);
-        Assert.assertEquals(row.get(0), "LowQual");
-      } else {
-        Assert.assertTrue(isNull);
-      }
+      Assert.assertTrue(isNull);
     }
   }
 

@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_RECORD_HEAP_H
-#define TILEDB_VCF_RECORD_HEAP_H
+#ifndef TILEDB_VCF_RECORD_HEAP_V3_H
+#define TILEDB_VCF_RECORD_HEAP_V3_H
 
 #include <htslib/vcf.h>
 #include <queue>
@@ -35,7 +35,7 @@
 namespace tiledb {
 namespace vcf {
 
-class RecordHeap {
+class RecordHeapV3 {
  public:
   enum class NodeType { Record, Anchor };
   struct Node {
@@ -43,15 +43,17 @@ class RecordHeap {
         : vcf(nullptr)
         , type(NodeType::Record)
         , record(nullptr)
-        , sort_end_pos(std::numeric_limits<uint32_t>::max())
-        , sample_id(std::numeric_limits<uint32_t>::max()) {
+        , sort_start_pos(std::numeric_limits<uint32_t>::max())
+        , sample_id(std::numeric_limits<uint32_t>::max())
+        , end_node(false) {
     }
 
     VCF* vcf;
     NodeType type;
     bcf1_t* record;
-    uint32_t sort_end_pos;
+    uint32_t sort_start_pos;
     uint32_t sample_id;
+    bool end_node;
   };
 
   void clear();
@@ -62,8 +64,9 @@ class RecordHeap {
       VCF* vcf,
       NodeType type,
       bcf1_t* record,
-      uint32_t sort_end_pos,
-      uint32_t sample_id);
+      uint32_t sort_start_pos,
+      uint32_t sample_id,
+      bool end_node);
 
   const Node& top() const;
 
@@ -71,19 +74,20 @@ class RecordHeap {
 
  private:
   /**
-   * Performs a greater-than comparison on two RecordHeap Node structs. This
-   * results in a min-heap sorted on end position first, breaking ties by sample
-   * ID.
+   * Performs a greater-than comparison on two RecordHeapV3 Node structs. This
+   * results in a min-heap sorted on start position first, breaking ties by
+   * sample ID.
    */
   struct NodeCompareGT {
     bool operator()(
         const std::unique_ptr<Node>& a, const std::unique_ptr<Node>& b) const {
-      auto a_end = a->sort_end_pos, b_end = b->sort_end_pos;
-      return a_end > b_end || (a_end == b_end && a->sample_id > b->sample_id);
+      auto a_start = a->sort_start_pos, b_start = b->sort_start_pos;
+      return a_start > b_start ||
+             (a_start == b_start && a->sample_id > b->sample_id);
     }
   };
 
-  /** A min-heap of BCF record structs, sorted on end pos. */
+  /** A min-heap of BCF record structs, sorted on start pos. */
   typedef std::priority_queue<
       std::unique_ptr<Node>,
       std::vector<std::unique_ptr<Node>>,
@@ -97,4 +101,4 @@ class RecordHeap {
 }  // namespace vcf
 }  // namespace tiledb
 
-#endif  // TILEDB_VCF_RECORD_HEAP_H
+#endif  // TILEDB_VCF_RECORD_HEAP_V3_H

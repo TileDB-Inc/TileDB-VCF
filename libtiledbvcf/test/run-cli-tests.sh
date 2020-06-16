@@ -345,7 +345,7 @@ EOF
 diff -q <($tilevcf stat -u ingested_1_2) <(
 cat <<EOF
 Statistics for dataset 'ingested_1_2':
-- Version: 2
+- Version: 3
 - Row tile extent: 10
 - Tile capacity: 10,000
 - Anchor gap: 1,000
