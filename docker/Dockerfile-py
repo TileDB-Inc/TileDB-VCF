@@ -56,4 +56,4 @@ RUN python setup.py install
 RUN rm -rf /tmp/tiledbvcf
 
 WORKDIR /data
-CMD ["python3"]
+ENTRYPOINT ["python3"]
