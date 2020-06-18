@@ -31,6 +31,7 @@ FROM continuumio/miniconda3:4.8.2
 ENV CFLAGS "-march=haswell"
 ENV CPPFLAGS "-march=haswell"
 
+ENV AWS_EC2_METADATA_DISABLED true
 ENV TILEDBVCF_FORCE_EXTERNAL_HTSLIB=OFF
 ENV LD_LIBRARY_PATH=/usr/local/lib:/opt/conda/lib
 

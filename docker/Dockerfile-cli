@@ -29,6 +29,8 @@
 
 FROM amazonlinux:latest
 
+ENV AWS_EC2_METADATA_DISABLED true
+
 # Install some dependencies
 RUN yum -y install which wget git tar gzip unzip gcc-c++ zlib-devel \
        openssl-devel bzip2-devel tbb-devel libcurl-devel xz-devel make \

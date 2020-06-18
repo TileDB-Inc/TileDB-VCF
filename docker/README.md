@@ -23,8 +23,9 @@ Pre-built images are available on [Docker Hub][docker].
 * `dev`: development version
 * `v0.x.x` for a specific version
 
+## Parameters
 
-## Building
+* `AWS_EC2_METADATA_DISABLED` Disable the EC2 metadata service (default `true`). This avoids unnecessary API calls when querying S3-hosted arrays from non-EC2 clients. If you are on an EC2 instance this service can be enabled with `-e AWS_EC2_METADATA_DISABLED=false`.
 
 ## Building locally
 
