@@ -134,15 +134,15 @@ public class VCFSparkSchema implements Serializable {
                 true,
                 metadata.build()));
     //    // AD field in FORMAT block of BCF
-    //    metadata = new MetadataBuilder();
-    //    metadata.putString("comment", "AD field in FORMAT block of BCF");
-    //    schema =
-    //        schema.add(
-    //            new StructField(
-    //                "fmt_AD",
-    //                DataTypes.createArrayType(DataTypes.IntegerType, false),
-    //                true,
-    //                metadata.build()));
+    metadata = new MetadataBuilder();
+    metadata.putString("comment", "AD field in FORMAT block of BCF");
+    schema =
+        schema.add(
+            new StructField(
+                "fmt_AD",
+                DataTypes.createArrayType(DataTypes.IntegerType, false),
+                true,
+                metadata.build()));
     // DP field in FORMAT block of BCF
     metadata = new MetadataBuilder();
     metadata.putString("comment", "DP field in FORMAT block of BCF");

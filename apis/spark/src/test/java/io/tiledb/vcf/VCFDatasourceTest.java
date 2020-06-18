@@ -58,7 +58,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 14l);
+    Assert.assertEquals(numColumns, 15l);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
     List<String> colNames =
@@ -73,6 +73,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             "alleles",
             "filter",
             "genotype",
+            "fmt_AD",
             "fmt_DP",
             "fmt_GQ",
             "fmt_MIN_DP",
@@ -387,17 +388,16 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     Assert.assertArrayEquals(expectedEnd, resultEnd);
   }
 
-  // TODO(ttd) commenting out because AD is not in the default schema
-  //  @Test
-  //  public void testADNull() {
-  //    Dataset<Row> dfRead = testSampleDataset();
-  //    List<Row> rows = dfRead.select("fmt_AD").collectAsList();
-  //    Assert.assertEquals(10, rows.size());
-  //    // assert all are null
-  //    for (int i = 0; i < rows.size(); i++) {
-  //      Assert.assertTrue(rows.get(i).isNullAt(0));
-  //    }
-  //  }
+  @Test
+  public void testADNull() {
+    Dataset<Row> dfRead = testSampleDataset();
+    List<Row> rows = dfRead.select("fmt_AD").collectAsList();
+    Assert.assertEquals(10, rows.size());
+    // assert all are null
+    for (int i = 0; i < rows.size(); i++) {
+      Assert.assertTrue(rows.get(i).isNullAt(0));
+    }
+  }
 
   @Test
   public void testFmtInfoUdf() {
