@@ -146,33 +146,16 @@ public class VCFSparkSchema implements Serializable {
     // DP field in FORMAT block of BCF
     metadata = new MetadataBuilder();
     metadata.putString("comment", "DP field in FORMAT block of BCF");
-    schema =
-        schema.add(
-            new StructField(
-                "fmt_DP",
-                DataTypes.createArrayType(DataTypes.IntegerType, false),
-                true,
-                metadata.build()));
+    schema = schema.add(new StructField("fmt_DP", DataTypes.IntegerType, true, metadata.build()));
     // GQ field in FORMAT block of BCF
     metadata = new MetadataBuilder();
     metadata.putString("comment", "GQ field in FORMAT block of BCF");
-    schema =
-        schema.add(
-            new StructField(
-                "fmt_GQ",
-                DataTypes.createArrayType(DataTypes.IntegerType, false),
-                true,
-                metadata.build()));
+    schema = schema.add(new StructField("fmt_GQ", DataTypes.IntegerType, true, metadata.build()));
     // MIN_DP field in FORMAT block of BCF
     metadata = new MetadataBuilder();
     metadata.putString("comment", "MIN_DP field in FORMAT block of BCF");
     schema =
-        schema.add(
-            new StructField(
-                "fmt_MIN_DP",
-                DataTypes.createArrayType(DataTypes.IntegerType, false),
-                true,
-                metadata.build()));
+        schema.add(new StructField("fmt_MIN_DP", DataTypes.IntegerType, true, metadata.build()));
     // Non-attribute FORMAT fields
     metadata = new MetadataBuilder();
     metadata.putString("comment", "Non-attribute FORMAT fields");
