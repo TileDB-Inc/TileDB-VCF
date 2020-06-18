@@ -55,14 +55,14 @@ You can use the `tiledbvcf-cli` image to run any of the CLI's [available command
 List all samples in the dataset:
 
 ```sh
-docker run --rm tiledbvcf-cli list \
+docker run --rm tiledb/tiledbvcf-cli list \
   --uri s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20
 ```
 
 Create a table of all variants within a region of interest for sample `v2-WpXCYApL` and save the results in `./exported-vars.tsv`.
 
 ```sh
-docker run --rm -v $PWD:/data tiledbvcf-cli export \
+docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
   --uri s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20 \
   -Ot --tsv-fields "CHR,POS,REF,S:GT" \
   --output-path exported-vars.tsv \
@@ -75,7 +75,7 @@ docker run --rm -v $PWD:/data tiledbvcf-cli export \
 You can use the `tiledbcf-py` container to execute an external script or launch an interactive Python session.
 
 ```
-docker run -it --rm tiledbvcf-py
+docker run -it --rm tiledb/tiledbvcf-py
 ```
 
 The following script performs the same query as above but returns a pandas `DataFrame`:
