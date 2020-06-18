@@ -99,6 +99,10 @@ ds.read(
 
 Check out [TileDB-VCF's docs][vcf-docs] for installation instructions, detailed descriptions of the data format and algorithms, and in-depth tutorials.
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/TileDB-Inc/TileDB-VCF/blob/master/LICENSE) file for details.
+
 <!-- links -->
 [vcf-repo]: https://github.com/TileDB-Inc/TileDB-VCF
 [docker]: https://hub.docker.com/u/tiledb
