@@ -72,7 +72,7 @@ docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
 
 ### Python
 
-You can use the `tiledbcf-py` container to execute an external script or launch an interactive Python session.
+You can use the `tiledbvcf-py` container to execute an external script or launch an interactive Python session.
 
 ```
 docker run -it --rm tiledb/tiledbvcf-py
@@ -93,6 +93,21 @@ ds.read(
   regions=['chr7:144000320-144008793'],
   samples=['v2-WpXCYApL']
 )
+
+##     sample_name  pos_start    pos_end         alleles
+## 0   v2-WpXCYApL  143999628  144000483  [G, <NON_REF>]
+## 1   v2-WpXCYApL  144000484  144001253  [C, <NON_REF>]
+## 2   v2-WpXCYApL  144001254  144001494  [G, <NON_REF>]
+## 3   v2-WpXCYApL  144001495  144001735  [T, <NON_REF>]
+## 4   v2-WpXCYApL  144001736  144001900  [C, <NON_REF>]
+## ..          ...        ...        ...             ...
+## 66  v2-WpXCYApL  144008445  144008467  [C, <NON_REF>]
+## 67  v2-WpXCYApL  144008468  144008479  [T, <NON_REF>]
+## 68  v2-WpXCYApL  144008480  144008690  [A, <NON_REF>]
+## 69  v2-WpXCYApL  144008691  144008697  [A, <NON_REF>]
+## 70  v2-WpXCYApL  144008698  144008846  [C, <NON_REF>]
+##
+## [71 rows x 4 columns]
 ```
 
 ## Want to learn more?
