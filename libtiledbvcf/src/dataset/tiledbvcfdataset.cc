@@ -749,9 +749,8 @@ void TileDBVCFDataset::write_vcf_headers(
 
   // Build data vector and subarray
   std::vector<std::string> headers;
-  std::vector<uint32_t> subarray = {
-      std::numeric_limits<uint32_t>::max(),
-      std::numeric_limits<uint32_t>::min()};
+  std::vector<uint32_t> subarray = {std::numeric_limits<uint32_t>::max(),
+                                    std::numeric_limits<uint32_t>::min()};
   for (const auto& pair : vcf_headers) {
     subarray[0] = std::min(subarray[0], pair.first);
     subarray[1] = std::max(subarray[1], pair.first);

@@ -635,7 +635,12 @@ void InMemoryExporter::get_var_attr_value(
 
 bool InMemoryExporter::copy_cell(
     UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
-  const int64_t index = dest->curr_sizes.num_offsets;
+  const bool var_len = dest->offsets != nullptr;
+  int64_t index = dest->curr_sizes.num_offsets;
+  // If its not var length get the index from data element count
+  if (!var_len)
+    index = dest->curr_sizes.data_nelts;
+
   if (!copy_cell_data(dest, data, nbytes, nelts))
     return false;
   bool is_null = data == nullptr;
