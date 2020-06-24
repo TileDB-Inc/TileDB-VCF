@@ -512,6 +512,9 @@ bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
                                      "qual",
                                      "fmt_DP",
                                      "fmt_GQ",
+                                     "fmt_PS",
+                                     "fmt_PQ",
+                                     "fmt_MQ",
                                      "fmt_MIN_DP"};
   return fixed_len.count(attr) > 0;
 }
