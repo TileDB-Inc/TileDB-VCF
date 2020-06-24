@@ -505,8 +505,17 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
 }
 
 bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
-  std::set<std::string> fixed_len = {
-      "pos_start", "pos_end", "query_bed_start", "query_bed_end", "qual"};
+  std::set<std::string> fixed_len = {"pos_start",
+                                     "pos_end",
+                                     "query_bed_start",
+                                     "query_bed_end",
+                                     "qual",
+                                     "fmt_DP",
+                                     "fmt_GQ",
+                                     "fmt_PS",
+                                     "fmt_PQ",
+                                     "fmt_MQ",
+                                     "fmt_MIN_DP"};
   return fixed_len.count(attr) > 0;
 }
 
@@ -629,7 +638,12 @@ void InMemoryExporter::get_var_attr_value(
 
 bool InMemoryExporter::copy_cell(
     UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
-  const int64_t index = dest->curr_sizes.num_offsets;
+  const bool var_len = dest->offsets != nullptr;
+  int64_t index = dest->curr_sizes.num_offsets;
+  // If its not var length get the index from data element count
+  if (!var_len)
+    index = dest->curr_sizes.data_nelts;
+
   if (!copy_cell_data(dest, data, nbytes, nelts))
     return false;
   bool is_null = data == nullptr;

@@ -214,9 +214,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     pl.resize(1024);
     pl.offsets().resize(100);
     dp.resize(1024);
-    dp.offsets().resize(100);
     min_dp.resize(1024);
-    min_dp.offsets().resize(100);
 
     // Set buffers on the reader
     reader.set_buffer_values(
@@ -239,13 +237,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     reader.set_buffer_offsets(
         "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
     reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
-    reader.set_buffer_offsets(
-        "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
     reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
-    reader.set_buffer_offsets(
-        "fmt_MIN_DP",
-        min_dp.offsets().data(),
-        min_dp.offsets().size() * sizeof(int32_t));
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -419,13 +411,7 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   reader.set_buffer_offsets(
       "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
   reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
-  reader.set_buffer_offsets(
-      "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
   reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
-  reader.set_buffer_offsets(
-      "fmt_MIN_DP",
-      min_dp.offsets().data(),
-      min_dp.offsets().size() * sizeof(int32_t));
 
   // Check buffer accessors
   int32_t num_buffers_set = 0;
@@ -442,9 +428,7 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   REQUIRE(data == sample_name.data<void>());
 
   reader.get_buffer_values(7, &name, &data);
-  reader.get_buffer_offsets(7, &name, &offs);
   REQUIRE(name == std::string("fmt_MIN_DP"));
-  REQUIRE(offs == min_dp.offsets().data());
   REQUIRE(data == min_dp.data<void>());
 
   REQUIRE_THROWS(reader.get_buffer_values(8, &name, &data));
@@ -1300,12 +1284,11 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   ExportParams read_params;
   read_params.uri = dataset_uri;
   read_params.sample_names = {"G1", "G2", "G59"};
-  read_params.regions = {
-      "1:12700-13400",
-      "1:17000-17400",
-      "2:1234-12340",
-      "14:50000-100000",
-      "14:100000-200000"};
+  read_params.regions = {"1:12700-13400",
+                         "1:17000-17400",
+                         "2:1234-12340",
+                         "14:50000-100000",
+                         "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
@@ -1315,12 +1298,11 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   // Check with unsorted samples and regions
   reader.reset(new Reader);
   read_params.sample_names = {"G59", "G1", "G2"};
-  read_params.regions = {
-      "1:12700-13400",
-      "14:50000-100000",
-      "2:1234-12340",
-      "1:17000-17400",
-      "14:100000-200000"};
+  read_params.regions = {"1:12700-13400",
+                         "14:50000-100000",
+                         "2:1234-12340",
+                         "1:17000-17400",
+                         "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
@@ -1450,7 +1432,6 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     info_dp.offsets().resize(3 * 100);
     info_dp.bitmap().resize(3 * 100);
     fmt_dp.resize(3 * 1024);
-    fmt_dp.offsets().resize(3 * 100);
     fmt_dp.bitmap().resize(3 * 100);
 
     // Set buffers on the reader
@@ -1480,8 +1461,6 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     reader.set_buffer_validity_bitmap(
         "info_DP", info_dp.bitmap().data(), info_dp.bitmap().size());
     reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
-    reader.set_buffer_offsets(
-        "fmt_DP", fmt_dp.offsets().data(), fmt_dp.offsets().size());
     reader.set_buffer_validity_bitmap(
         "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
 

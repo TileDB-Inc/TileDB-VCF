@@ -258,9 +258,7 @@ def test_read_var_len_attrs(test_ds):
             'pos_end': pd.Series(
                 [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689,
                  17479], dtype=np.int32),
-            'fmt_DP': pd.Series(map(lambda lst: np.array(lst, dtype=np.int32),
-                                    [[0], [0], [0], [0], [15], [64], [10], [6],
-                                     [0], [0]])),
+            'fmt_DP': pd.Series([0, 0, 0, 0, 15, 64, 10, 6, 0, 0], dtype=np.int32),
             'fmt_PL': pd.Series(
                 map(lambda lst: np.array(lst, dtype=np.int32),
                     [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 24, 360],
@@ -298,9 +296,8 @@ def test_read_null_attrs(tmp_path):
             'info_DP': pd.Series([None, None, None, None, None, None, None,
                                   np.array([89], dtype=np.int32), None,
                                   np.array([24], dtype=np.int32), None, None]),
-            'fmt_DP': pd.Series(map(lambda lst: np.array(lst, dtype=np.int32),
-                                    [[0], [0], [15], [64], [6], [2], [180],
-                                     [88], [97], [24], [23], [21]]))})
+            'fmt_DP': pd.Series([0, 0, 15, 64, 6, 2, 180,
+                                     88, 97, 24, 23, 21], dtype=np.int32)})
     _check_dfs(expected_df, df)
 
 
