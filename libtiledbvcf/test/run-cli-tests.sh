@@ -19,7 +19,8 @@ function clean_up {
     rm -rf ingested_1 ingested_2 ingested_3 ingested_3_attrs \
            ingested_1_2 ingested_1_2_vcf ingested_3_samples ingested_comb ingested_append \
            ingested_from_file ingested_diff_order ingested_buffered \
-           ingested_sep_indexes ingested_dupe_end_pos errored_dupe_end_pos \
+           ingested_sep_indexes ingested_dupe_end_pos \
+           ingested_dupe_start_pos errored_dupe_start_pos \
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
            region-map.txt pfx.tsv
     rm -rf "$upload_dir"
@@ -47,6 +48,7 @@ create_register_ingest ingested_1_2 ${input_dir}/small2.bcf ${input_dir}/small.b
 create_register_ingest ingested_1_2_vcf ${input_dir}/small2.bcf ${input_dir}/small.vcf.gz
 create_register_ingest ingested_3_samples ${input_dir}/random_synthetic/G{1,2,3}.bcf
 create_register_ingest ingested_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
+create_register_ingest ingested_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz
 
 $tilevcf create -u ingested_3_attrs -a fmt_DP,info_MLEAC,info_MLEAF,info_MQ,fmt_AD,info_GQ || exit 1
 $tilevcf register -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
@@ -369,10 +371,11 @@ $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-p
 $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-partition 2:1 && exit 1
 $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG01762,HG00280 -O v --sample-partition 0:3 && exit 1
 $tilevcf create -u ingested_bad -a GT && exit 1
-# expect duplicate coordinates error
-$tilevcf create -u errored_dupe_end_pos --no-duplicates
-$tilevcf register -u errored_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
-$tilevcf store -u errored_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
+
+echo "Expecture failure with duplicate start pos"
+$tilevcf create -u errored_dupe_start_pos --no-duplicates || exit 1
+$tilevcf register -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz || exit 1
+$tilevcf store -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz && exit 1
 echo "** End expected error messages."
 
 # Clean up
