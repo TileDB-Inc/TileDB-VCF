@@ -83,6 +83,23 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_get_attribute_type(
       long readerPtr, String attribute, int[] datatype, int[] varLen, int[] nullable, int[] isList);
 
+  public static final native int tiledb_vcf_reader_get_attribute_count(long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_attribute_name(
+      long readerPtr, int index, byte[] name);
+
+  public static final native int tiledb_vcf_reader_get_fmt_attribute_count(
+      long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_fmt_attribute_name(
+      long readerPtr, int index, byte[] name);
+
+  public static final native int tiledb_vcf_reader_get_info_attribute_count(
+      long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_info_attribute_name(
+      long readerPtr, int index, byte[] name);
+
   public static final native int tiledb_vcf_reader_get_dataset_version(
       long readerPtr, int[] version);
 
