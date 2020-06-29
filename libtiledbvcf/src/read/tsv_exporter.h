@@ -55,7 +55,7 @@ class TSVExporter : public Exporter {
       const ReadQueryResults& query_results,
       uint64_t cell_idx) override;
 
-  std::unordered_set<std::string> array_attributes_required() const override;
+  std::set<std::string> array_attributes_required() const override;
 
  private:
   struct OutputField {

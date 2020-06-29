@@ -98,7 +98,7 @@ void BCFExporter::finalize_export(
     file_info_.erase(file_it);
 }
 
-std::unordered_set<std::string> BCFExporter::array_attributes_required() const {
+std::set<std::string> BCFExporter::array_attributes_required() const {
   // TODO: currently we require all attributes for record recovery.
   return dataset_->all_attributes();
 }

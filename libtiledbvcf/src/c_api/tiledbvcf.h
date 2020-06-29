@@ -722,6 +722,66 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_type(
     int32_t* list);
 
 /**
+ * Get count of materialized attributes in the array
+ * @param reader VCF reader object
+ * @param count int32_t which is set to count of attributes
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count);
+
+/**
+ * Fetch name of a materialized attribute from the dataset
+ * @param reader VCF reader object
+ * @param index attribute to fetch name of
+ * @param name char* returned as name, note: the caller is responsible for
+ * freeing the char*
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
+/**
+ * Get count of fmt attributes in the array
+ * @param reader VCF reader object
+ * @param count int32_t which is set to count of attributes
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_fmt_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count);
+
+/**
+ * Fetch name of a fmt attribute from the dataset
+ * @param reader VCF reader object
+ * @param index attribute to fetch name of
+ * @param name char* returned as name, note: the caller is responsible for
+ * freeing the char*
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_fmt_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
+/**
+ * Get count of info attributes in the array
+ * @param reader VCF reader object
+ * @param count int32_t which is set to count of attributes
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count);
+
+/**
+ * Fetch name of an info attribute from the dataset
+ * @param reader VCF reader object
+ * @param index attribute to fetch name of
+ * @param name char* returned as name, note: the caller is responsible for
+ * freeing the char*
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
+/**
  * Returns the version number of the TileDB VCF dataset.
  *
  * @param reader VCF reader object

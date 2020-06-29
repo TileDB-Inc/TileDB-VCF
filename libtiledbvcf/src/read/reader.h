@@ -260,6 +260,45 @@ class Reader {
   void get_buffer_validity_bitmap(
       int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
+  /**
+   * Get the count of materialized attributes
+   * @param count of attributes
+   */
+  void attribute_count(int32_t* count);
+
+  /**
+   * Get a materialized attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the count of fmt attributes
+   * @param count of attributes
+   */
+  void fmt_attribute_count(int32_t* count);
+
+  /**
+   * Get a fmt attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void fmt_attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the count of info attributes
+   * @param count of attributes
+   */
+  void info_attribute_count(int32_t* count);
+
+  /**
+   * Get an info attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void info_attribute_name(int32_t index, char** name);
+
  private:
   /* ********************************* */
   /*           PRIVATE DATATYPES       */

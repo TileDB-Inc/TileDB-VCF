@@ -222,22 +222,29 @@ class TileDBVCFDataset {
       const std::string& attr_name);
 
   /** Return a set of the v3 attribute names for the "builtin" attributes. */
-  static std::unordered_set<std::string> builtin_attributes_v3();
+  static std::set<std::string> builtin_attributes_v3();
 
   /** Return a set of the v3 attribute names for the "builtin" attributes. */
-  static std::unordered_set<std::string> builtin_attributes_v2();
+  static std::set<std::string> builtin_attributes_v2();
 
   /** Returns true if the builtin attribute is fixed-len in the schema. */
   static bool attribute_is_fixed_len(const std::string& attr);
 
-  /** Returns a set of all the attribute names in the dataset. */
-  std::unordered_set<std::string> all_attributes() const;
+  /** Returns a set of all the attribute names in the dataset. This is a set as
+   * we rely on the order for the attribute_index function */
+  std::set<std::string> all_attributes() const;
 
   /** Returns the BCF_HT_ type for the info field of the given name. */
   int info_field_type(const std::string& name) const;
 
   /** Returns the BCF_HT_ type for the format field of the given name. */
   int fmt_field_type(const std::string& name) const;
+
+  /** Map of info field name -> hstlib type. */
+  std::map<std::string, int> info_field_types();
+
+  /** Map of fmt field name -> hstlib type. */
+  std::map<std::string, int> fmt_field_types();
 
  private:
   /* ********************************* */

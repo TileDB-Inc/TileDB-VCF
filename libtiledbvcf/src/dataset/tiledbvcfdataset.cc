@@ -823,7 +823,7 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
   return {kind, name};
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
+std::set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
   return {AttrNames::V3::real_start_pos,
           AttrNames::V3::end_pos,
           AttrNames::V3::qual,
@@ -834,7 +834,7 @@ std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
           AttrNames::V3::fmt};
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
+std::set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
   return {AttrNames::V2::pos,
           AttrNames::V2::real_end,
           AttrNames::V2::qual,
@@ -856,12 +856,12 @@ bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
          attr == AttrNames::V2::qual;
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::all_attributes() const {
+std::set<std::string> TileDBVCFDataset::all_attributes() const {
   if (!open_)
     throw std::invalid_argument(
         "Cannot get attributes from dataset; dataset is not open.");
 
-  std::unordered_set<std::string> result;
+  std::set<std::string> result;
   if (metadata_.version == Version::V2) {
     result = builtin_attributes_v2();
   } else {
@@ -915,6 +915,14 @@ std::string TileDBVCFDataset::vcf_headers_uri(
 
 bool TileDBVCFDataset::cloud_dataset(std::string root_uri) {
   return utils::starts_with(root_uri, "tiledb://");
+}
+
+std::map<std::string, int> TileDBVCFDataset::info_field_types() {
+  return info_field_types_;
+}
+
+std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
+  return fmt_field_types_;
 }
 
 }  // namespace vcf

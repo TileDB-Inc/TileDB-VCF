@@ -1317,5 +1317,65 @@ void Reader::check_partitioning(
         std::to_string(num_partitions) + ".");
 }
 
+void Reader::attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->all_attributes().size();
+}
+
+void Reader::attribute_name(int32_t index, char** name) {
+  auto all_attributes = this->dataset_->all_attributes();
+  auto iter = all_attributes.begin();
+  std::advance(iter, index);
+  std::string s = *iter;
+  // end_pos, start_pos and filter_ids have different vfc attribute names
+  // compared to ondisk names we should unify this in the future
+  if (s == "end_pos")
+    s = "pos_end";
+  else if (s == "start_pos")
+    s = "pos_start";
+  else if (s == "filter_ids")
+    s = "filters";
+
+  int32_t size = s.length();
+  *name = static_cast<char*>(malloc(size + 1));
+  memcpy(*name, s.c_str(), size + 1);
+}
+
+void Reader::fmt_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->fmt_field_types().size();
+}
+
+void Reader::fmt_attribute_name(int32_t index, char** name) {
+  auto fmt_attributes = this->dataset_->fmt_field_types();
+  auto iter = fmt_attributes.begin();
+  std::advance(iter, index);
+  std::string s = "fmt_" + iter->first;
+  int32_t size = s.length();
+  *name = static_cast<char*>(malloc(size + 1));
+  memcpy(*name, s.c_str(), size + 1);
+}
+
+void Reader::info_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->info_field_types().size();
+}
+
+void Reader::info_attribute_name(int32_t index, char** name) {
+  auto info_attributes = this->dataset_->info_field_types();
+  auto iter = info_attributes.begin();
+  std::advance(iter, index);
+  std::string s = "info_" + iter->first;
+  int32_t size = s.length();
+  *name = static_cast<char*>(malloc(size + 1));
+  memcpy(*name, s.c_str(), size + 1);
+}
+
 }  // namespace vcf
 }  // namespace tiledb

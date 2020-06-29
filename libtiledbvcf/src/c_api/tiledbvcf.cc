@@ -576,6 +576,74 @@ int32_t tiledb_vcf_reader_get_last_error(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_get_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_fmt_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->fmt_attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_fmt_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->fmt_attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_info_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->info_attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_info_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->info_attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */

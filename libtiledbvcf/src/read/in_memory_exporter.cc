@@ -111,8 +111,7 @@ InMemoryExporter::UserBuffer* InMemoryExporter::get_buffer(
   return buff;
 }
 
-std::unordered_set<std::string> InMemoryExporter::array_attributes_required()
-    const {
+std::set<std::string> InMemoryExporter::array_attributes_required() const {
   if (dataset_ == nullptr)
     throw std::runtime_error(
         "Error getting required attributes; no dataset is initialized.");
@@ -123,7 +122,7 @@ std::unordered_set<std::string> InMemoryExporter::array_attributes_required()
 
   const unsigned version = dataset_->metadata().version;
 
-  std::unordered_set<std::string> result;
+  std::set<std::string> result;
   for (const auto& it : user_buffers_) {
     switch (it.second.attr) {
       case ExportableAttribute::SampleName:
