@@ -191,7 +191,7 @@ public class VCFSparkSchema implements Serializable {
   /**
    * Create a new field for the spark schema
    *
-   * @param name     field name to add
+   * @param name field name to add
    * @param typeInfo field type info
    * @return StructField
    */
@@ -208,7 +208,7 @@ public class VCFSparkSchema implements Serializable {
   /**
    * Create a new field for the spark schema
    *
-   * @param name     field name to add
+   * @param name field name to add
    * @param typeInfo field type info
    * @return StructField
    */
@@ -246,7 +246,7 @@ public class VCFSparkSchema implements Serializable {
   /**
    * Create a new array field for the spark schema
    *
-   * @param name     field name to add
+   * @param name field name to add
    * @param typeInfo field type info
    * @return StructField
    */
