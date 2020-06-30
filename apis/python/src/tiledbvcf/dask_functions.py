@@ -1,7 +1,7 @@
 import dask
 import dask.dataframe
 
-from .dataset import (ReadConfig, TileDBVCFDataset)
+from .dataset import (ReadConfig, Dataset)
 
 
 class ReadArgs(object):
@@ -20,7 +20,7 @@ class ReadArgs(object):
 
 
 def _read_partition(read_args):
-    ds = TileDBVCFDataset(read_args.uri, 'r', read_args.cfg)
+    ds = Dataset(read_args.uri, 'r', read_args.cfg)
     df = ds.read(attrs=read_args.attrs, samples=read_args.samples,
                  regions=read_args.regions, samples_file=read_args.samples_file,
                  bed_file=read_args.bed_file)
@@ -84,5 +84,5 @@ def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
 
 
 # Patch functions and members into dataset class
-TileDBVCFDataset.read_dask = read_dask
-TileDBVCFDataset.map_dask = map_dask
+Dataset.read_dask = read_dask
+Dataset.map_dask = map_dask
