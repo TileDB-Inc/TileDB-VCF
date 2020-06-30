@@ -144,8 +144,6 @@ public class VCFReader implements AutoCloseable {
       int j;
       for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
       String name = new String(nameBytes, 0, j);
-      if (name.equals("real_start_pos"))
-        continue;
       res.put(name, getAttributeDatatype(name));
     }
 

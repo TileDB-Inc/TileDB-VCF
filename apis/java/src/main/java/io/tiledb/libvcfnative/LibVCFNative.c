@@ -529,7 +529,7 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   }
 
   int32_t count;
-  int32_t rc = tiledb_vcf_reader_get_attribute_count(reader, &count);
+  int32_t rc = tiledb_vcf_reader_get_queryable_attribute_count(reader, &count);
   if (rc == TILEDB_VCF_OK) {
     return set_out_param_int32(env, count, countOut);
   }
@@ -546,15 +546,11 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   }
 
   char *buf;
-  int32_t rc = tiledb_vcf_reader_get_attribute_name(reader, index, &buf);
+  int32_t rc = tiledb_vcf_reader_get_queryable_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
-//    nameOut = (*env)->NewStringUTF(env, buf);
     int length = strlen(buf);
     (*env)->SetByteArrayRegion(env, nameOut, 0, length, buf);
   }
-
-  if (buf != NULL)
-    free(buf);
 
   return rc;
 }
@@ -569,11 +565,11 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
   int32_t count;
   int32_t rc = tiledb_vcf_reader_get_fmt_attribute_count(reader, &count);
-    if (rc == TILEDB_VCF_OK) {
-      return set_out_param_int32(env, count, countOut);
-    }
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int32(env, count, countOut);
+  }
 
-    return rc;
+  return rc;
 }
 
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1name
@@ -587,13 +583,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   char *buf;
   int32_t rc = tiledb_vcf_reader_get_fmt_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
-//    nameOut = (*env)->NewStringUTF(env, buf);
     int length = strlen(buf);
     (*env)->SetByteArrayRegion(env, nameOut, 0, length, buf);
   }
-
-  if (buf != NULL)
-    free(buf);
 
   return rc;
 }
@@ -612,7 +604,7 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
     return set_out_param_int32(env, count, countOut);
   }
 
-    return rc;
+  return rc;
 }
 
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1name
@@ -626,13 +618,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   char *buf;
   int32_t rc = tiledb_vcf_reader_get_info_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
-//    nameOut = (*env)->NewStringUTF(env, buf);
     int length = strlen(buf);
     (*env)->SetByteArrayRegion(env, nameOut, 0, length, buf);
   }
-
-  if (buf != NULL)
-    free(buf);
 
   return rc;
 }
