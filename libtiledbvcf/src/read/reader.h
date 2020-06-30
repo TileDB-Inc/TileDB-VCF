@@ -264,14 +264,14 @@ class Reader {
    * Get the count of materialized attributes
    * @param count of attributes
    */
-  void attribute_count(int32_t* count);
+  void queryable_attribute_count(int32_t* count);
 
   /**
    * Get a materialized attribute name by index
    * @param index of attribute to fetch
    * @param name of attribute
    */
-  void attribute_name(int32_t index, char** name);
+  void queryable_attribute_name(int32_t index, char** name);
 
   /**
    * Get the count of fmt attributes

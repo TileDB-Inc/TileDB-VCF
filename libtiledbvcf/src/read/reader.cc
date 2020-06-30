@@ -1317,30 +1317,15 @@ void Reader::check_partitioning(
         std::to_string(num_partitions) + ".");
 }
 
-void Reader::attribute_count(int32_t* count) {
+void Reader::queryable_attribute_count(int32_t* count) {
   if (count == nullptr)
     throw std::runtime_error("count must be non-null in attribute_count");
 
-  *count = this->dataset_->all_attributes().size();
+  *count = this->dataset_->queryable_attribute_count();
 }
 
-void Reader::attribute_name(int32_t index, char** name) {
-  auto all_attributes = this->dataset_->all_attributes();
-  auto iter = all_attributes.begin();
-  std::advance(iter, index);
-  std::string s = *iter;
-  // end_pos, start_pos and filter_ids have different vfc attribute names
-  // compared to ondisk names we should unify this in the future
-  if (s == "end_pos")
-    s = "pos_end";
-  else if (s == "start_pos")
-    s = "pos_start";
-  else if (s == "filter_ids")
-    s = "filters";
-
-  int32_t size = s.length();
-  *name = static_cast<char*>(malloc(size + 1));
-  memcpy(*name, s.c_str(), size + 1);
+void Reader::queryable_attribute_name(int32_t index, char** name) {
+  *name = const_cast<char*>(this->dataset_->queryable_attribute_name(index));
 }
 
 void Reader::fmt_attribute_count(int32_t* count) {
@@ -1355,9 +1340,14 @@ void Reader::fmt_attribute_name(int32_t index, char** name) {
   auto iter = fmt_attributes.begin();
   std::advance(iter, index);
   std::string s = "fmt_" + iter->first;
-  int32_t size = s.length();
-  *name = static_cast<char*>(malloc(size + 1));
-  memcpy(*name, s.c_str(), size + 1);
+
+  // Loop through queryable attributes to find the preallocated string to return
+  for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
+    this->queryable_attribute_name(i, name);
+    if (s == *name) {
+      return;
+    }
+  }
 }
 
 void Reader::info_attribute_count(int32_t* count) {
@@ -1372,9 +1362,14 @@ void Reader::info_attribute_name(int32_t index, char** name) {
   auto iter = info_attributes.begin();
   std::advance(iter, index);
   std::string s = "info_" + iter->first;
-  int32_t size = s.length();
-  *name = static_cast<char*>(malloc(size + 1));
-  memcpy(*name, s.c_str(), size + 1);
+
+  // Loop through queryable attributes to find the preallocated string to return
+  for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
+    this->queryable_attribute_name(i, name);
+    if (s == *name) {
+      return;
+    }
+  }
 }
 
 }  // namespace vcf

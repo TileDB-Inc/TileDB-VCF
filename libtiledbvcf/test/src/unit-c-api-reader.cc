@@ -261,17 +261,17 @@ TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
 
   int32_t count = 0;
   REQUIRE(
-      tiledb_vcf_reader_get_attribute_count(reader, &count) == TILEDB_VCF_OK);
+      tiledb_vcf_reader_get_queryable_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
 
   REQUIRE(count > 0);
 
   for (int32_t i = 0; i < count; i++) {
     char* attribute_name;
     REQUIRE(
-        tiledb_vcf_reader_get_attribute_name(reader, i, &attribute_name) ==
-        TILEDB_VCF_OK);
+        tiledb_vcf_reader_get_queryable_attribute_name(
+            reader, i, &attribute_name) == TILEDB_VCF_OK);
     REQUIRE(attribute_name != nullptr);
-    free(attribute_name);
   }
 
   count = 0;
@@ -287,7 +287,6 @@ TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
         tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &attribute_name) ==
         TILEDB_VCF_OK);
     REQUIRE(attribute_name != nullptr);
-    free(attribute_name);
   }
 
   count = 0;
@@ -303,7 +302,6 @@ TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
         tiledb_vcf_reader_get_info_attribute_name(reader, i, &attribute_name) ==
         TILEDB_VCF_OK);
     REQUIRE(attribute_name != nullptr);
-    free(attribute_name);
   }
 
   tiledb_vcf_reader_free(&reader);

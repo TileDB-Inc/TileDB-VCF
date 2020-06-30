@@ -246,6 +246,19 @@ class TileDBVCFDataset {
   /** Map of fmt field name -> hstlib type. */
   std::map<std::string, int> fmt_field_types();
 
+  /**
+   * Get queryable attribute count
+   * @return
+   */
+  int32_t queryable_attribute_count() const;
+
+  /**
+   * Get attribute name by index
+   * @param index
+   * @return
+   */
+  const char* queryable_attribute_name(int32_t index) const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -265,6 +278,9 @@ class TileDBVCFDataset {
 
   /** Map of fmt field name -> hstlib type. */
   std::map<std::string, int> fmt_field_types_;
+
+  /** List of all attributes of vcf for querying */
+  std::vector<std::vector<char>> vcf_attributes_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
