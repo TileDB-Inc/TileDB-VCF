@@ -101,11 +101,7 @@ public class VCFSparkSchema implements Serializable {
         return "id";
       default:
         // Handle all fmt and info fields
-        if (fieldName.startsWith("fmt_")) {
-          return "fmt_" + fieldName.substring(4).toUpperCase();
-        } else if (fieldName.startsWith("info_")) {
-          return "info_" + fieldName.substring(5).toUpperCase();
-        }
+        if (fieldName.startsWith("fmt_") || fieldName.startsWith("info_")) return fieldName;
         throw new RuntimeException("Unknown VCF schema field name: " + fieldName);
     }
   }
@@ -148,11 +144,7 @@ public class VCFSparkSchema implements Serializable {
         return "id";
       default:
         // Handle all fmt and info fields
-        if (fieldName.startsWith("fmt_")) {
-          return "fmt_" + fieldName.substring(4).toUpperCase();
-        } else if (fieldName.startsWith("info_")) {
-          return "info_" + fieldName.substring(5).toUpperCase();
-        }
+        if (fieldName.startsWith("fmt_") || fieldName.startsWith("info_")) return fieldName;
         throw new RuntimeException("Unknown VCF schema field name: " + fieldName);
     }
   }
@@ -166,20 +158,6 @@ public class VCFSparkSchema implements Serializable {
   private StructType buildSchema(VCFReader vcfReader) {
     StructType schema = new StructType();
     for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet : vcfReader.attributes.entrySet()) {
-      String name = attrSet.getKey();
-      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
-      schema = schema.add(schemaField(name, typeInfo));
-    }
-
-    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
-        vcfReader.fmtAttributes.entrySet()) {
-      String name = attrSet.getKey();
-      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
-      schema = schema.add(schemaField(name, typeInfo));
-    }
-
-    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
-        vcfReader.infoAttributes.entrySet()) {
       String name = attrSet.getKey();
       VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
       schema = schema.add(schemaField(name, typeInfo));
@@ -256,6 +234,11 @@ public class VCFSparkSchema implements Serializable {
 
     MetadataBuilder metadata = new MetadataBuilder();
     metadata.putString("comment", fieldCommentLookup(name));
+
+    // fmt and info are binary
+    if (name.equals("fmt") || name.equals("info")) {
+      return new StructField(name, DataTypes.BinaryType, typeInfo.isNullable, metadata.build());
+    }
 
     switch (typeInfo.datatype) {
       case CHAR:

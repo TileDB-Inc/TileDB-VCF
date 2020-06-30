@@ -53,33 +53,55 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
   public void testSchema() {
     SparkSession spark = session();
     Dataset<Row> dfRead =
-        spark.read().format("io.tiledb.vcf.VCFDataSource").option("uri", "s3://foo/bar").load();
+        spark
+            .read()
+            .format("io.tiledb.vcf.VCFDataSource")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .load();
 
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 14l);
+    Assert.assertEquals(numColumns, 32l);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
     List<String> colNames =
         colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toList());
     Assert.assertEquals(
-        colNames,
         Arrays.asList(
-            "sampleName",
-            "contig",
-            "posStart",
-            "posEnd",
-            "alleles",
-            "filter",
-            "genotype",
-            "fmt_DP",
-            "fmt_GQ",
+            "fmt_SB",
             "fmt_MIN_DP",
+            "info_DP",
+            "info_ClippingRankSum",
+            "info_ReadPosRankSum",
             "fmt",
-            "info",
             "queryBedStart",
-            "queryBedEnd"));
+            "fmt_AD",
+            "posStart",
+            "info_BaseQRankSum",
+            "info_MLEAF",
+            "posEnd",
+            "fmt_GQ",
+            "info_MLEAC",
+            "genotype",
+            "id",
+            "alleles",
+            "info",
+            "sampleName",
+            "info_MQ",
+            "queryBedEnd",
+            "info_MQ0",
+            "fmt_PL",
+            "filter",
+            "info_HaplotypeScore",
+            "contig",
+            "info_DS",
+            "info_InbreedingCoeff",
+            "info_END",
+            "fmt_DP",
+            "info_MQRankSum",
+            "qual"),
+        colNames);
   }
 
   @Test(expected = org.apache.spark.sql.AnalysisException.class)
