@@ -1,18 +1,36 @@
 package io.tiledb.vcf;
 
+import io.tiledb.libvcfnative.VCFReader;
+import io.tiledb.util.CredentialProviderUtils;
 import java.io.Serializable;
+import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.MetadataBuilder;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.annotation.meta.field;
 
 public class VCFSparkSchema implements Serializable {
 
-  private StructType defaultSchema;
+  private StructType schema;
   private StructType pushDownSchema;
 
-  public VCFSparkSchema() {
-    this.defaultSchema = defaultSparkSchema();
+  public VCFSparkSchema(URI uri, VCFDataSourceOptions options) {
+
+    Optional<String> credentialsCsv =
+        options
+            .getCredentialsProvider()
+            .map(CredentialProviderUtils::buildConfigMap)
+            .flatMap(VCFDataSourceOptions::getConfigCSV);
+
+    Optional<String> configCsv =
+        VCFDataSourceOptions.combineCsvOptions(options.getConfigCSV(), credentialsCsv);
+
+    VCFReader vcfReader = new VCFReader(uri.toString(), null, options.getSampleURI(), configCsv);
+    schema = buildSchema(vcfReader);
+    vcfReader.close();
   }
 
   public VCFSparkSchema setPushDownSchema(StructType pushDownSchema) {
@@ -22,7 +40,7 @@ public class VCFSparkSchema implements Serializable {
 
   public StructType getSparkSchema() {
     if (pushDownSchema == null) {
-      return defaultSchema;
+      return schema;
     }
     return pushDownSchema;
   }
@@ -36,7 +54,7 @@ public class VCFSparkSchema implements Serializable {
     StructField[] fields = getSparkFields();
     String[] vcfAttrNames = new String[numAttr];
     for (int i = 0; i < numAttr; i++) {
-      vcfAttrNames[i] = fieldToVCFAttribute(fields[i]);
+      vcfAttrNames[i] = fieldToVCFAttribute(fields[i].name());
     }
     return vcfAttrNames;
   }
@@ -45,8 +63,7 @@ public class VCFSparkSchema implements Serializable {
     return getSparkFields().length;
   }
 
-  private String fieldToVCFAttribute(StructField field) {
-    String fieldName = field.name();
+  private String fieldToVCFAttribute(String fieldName) {
     switch (fieldName) {
       case "sampleName":
         return "sample_name";
@@ -78,102 +95,228 @@ public class VCFSparkSchema implements Serializable {
         return "query_bed_start";
       case "queryBedEnd":
         return "query_bed_end";
+      case "qual":
+        return "qual";
+      case "id":
+        return "id";
       default:
+        // Handle all fmt and info fields
+        if (fieldName.startsWith("fmt_")) {
+          return "fmt_" + fieldName.substring(4).toUpperCase();
+        } else if (fieldName.startsWith("info_")) {
+          return "info_" + fieldName.substring(5).toUpperCase();
+        }
         throw new RuntimeException("Unknown VCF schema field name: " + fieldName);
     }
   }
 
-  private StructType defaultSparkSchema() {
-    MetadataBuilder metadata = new MetadataBuilder();
+  private String vcfAttributeToField(String fieldName) {
+    switch (fieldName) {
+      case "sample_name":
+        return "sampleName";
+      case "contig":
+        return "contig";
+      case "pos_start":
+        return "posStart";
+      case "pos_end":
+        return "posEnd";
+      case "alleles":
+        return "alleles";
+      case "filters":
+        return "filter";
+      case "fmt_GT":
+        return "genotype";
+      case "fmt":
+        return "fmt";
+      case "fmt_AD":
+        return "fmt_AD";
+      case "fmt_DP":
+        return "fmt_DP";
+      case "fmt_GQ":
+        return "fmt_GQ";
+      case "fmt_MIN_DP":
+        return "fmt_MIN_DP";
+      case "info":
+        return "info";
+      case "query_bed_start":
+        return "queryBedStart";
+      case "query_bed_end":
+        return "queryBedEnd";
+      case "qual":
+        return "qual";
+      case "id":
+        return "id";
+      default:
+        // Handle all fmt and info fields
+        if (fieldName.startsWith("fmt_")) {
+          return "fmt_" + fieldName.substring(4).toUpperCase();
+        } else if (fieldName.startsWith("info_")) {
+          return "info_" + fieldName.substring(5).toUpperCase();
+        }
+        throw new RuntimeException("Unknown VCF schema field name: " + fieldName);
+    }
+  }
+
+  /**
+   * Build a spark schema based on the VCF dataset fields
+   *
+   * @return spark schema struct
+   * @param vcfReader
+   */
+  private StructType buildSchema(VCFReader vcfReader) {
     StructType schema = new StructType();
-    // sampleName
-    metadata.putString("comment", "sampleName");
-    schema =
-        schema.add(new StructField("sampleName", DataTypes.StringType, false, metadata.build()));
-    // CHR field in BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "CHR field in BCF");
-    schema = schema.add(new StructField("contig", DataTypes.StringType, false, metadata.build()));
-    // POS field in BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "POS field in BCF");
-    schema =
-        schema.add(new StructField("posStart", DataTypes.IntegerType, false, metadata.build()));
-    // POS + END -1 if END is defined, else POS
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "POS + END -1 if END is defined, else POS");
-    schema = schema.add(new StructField("posEnd", DataTypes.IntegerType, false, metadata.build()));
-    // List of REF, ALT fields in BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "List of REF, ALT fields in BCF");
-    schema =
-        schema.add(
-            new StructField(
-                "alleles",
-                DataTypes.createArrayType(DataTypes.StringType, false),
-                false,
-                metadata.build()));
-    // FILTER field in BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "List of FILTER strings in BCF");
-    schema =
-        schema.add(
-            new StructField(
-                "filter",
-                DataTypes.createArrayType(DataTypes.StringType, false),
-                true,
-                metadata.build()));
-    // Numeric representation of GT, eg [0, 1] for "0/1"
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "Numeric representation of GT, eg [0, 1] for \"0/1\"");
-    schema =
-        schema.add(
-            new StructField(
-                "genotype",
-                DataTypes.createArrayType(DataTypes.IntegerType, false),
-                true,
-                metadata.build()));
-    //    // AD field in FORMAT block of BCF
-    //    metadata = new MetadataBuilder();
-    //    metadata.putString("comment", "AD field in FORMAT block of BCF");
-    //    schema =
-    //        schema.add(
-    //            new StructField(
-    //                "fmt_AD",
-    //                DataTypes.createArrayType(DataTypes.IntegerType, false),
-    //                true,
-    //                metadata.build()));
-    // DP field in FORMAT block of BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "DP field in FORMAT block of BCF");
-    schema = schema.add(new StructField("fmt_DP", DataTypes.IntegerType, true, metadata.build()));
-    // GQ field in FORMAT block of BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "GQ field in FORMAT block of BCF");
-    schema = schema.add(new StructField("fmt_GQ", DataTypes.IntegerType, true, metadata.build()));
-    // MIN_DP field in FORMAT block of BCF
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "MIN_DP field in FORMAT block of BCF");
-    schema =
-        schema.add(new StructField("fmt_MIN_DP", DataTypes.IntegerType, true, metadata.build()));
-    // Non-attribute FORMAT fields
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "Non-attribute FORMAT fields");
-    schema = schema.add(new StructField("fmt", DataTypes.BinaryType, true, metadata.build()));
-    // Non-attribute INFO fields
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "Non-attribute INFO fields");
-    schema = schema.add(new StructField("info", DataTypes.BinaryType, true, metadata.build()));
-    // BED start position (0-based) of the query associated with this record
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "BED start position (0-based) of query");
-    schema =
-        schema.add(new StructField("queryBedStart", DataTypes.IntegerType, true, metadata.build()));
-    // BED end position (0-based) of the query associated with this record
-    metadata = new MetadataBuilder();
-    metadata.putString("comment", "BED end position (1-based) of query");
-    schema =
-        schema.add(new StructField("queryBedEnd", DataTypes.IntegerType, true, metadata.build()));
+    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet : vcfReader.attributes.entrySet()) {
+      String name = attrSet.getKey();
+      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
+      schema = schema.add(schemaField(name, typeInfo));
+    }
+
+    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
+        vcfReader.fmtAttributes.entrySet()) {
+      String name = attrSet.getKey();
+      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
+      schema = schema.add(schemaField(name, typeInfo));
+    }
+
+    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
+        vcfReader.infoAttributes.entrySet()) {
+      String name = attrSet.getKey();
+      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
+      schema = schema.add(schemaField(name, typeInfo));
+    }
+
     return schema;
+  }
+
+  /**
+   * Create a new field for the spark schema
+   *
+   * @param name     field name to add
+   * @param typeInfo field type info
+   * @return StructField
+   */
+  private StructField schemaField(String name, VCFReader.AttributeTypeInfo typeInfo) {
+    // If we have a list or a variable length non-string we treat it as a spark array type
+    if (typeInfo.isList
+        || (typeInfo.isVarLen && typeInfo.datatype != VCFReader.AttributeDatatype.CHAR)) {
+      return schemaFieldArrayType(name, typeInfo);
+    }
+
+    return schemaFieldSingle(name, typeInfo);
+  }
+
+  /**
+   * Create a new field for the spark schema
+   *
+   * @param name     field name to add
+   * @param typeInfo field type info
+   * @return StructField
+   */
+  private StructField schemaFieldSingle(String name, VCFReader.AttributeTypeInfo typeInfo) {
+
+    name = vcfAttributeToField(name);
+
+    MetadataBuilder metadata = new MetadataBuilder();
+    metadata.putString("comment", fieldCommentLookup(name));
+
+    // fmt and info are binary
+    if (name.equals("fmt") || name.equals("info")) {
+      return new StructField(name, DataTypes.BinaryType, typeInfo.isNullable, metadata.build());
+    }
+
+    switch (typeInfo.datatype) {
+      case CHAR:
+        return new StructField(name, DataTypes.StringType, typeInfo.isNullable, metadata.build());
+      case INT32:
+        return new StructField(name, DataTypes.IntegerType, typeInfo.isNullable, metadata.build());
+      case UINT8:
+        return new StructField(name, DataTypes.ShortType, typeInfo.isNullable, metadata.build());
+      case FLOAT32:
+        return new StructField(name, DataTypes.FloatType, typeInfo.isNullable, metadata.build());
+    }
+
+    throw new RuntimeException(
+        "Unsupported field "
+            + name
+            + " with unsupported datatype "
+            + typeInfo.datatype
+            + " in spark schema");
+  }
+
+  /**
+   * Create a new array field for the spark schema
+   *
+   * @param name     field name to add
+   * @param typeInfo field type info
+   * @return StructField
+   */
+  private StructField schemaFieldArrayType(String name, VCFReader.AttributeTypeInfo typeInfo) {
+
+    name = vcfAttributeToField(name);
+
+    MetadataBuilder metadata = new MetadataBuilder();
+    metadata.putString("comment", fieldCommentLookup(name));
+
+    switch (typeInfo.datatype) {
+      case CHAR:
+        return new StructField(
+            name,
+            DataTypes.createArrayType(DataTypes.StringType, false),
+            typeInfo.isNullable,
+            metadata.build());
+      case INT32:
+        return new StructField(
+            name,
+            DataTypes.createArrayType(DataTypes.IntegerType, false),
+            typeInfo.isNullable,
+            metadata.build());
+      case UINT8:
+        return new StructField(
+            name,
+            DataTypes.createArrayType(DataTypes.ShortType, false),
+            typeInfo.isNullable,
+            metadata.build());
+      case FLOAT32:
+        return new StructField(
+            name,
+            DataTypes.createArrayType(DataTypes.FloatType, false),
+            typeInfo.isNullable,
+            metadata.build());
+    }
+
+    throw new RuntimeException(
+        "Unsupported field "
+            + name
+            + " with unsupported datatype "
+            + typeInfo.datatype
+            + " in spark schema");
+  }
+
+  /**
+   * Custom comments for various fields
+   *
+   * @param field to get comment for
+   * @return comment string
+   */
+  private static String fieldCommentLookup(String field) {
+    if (field.equals("sampleName")) return "sampleName";
+    else if (field.equals("contig")) return "CHR field in BCF";
+    else if (field.equals("posStart")) return "POS field in BCF";
+    else if (field.equals("posEnd")) return "POS + END -1 if END is defined, else POS";
+    else if (field.equals("alleles")) return "List of REF, ALT fields in BCF";
+    else if (field.equals("filter")) return "List of FILTER strings in BCF";
+    else if (field.equals("genotype")) return "Numeric representation of GT, eg [0, 1] for \"0/1\"";
+    else if (field.equals("fmt")) return "Non-attribute FORMAT fields";
+    else if (field.equals("info")) return "Non-attribute INFO fields";
+    else if (field.startsWith("fmt_")) {
+      String fieldPart = field.substring(4);
+      return fieldPart.toUpperCase() + " field in FORMAT block of BCF";
+    } else if (field.startsWith("info_")) {
+      String fieldPart = field.substring(5);
+      return fieldPart.toUpperCase() + " field in INFO block of BCF";
+    } else if (field.equals("queryBedStart")) return "BED start position (0-based) of query";
+    else if (field.equals("queryBedEnd")) return "BED end position (1-based) of query";
+
+    return field;
   }
 }

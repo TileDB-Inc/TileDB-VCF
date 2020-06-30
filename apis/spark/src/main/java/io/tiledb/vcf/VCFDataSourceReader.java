@@ -29,7 +29,7 @@ public class VCFDataSourceReader
   public VCFDataSourceReader(URI uri, VCFDataSourceOptions options) {
     this.uri = uri;
     this.options = options;
-    this.schema = new VCFSparkSchema();
+    this.schema = new VCFSparkSchema(uri, options);
     this.pushedSampleNames = new ArrayList<>();
     this.pushedFilters = new ArrayList<>();
   }
