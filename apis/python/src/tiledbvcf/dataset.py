@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import warnings
 
 from collections import namedtuple
 from . import libtiledbvcf
@@ -21,7 +22,7 @@ ReadConfig = namedtuple('ReadConfig', [
 ReadConfig.__new__.__defaults__ = (None,) * 6#len(ReadConfig._fields)
 
 
-class TileDBVCFDataset(object):
+class Dataset(object):
     """A handle on a TileDB-VCF dataset."""
 
     def __init__(self, uri, mode='r', cfg=None, stats=False):
@@ -209,3 +210,19 @@ class TileDBVCFDataset(object):
             raise Exception('Stats not enabled')
 
         return self.reader.get_tiledb_stats();
+
+class TileDBVCFDataset(Dataset):
+    """A handle on a TileDB-VCF dataset."""
+
+    def __init__(self, uri, mode='r', cfg=None, stats=False):
+        """ Initializes a TileDB-VCF dataset for interaction.
+
+        :param uri: URI of TileDB-VCF dataset
+        :param mode: Mode of operation.
+        :type mode: 'r' or 'w'
+        """
+        warnings.warn(
+            "TileDBVCFDataset is deprecated, use Dataset instead",
+            DeprecationWarning
+        )
+        super().__init__(uri, mode, cfg, stats)
