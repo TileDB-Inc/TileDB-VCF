@@ -71,7 +71,7 @@ class InMemoryExporter : public Exporter {
    * Based on the buffers that have been set, returns the list of array
    * attributes that must be read from the TileDB array.
    */
-  std::unordered_set<std::string> array_attributes_required() const override;
+  std::set<std::string> array_attributes_required() const override;
 
   /** Resets any state of the exporter. */
   void reset() override;

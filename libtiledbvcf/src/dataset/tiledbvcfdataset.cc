@@ -298,6 +298,34 @@ void TileDBVCFDataset::open(
   load_field_type_maps(ctx);
 
   open_ = true;
+
+  // Build queryable attribute list
+  std::set<std::string> unique_queryable_attributes{
+      "sample_name", "query_bed_start", "query_bed_end", "contig"};
+  for (auto s : this->all_attributes()) {
+    if (s == "end_pos" || s == "real_end")
+      s = "pos_end";
+    else if (s == "start_pos" || s == "real_start_pos")
+      s = "pos_start";
+    else if (s == "filter_ids")
+      s = "filters";
+
+    unique_queryable_attributes.emplace(s);
+  }
+
+  for (const auto& info : info_field_types_) {
+    unique_queryable_attributes.emplace("info_" + info.first);
+  }
+
+  for (const auto& fmt : fmt_field_types_) {
+    unique_queryable_attributes.emplace("fmt_" + fmt.first);
+  }
+
+  for (const auto& key : unique_queryable_attributes) {
+    std::vector<char> name(key.begin(), key.end());
+    name.emplace_back('\0');
+    vcf_attributes_.push_back(name);
+  }
 }
 
 void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
@@ -823,7 +851,7 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
   return {kind, name};
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
+std::set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
   return {AttrNames::V3::real_start_pos,
           AttrNames::V3::end_pos,
           AttrNames::V3::qual,
@@ -834,7 +862,7 @@ std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
           AttrNames::V3::fmt};
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
+std::set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
   return {AttrNames::V2::pos,
           AttrNames::V2::real_end,
           AttrNames::V2::qual,
@@ -856,12 +884,12 @@ bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
          attr == AttrNames::V2::qual;
 }
 
-std::unordered_set<std::string> TileDBVCFDataset::all_attributes() const {
+std::set<std::string> TileDBVCFDataset::all_attributes() const {
   if (!open_)
     throw std::invalid_argument(
         "Cannot get attributes from dataset; dataset is not open.");
 
-  std::unordered_set<std::string> result;
+  std::set<std::string> result;
   if (metadata_.version == Version::V2) {
     result = builtin_attributes_v2();
   } else {
@@ -886,6 +914,15 @@ int TileDBVCFDataset::fmt_field_type(const std::string& name) const {
   if (it == fmt_field_types_.end())
     throw std::invalid_argument("Error getting FMT type for '" + name + "'");
   return it->second;
+}
+
+int32_t TileDBVCFDataset::queryable_attribute_count() const {
+  return this->vcf_attributes_.size();
+}
+
+const char* TileDBVCFDataset::queryable_attribute_name(
+    const int32_t index) const {
+  return this->vcf_attributes_[index].data();
 }
 
 std::string TileDBVCFDataset::data_array_uri(
@@ -915,6 +952,14 @@ std::string TileDBVCFDataset::vcf_headers_uri(
 
 bool TileDBVCFDataset::cloud_dataset(std::string root_uri) {
   return utils::starts_with(root_uri, "tiledb://");
+}
+
+std::map<std::string, int> TileDBVCFDataset::info_field_types() {
+  return info_field_types_;
+}
+
+std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
+  return fmt_field_types_;
 }
 
 }  // namespace vcf

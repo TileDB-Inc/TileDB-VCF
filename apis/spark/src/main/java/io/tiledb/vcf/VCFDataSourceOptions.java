@@ -132,6 +132,7 @@ public class VCFDataSourceOptions implements Serializable {
   /**
    * Generic parser of key-value property maps into a CSV.
    *
+   * @param configMap csv config map
    * @return Optional CSV String of config parameters
    */
   protected static Optional<String> getConfigCSV(final Map<String, String> configMap) {
@@ -153,6 +154,8 @@ public class VCFDataSourceOptions implements Serializable {
   /**
    * Combines two optional configuration into one.
    *
+   * @param first first config to combine
+   * @param second second config to combine
    * @return Optional CSV String of config parameters.
    */
   protected static Optional<String> combineCsvOptions(

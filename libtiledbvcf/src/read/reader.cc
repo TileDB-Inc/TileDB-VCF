@@ -1317,5 +1317,60 @@ void Reader::check_partitioning(
         std::to_string(num_partitions) + ".");
 }
 
+void Reader::queryable_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->queryable_attribute_count();
+}
+
+void Reader::queryable_attribute_name(int32_t index, char** name) {
+  *name = const_cast<char*>(this->dataset_->queryable_attribute_name(index));
+}
+
+void Reader::fmt_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->fmt_field_types().size();
+}
+
+void Reader::fmt_attribute_name(int32_t index, char** name) {
+  auto fmt_attributes = this->dataset_->fmt_field_types();
+  auto iter = fmt_attributes.begin();
+  std::advance(iter, index);
+  std::string s = "fmt_" + iter->first;
+
+  // Loop through queryable attributes to find the preallocated string to return
+  for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
+    this->queryable_attribute_name(i, name);
+    if (s == *name) {
+      return;
+    }
+  }
+}
+
+void Reader::info_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->info_field_types().size();
+}
+
+void Reader::info_attribute_name(int32_t index, char** name) {
+  auto info_attributes = this->dataset_->info_field_types();
+  auto iter = info_attributes.begin();
+  std::advance(iter, index);
+  std::string s = "info_" + iter->first;
+
+  // Loop through queryable attributes to find the preallocated string to return
+  for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
+    this->queryable_attribute_name(i, name);
+    if (s == *name) {
+      return;
+    }
+  }
+}
+
 }  // namespace vcf
 }  // namespace tiledb

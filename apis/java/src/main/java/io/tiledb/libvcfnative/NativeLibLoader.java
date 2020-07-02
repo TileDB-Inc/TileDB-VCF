@@ -48,8 +48,13 @@ public class NativeLibLoader {
     String versionedLibName;
     try {
       versionedLibName = getVersionedName();
-      logger.info("Loaded libtiledb library: " + versionedLibName);
-      loadNativeLib(versionedLibName, false);
+      if (versionedLibName != null) {
+        logger.info("Loaded libtiledb library: " + versionedLibName);
+        loadNativeLib(versionedLibName, false);
+      } else {
+        logger.info(
+            "libtiledb library not in JAR, assuming system version exists or linker errors will occur");
+      }
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here

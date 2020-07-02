@@ -240,7 +240,7 @@ bool TSVExporter::export_record(
   return true;
 }
 
-std::unordered_set<std::string> TSVExporter::array_attributes_required() const {
+std::set<std::string> TSVExporter::array_attributes_required() const {
   // TODO: currently we require all attributes for record recovery.
   return dataset_->all_attributes();
 }

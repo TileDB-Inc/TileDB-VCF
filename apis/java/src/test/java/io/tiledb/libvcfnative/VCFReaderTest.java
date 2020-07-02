@@ -206,4 +206,18 @@ public class VCFReaderTest {
     reader.setStatsEnabled(true);
     Assert.assertNotNull(reader.stats());
   }
+
+  /**
+   * * Checks that the reader attribute details are initialized in constructor
+   *
+   * @throws IOException
+   */
+  @Test
+  public void testAttributes() throws IOException {
+    VCFReader reader = getVFCReader(Optional.of(new String[] {getSamples()[0]}), Optional.empty());
+
+    Assert.assertTrue(reader.attributes.size() > 0);
+    Assert.assertTrue(reader.fmtAttributes.size() > 0);
+    Assert.assertTrue(reader.infoAttributes.size() > 0);
+  }
 }

@@ -185,6 +185,54 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_attribute_count
+ * Signature: (J[I)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1count
+  (JNIEnv *, jclass, jlong, jintArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_attribute_name
+ * Signature: (JI[B)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1name
+  (JNIEnv *, jclass, jlong, jint, jbyteArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_fmt_attribute_count
+ * Signature: (J[I)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1count
+  (JNIEnv *, jclass, jlong, jintArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_fmt_attribute_name
+ * Signature: (JI[B)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1name
+  (JNIEnv *, jclass, jlong, jint, jbyteArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_info_attribute_count
+ * Signature: (J[I)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1count
+  (JNIEnv *, jclass, jlong, jintArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_info_attribute_name
+ * Signature: (JI[B)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1name
+  (JNIEnv *, jclass, jlong, jint, jbyteArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_get_dataset_version
  * Signature: (J[I)I
  */

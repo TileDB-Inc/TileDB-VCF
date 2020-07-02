@@ -244,6 +244,69 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
   tiledb_vcf_reader_free(&reader);
 }
 
+TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  int32_t count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_queryable_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_queryable_attribute_name(
+            reader, i, &attribute_name) == TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
+  count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_fmt_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &attribute_name) ==
+        TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
+  count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_info_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_info_attribute_name(reader, i, &attribute_name) ==
+        TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
+  tiledb_vcf_reader_free(&reader);
+}
+
 TEST_CASE("C API: Reader set regions", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
