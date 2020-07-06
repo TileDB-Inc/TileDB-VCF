@@ -427,7 +427,7 @@ int main(int argc, char** argv) {
        ((option("-f", "--samples-file") %
              "Path to file with 1 sample name per line" &
          value("path", export_args.samples_file_uri)) |
-        (required("-s", "--sample-names") %
+        (option("-s", "--sample-names") %
              "CSV list of sample names to export" &
          value("samples").call([&](const std::string& s) {
            export_args.sample_names = utils::split(s, ',');
