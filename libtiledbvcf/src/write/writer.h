@@ -144,6 +144,9 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+  /** Set ingestion scatch space for ingestion or registration */
+  void set_scratch_space(const std::string path, uint64_t size);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
