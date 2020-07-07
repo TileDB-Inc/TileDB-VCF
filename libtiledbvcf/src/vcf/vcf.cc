@@ -25,7 +25,6 @@
  */
 
 #include "vcf/vcf.h"
-#include "utils/sample_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -135,14 +134,12 @@ bool VCF::next() {
 
   if (buffer_offset_ < buffer_.size()) {
     return true;
-  } else if (
-      static_cast<uint64_t>(buffered_region_.max) + 1 >=
-      std::numeric_limits<int>::max()) {
-    // False on overflow
-    return false;
   } else {
-    // Seek to the first record after the old max
-    return seek(buffered_region_.seq_name, buffered_region_.max + 1);
+    // Buffer the next records into `buffer_`.
+    read_records();
+
+    // Return true if any records were buffered.
+    return buffer_.size() > 0;
   }
 }
 
@@ -219,43 +216,29 @@ bool VCF::seek(const std::string& contig_name, uint32_t pos) {
   if (fh == nullptr)
     throw std::runtime_error("Error seeking in VCF; bcf_open failed");
 
-  Iter iter(fh.get(), hdr_);
+  record_iter_.reset();
   if (fh->format.format == bcf) {
-    if (!iter.init(hdr_, index_hts_, contig_name, pos))
+    if (!record_iter_.init_bcf(
+            std::move(fh), hdr_, index_hts_, contig_name, pos))
       return false;
 
   } else {
     if (fh->format.format != ::vcf)
       throw std::runtime_error("Error seeking in VCF; unknown format.");
 
-    if (!iter.init(index_tbx_, contig_name, pos))
+    if (!record_iter_.init_tbx(
+            std::move(fh), hdr_, index_tbx_, contig_name, pos))
       return false;
   }
 
-  // Buffer records in the given region into memory.
-  read_records(&iter);
-
-  // Update the buffered region info.
-  if (buffer_.size() > 0) {
-    HtslibValueMem val;
-    bcf1_t* first = buffer_.value<bcf1_t*>(0);
-    bcf1_t* last =
-        buffer_.value<bcf1_t*>((buffer_.size() / sizeof(bcf1_t*)) - 1);
-    buffered_region_.seq_name = bcf_seqname(hdr_, first);
-    buffered_region_.min = first->pos;
-    buffered_region_.max = get_end_pos(hdr_, last, &val);
-    // Sanity check contigs are the same
-    if (buffered_region_.seq_name != bcf_seqname(hdr_, last))
-      throw std::runtime_error(
-          "Cannot seek iterator to '" + contig_name + ":" +
-          std::to_string(pos) + "'; unexpected contig name mismatch.");
-  }
+  // Buffer the next records into `buffer_`.
+  read_records();
 
   // Return true if any records were buffered.
   return buffer_.size() > 0;
 }
 
-void VCF::read_records(Iter* iter) {
+void VCF::read_records() {
   // Reset the buffer but don't destroy it, so we can reuse any allocated
   // record structs.
   reset_buffer();
@@ -265,7 +248,7 @@ void VCF::read_records(Iter* iter) {
   uint64_t num_records = 0;
   std::string first_contig_name;
   while (num_records < max_record_buffer_size_) {
-    if (!iter->next(curr_rec.get()))
+    if (!record_iter_.next(curr_rec.get()))
       break;
 
     // Iteration does not cross contigs.
@@ -453,7 +436,7 @@ void VCF::swap(VCF& other) {
   std::swap(index_path_, other.index_path_);
   buffer_.swap(other.buffer_);
   std::swap(buffer_offset_, other.buffer_offset_);
-  std::swap(buffered_region_, other.buffered_region_);
+  record_iter_.swap(other.record_iter_);
   std::swap(hdr_, other.hdr_);
   std::swap(index_tbx_, other.index_tbx_);
   std::swap(index_hts_, other.index_hts_);
@@ -463,27 +446,25 @@ void VCF::swap(VCF& other) {
 /*              Iter              */
 /* ****************************** */
 
-VCF::Iter::Iter(htsFile* fh, bcf_hdr_t* hdr)
-    : fh_(fh)
-    , hdr_(hdr)
-    , iter_(nullptr)
+VCF::Iter::Iter()
+    : fh_(nullptr, hts_close)
+    , hts_iter_(nullptr)
     , tbx_(nullptr) {
 }
 
 VCF::Iter::~Iter() {
-  if (iter_ != nullptr)
-    hts_itr_destroy(iter_);
-  if (tmps_.m) {
-    free(tmps_.s);
-    tmps_ = {0, 0, nullptr};
-  }
+  reset();
 }
 
-bool VCF::Iter::init(
+bool VCF::Iter::init_bcf(
+    SafeBCFFh&& fh,
     bcf_hdr_t* hdr,
     hts_idx_t* index,
     const std::string& contig_name,
     uint32_t pos) {
+  fh_ = std::move(fh);
+  hdr_ = hdr;
+
   if (contig_name.empty())
     throw std::runtime_error(
         "Failed to init BCF iterator; contig name cannot be empty.");
@@ -495,15 +476,22 @@ bool VCF::Iter::init(
   int region_min = pos;
   int region_max = std::numeric_limits<int>::max();
 
-  iter_ = bcf_itr_queryi(index, region_id, region_min, region_max);
-  if (iter_ == nullptr)
+  hts_iter_ = bcf_itr_queryi(index, region_id, region_min, region_max);
+  if (hts_iter_ == nullptr)
     return false;
 
   return true;
 }
 
-bool VCF::Iter::init(
-    tbx_t* index, const std::string& contig_name, uint32_t pos) {
+bool VCF::Iter::init_tbx(
+    SafeBCFFh&& fh,
+    bcf_hdr_t* hdr,
+    tbx_t* index,
+    const std::string& contig_name,
+    uint32_t pos) {
+  fh_ = std::move(fh);
+  hdr_ = hdr;
+
   if (contig_name.empty())
     throw std::runtime_error(
         "Failed to init TBX iterator; contig name cannot be empty.");
@@ -516,20 +504,45 @@ bool VCF::Iter::init(
   int region_max = std::numeric_limits<int>::max();
 
   tbx_ = index;
-  iter_ = tbx_itr_queryi(index, region_id, region_min, region_max);
-  if (iter_ == nullptr)
+  hts_iter_ = tbx_itr_queryi(index, region_id, region_min, region_max);
+  if (hts_iter_ == nullptr)
     return false;
 
   return true;
+}
+
+void VCF::Iter::reset() {
+  fh_.reset();
+  hdr_ = nullptr;
+
+  if (hts_iter_ != nullptr) {
+    hts_itr_destroy(hts_iter_);
+    hts_iter_ = nullptr;
+  }
+
+  tbx_ = nullptr;
+
+  if (tmps_.m) {
+    free(tmps_.s);
+    tmps_ = {0, 0, nullptr};
+  }
+}
+
+void VCF::Iter::swap(VCF::Iter& other) {
+  std::swap(fh_, other.fh_);
+  std::swap(hdr_, other.hdr_);
+  std::swap(hts_iter_, other.hts_iter_);
+  std::swap(tbx_, other.tbx_);
+  std::swap(tmps_, other.tmps_);
 }
 
 bool VCF::Iter::next(bcf1_t* rec) {
   int ret;
 
   if (tbx_ == nullptr) {
-    ret = bcf_itr_next(fh_, iter_, rec);
+    ret = bcf_itr_next(fh_.get(), hts_iter_, rec);
   } else {
-    ret = tbx_itr_next(fh_, tbx_, iter_, &tmps_);
+    ret = tbx_itr_next(fh_.get(), tbx_, hts_iter_, &tmps_);
     vcf_parse1(&tmps_, hdr_, rec);
   }
 

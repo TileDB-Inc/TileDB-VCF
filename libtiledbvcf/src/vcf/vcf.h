@@ -47,6 +47,15 @@
 namespace tiledb {
 namespace vcf {
 
+/** Alias for unique_ptr to bcf_hdr_t. */
+typedef std::unique_ptr<bcf_hdr_t, decltype(&bcf_hdr_destroy)> SafeBCFHdr;
+
+/** Alias for unique_ptr to bcf1_t. */
+typedef std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> SafeBCFRec;
+
+/** Alias for unique_ptr to htsFile. */
+typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
+
 /** HTSFile index type. */
 enum class Idx { HTS, TBX };
 
@@ -186,20 +195,28 @@ class VCF {
   /** BCF/VCF iterator wrapper. */
   class Iter {
    public:
-    Iter(htsFile* fh, bcf_hdr_t* hdr);
+    Iter();
     ~Iter();
-    bool init(
+    bool init_bcf(
+        SafeBCFFh&& fh,
         bcf_hdr_t* hdr,
         hts_idx_t* index,
         const std::string& contig_name,
         uint32_t pos);
-    bool init(tbx_t* index, const std::string& contig_name, uint32_t pos);
+    bool init_tbx(
+        SafeBCFFh&& fh,
+        bcf_hdr_t* hdr,
+        tbx_t* index,
+        const std::string& contig_name,
+        uint32_t pos);
+    void reset();
+    void swap(Iter& other);
     bool next(bcf1_t* rec);
 
    private:
-    htsFile* fh_;
+    SafeBCFFh fh_;
     bcf_hdr_t* hdr_;
-    hts_itr_t* iter_;
+    hts_itr_t* hts_iter_;
     tbx_t* tbx_;
     kstring_t tmps_ = {0, 0, nullptr};
   };
@@ -219,10 +236,8 @@ class VCF {
   /** Record buffer offset. */
   uint64_t buffer_offset_;
 
-  /**
-   * The contig name and min POS value of the current buffered records.
-   */
-  Region buffered_region_;
+  /** The BCF/TBX record iterator. */
+  Iter record_iter_;
 
   /** Number of records to buffer in memory. */
   unsigned max_record_buffer_size_;
@@ -245,8 +260,8 @@ class VCF {
    */
   void reset_buffer();
 
-  /** Reads records into the record buffer using the given iterator. */
-  void read_records(Iter* iter);
+  /** Reads records into the record buffer using `iter_`. */
+  void read_records();
 
   /** Swap all fields with the given VCF instance. */
   void swap(VCF& other);
