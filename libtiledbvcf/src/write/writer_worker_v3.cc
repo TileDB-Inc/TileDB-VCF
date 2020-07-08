@@ -138,8 +138,9 @@ bool WriterWorkerV3::resume() {
     // exceed the max memory allocation, we'll stop processing at this record.
     bool overflowed = !buffer_record(contig_offset, top);
 
+    const bool is_end_node = top.end_node;
     record_heap_.pop();
-    if (top.end_node && vcf->is_open() && vcf->next()) {
+    if (is_end_node && vcf->is_open() && vcf->next()) {
       bcf1_t* r = vcf->curr_rec();
 
       const uint32_t local_end_pos = VCF::get_end_pos(vcf->hdr(), r, &val_);
