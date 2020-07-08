@@ -47,15 +47,6 @@
 namespace tiledb {
 namespace vcf {
 
-/** Alias for unique_ptr to bcf_hdr_t. */
-typedef std::unique_ptr<bcf_hdr_t, decltype(&bcf_hdr_destroy)> SafeBCFHdr;
-
-/** Alias for unique_ptr to bcf1_t. */
-typedef std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> SafeBCFRec;
-
-/** Alias for unique_ptr to htsFile. */
-typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
-
 /** Struct holding information about available scratch disk space. */
 struct ScratchSpaceInfo {
   std::string path = "";
