@@ -177,9 +177,14 @@ class Dataset(object):
             the count.
         :param list of str extra_attrs: CSV list of extra attributes to
             materialize from fmt field
-        :param str checksum_type: Optional override checksum type for creating new dataset
-            valid values are sha256, md5 or none.
+        :param str checksum_type: Optional override checksum type for creating
+            new dataset valid values are sha256, md5 or none.
+        :param str scratch_space_path: Directory used for local storage of
+            downloaded remote samples.
+        :param int scratch_space_size: Amount of local storage that can be used
+            for downloading remote samples (MB).
         """
+
         if self.mode != 'w':
             raise Exception('Dataset not open in write mode')
 
