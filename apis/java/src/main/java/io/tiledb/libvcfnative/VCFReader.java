@@ -438,6 +438,15 @@ public class VCFReader implements AutoCloseable {
     }
   }
 
+  public VCFReader setVerbose(boolean verbose) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_verbose(this.readerPtr, verbose);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting verbose: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader setStatsEnabled(boolean statsEnabled) {
     int rc = LibVCFNative.tiledb_vcf_reader_set_tiledb_stats_enabled(this.readerPtr, statsEnabled);
     if (rc != 0) {
