@@ -924,6 +924,19 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_store(tiledb_vcf_writer_t* writer);
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_last_error(
     tiledb_vcf_writer_t* writer, tiledb_vcf_error_t** error);
 
+/**
+ * Set scratch space for ingestion or registration
+ *
+ * @param writer VCF writer object
+ * @param path Directory used for local storage of downloaded remote samples
+ * @param size_mb Amount of local storage that can be used for downloading
+ * remote samples (MB)
+ * @
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_scratch_space(
+    tiledb_vcf_writer_t* writer, const char* path, uint64_t size_mb);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

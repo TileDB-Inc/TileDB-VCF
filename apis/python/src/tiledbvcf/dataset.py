@@ -170,16 +170,21 @@ class Dataset(object):
 
         return self.reader.result_num_records()
 
-    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True):
+    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True, scratch_space_path=None, scratch_space_size=None):
         """Ingest samples
 
         :param list of str samples: CSV list of sample names to include in
             the count.
         :param list of str extra_attrs: CSV list of extra attributes to
             materialize from fmt field
-        :param str checksum_type: Optional override checksum type for creating new dataset
-            valid values are sha256, md5 or none.
+        :param str checksum_type: Optional override checksum type for creating
+            new dataset valid values are sha256, md5 or none.
+        :param str scratch_space_path: Directory used for local storage of
+            downloaded remote samples.
+        :param int scratch_space_size: Amount of local storage that can be used
+            for downloading remote samples (MB).
         """
+
         if self.mode != 'w':
             raise Exception('Dataset not open in write mode')
 
@@ -191,6 +196,11 @@ class Dataset(object):
             self.writer.set_checksum(checksum_type)
 
         self.writer.set_allow_duplicates(allow_duplicates)
+
+        if scratch_space_path is not None and scratch_space_size is not None:
+            self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
+        elif scratch_space_path is not None or scratch_space_size is not None:
+            raise Exception('Must set both scratch_space_path and scratch_space_size to use scratch space')
 
         self.writer.set_samples(','.join(sample_uris))
 

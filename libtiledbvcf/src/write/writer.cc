@@ -370,5 +370,13 @@ std::vector<Region> Writer::prepare_region_list(
   return result;
 }
 
+void Writer::set_scratch_space(const std::string path, uint64_t size) {
+  ScratchSpaceInfo scratchSpaceInfo;
+  scratchSpaceInfo.path = path;
+  scratchSpaceInfo.size_mb = size;
+  this->registration_params_.scratch_space = scratchSpaceInfo;
+  this->ingestion_params_.scratch_space = scratchSpaceInfo;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

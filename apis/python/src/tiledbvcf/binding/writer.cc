@@ -101,6 +101,13 @@ void Writer::set_allow_duplicates(const bool &allow_duplicates) {
   check_error(writer, tiledb_vcf_writer_set_allow_duplicates(writer, allow_duplicates));
 }
 
+void Writer::set_scratch_space(const std::string& path, int64_t size) {
+  auto writer = ptr.get();
+  check_error(
+    writer,
+    tiledb_vcf_writer_set_scratch_space(writer, path.c_str(), size));
+}
+
 void Writer::create_dataset() {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_create_dataset(writer));

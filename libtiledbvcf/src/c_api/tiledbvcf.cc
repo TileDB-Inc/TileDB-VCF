@@ -800,6 +800,13 @@ int32_t tiledb_vcf_writer_get_last_error(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_scratch_space(
+    tiledb_vcf_writer_t* writer, const char* path, uint64_t size) {
+  writer->writer_->set_scratch_space(path, size);
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */
