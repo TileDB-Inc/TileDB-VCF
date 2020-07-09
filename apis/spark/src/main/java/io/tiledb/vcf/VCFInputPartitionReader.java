@@ -20,6 +20,7 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
@@ -29,7 +30,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
-  private static Logger log = Logger.getLogger(VCFInputPartitionReader.class.getName());
+  private final Logger log;
 
   /**
    * Default memory budget (in MB). The Spark connector uses half for allocating columnar buffers,
@@ -124,6 +125,36 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       // If an invalid log level is set, the default is DEBUG
       this.enableStatsLogLevel = Level.toLevel(this.options.getTileDBStatsLogLevel().get());
     }
+
+    TaskContext task = TaskContext.get();
+    log =
+        Logger.getLogger(
+            VCFInputPartitionReader.class.getName()
+                + " (stage:"
+                + task.stageId()
+                + "/taskID:"
+                + task.partitionId()
+                + ")");
+    log.info(
+        "Task Stage ID - "
+            + task.stageId()
+            + ", Task Partition ID - "
+            + task.partitionId()
+            + " for TileDB-VCF Partition "
+            + partitionId
+            + " started");
+
+    task.addTaskCompletionListener(
+        context -> {
+          log.info(
+              "Task Stage ID - "
+                  + task.stageId()
+                  + ", Task Partition ID - "
+                  + task.partitionId()
+                  + " for TileDB-VCF Partition "
+                  + partitionId
+                  + " completed");
+        });
   }
 
   @Override
