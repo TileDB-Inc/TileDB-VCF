@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include <htslib/hts.h>
+#include <htslib_plugin/hfile_tiledb_vfs.h>
 #include <algorithm>
 
 #include "utils/utils.h"
@@ -124,6 +126,19 @@ Region Region::parse_region(
   }
 
   return result;
+}
+
+void Region::parse_bed_file_htslib(
+    const VFS& vfs,
+    const std::string& bed_file_uri,
+    std::vector<Region>* result) {
+  //  hFILE* hFile = vfs_htslib_open(vfs.context().ptr().get(),
+  //  bed_file_uri.c_str(), tiledb_vfs_mode_t::TILEDB_VFS_READ);
+
+  //  VFS::filebuf filebuf(vfs);
+  //  tiledb_vfs_fh_t fh;
+  //  tiledb_vfs_fh_t filebuf.open(bed_file_uri, std::ios::in);
+  //  hdopen(
 }
 
 void Region::parse_bed_file(

@@ -76,6 +76,18 @@ struct Region {
       std::vector<Region>* result);
 
   /**
+   * Parses a BED file.
+   *
+   * @param vfs TileDB VFS instance to use
+   * @param bed_file_uri URI of BED file to parse
+   * @param result Vector to hold parsed Regions
+   */
+  static void parse_bed_file_htslib(
+      const VFS& vfs,
+      const std::string& bed_file_uri,
+      std::vector<Region>* result);
+
+  /**
    * Sorts the given list of Regions by their global offsets, using the provided
    * offsets map.
    *

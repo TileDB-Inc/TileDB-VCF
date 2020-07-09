@@ -35,6 +35,15 @@
 #include "vcf/region.h"
 #include "write/writer.h"
 
+// macro for setting htslib config and context in scope of cli functions
+#define HTSLIB_CONFIG_SET                              \
+  tiledb::Config cfg;                                  \
+  utils::set_tiledb_config(args.tiledb_config, &cfg);  \
+  tiledb::Context ctx(cfg);                            \
+                                                       \
+  utils::set_htslib_tiledb_config(args.tiledb_config); \
+  utils::set_htslib_tiledb_context(cfg.ptr().get());
+
 using namespace tiledb::vcf;
 
 namespace {
@@ -166,6 +175,9 @@ void do_create(const CreationParams& args) {
 
 /** Register. */
 void do_register(const RegistrationParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.register_samples(args);
@@ -195,6 +207,9 @@ void do_export(const ExportParams& args) {
 
 /** List. */
 void do_list(const ListParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_samples_list();
@@ -202,6 +217,9 @@ void do_list(const ListParams& args) {
 
 /** Stat. */
 void do_stat(const StatParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_dataset_stats();

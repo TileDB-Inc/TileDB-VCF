@@ -82,12 +82,14 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 
 TileDBVCFDataset::TileDBVCFDataset()
     : open_(false) {
+  utils::init_htslib();
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
+
   VFS vfs(ctx);
 
   check_attribute_names(params.extra_attributes);
@@ -286,6 +288,7 @@ void TileDBVCFDataset::open(
   Config cfg;
   utils::set_tiledb_config(tiledb_config, &cfg);
   Context ctx(cfg);
+
   metadata_ = read_metadata(ctx, root_uri_);
 
   // We support V2 and V3 (current) formats.

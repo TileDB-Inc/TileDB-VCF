@@ -313,6 +313,37 @@ int bcf_type_size(const int type);
 void set_tiledb_config(
     const std::vector<std::string>& params, tiledb::Config* cfg);
 
+/**
+ * Parses the given list of params (of the format 'param.name=value') and sets
+ * them on the given Config instance.
+ *
+ * @param params vector of params
+ * @param cfg c_api tiledb_config_t*
+ */
+void set_tiledb_config(
+    const std::vector<std::string>& params, tiledb_config_t* cfg);
+
+/**
+ * Set the htslib global config. We use this c++ function to provide a
+ * thread-safe implementation
+ *
+ * @param tiledb_config config vector to parse
+ */
+void set_htslib_tiledb_config(const std::vector<std::string>& tiledb_config);
+
+/**
+ * Set the htslib global context. We use this c++ function to provide a
+ * thread-safe implementation
+ *
+ * @param cfg TileDB config to use for context creation
+ */
+void set_htslib_tiledb_context(tiledb_config_t* cfg);
+
+/**
+ * Help function to initialize the htslib plugin
+ */
+void init_htslib();
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

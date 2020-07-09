@@ -27,7 +27,9 @@
 #include <htslib/vcf.h>
 #include <cerrno>
 #include <fstream>
+#include <mutex>
 
+#include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/utils.h"
 
 namespace tiledb {
@@ -279,6 +281,12 @@ int bcf_type_size(const int type) {
 
 void set_tiledb_config(
     const std::vector<std::string>& params, tiledb::Config* cfg) {
+  set_tiledb_config(params, cfg->ptr().get());
+}
+
+void set_tiledb_config(
+    const std::vector<std::string>& params, tiledb_config_t* cfg) {
+  tiledb_error_t* err;
   for (const auto& s : params) {
     auto kv = utils::split(s, '=');
     if (kv.size() != 2)
@@ -286,7 +294,8 @@ void set_tiledb_config(
           "Error setting TileDB config parameter; bad value '" + s + "'");
     utils::trim(&kv[0]);
     utils::trim(&kv[1]);
-    (*cfg)[kv[0]] = kv[1];
+    tiledb_config_set(cfg, kv[0].c_str(), kv[1].c_str(), &err);
+    tiledb::impl::check_config_error(err);
   }
 }
 
@@ -300,6 +309,32 @@ uint64_t ceil(uint64_t x, uint64_t y) {
   if (y == 0)
     return 0;
   return x / y + (x % y != 0);
+}
+
+std::mutex cfg_mutex;
+std::mutex ctx_mutex;
+std::mutex init_mutex;
+void set_htslib_tiledb_config(const std::vector<std::string>& tiledb_config) {
+  const std::lock_guard<std::mutex> lock(cfg_mutex);
+  tiledb_error_t* err;
+  tiledb_config_alloc(&hfile_tiledb_vfs_config, &err);
+  tiledb::impl::check_config_error(err);
+  set_tiledb_config(tiledb_config, hfile_tiledb_vfs_config);
+}
+
+void set_htslib_tiledb_context(tiledb_config_t* config) {
+  const std::lock_guard<std::mutex> lock(ctx_mutex);
+  tiledb_ctx_alloc(config, &hfile_tiledb_vfs_ctx);
+}
+
+void init_htslib() {
+  const std::lock_guard<std::mutex> lock(init_mutex);
+  // trick to init some of htslib's internal data structures for plugins
+  bool isremote = hisremote("vfs:///ignored");
+  (void)isremote;
+  // This might need a mutex for thread safety? Is there a better place to init
+  // this?
+  hfile_add_scheme_handler(HFILE_TILEDB_VFS_SCHEME, &tiledb_vfs_handler);
 }
 
 }  // namespace utils

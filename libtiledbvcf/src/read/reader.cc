@@ -1309,6 +1309,11 @@ void Reader::init_tiledb() {
 
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_config(params_.tiledb_config);
+  utils::set_htslib_tiledb_context(cfg.ptr().get());
 }
 
 void Reader::check_partitioning(
