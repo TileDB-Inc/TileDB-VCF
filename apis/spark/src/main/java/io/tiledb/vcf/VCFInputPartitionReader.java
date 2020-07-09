@@ -261,7 +261,13 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     // Set sort regions
     Optional<Boolean> sortRegions = options.getSortRegions();
     if (sortRegions.isPresent()) {
-      vcfReader.setSortRegions(sortRegions.get().booleanValue());
+      vcfReader.setSortRegions(sortRegions.get());
+    }
+
+    // Set verbose
+    Optional<Boolean> verbose = options.getVerbose();
+    if (verbose.isPresent()) {
+      vcfReader.setVerbose(verbose.get());
     }
 
     // Enable VCFReader stats

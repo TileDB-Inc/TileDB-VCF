@@ -124,6 +124,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return If TileDB-VCF reader should be set to verbose output mode */
+  public Optional<Boolean> getVerbose() {
+    if (options.containsKey("verbose")) {
+      return Optional.of(Boolean.parseBoolean(options.get("verbose")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);

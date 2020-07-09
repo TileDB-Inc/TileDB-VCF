@@ -103,6 +103,8 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_get_dataset_version(
       long readerPtr, int[] version);
 
+  public static final native int tiledb_vcf_reader_set_verbose(long readerPtr, boolean verbose);
+
   public static final native String tiledb_vcf_reader_get_last_error_message(long readerPtr);
 
   public static final native int tiledb_vcf_reader_set_tiledb_stats_enabled(

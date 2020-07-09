@@ -779,6 +779,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_name(
     tiledb_vcf_reader_t* reader, int32_t index, char** name);
 
 /**
+ * Sets verbose mode on or off
+ * @param reader VCF reader object
+ * @param verbose setting
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_set_verbose(tiledb_vcf_reader_t* reader, bool verbose);
+
+/**
  * Returns the version number of the TileDB VCF dataset.
  *
  * @param reader VCF reader object
@@ -936,6 +944,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_last_error(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_scratch_space(
     tiledb_vcf_writer_t* writer, const char* path, uint64_t size_mb);
+
+/**
+ * Sets verbose mode on or off
+ * @param reader VCF writter object
+ * @param verbose setting
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_set_verbose(tiledb_vcf_writer_t* writer, bool verbose);
 
 /* ********************************* */
 /*               ERROR               */

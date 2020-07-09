@@ -1372,5 +1372,9 @@ void Reader::info_attribute_name(int32_t index, char** name) {
   }
 }
 
+void Reader::set_verbose(const bool& verbose) {
+  params_.verbose = verbose;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

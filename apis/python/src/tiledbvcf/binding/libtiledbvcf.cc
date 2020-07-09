@@ -30,6 +30,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_tiledb_config", &Reader::set_tiledb_config)
       .def("set_attributes", &Reader::set_attributes)
       .def("set_tiledb_stats_enabled", &Reader::set_tiledb_stats_enabled)
+      .def("set_verbose", &Reader::set_verbose)
       .def("read", &Reader::read)
       .def("get_buffers", &Reader::get_buffers)
       .def("get_results_arrow", &Reader::get_results_arrow)
@@ -48,5 +49,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_scratch_space", &Writer::set_scratch_space)
       .def("create_dataset", &Writer::create_dataset)
       .def("register_samples", &Writer::register_samples)
+      .def("set_verbose", &Writer::set_verbose)
       .def("ingest_samples", &Writer::ingest_samples);
 }

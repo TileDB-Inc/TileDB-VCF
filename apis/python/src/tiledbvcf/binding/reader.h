@@ -115,6 +115,13 @@ class Reader {
   /** Fetches TileDB statistics */
   std::string get_tiledb_stats();
 
+  /**
+  * Set reader verbose output mode
+  *
+  * @param verbose mode
+  */
+  void set_verbose(bool verbose);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {

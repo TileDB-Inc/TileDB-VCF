@@ -108,6 +108,11 @@ void Writer::set_scratch_space(const std::string& path, int64_t size) {
     tiledb_vcf_writer_set_scratch_space(writer, path.c_str(), size));
 }
 
+void Writer::set_verbose(bool verbose) {
+   auto writer = ptr.get();
+   check_error(writer, tiledb_vcf_writer_set_verbose(writer, verbose));
+}
+
 void Writer::create_dataset() {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_create_dataset(writer));
