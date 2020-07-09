@@ -305,7 +305,7 @@ void TileDBVCFDataset::open(
   for (auto s : this->all_attributes()) {
     if (s == "end_pos" || s == "real_end")
       s = "pos_end";
-    else if (s == "start_pos" || s == "real_start_pos")
+    else if (s == "start_pos" || s == "real_start_pos" || s == "pos")
       s = "pos_start";
     else if (s == "filter_ids")
       s = "filters";
