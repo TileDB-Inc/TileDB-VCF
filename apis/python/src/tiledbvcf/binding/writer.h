@@ -79,6 +79,13 @@ class Writer {
 
   void ingest_samples();
 
+  /**
+  * Set writer verbose output mode
+  *
+  * @param verbose mode
+  */
+  void set_verbose(bool verbose);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

@@ -25,12 +25,15 @@ ReadConfig.__new__.__defaults__ = (None,) * 6#len(ReadConfig._fields)
 class Dataset(object):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode='r', cfg=None, stats=False):
+    def __init__(self, uri, mode='r', cfg=None, stats=False, verbose=False):
         """ Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
+        :param cfg: TileDB VCF configuration (optional)
+        :param stats: Enable or disable TileDB stats (optional)
+        :param verbose: Enable or disable TileDB VCF verbose output (optional)
         """
         self.uri = uri
         self.mode = mode
@@ -40,9 +43,11 @@ class Dataset(object):
             self._set_read_cfg(cfg)
             self.reader.init(uri)
             self.reader.set_tiledb_stats_enabled(stats)
+            self.reader.set_verbose(verbose)
         elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
             self.writer.init(uri)
+            self.writer.set_verbose(verbose)
             if cfg is not None:
                 raise Exception('Config not supported in write mode')
         else:
@@ -224,15 +229,18 @@ class Dataset(object):
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode='r', cfg=None, stats=False):
+    def __init__(self, uri, mode='r', cfg=None, stats=False, verbose=False):
         """ Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
+        :param cfg: TileDB VCF configuration (optional)
+        :param stats: Enable or disable TileDB stats (optional)
+        :param verbose: Enable or disable TileDB VCF verbose output (optional)
         """
         warnings.warn(
             "TileDBVCFDataset is deprecated, use Dataset instead",
             DeprecationWarning
         )
-        super().__init__(uri, mode, cfg, stats)
+        super().__init__(uri, mode, cfg, stats, verbose)
