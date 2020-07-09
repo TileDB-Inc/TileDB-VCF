@@ -970,7 +970,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
 
   for (const std::string& s : params_.sample_names) {
     std::string name;
-    if (!VCF::normalize_sample_name(s, &name))
+    if (!VCFUtils::normalize_sample_name(s, &name))
       throw std::runtime_error(
           "Error preparing sample list for export; sample name '" + s +
           "' is invalid.");
@@ -989,7 +989,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
     const auto& metadata = dataset_->metadata();
     auto per_line = [&metadata, &result](std::string* line) {
       std::string name;
-      if (!VCF::normalize_sample_name(*line, &name))
+      if (!VCFUtils::normalize_sample_name(*line, &name))
         throw std::runtime_error(
             "Error preparing sample list for export; sample name '" + *line +
             "' is invalid.");

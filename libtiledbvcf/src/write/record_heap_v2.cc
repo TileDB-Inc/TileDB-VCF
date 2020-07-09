@@ -25,6 +25,7 @@
  */
 
 #include "write/record_heap_v2.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -39,7 +40,7 @@ bool RecordHeapV2::empty() const {
 }
 
 void RecordHeapV2::insert(
-    VCF* vcf,
+    VCFV2* vcf,
     NodeType type,
     bcf1_t* record,
     uint32_t sort_end_pos,
@@ -52,7 +53,7 @@ void RecordHeapV2::insert(
     throw std::runtime_error(
         "Error inserting " + str_type + " '" + contig + ":" +
         std::to_string(record->pos + 1) + "-" +
-        std::to_string(VCF::get_end_pos(vcf->hdr(), record, &val) + 1) +
+        std::to_string(VCFUtils::get_end_pos(vcf->hdr(), record, &val) + 1) +
         "' into ingestion heap from sample ID " + std::to_string(sample_id) +
         "; sort end position " + std::to_string(sort_end_pos + 1) +
         " cannot be less than start.");

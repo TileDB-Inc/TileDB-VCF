@@ -32,7 +32,7 @@
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/utils.h"
-#include "vcf/vcf.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -802,7 +802,7 @@ void TileDBVCFDataset::register_samples_helper(
     std::map<uint32_t, std::string>* sample_headers) {
   for (size_t i = 0; i < headers.size(); i++) {
     const auto& hdr = headers[i];
-    auto hdr_samples = VCF::hdr_get_samples(hdr.get());
+    auto hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
     if (hdr_samples.size() > 1)
       throw std::invalid_argument(
           "Error registering samples; a file has more than 1 sample. "
@@ -815,12 +815,13 @@ void TileDBVCFDataset::register_samples_helper(
           "Error registering samples; sample " + s + " already exists.");
     sample_set->insert(s);
 
-    (*sample_headers)[metadata->free_sample_id] = VCF::hdr_to_string(hdr.get());
+    (*sample_headers)[metadata->free_sample_id] =
+        VCFUtils::hdr_to_string(hdr.get());
     metadata->all_samples.push_back(s);
     metadata->sample_ids[s] = metadata->free_sample_id++;
     if (metadata->contig_offsets.empty()) {
-      metadata->contig_offsets =
-          VCF::hdr_get_contig_offsets(hdr.get(), &metadata->contig_lengths);
+      metadata->contig_offsets = VCFUtils::hdr_get_contig_offsets(
+          hdr.get(), &metadata->contig_lengths);
       metadata->total_contig_length = 0;
       for (const auto& it : metadata->contig_lengths)
         metadata->total_contig_length += it.second;

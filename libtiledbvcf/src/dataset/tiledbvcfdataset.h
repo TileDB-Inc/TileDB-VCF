@@ -38,6 +38,7 @@
 #include <tiledb/tiledb>
 
 #include "utils/sample_utils.h"
+#include "vcf/region.h"
 
 namespace tiledb {
 namespace vcf {

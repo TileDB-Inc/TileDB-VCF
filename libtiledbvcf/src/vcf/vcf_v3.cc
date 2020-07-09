@@ -24,27 +24,26 @@
  * THE SOFTWARE.
  */
 
-#include "vcf/vcf.h"
+#include "vcf/vcf_v3.h"
 
 namespace tiledb {
 namespace vcf {
 
-VCF::VCF()
+VCFV3::VCFV3()
     : open_(false)
     , path_("")
     , index_path_("")
-    , buffer_offset_(0)
     , max_record_buffer_size_(10000)
     , hdr_(nullptr)
     , index_tbx_(nullptr)
     , index_hts_(nullptr) {
 }
 
-VCF::~VCF() {
+VCFV3::~VCFV3() {
   close();
 }
 
-void VCF::open(const std::string& file, const std::string& index_file) {
+void VCFV3::open(const std::string& file, const std::string& index_file) {
   if (open_)
     close();
   if (file.empty())
@@ -99,8 +98,10 @@ void VCF::open(const std::string& file, const std::string& index_file) {
   open_ = true;
 }
 
-void VCF::close() {
-  destroy_buffer();
+void VCFV3::close() {
+  // Clear the record queue and associated allocation pool.
+  std::queue<SafeSharedBCFRec>().swap(record_queue_);
+  std::queue<SafeSharedBCFRec>().swap(record_queue_pool_);
 
   if (index_hts_ != nullptr) {
     hts_idx_destroy(index_hts_);
@@ -122,41 +123,44 @@ void VCF::close() {
   index_path_.clear();
 }
 
-bool VCF::is_open() const {
+bool VCFV3::is_open() const {
   return open_;
 }
 
-bool VCF::next() {
+SafeSharedBCFRec VCFV3::next() {
   if (!open_)
-    return false;
+    return nullptr;
 
-  buffer_offset_ += sizeof(bcf1_t*);
-
-  if (buffer_offset_ < buffer_.size()) {
-    return true;
-  } else {
-    // Buffer the next records into `buffer_`.
+  if (record_queue_.empty())
     read_records();
 
-    // Return true if any records were buffered.
-    return buffer_.size() > 0;
+  SafeSharedBCFRec r = nullptr;
+  if (!record_queue_.empty()) {
+    r = record_queue_.front();
+    record_queue_.pop();
   }
+
+  return r;
 }
 
-std::string VCF::contig_name() const {
+void VCFV3::return_record(SafeSharedBCFRec record) {
+  record_queue_pool_.emplace(std::move(record));
+}
+
+std::string VCFV3::contig_name(bcf1_t* const r) const {
   if (!open_)
     throw std::runtime_error(
         "Error getting contig name from VCF; file not open.");
   if (hdr_ == nullptr)
     throw std::runtime_error(
         "Error getting contig name from VCF; header is null.");
-  if (curr_rec() == nullptr)
+  if (r == nullptr)
     throw std::runtime_error(
-        "Error getting contig name from VCF; current record is null.");
-  return std::string(bcf_seqname(hdr_, curr_rec()));
+        "Error getting contig name from VCF; record is null.");
+  return std::string(bcf_seqname(hdr_, r));
 }
 
-std::string VCF::sample_name() const {
+std::string VCFV3::sample_name() const {
   if (!open_)
     throw std::runtime_error(
         "Error getting sample name from VCF; file not open.");
@@ -165,7 +169,7 @@ std::string VCF::sample_name() const {
         "Error getting sample name from VCF; header has no samples.");
   std::string unnormalized_name(hdr_->samples[0]);
   std::string name;
-  if (!normalize_sample_name(unnormalized_name, &name))
+  if (!VCFUtils::normalize_sample_name(unnormalized_name, &name))
     throw std::runtime_error(
         "Error getting sample name from VCF; sample name has invalid "
         "characters: '" +
@@ -173,7 +177,7 @@ std::string VCF::sample_name() const {
   return name;
 }
 
-bool VCF::contig_has_records(const std::string& contig_name) const {
+bool VCFV3::contig_has_records(const std::string& contig_name) const {
   if (!open_)
     throw std::runtime_error(
         "Error checking empty contig in VCF; file not open.");
@@ -194,21 +198,15 @@ bool VCF::contig_has_records(const std::string& contig_name) const {
   return records > 0;
 }
 
-void VCF::set_max_record_buff_size(uint64_t max_record_buffer_size) {
+void VCFV3::set_max_record_buff_size(uint64_t max_record_buffer_size) {
   max_record_buffer_size_ = max_record_buffer_size;
 }
 
-bcf1_t* VCF::curr_rec() const {
-  if (buffer_.size() == 0)
-    return nullptr;
-  return buffer_.value<bcf1_t*>(buffer_offset_ / sizeof(bcf1_t*));
-}
-
-bcf_hdr_t* VCF::hdr() const {
+bcf_hdr_t* VCFV3::hdr() const {
   return hdr_;
 }
 
-bool VCF::seek(const std::string& contig_name, uint32_t pos) {
+bool VCFV3::seek(const std::string& contig_name, uint32_t pos) {
   if (!open_)
     return false;
 
@@ -231,211 +229,54 @@ bool VCF::seek(const std::string& contig_name, uint32_t pos) {
       return false;
   }
 
-  // Buffer the next records into `buffer_`.
+  // Buffer the next records into `record_queue_`.
   read_records();
 
   // Return true if any records were buffered.
-  return buffer_.size() > 0;
+  return !record_queue_.empty();
 }
 
-void VCF::read_records() {
-  // Reset the buffer but don't destroy it, so we can reuse any allocated
-  // record structs.
-  reset_buffer();
+void VCFV3::read_records() {
+  if (!record_queue_.empty())
+    std::queue<SafeSharedBCFRec>().swap(record_queue_);
 
-  std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> curr_rec(
-      bcf_init1(), bcf_destroy);
-  uint64_t num_records = 0;
+  SafeBCFRec tmp_r(bcf_init1(), bcf_destroy);
   std::string first_contig_name;
-  while (num_records < max_record_buffer_size_) {
-    if (!record_iter_.next(curr_rec.get()))
+  while (record_queue_.size() < max_record_buffer_size_) {
+    if (!record_iter_.next(tmp_r.get()))
       break;
 
     // Iteration does not cross contigs.
-    std::string contig_name = bcf_seqname(hdr_, curr_rec.get());
+    std::string contig_name = bcf_seqname(hdr_, tmp_r.get());
     if (first_contig_name.empty()) {
       first_contig_name = contig_name;
     } else if (first_contig_name != contig_name) {
       break;
     }
 
-    // Check to see if an old record was allocated that we can reuse.
-    bcf1_t** record_ptrs = buffer_.data<bcf1_t*>();
-    if ((num_records + 1) * sizeof(bcf1_t*) <= buffer_.alloced_size() &&
-        record_ptrs[num_records] != nullptr) {
-      auto* dst = record_ptrs[num_records];
-      bcf_copy(dst, curr_rec.get());
-      bcf_unpack(dst, BCF_UN_ALL);
-      // Update the size (zeroing out extra space).
-      buffer_.resize(buffer_.size() + sizeof(bcf1_t*), true);
+    if (!record_queue_pool_.empty()) {
+      // Pop a stale record for re-use. Note that `bcf_copy`
+      // destroys (frees) the stale data to prevent a memory
+      // leak.
+      SafeSharedBCFRec r = record_queue_pool_.front();
+      record_queue_pool_.pop();
+      bcf_copy(r.get(), tmp_r.get());
+      bcf_unpack(r.get(), BCF_UN_ALL);
+      record_queue_.emplace(std::move(r));
     } else {
-      auto* dup = bcf_dup(curr_rec.get());
-      bcf_unpack(dup, BCF_UN_ALL);
-      // Note: appending pointers here, not structs. Reserve space first so
-      // any extra alloced space gets zeroed.
-      buffer_.reserve((num_records + 1) * sizeof(bcf1_t*), true);
-      buffer_.append(&dup, sizeof(bcf1_t*));
-    }
-
-    num_records++;
-  }
-
-  buffer_offset_ = 0;
-}
-
-void VCF::destroy_buffer() {
-  const size_t num_possible_records = buffer_.alloced_size() / sizeof(bcf1_t*);
-  bcf1_t** record_ptrs = buffer_.data<bcf1_t*>();
-  for (size_t i = 0; i < num_possible_records; i++) {
-    auto* r = record_ptrs[i];
-    if (r != nullptr)
-      bcf_destroy(r);
-  }
-  std::memset(record_ptrs, 0, buffer_.alloced_size());
-  reset_buffer();
-}
-
-void VCF::reset_buffer() {
-  buffer_.clear();
-  buffer_offset_ = 0;
-}
-
-uint32_t VCF::get_end_pos(bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val) {
-  val->ndst = HtslibValueMem::convert_ndst_for_type(
-      val->ndst, BCF_HT_INT, &val->type_for_ndst);
-  int rc =
-      bcf_get_info_values(hdr, rec, "END", &val->dst, &val->ndst, BCF_HT_INT);
-  if (rc > 0) {
-    assert(val->dst);
-    assert(val->ndst >= 1);
-    uint32_t copy = ((uint32_t*)val->dst)[0];
-    assert(copy > 0);
-    copy -= 1;
-    return copy;
-  } else {
-    return (uint32_t)rec->pos + rec->rlen - 1;
-  }
-}
-
-bcf_hdr_t* VCF::hdr_read_header(const std::string& path) {
-  auto fh = vcf_open(path.c_str(), "r");
-  if (!fh)
-    return nullptr;
-  auto hdr = bcf_hdr_read(fh);
-  vcf_close(fh);
-  return hdr;
-}
-
-std::vector<std::string> VCF::hdr_get_samples(bcf_hdr_t* hdr) {
-  if (!hdr)
-    throw std::invalid_argument(
-        "Cannot get samples from header; bad VCF header.");
-  std::vector<std::string> ret;
-  const auto nsamp = bcf_hdr_nsamples(hdr);
-  for (int i = 0; i < nsamp; ++i) {
-    std::string normalized;
-    if (!VCF::normalize_sample_name(hdr->samples[i], &normalized))
-      throw std::runtime_error(
-          "Cannot get samples from header; VCF header contains sample name "
-          "with invalid characters: '" +
-          std::string(hdr->samples[i]) + "'");
-    ret.push_back(normalized);
-  }
-  return ret;
-}
-
-std::string VCF::hdr_to_string(bcf_hdr_t* hdr) {
-  if (!hdr)
-    throw std::invalid_argument(
-        "Cannot convert header to string; bad VCF header.");
-  kstring_t t = {0, 0, 0};
-  auto tmp = bcf_hdr_dup(hdr);
-
-  int res = 0;
-  res = bcf_hdr_set_samples(tmp, 0, 0);
-  if (res != 0) {
-    if (res == -1) {
-      throw std::invalid_argument(
-          "Cannot set VCF samples; possibly bad VCF header.");
-    } else if (res > 0) {
-      throw std::runtime_error(
-          std::string("Cannot set VCF samples: list contains samples not "
-                      "present in VCF header, sample #:") +
-          std::to_string(res));
+      SafeSharedBCFRec r(bcf_dup(tmp_r.get()), bcf_destroy);
+      bcf_unpack(r.get(), BCF_UN_ALL);
+      record_queue_.emplace(std::move(r));
     }
   }
-  bcf_hdr_format(tmp, 0, &t);
-  std::string ret(t.s, t.l);
-  bcf_hdr_destroy(tmp);
-  free(t.s);
-  return ret;
 }
 
-std::map<std::string, uint32_t> VCF::hdr_get_contig_offsets(
-    bcf_hdr_t* hdr, std::map<std::string, uint32_t>* contig_lengths) {
-  std::map<std::string, uint32_t> offsets;
-  if (!hdr)
-    throw std::invalid_argument(
-        "Cannot get contig offsets from header; bad VCF header.");
-  int nseq;
-  const char** seqnames = bcf_hdr_seqnames(hdr, &nseq);
-  uint32_t curr = 0;
-  for (int i = 0; i < nseq; ++i) {
-    std::string seqname(seqnames[i]);
-    bcf_hrec_t* hrec =
-        bcf_hdr_get_hrec(hdr, BCF_HL_CTG, "ID", seqname.c_str(), 0);
-    if (!hrec)
-      throw std::invalid_argument(
-          "Cannot get contig offsets from header; error reading contig header "
-          "line " +
-          std::to_string(i));
-    int j = bcf_hrec_find_key(hrec, "length");
-    if (j < 0)
-      throw std::invalid_argument(
-          "Cannot get contig offsets from header; contig def does not have "
-          "length");
-    auto length = strtol(hrec->vals[j], nullptr, 10);
-    offsets[seqname] = curr;
-    (*contig_lengths)[seqname] = length;
-    curr += length;
-  }
-  free(seqnames);
-  return offsets;
-}
-
-bool VCF::normalize_sample_name(
-    const std::string& sample, std::string* normalized) {
-  if (sample.empty())
-    return false;
-
-  // Check for invalid chars
-  const size_t num_invalid = 3;
-  const char invalid_char_list[num_invalid] = {',', '\t', '\0'};
-  if (sample.find_first_of(invalid_char_list, 0, num_invalid) !=
-      std::string::npos)
-    return false;
-
-  // Trim leading/trailing whitespace
-  const std::string whitespace_chars = " \t\n\r\v\f";
-  auto first_non_wsp = sample.find_first_not_of(whitespace_chars);
-  auto last_non_wsp = sample.find_last_not_of(whitespace_chars);
-  if (first_non_wsp == std::string::npos)
-    return false;
-
-  if (normalized != nullptr) {
-    *normalized =
-        sample.substr(first_non_wsp, last_non_wsp - first_non_wsp + 1);
-  }
-
-  return true;
-}
-
-void VCF::swap(VCF& other) {
+void VCFV3::swap(VCFV3& other) {
   std::swap(open_, other.open_);
   std::swap(path_, other.path_);
   std::swap(index_path_, other.index_path_);
-  buffer_.swap(other.buffer_);
-  std::swap(buffer_offset_, other.buffer_offset_);
+  std::swap(record_queue_, other.record_queue_);
+  std::swap(record_queue_pool_, other.record_queue_pool_);
   record_iter_.swap(other.record_iter_);
   std::swap(hdr_, other.hdr_);
   std::swap(index_tbx_, other.index_tbx_);
@@ -446,17 +287,17 @@ void VCF::swap(VCF& other) {
 /*              Iter              */
 /* ****************************** */
 
-VCF::Iter::Iter()
+VCFV3::Iter::Iter()
     : fh_(nullptr, hts_close)
     , hts_iter_(nullptr)
     , tbx_(nullptr) {
 }
 
-VCF::Iter::~Iter() {
+VCFV3::Iter::~Iter() {
   reset();
 }
 
-bool VCF::Iter::init_bcf(
+bool VCFV3::Iter::init_bcf(
     SafeBCFFh&& fh,
     bcf_hdr_t* hdr,
     hts_idx_t* index,
@@ -483,7 +324,7 @@ bool VCF::Iter::init_bcf(
   return true;
 }
 
-bool VCF::Iter::init_tbx(
+bool VCFV3::Iter::init_tbx(
     SafeBCFFh&& fh,
     bcf_hdr_t* hdr,
     tbx_t* index,
@@ -511,7 +352,7 @@ bool VCF::Iter::init_tbx(
   return true;
 }
 
-void VCF::Iter::reset() {
+void VCFV3::Iter::reset() {
   fh_.reset();
   hdr_ = nullptr;
 
@@ -528,7 +369,7 @@ void VCF::Iter::reset() {
   }
 }
 
-void VCF::Iter::swap(VCF::Iter& other) {
+void VCFV3::Iter::swap(VCFV3::Iter& other) {
   std::swap(fh_, other.fh_);
   std::swap(hdr_, other.hdr_);
   std::swap(hts_iter_, other.hts_iter_);
@@ -536,7 +377,7 @@ void VCF::Iter::swap(VCF::Iter& other) {
   std::swap(tmps_, other.tmps_);
 }
 
-bool VCF::Iter::next(bcf1_t* rec) {
+bool VCFV3::Iter::next(bcf1_t* rec) {
   int ret;
 
   if (tbx_ == nullptr) {

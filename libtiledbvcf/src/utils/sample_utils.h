@@ -42,7 +42,7 @@
 
 #include "utils/buffer.h"
 #include "utils/utils.h"
-#include "vcf/vcf.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -194,7 +194,7 @@ class SampleUtils {
         }
 
         // Allocate a header struct and try to parse from the local file.
-        SafeBCFHdr hdr(VCF::hdr_read_header(path), bcf_hdr_destroy);
+        SafeBCFHdr hdr(VCFUtils::hdr_read_header(path), bcf_hdr_destroy);
         if (hdr != nullptr) {
           result.push_back(process(std::move(hdr)));
           break;

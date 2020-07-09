@@ -105,7 +105,7 @@ class WriterWorkerV2 : public WriterWorker {
   const TileDBVCFDataset* dataset_;
 
   /** Vector of VCF files being parsed. */
-  std::vector<std::unique_ptr<VCF>> vcfs_;
+  std::vector<std::unique_ptr<VCFV2>> vcfs_;
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;

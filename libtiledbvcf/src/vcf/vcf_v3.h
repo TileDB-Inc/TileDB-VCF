@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_VCF_H
-#define TILEDB_VCF_VCF_H
+#ifndef TILEDB_VCF_VCF_V3_H
+#define TILEDB_VCF_VCF_V3_H
 
 #include <htslib/hts.h>
 #include <htslib/synced_bcf_reader.h>
@@ -35,6 +35,7 @@
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <queue>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -43,34 +44,23 @@
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "vcf/region.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
 
-/** Alias for unique_ptr to bcf_hdr_t. */
-typedef std::unique_ptr<bcf_hdr_t, decltype(&bcf_hdr_destroy)> SafeBCFHdr;
-
-/** Alias for unique_ptr to bcf1_t. */
-typedef std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> SafeBCFRec;
-
-/** Alias for unique_ptr to htsFile. */
-typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
-
-/** HTSFile index type. */
-enum class Idx { HTS, TBX };
-
 /**
  * Class wrapping a BCF/VCF file to allow iteration over records.
  */
-class VCF {
+class VCFV3 {
  public:
-  VCF();
-  ~VCF();
+  VCFV3();
+  ~VCFV3();
 
-  VCF(VCF&& other) = delete;
-  VCF(const VCF&) = delete;
-  VCF& operator=(const VCF&) = delete;
-  VCF& operator=(VCF&&) = delete;
+  VCFV3(VCFV3&& other) = delete;
+  VCFV3(const VCFV3&) = delete;
+  VCFV3& operator=(const VCFV3&) = delete;
+  VCFV3& operator=(VCFV3&&) = delete;
 
   /**
    * Opens the specified VCF or BCF file and load the header.
@@ -103,93 +93,33 @@ class VCF {
    */
   bool contig_has_records(const std::string& contig_name) const;
 
-  /**
-   * Returns the record at the current iterator position. Note you must first
-   * call seek() to initialize the iterator position.
-   */
-  bcf1_t* curr_rec() const;
-
   /** Returns the header instance of the currently open file. */
   bcf_hdr_t* hdr() const;
 
   /**
-   * Advances the current iterator position to the next record. Note you must
-   * first call seek() to initialize the iterator position.
+   * Returns the next buffered record. Note you must first call seek()
+   * to initialize the iterator position.
    *
-   * @return false on read error or if the file has no more records.
+   * @return null if all records have been read.
    */
-  bool next();
+  SafeSharedBCFRec next();
 
-  /** Returns the name of the contig of the current record. */
-  std::string contig_name() const;
+  /**
+   * As an optimization, records returned from `next()` may be passed
+   * to this routine for re-use to reduce memory allocation overhead.
+   *
+   * @param record The processed record to return into the allocation pool.
+   */
+  void return_record(SafeSharedBCFRec record);
+
+  /** Returns the name of the contig of record `r`. */
+  std::string contig_name(bcf1_t* r) const;
 
   /** Returns the normalized name of the sample in the currently open file. */
   std::string sample_name() const;
 
   /** Sets the max number of records that can be buffered in memory. */
   void set_max_record_buff_size(uint64_t max_record_buffer_size);
-
-  /**
-   * Helper function that returns the 0-based END position of the given record.
-   * If the record does not contain an END info field, this returns POS +
-   * len(REF) - 1.
-   *
-   * @param hdr Header instance for the record
-   * @param rec Record to get END position of
-   * @param val Reusable memory location for htslib values
-   * @return 0-based END position
-   */
-  static uint32_t get_end_pos(bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val);
-
-  /**
-   * Helper function that reads an HTSlib header instance from the VCF/BCF file
-   * at the given path.
-   *
-   * @param path Path of VCF file
-   * @return Header instance read from the file, or null if a header cannot be
-   * read.
-   */
-  static bcf_hdr_t* hdr_read_header(const std::string& path);
-
-  /**
-   * Helper function that returns the normalized sample names from a header
-   * instance.
-   *
-   * @param hdr Header instance
-   * @return Sample names in the header.
-   */
-  static std::vector<std::string> hdr_get_samples(bcf_hdr_t* hdr);
-
-  /**
-   * Helper function that converts an HTSlib header instance to a string.
-   *
-   * @param hdr Header instance
-   * @return Stringified header
-   */
-  static std::string hdr_to_string(bcf_hdr_t* hdr);
-
-  /**
-   * Helper function that constructs a map of contig name -> global genomic
-   * offset.
-   *
-   * @param hdr Header instance
-   * @param contig_lengths Populated to store contig name -> length.
-   * @return Map of contig name -> global genomic position.
-   */
-  static std::map<std::string, uint32_t> hdr_get_contig_offsets(
-      bcf_hdr_t* hdr, std::map<std::string, uint32_t>* contig_lengths);
-
-  /**
-   * Helper function that normalizes a sample name:
-   *  - Remove leading/trailing whitespace
-   *  - Error on invalid chars (comma)
-   *
-   * @param sample Sample name to normalize
-   * @param normalized Set to the normalized sample name
-   * @return True if the sample name was normalized successfully
-   */
-  static bool normalize_sample_name(
-      const std::string& sample, std::string* normalized);
 
  private:
   /** BCF/VCF iterator wrapper. */
@@ -230,11 +160,11 @@ class VCF {
   /** Full path of the index file (may be empty). */
   std::string index_path_;
 
-  /** Record buffer. */
-  Buffer buffer_;
+  /** The buffered records. */
+  std::queue<SafeSharedBCFRec> record_queue_;
 
-  /** Record buffer offset. */
-  uint64_t buffer_offset_;
+  /** Stale records available for re-use in `record_queue_`. */
+  std::queue<SafeSharedBCFRec> record_queue_pool_;
 
   /** The BCF/TBX record iterator. */
   Iter record_iter_;
@@ -251,23 +181,14 @@ class VCF {
   /** The HTS index handle, if the index format is HTS. */
   hts_idx_t* index_hts_;
 
-  /** Frees all buffered records and then resets the record buffer. */
-  void destroy_buffer();
-
-  /**
-   * Resets the record buffer size to 0, but does not free the buffered records
-   * themselves.
-   */
-  void reset_buffer();
-
   /** Reads records into the record buffer using `iter_`. */
   void read_records();
 
-  /** Swap all fields with the given VCF instance. */
-  void swap(VCF& other);
+  /** Swap all fields with the given VCFV3 instance. */
+  void swap(VCFV3& other);
 };
 
 }  // namespace vcf
 }  // namespace tiledb
 
-#endif  // TILEDB_VCF_VCF_H
+#endif  // TILEDB_VCF_VCF_V3_H

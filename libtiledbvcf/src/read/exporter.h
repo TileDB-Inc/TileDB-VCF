@@ -30,6 +30,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read_query_results.h"
+#include "vcf/region.h"
 
 namespace tiledb {
 namespace vcf {

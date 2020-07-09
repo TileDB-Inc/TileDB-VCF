@@ -39,6 +39,7 @@
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "vcf/htslib_value.h"
+#include "vcf/vcf_utils.h"
 #include "write/record_heap_v3.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
@@ -105,7 +106,7 @@ class WriterWorkerV3 : public WriterWorker {
   const TileDBVCFDataset* dataset_;
 
   /** Vector of VCF files being parsed. */
-  std::vector<std::unique_ptr<VCF>> vcfs_;
+  std::vector<std::unique_ptr<VCFV3>> vcfs_;
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
