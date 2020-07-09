@@ -646,6 +646,17 @@ int32_t tiledb_vcf_reader_get_info_attribute_name(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_verbose(
+    tiledb_vcf_reader_t* reader, const bool verbose) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_verbose(verbose)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */
@@ -803,6 +814,17 @@ int32_t tiledb_vcf_writer_get_last_error(
 int32_t tiledb_vcf_writer_set_scratch_space(
     tiledb_vcf_writer_t* writer, const char* path, uint64_t size) {
   writer->writer_->set_scratch_space(path, size);
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_verbose(
+    tiledb_vcf_writer_t* writer, const bool verbose) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbose(verbose)))
+    return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }

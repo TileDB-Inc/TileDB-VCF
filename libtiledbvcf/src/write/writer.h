@@ -147,6 +147,12 @@ class Writer {
   /** Set ingestion scatch space for ingestion or registration */
   void set_scratch_space(const std::string path, uint64_t size);
 
+  /**
+   * Sets verbose mode on or off
+   * @param verbose setting
+   */
+  void set_verbose(const bool& verbose);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

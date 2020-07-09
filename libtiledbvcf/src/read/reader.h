@@ -299,6 +299,12 @@ class Reader {
    */
   void info_attribute_name(int32_t index, char** name);
 
+  /**
+   * Sets verbose mode on or off
+   * @param verbose setting
+   */
+  void set_verbose(const bool& verbose);
+
  private:
   /* ********************************* */
   /*           PRIVATE DATATYPES       */
