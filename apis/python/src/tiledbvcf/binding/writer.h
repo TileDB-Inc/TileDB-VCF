@@ -68,6 +68,11 @@ class Writer {
   */
   void set_allow_duplicates(const bool& allow_duplicates);
 
+  /**
+    [Creation only] Allocates scratch space for downloading sample files
+  */
+  void set_scratch_space(const std::string& path, int64_t size);
+
   void create_dataset();
 
   void register_samples();
