@@ -225,7 +225,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
-  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  std::vector<std::unique_ptr<WriterWorker>> workers(1 /*params.num_threads*/);
   for (size_t i = 0; i < workers.size(); ++i) {
     if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
@@ -243,11 +243,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   const auto& metadata = dataset.metadata();
   std::set<std::string> nonempty_contigs;
   for (const auto& s : samples) {
-    VCF vcf;
-    vcf.open(s.sample_uri, s.index_uri);
-    for (const auto& p : metadata.contig_offsets) {
-      if (vcf.contig_has_records(p.first))
-        nonempty_contigs.insert(p.first);
+    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+      VCFV2 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+      VCFV3 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
     }
   }
 

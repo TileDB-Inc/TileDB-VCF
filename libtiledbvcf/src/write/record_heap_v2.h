@@ -30,7 +30,7 @@
 #include <htslib/vcf.h>
 #include <queue>
 
-#include "vcf/vcf.h"
+#include "vcf/vcf_v2.h"
 
 namespace tiledb {
 namespace vcf {
@@ -47,7 +47,7 @@ class RecordHeapV2 {
         , sample_id(std::numeric_limits<uint32_t>::max()) {
     }
 
-    VCF* vcf;
+    VCFV2* vcf;
     NodeType type;
     bcf1_t* record;
     uint32_t sort_end_pos;
@@ -59,7 +59,7 @@ class RecordHeapV2 {
   bool empty() const;
 
   void insert(
-      VCF* vcf,
+      VCFV2* vcf,
       NodeType type,
       bcf1_t* record,
       uint32_t sort_end_pos,

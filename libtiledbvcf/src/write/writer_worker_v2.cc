@@ -25,6 +25,7 @@
  */
 
 #include "write/writer_worker_v2.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -40,7 +41,7 @@ void WriterWorkerV2::init(
   dataset_ = &dataset;
 
   for (const auto& s : samples) {
-    std::unique_ptr<VCF> vcf(new VCF);
+    std::unique_ptr<VCFV2> vcf(new VCFV2);
     vcf->set_max_record_buff_size(params.max_record_buffer_size);
     vcf->open(s.sample_uri, s.index_uri);
     vcfs_.push_back(std::move(vcf));
@@ -82,7 +83,7 @@ bool WriterWorkerV2::parse(const Region& region) {
     }
 
     // If a record exists but it's outside the region max, skip it.
-    const uint32_t local_end_pos = VCF::get_end_pos(vcf->hdr(), r, &val_);
+    const uint32_t local_end_pos = VCFUtils::get_end_pos(vcf->hdr(), r, &val_);
     if (local_end_pos > region.max)
       continue;
 
@@ -127,7 +128,7 @@ bool WriterWorkerV2::resume() {
     const RecordHeapV2::Node& top = record_heap_.top();
     const uint32_t sample_id = top.sample_id;
     const bool is_anchor = top.type != RecordHeapV2::NodeType::Record;
-    VCF* vcf = top.vcf;
+    VCFV2* vcf = top.vcf;
 
     // Copy the record into the buffers. If the record caused the buffers to
     // exceed the max memory allocation, we'll stop processing at this record.
@@ -137,7 +138,8 @@ bool WriterWorkerV2::resume() {
     if (!is_anchor && vcf->is_open() && vcf->next()) {
       bcf1_t* r = vcf->curr_rec();
 
-      const uint32_t local_end_pos = VCF::get_end_pos(vcf->hdr(), r, &val_);
+      const uint32_t local_end_pos =
+          VCFUtils::get_end_pos(vcf->hdr(), r, &val_);
       if (local_end_pos <= region_.max) {
         const uint32_t end_pos = contig_offset + local_end_pos;
         const uint32_t start_pos = contig_offset + r->pos;
@@ -170,14 +172,15 @@ bool WriterWorkerV2::resume() {
 
 bool WriterWorkerV2::buffer_record(
     uint32_t contig_offset, const RecordHeapV2::Node& node) {
-  VCF* vcf = node.vcf;
+  VCFV2* vcf = node.vcf;
   bcf1_t* r = node.record;
   bcf_hdr_t* hdr = vcf->hdr();
   const std::string contig = vcf->contig_name();
   const uint32_t row = node.sample_id;
   const uint32_t col = node.sort_end_pos;
   const uint32_t pos = contig_offset + r->pos;
-  const uint32_t real_end = contig_offset + VCF::get_end_pos(hdr, r, &val_);
+  const uint32_t real_end =
+      contig_offset + VCFUtils::get_end_pos(hdr, r, &val_);
 
   buffers_.sample().append(&row, sizeof(uint32_t));
   buffers_.end_pos().append(&col, sizeof(uint32_t));

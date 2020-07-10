@@ -25,6 +25,7 @@
  */
 
 #include "write/record_heap_v3.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -39,21 +40,22 @@ bool RecordHeapV3::empty() const {
 }
 
 void RecordHeapV3::insert(
-    VCF* vcf,
+    VCFV3* vcf,
     NodeType type,
-    bcf1_t* record,
+    SafeSharedBCFRec record,
     uint32_t sort_start_pos,
     uint32_t sample_id,
     bool end_node) {
   // Sanity check sort_start_pos >= start.
   if (sort_start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
-    std::string contig(bcf_seqname(vcf->hdr(), record));
+    std::string contig(bcf_seqname(vcf->hdr(), record.get()));
     std::string str_type = type == NodeType::Record ? "record" : "anchor";
     throw std::runtime_error(
         "Error inserting " + str_type + " '" + contig + ":" +
         std::to_string(record->pos + 1) + "-" +
-        std::to_string(VCF::get_end_pos(vcf->hdr(), record, &val) + 1) +
+        std::to_string(
+            VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val) + 1) +
         "' into ingestion heap from sample ID " + std::to_string(sample_id) +
         "; sort start position " + std::to_string(sort_start_pos + 1) +
         " cannot be less than start.");
@@ -62,7 +64,7 @@ void RecordHeapV3::insert(
   auto node = std::unique_ptr<Node>(new Node);
   node->vcf = vcf;
   node->type = type;
-  node->record = record;
+  node->record = std::move(record);
   node->sort_start_pos = sort_start_pos;
   node->sample_id = sample_id;
   node->end_node = end_node;

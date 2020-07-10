@@ -33,7 +33,6 @@
 #include "read/reader.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
-#include "vcf/vcf.h"
 #include "write/writer.h"
 
 using namespace tiledb::vcf;
@@ -427,8 +426,7 @@ int main(int argc, char** argv) {
        ((option("-f", "--samples-file") %
              "Path to file with 1 sample name per line" &
          value("path", export_args.samples_file_uri)) |
-        (option("-s", "--sample-names") %
-             "CSV list of sample names to export" &
+        (option("-s", "--sample-names") % "CSV list of sample names to export" &
          value("samples").call([&](const std::string& s) {
            export_args.sample_names = utils::split(s, ',');
          }))),
