@@ -62,6 +62,28 @@ uint64_t WriterWorkerV3::anchors_buffered() const {
   return anchors_buffered_;
 }
 
+void WriterWorkerV3::insert_record(
+    SafeSharedBCFRec record,
+    VCFV3* vcf,
+    const uint32_t contig_offset,
+    const uint32_t sample_id) {
+  // If a record exists but it's outside the region max, skip it.
+  const uint32_t local_end_pos =
+      VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
+  if (local_end_pos > region_.max)
+    return;
+
+  const uint32_t end_pos = contig_offset + local_end_pos;
+  const uint32_t start_pos = contig_offset + record->pos;
+  record_heap_.insert(
+      vcf,
+      RecordHeapV3::NodeType::Record,
+      record,
+      start_pos,
+      end_pos,
+      sample_id);
+}
+
 bool WriterWorkerV3::parse(const Region& region) {
   if (!record_heap_.empty())
     throw std::runtime_error(
@@ -75,46 +97,16 @@ bool WriterWorkerV3::parse(const Region& region) {
   for (auto& vcf : vcfs_) {
     vcf->seek(region.seq_name, region.min);
 
-    SafeSharedBCFRec r = vcf->next();
+    SafeSharedBCFRec r = vcf->front_record();
     if (r == nullptr) {
       // Sample has no records at this region, skip it.
       continue;
     }
-
-    // If a record exists but it's outside the region max, skip it.
-    if (static_cast<uint32_t>(r->pos) > region.max)
-      continue;
+    vcf->pop_record();
 
     const uint32_t sample_id = metadata.sample_ids.at(vcf->sample_name());
-    const uint32_t end_pos =
-        contig_offset + VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val_);
-    const uint32_t start_pos = contig_offset + r->pos;
-    const uint32_t length = end_pos - start_pos + 1;
 
-    const unsigned num_anchors =
-        length > 1 ? (end_pos - start_pos - 1) / metadata.anchor_gap : 0;
-
-    record_heap_.insert(
-        vcf.get(),
-        RecordHeapV3::NodeType::Record,
-        r,
-        start_pos,
-        sample_id,
-        num_anchors == 0 ? true : false);
-
-    for (unsigned i = 1; i <= num_anchors; i++) {
-      uint32_t anchor_start = start_pos + i * metadata.anchor_gap;
-      record_heap_.insert(
-          vcf.get(),
-          RecordHeapV3::NodeType::Anchor,
-          r,
-          anchor_start,
-          sample_id,
-          i == num_anchors);
-      // Sanity check
-      if (anchor_start >= end_pos)
-        throw std::runtime_error("Ingestion error; anchor >= end.");
-    }
+    insert_record(r, vcf.get(), contig_offset, sample_id);
   }
 
   // Start buffering records (which can possibly be incomplete if the buffers
@@ -129,6 +121,24 @@ bool WriterWorkerV3::resume() {
 
   const auto& metadata = dataset_->metadata();
   const uint32_t contig_offset = metadata.contig_offsets.at(region_.seq_name);
+
+  // Buffer VCF records in-memory for writing to the TileDB array. The records
+  // are expected to be sorted in ascending order by there start position and
+  // duplicate start positions are allowed. Record ranges may overlap. Records
+  // are sorted on the `record_heap_` because anchor points may not be ordered
+  // for overlapping records.
+  //
+  // 1. Pop the top record from `record_heap_` and buffer a number of bytes
+  //    up to the length of the anchor gap.
+  // 2. If there are no remaining bytes for the record (an "end node"):
+  //     a. Pop the next record from the VCF reader and insert it on the heap.
+  //    Else
+  //     a. Re-insert the record on the heap with a start position advanced
+  //        by the length of the anchor gap.
+  //     b. front the next record from the VCF read. If it has a start position
+  //        less than the start position of the anchor in step (a), insert it
+  //        on the heap.
+  // 3. Repeat step (1) until the heap is empty.
   while (!record_heap_.empty()) {
     const RecordHeapV3::Node& top = record_heap_.top();
     const uint32_t sample_id = top.sample_id;
@@ -138,48 +148,49 @@ bool WriterWorkerV3::resume() {
     // exceed the max memory allocation, we'll stop processing at this record.
     bool overflowed = !buffer_record(contig_offset, top);
 
-    // After buffering the end node, we're done with its record and it may
-    // returned to the vcf record pool for re-use. This is strictly an
-    // optimization.
-    const bool is_end_node = top.end_node;
-    if (is_end_node)
+    // Determine if this is the last node for the record.
+    const bool is_end_node =
+        top.end_pos == top.start_pos ||
+        (top.end_pos - top.start_pos - 1) < metadata.anchor_gap;
+
+    if (is_end_node) {
+      // After buffering the end node, we're done with its record and it may
+      // returned to the vcf record pool for re-use. This is strictly an
+      // optimization.
       vcf->return_record(top.record);
 
-    record_heap_.pop();
-    if (is_end_node && vcf->is_open()) {
-      SafeSharedBCFRec r = vcf->next();
-      if (r != nullptr) {
-        const uint32_t local_end_pos =
-            VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val_);
-        if (local_end_pos <= region_.max) {
-          const uint32_t end_pos = contig_offset + local_end_pos;
-          const uint32_t start_pos = contig_offset + r->pos;
-          const uint32_t length = end_pos - start_pos + 1;
+      // We're done with the top node. Remove it from the heap.
+      record_heap_.pop();
 
-          const unsigned num_anchors =
-              length > 1 ? (end_pos - start_pos - 1) / metadata.anchor_gap : 0;
+      // If there is a next record, insert it on the heap.
+      if (vcf->is_open()) {
+        SafeSharedBCFRec next_r = vcf->front_record();
+        if (next_r != nullptr) {
+          vcf->pop_record();
+          insert_record(next_r, vcf, contig_offset, sample_id);
+        }
+      }
+    } else {
+      // Insert the next anchor for the current record.
+      const uint32_t anchor_start = top.start_pos + metadata.anchor_gap;
+      record_heap_.insert(
+          vcf,
+          RecordHeapV3::NodeType::Anchor,
+          top.record,
+          anchor_start,
+          top.end_pos,
+          sample_id);
 
-          record_heap_.insert(
-              vcf,
-              RecordHeapV3::NodeType::Record,
-              r,
-              start_pos,
-              sample_id,
-              num_anchors == 0 ? true : false);
+      // We're done with the top node. Remove it from the heap.
+      record_heap_.pop();
 
-          for (unsigned i = 1; i <= num_anchors; i++) {
-            uint32_t anchor_start = start_pos + i * metadata.anchor_gap;
-            record_heap_.insert(
-                vcf,
-                RecordHeapV3::NodeType::Anchor,
-                r,
-                anchor_start,
-                sample_id,
-                i == num_anchors);
-            // Sanity check
-            if (anchor_start >= end_pos)
-              throw std::runtime_error("Ingestion error; anchor >= end.");
-          }
+      if (vcf->is_open()) {
+        // If there is a next record and it preceeds the anchor, insert it
+        // on the heap.
+        SafeSharedBCFRec next_r = vcf->front_record();
+        if (next_r != nullptr && contig_offset + next_r->pos < anchor_start) {
+          vcf->pop_record();
+          insert_record(next_r, vcf, contig_offset, sample_id);
         }
       }
     }
@@ -198,7 +209,7 @@ bool WriterWorkerV3::buffer_record(
   bcf_hdr_t* hdr = vcf->hdr();
   const std::string contig = vcf->contig_name(r);
   const uint32_t row = node.sample_id;
-  const uint32_t col = node.sort_start_pos;
+  const uint32_t col = node.start_pos;
   const uint32_t pos = contig_offset + r->pos;
   const uint32_t end_pos = contig_offset + VCFUtils::get_end_pos(hdr, r, &val_);
 

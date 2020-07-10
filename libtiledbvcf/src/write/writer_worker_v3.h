@@ -124,6 +124,21 @@ class WriterWorkerV3 : public WriterWorker {
   RecordHeapV3 record_heap_;
 
   /**
+   * Inserts a record (non-anchor) into the heap if it fits
+   * in `region_`.
+   *
+   * @param record The record to insert
+   * @param vcf The VCF state that contains `record`.
+   * @param contig_offset The VCF contig offset
+   * @param sample_id The sample id for the record.
+   */
+  void insert_record(
+      SafeSharedBCFRec record,
+      VCFV3* vcf,
+      const uint32_t contig_offset,
+      const uint32_t sample_id);
+
+  /**
    * Copies all fields of a VCF record or anchor into the attribute buffers.
    *
    * @param contig_offset Offset of the record's contig

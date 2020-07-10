@@ -97,12 +97,18 @@ class VCFV3 {
   bcf_hdr_t* hdr() const;
 
   /**
-   * Returns the next buffered record. Note you must first call seek()
-   * to initialize the iterator position.
+   * Returns the next buffered record but does not remove it from the queue.
+   * Note you must first call seek() to initialize the iterator position.
    *
    * @return null if all records have been read.
    */
-  SafeSharedBCFRec next();
+  SafeSharedBCFRec front_record();
+
+  /**
+   * Removes the next buffered record from the internal queue. This does
+   * not invalidate records returned from `front_record`.
+   */
+  void pop_record();
 
   /**
    * As an optimization, records returned from `next()` may be passed
