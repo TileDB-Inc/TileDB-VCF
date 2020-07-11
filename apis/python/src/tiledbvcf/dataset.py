@@ -232,6 +232,12 @@ class Dataset(object):
 
         return self.reader.get_fmt_attribute_count();
 
+    def fmt_attr_name(self, index):
+        if self.mode != 'r':
+            raise Exception('Attributes can only be retrieved in read mode')
+
+        return self.reader.get_fmt_attribute_name(index);
+
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""
 
