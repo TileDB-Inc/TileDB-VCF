@@ -109,17 +109,17 @@ class Reader {
   /** Returns true if the last read operation was complete. */
   bool completed();
 
-    /** Gets whether internal TileDB Statistics are Enabled or Disabled*/
+  /** Gets whether internal TileDB Statistics are Enabled or Disabled*/
   bool get_tiledb_stats_enabled();
 
   /** Fetches TileDB statistics */
   std::string get_tiledb_stats();
 
   /**
-  * Set reader verbose output mode
-  *
-  * @param verbose mode
-  */
+   * Set reader verbose output mode
+   *
+   * @param verbose mode
+   */
   void set_verbose(bool verbose);
 
  private:

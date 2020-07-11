@@ -504,17 +504,18 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
 }
 
 bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
-  std::set<std::string> fixed_len = {"pos_start",
-                                     "pos_end",
-                                     "query_bed_start",
-                                     "query_bed_end",
-                                     "qual",
-                                     "fmt_DP",
-                                     "fmt_GQ",
-                                     "fmt_PS",
-                                     "fmt_PQ",
-                                     "fmt_MQ",
-                                     "fmt_MIN_DP"};
+  std::set<std::string> fixed_len = {
+      "pos_start",
+      "pos_end",
+      "query_bed_start",
+      "query_bed_end",
+      "qual",
+      "fmt_DP",
+      "fmt_GQ",
+      "fmt_PS",
+      "fmt_PQ",
+      "fmt_MQ",
+      "fmt_MIN_DP"};
   return fixed_len.count(attr) > 0;
 }
 

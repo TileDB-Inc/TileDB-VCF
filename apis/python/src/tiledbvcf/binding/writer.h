@@ -80,10 +80,10 @@ class Writer {
   void ingest_samples();
 
   /**
-  * Set writer verbose output mode
-  *
-  * @param verbose mode
-  */
+   * Set writer verbose output mode
+   *
+   * @param verbose mode
+   */
   void set_verbose(bool verbose);
 
  private:
