@@ -1248,16 +1248,18 @@ void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
   std::unordered_set<std::string> attrs;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    attrs = {TileDBVCFDataset::DimensionNames::V3::sample,
-             TileDBVCFDataset::DimensionNames::V3::start_pos,
-             TileDBVCFDataset::AttrNames::V3::real_start_pos,
-             TileDBVCFDataset::AttrNames::V3::end_pos};
+    attrs = {
+        TileDBVCFDataset::DimensionNames::V3::sample,
+        TileDBVCFDataset::DimensionNames::V3::start_pos,
+        TileDBVCFDataset::AttrNames::V3::real_start_pos,
+        TileDBVCFDataset::AttrNames::V3::end_pos};
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
-    attrs = {TileDBVCFDataset::DimensionNames::V2::sample,
-             TileDBVCFDataset::DimensionNames::V2::end_pos,
-             TileDBVCFDataset::AttrNames::V2::pos,
-             TileDBVCFDataset::AttrNames::V2::real_end};
+    attrs = {
+        TileDBVCFDataset::DimensionNames::V2::sample,
+        TileDBVCFDataset::DimensionNames::V2::end_pos,
+        TileDBVCFDataset::AttrNames::V2::pos,
+        TileDBVCFDataset::AttrNames::V2::real_end};
   }
 
   buffers_a.reset(new AttributeBufferSet);

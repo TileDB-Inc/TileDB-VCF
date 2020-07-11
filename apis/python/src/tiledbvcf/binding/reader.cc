@@ -78,7 +78,9 @@ void Reader::set_attributes(const std::vector<std::string>& attributes) {
 
 void Reader::set_tiledb_stats_enabled(const bool stats_enabled) {
   auto reader = ptr.get();
-  check_error(reader, tiledb_vcf_reader_set_tiledb_stats_enabled(reader, stats_enabled));
+  check_error(
+      reader,
+      tiledb_vcf_reader_set_tiledb_stats_enabled(reader, stats_enabled));
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -146,8 +148,8 @@ void Reader::set_tiledb_config(const std::string& config_str) {
 }
 
 void Reader::set_verbose(bool verbose) {
-   auto reader = ptr.get();
-   check_error(reader, tiledb_vcf_reader_set_verbose(reader, verbose));
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_verbose(reader, verbose));
 }
 
 void Reader::read() {
@@ -338,11 +340,13 @@ bool Reader::completed() {
 bool Reader::get_tiledb_stats_enabled() {
   auto reader = ptr.get();
   bool stats_enabled;
-  check_error(reader, tiledb_vcf_reader_get_tiledb_stats_enabled(reader, &stats_enabled));
+  check_error(
+      reader,
+      tiledb_vcf_reader_get_tiledb_stats_enabled(reader, &stats_enabled));
   return stats_enabled;
 }
 
-std::string  Reader::get_tiledb_stats() {
+std::string Reader::get_tiledb_stats() {
   auto reader = ptr.get();
   char* stats;
   check_error(reader, tiledb_vcf_reader_get_tiledb_stats(reader, &stats));

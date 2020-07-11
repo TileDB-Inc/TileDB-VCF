@@ -777,8 +777,9 @@ void TileDBVCFDataset::write_vcf_headers(
 
   // Build data vector and subarray
   std::vector<std::string> headers;
-  std::vector<uint32_t> subarray = {std::numeric_limits<uint32_t>::max(),
-                                    std::numeric_limits<uint32_t>::min()};
+  std::vector<uint32_t> subarray = {
+      std::numeric_limits<uint32_t>::max(),
+      std::numeric_limits<uint32_t>::min()};
   for (const auto& pair : vcf_headers) {
     subarray[0] = std::min(subarray[0], pair.first);
     subarray[1] = std::max(subarray[1], pair.first);
@@ -853,25 +854,27 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
 }
 
 std::set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
-  return {AttrNames::V3::real_start_pos,
-          AttrNames::V3::end_pos,
-          AttrNames::V3::qual,
-          AttrNames::V3::alleles,
-          AttrNames::V3::id,
-          AttrNames::V3::filter_ids,
-          AttrNames::V3::info,
-          AttrNames::V3::fmt};
+  return {
+      AttrNames::V3::real_start_pos,
+      AttrNames::V3::end_pos,
+      AttrNames::V3::qual,
+      AttrNames::V3::alleles,
+      AttrNames::V3::id,
+      AttrNames::V3::filter_ids,
+      AttrNames::V3::info,
+      AttrNames::V3::fmt};
 }
 
 std::set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
-  return {AttrNames::V2::pos,
-          AttrNames::V2::real_end,
-          AttrNames::V2::qual,
-          AttrNames::V2::alleles,
-          AttrNames::V2::id,
-          AttrNames::V2::filter_ids,
-          AttrNames::V2::info,
-          AttrNames::V2::fmt};
+  return {
+      AttrNames::V2::pos,
+      AttrNames::V2::real_end,
+      AttrNames::V2::qual,
+      AttrNames::V2::alleles,
+      AttrNames::V2::id,
+      AttrNames::V2::filter_ids,
+      AttrNames::V2::info,
+      AttrNames::V2::fmt};
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
