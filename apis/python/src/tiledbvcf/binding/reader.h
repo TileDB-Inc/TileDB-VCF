@@ -115,6 +115,18 @@ class Reader {
   /** Fetches TileDB statistics */
   std::string get_tiledb_stats();
 
+  /** Returns number of queryable fmt attributes */
+  int32_t get_fmt_attribute_count();
+
+  /** Returns fmt attribute name */
+  std::string get_fmt_attribute_name(int32_t index);
+
+  /** Returns number of queryable info attributes */
+  int32_t get_info_attribute_count();
+
+  /** Returns info attribute name */
+  std::string get_info_attribute_name(int32_t index);
+
   /**
    * Set reader verbose output mode
    *
