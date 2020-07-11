@@ -353,6 +353,13 @@ std::string Reader::get_tiledb_stats() {
   return std::string(stats);
 }
 
+int32_t Reader::get_fmt_attribute_count() {
+  auto reader = ptr.get();
+  int32_t count;
+  check_error(reader, tiledb_vcf_reader_get_fmt_attribute_count(reader, &count));
+  return (count);
+}
+
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
   switch (datatype) {
     case TILEDB_VCF_CHAR:
