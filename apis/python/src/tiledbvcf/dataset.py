@@ -226,6 +226,26 @@ class Dataset(object):
 
         return self.reader.get_tiledb_stats();
 
+    def attributes(self):
+        """List available attributes ingested from the VCF INFO and FORMAT fields
+
+        :returns: a list of strings representing the attribute names
+        """
+
+        if self.mode != 'r':
+            raise Exception("Attributes can only be retrieved in read mode")
+
+        n_info = self.reader.get_info_attribute_count();
+        n_fmt = self.reader.get_fmt_attribute_count();
+
+        attrs = []
+        for i in range(n_info):
+            attrs.append(self.reader.get_info_attribute_name(i))
+        for i in range(n_fmt):
+            attrs.append(self.reader.get_fmt_attribute_name(i))
+
+        return attrs
+
     def fmt_attr_count(self):
         if self.mode != 'r':
             raise Exception('Attributes can only be counted for in read mode')
