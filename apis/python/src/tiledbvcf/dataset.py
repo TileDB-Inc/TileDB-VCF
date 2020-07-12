@@ -226,66 +226,56 @@ class Dataset(object):
 
         return self.reader.get_tiledb_stats();
 
-    def attributes(self):
-        """List available attributes ingested from the VCF INFO and FORMAT fields
+    def attributes(self, attr_type = "all"):
+        """List queryable attributes available in the VCF dataset
 
+        :param str type: The subset of attributes to retrieve; "info" or "fmt"
+            will only retrieve attributes ingested from the VCF INFO and FORMAT
+            fields, respectively, "builtin" retrieves the static attributes
+            defiend in TileDB-VCF's schema, "all" (the default) returns all
+            queryable attributes
         :returns: a list of strings representing the attribute names
         """
 
         if self.mode != 'r':
             raise Exception("Attributes can only be retrieved in read mode")
 
-        n_info = self.reader.get_info_attribute_count();
-        n_fmt = self.reader.get_fmt_attribute_count();
+        attr_types = ("all", "info", "fmt", "builtin")
+        if attr_type not in attr_types:
+            raise ValueError(
+                "Invalid attribute type. Must be one of: %s" % attr_types
+            )
 
+        # combined attributes with type object
+        comb_attrs = ("info", "fmt")
+
+        if attr_type == "info":
+            return self.__info_attrs()
+        elif attr_type == "fmt":
+             return self.__fmt_attrs()
+        else:
+            attrs = set(self.__queryable_attrs()).difference(comb_attrs)
+            if attr_type == "builtin":
+                attrs.difference_update(self.__info_attrs() + self.__fmt_attrs())
+            return sorted(list(attrs))
+
+    def __queryable_attrs(self):
         attrs = []
-        for i in range(n_info):
-            attrs.append(self.reader.get_info_attribute_name(i))
-        for i in range(n_fmt):
-            attrs.append(self.reader.get_fmt_attribute_name(i))
-
+        for i in range(self.reader.get_queryable_attribute_count()):
+            attrs.append(self.reader.get_queryable_attribute_name(i))
         return attrs
 
-    def queryable_attributes(self):
-            """List queryable available attributes ingested from the VCF INFO and FORMAT fields
+    def __fmt_attrs(self):
+        attrs = []
+        for i in range(self.reader.get_fmt_attribute_count()):
+            attrs.append(self.reader.get_fmt_attribute_name(i))
+        return attrs
 
-            :returns: a list of strings representing the attribute names
-            """
-
-            if self.mode != 'r':
-                raise Exception("Attributes can only be retrieved in read mode")
-
-            n_attrs = self.reader.get_queryable_attribute_count();
-
-            attrs = []
-            for i in range(n_attrs):
-                attrs.append(self.reader.get_queryable_attribute_name(i))
-
-            return attrs
-
-    def fmt_attr_count(self):
-        if self.mode != 'r':
-            raise Exception('Attributes can only be counted for in read mode')
-
-        return self.reader.get_fmt_attribute_count();
-
-    def fmt_attr_name(self, index):
-        if self.mode != 'r':
-            raise Exception('Attributes can only be retrieved in read mode')
-
-        return self.reader.get_fmt_attribute_name(index);
-
-    def info_attr_count(self):
-        if self.mode != 'r':
-            raise Exception('Attributes can only be counted for in read mode')
-
-        return self.reader.get_info_attribute_count();
-
-    def info_attr_name(self, index):
-        if self.mode != 'r':
-            raise Exception('Attributes can only be retrieved in read mode')
-
-        return self.reader.get_info_attribute_name(index);
+    def __info_attrs(self):
+        attrs = []
+        for i in range(self.reader.get_info_attribute_count()):
+            attrs.append(self.reader.get_info_attribute_name(i))
+        return attrs
 
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""
