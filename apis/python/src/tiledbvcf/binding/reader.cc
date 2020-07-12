@@ -381,6 +381,20 @@ std::string Reader::get_info_attribute_name(int32_t index) {
   return std::string(name);
 }
 
+int32_t Reader::get_queryable_attribute_count() {
+  auto reader = ptr.get();
+  int32_t count;
+  check_error(reader, tiledb_vcf_reader_get_queryable_attribute_count(reader, &count));
+  return (count);
+}
+
+std::string Reader::get_queryable_attribute_name(int32_t index) {
+  auto reader = ptr.get();
+  char* name;
+  check_error(reader, tiledb_vcf_reader_get_queryable_attribute_name(reader, index, &name));
+  return std::string(name);
+}
+
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
   switch (datatype) {
     case TILEDB_VCF_CHAR:
