@@ -246,6 +246,23 @@ class Dataset(object):
 
         return attrs
 
+    def queryable_attributes(self):
+            """List queryable available attributes ingested from the VCF INFO and FORMAT fields
+
+            :returns: a list of strings representing the attribute names
+            """
+
+            if self.mode != 'r':
+                raise Exception("Attributes can only be retrieved in read mode")
+
+            n_attrs = self.reader.get_queryable_attribute_count();
+
+            attrs = []
+            for i in range(n_attrs):
+                attrs.append(self.reader.get_queryable_attribute_name(i))
+
+            return attrs
+
     def fmt_attr_count(self):
         if self.mode != 'r':
             raise Exception('Attributes can only be counted for in read mode')
