@@ -127,6 +127,12 @@ class Reader {
   /** Returns info attribute name */
   std::string get_info_attribute_name(int32_t index);
 
+  /** Returns number of queryable attributes */
+  int32_t get_queryable_attribute_count();
+
+  /** Returns queryable attribute name */
+  std::string get_queryable_attribute_name(int32_t index);
+
   /**
    * Set reader verbose output mode
    *
