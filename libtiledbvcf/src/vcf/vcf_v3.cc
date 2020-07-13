@@ -127,20 +127,30 @@ bool VCFV3::is_open() const {
   return open_;
 }
 
-SafeSharedBCFRec VCFV3::next() {
+SafeSharedBCFRec VCFV3::front_record() {
   if (!open_)
     return nullptr;
 
   if (record_queue_.empty())
     read_records();
 
-  SafeSharedBCFRec r = nullptr;
-  if (!record_queue_.empty()) {
-    r = record_queue_.front();
-    record_queue_.pop();
-  }
+  if (!record_queue_.empty())
+    return record_queue_.front();
 
-  return r;
+  return nullptr;
+}
+
+void VCFV3::pop_record() {
+  if (!open_)
+    return;
+
+  if (record_queue_.empty())
+    read_records();
+
+  if (!record_queue_.empty())
+    record_queue_.pop();
+
+  return;
 }
 
 void VCFV3::return_record(SafeSharedBCFRec record) {

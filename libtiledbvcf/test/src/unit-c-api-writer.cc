@@ -194,3 +194,34 @@ TEST_CASE("C API: Writer with extra attributes", "[capi][writer]") {
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
 }
+
+TEST_CASE(
+    "C API: Writer register and store with overlapping records",
+    "[capi][writer][overlapping]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  tiledb_vcf_writer_t* writer = nullptr;
+  REQUIRE(tiledb_vcf_writer_alloc(&writer) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_init(writer, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
+
+  std::string samples = INPUT_DIR + "overlapping.bcf";
+  REQUIRE(
+      tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_register(writer) == TILEDB_VCF_OK);
+
+  REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
+
+  tiledb::vcf::TileDBVCFDataset ds;
+  REQUIRE_NOTHROW(ds.open(dataset_uri));
+  REQUIRE(ds.metadata().sample_names == std::vector<std::string>{"HG00096"});
+
+  tiledb_vcf_writer_free(&writer);
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}

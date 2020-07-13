@@ -43,11 +43,11 @@ void RecordHeapV3::insert(
     VCFV3* vcf,
     NodeType type,
     SafeSharedBCFRec record,
-    uint32_t sort_start_pos,
-    uint32_t sample_id,
-    bool end_node) {
-  // Sanity check sort_start_pos >= start.
-  if (sort_start_pos < (uint32_t)record->pos) {
+    uint32_t start_pos,
+    uint32_t end_pos,
+    uint32_t sample_id) {
+  // Sanity check start_pos is greater than the record start position.
+  if (start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
     std::string contig(bcf_seqname(vcf->hdr(), record.get()));
     std::string str_type = type == NodeType::Record ? "record" : "anchor";
@@ -57,7 +57,7 @@ void RecordHeapV3::insert(
         std::to_string(
             VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val) + 1) +
         "' into ingestion heap from sample ID " + std::to_string(sample_id) +
-        "; sort start position " + std::to_string(sort_start_pos + 1) +
+        "; sort start position " + std::to_string(start_pos + 1) +
         " cannot be less than start.");
   }
 
@@ -65,9 +65,9 @@ void RecordHeapV3::insert(
   node->vcf = vcf;
   node->type = type;
   node->record = std::move(record);
-  node->sort_start_pos = sort_start_pos;
+  node->start_pos = start_pos;
+  node->end_pos = end_pos;
   node->sample_id = sample_id;
-  node->end_node = end_node;
   heap_.push(std::move(node));
 }
 

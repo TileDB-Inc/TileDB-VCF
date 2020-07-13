@@ -71,7 +71,8 @@ void check_iter_v3(
   HtslibValueMem val;
   for (unsigned i = 0; i < expected.size(); i++) {
     const auto& tup = expected[i];
-    SafeSharedBCFRec r = vcf->next();
+    SafeSharedBCFRec r = vcf->front_record();
+    vcf->pop_record();
     REQUIRE(r != nullptr);
     REQUIRE(bcf_seqname(vcf->hdr(), r.get()) == std::get<0>(tup));
     REQUIRE(r->pos == std::get<1>(tup));
@@ -79,7 +80,7 @@ void check_iter_v3(
         VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val) == std::get<2>(tup));
   }
 
-  REQUIRE(vcf->next() == nullptr);
+  REQUIRE(vcf->front_record() == nullptr);
 }
 
 }  // namespace
@@ -188,7 +189,7 @@ TEST_CASE("VCF: Test basic V3 iterator", "[tiledbvcf][iter][v3]") {
           Tup{"1", 12545, 12770},
           Tup{"1", 13353, 13388},
       }});
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12140));
   check_iter_v3(
@@ -198,7 +199,7 @@ TEST_CASE("VCF: Test basic V3 iterator", "[tiledbvcf][iter][v3]") {
           Tup{"1", 12545, 12770},
           Tup{"1", 13353, 13388},
       }});
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12500));
   check_iter_v3(
@@ -207,7 +208,7 @@ TEST_CASE("VCF: Test basic V3 iterator", "[tiledbvcf][iter][v3]") {
           Tup{"1", 12545, 12770},
           Tup{"1", 13353, 13388},
       }});
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12600));
   check_iter_v3(
@@ -216,7 +217,7 @@ TEST_CASE("VCF: Test basic V3 iterator", "[tiledbvcf][iter][v3]") {
           Tup{"1", 12545, 12770},
           Tup{"1", 13353, 13388},
       }});
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 13388));
   check_iter_v3(
@@ -224,14 +225,14 @@ TEST_CASE("VCF: Test basic V3 iterator", "[tiledbvcf][iter][v3]") {
       {{
           Tup{"1", 13353, 13388},
       }});
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   REQUIRE(!vcf.seek("1", 14000));
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 
   vcf.close();
   REQUIRE(!vcf.is_open());
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
   REQUIRE(!vcf.seek("1", 0));
 }
 
@@ -251,5 +252,5 @@ TEST_CASE("VCF: Test V3 iterator", "[tiledbvcf][iter][v3]") {
           Tup{"7", 111162, 165905},
       }});
   // Check iterator doesn't span to the next contig
-  REQUIRE(!vcf.next());
+  REQUIRE(!vcf.front_record());
 }

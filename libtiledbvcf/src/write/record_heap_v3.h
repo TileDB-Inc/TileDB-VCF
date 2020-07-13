@@ -43,17 +43,17 @@ class RecordHeapV3 {
         : vcf(nullptr)
         , type(NodeType::Record)
         , record(nullptr)
-        , sort_start_pos(std::numeric_limits<uint32_t>::max())
-        , sample_id(std::numeric_limits<uint32_t>::max())
-        , end_node(false) {
+        , start_pos(std::numeric_limits<uint32_t>::max())
+        , end_pos(std::numeric_limits<uint32_t>::max())
+        , sample_id(std::numeric_limits<uint32_t>::max()) {
     }
 
     VCFV3* vcf;
     NodeType type;
     SafeSharedBCFRec record;
-    uint32_t sort_start_pos;
+    uint32_t start_pos;
+    uint32_t end_pos;
     uint32_t sample_id;
-    bool end_node;
   };
 
   void clear();
@@ -64,9 +64,9 @@ class RecordHeapV3 {
       VCFV3* vcf,
       NodeType type,
       SafeSharedBCFRec record,
-      uint32_t sort_start_pos,
-      uint32_t sample_id,
-      bool end_node);
+      uint32_t start_pos,
+      uint32_t end_pos,
+      uint32_t sample_id);
 
   const Node& top() const;
 
@@ -81,7 +81,7 @@ class RecordHeapV3 {
   struct NodeCompareGT {
     bool operator()(
         const std::unique_ptr<Node>& a, const std::unique_ptr<Node>& b) const {
-      auto a_start = a->sort_start_pos, b_start = b->sort_start_pos;
+      auto a_start = a->start_pos, b_start = b->start_pos;
       return a_start > b_start ||
              (a_start == b_start && a->sample_id > b->sample_id);
     }
