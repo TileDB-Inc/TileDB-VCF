@@ -48,7 +48,7 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
 # Release builds by default.
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELEASE)
+  set(CMAKE_BUILD_TYPE DEBUG)
 endif()
 
 # Root directory default installation prefix

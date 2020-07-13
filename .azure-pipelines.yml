@@ -17,13 +17,6 @@ jobs:
         CXX: g++
         BUILD_PYTHON_API: ON
         BUILD_SPARK_API: ON
-      mac:
-        imageName: 'macOS-10.14'
-        python.version: '3.7'
-        CXX: clang++
-        BUILD_PYTHON_API: ON
-        BUILD_SPARK_API: ON
-        SDKROOT: '/Applications/Xcode_10.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk'
 
   pool:
     vmImage: $(imageName)
@@ -36,26 +29,3 @@ jobs:
     displayName: 'Print Env'
   - template: ci/azure-linux_mac.yml
 
-- job: Docker
-  dependsOn: Build
-  pool:
-    vmImage: 'ubuntu-18.04'
-  condition: succeeded()
-
-  strategy:
-    matrix:
-      cli:
-        dockerfile: docker/Dockerfile-cli
-        repository: tiledb/tiledbvcf-cli
-        context: .
-      python:
-        dockerfile: docker/Dockerfile-py
-        repository: tiledb/tiledbvcf-py
-        context: .
-      # dask:
-      #   dockerfile: docker/Dockerfile-dask-py
-      #   repository: tiledb/tiledbvcf-dask
-      #   context: .
-
-  steps:
-  - template: ci/build-images.yml

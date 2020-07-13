@@ -875,38 +875,60 @@ void InMemoryExporter::get_info_fmt_value(
     const void** data,
     uint64_t* nbytes,
     uint64_t* nelts) const {
+
+  std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 1 " << std::endl;
+
+  std::cerr << "*** JOE cell_idx " << cell_idx << std::endl;
+  std::cerr << "*** JOE data " << data << std::endl;
+  std::cerr << "*** JOE *nbytes " << *nbytes << std::endl;
+  std::cerr << "*** JOE *nelts " << *nelts << std::endl;
+
   // Get either the extracted attribute buffer, or the info/fmt blob attribute.
   const std::string& attr_name = attr_buff->attr_name;
+  std::cerr << "*** JOE attr_name " << attr_name << std::endl;
   const std::string& field_name = attr_buff->info_fmt_field_name;
+  std::cerr << "*** JOE field_name " << field_name << std::endl;
   const bool is_info = attr_buff->is_info;
+  std::cerr << "*** JOE is_info " << is_info << std::endl;
   const Buffer* src = nullptr;
   std::pair<uint64_t, uint64_t> src_size;
   bool is_extracted_attr = false;
   if (curr_query_results_->buffers()->extra_attr(attr_name, &src)) {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 2 " << std::endl;
     is_extracted_attr = true;
     src_size = curr_query_results_->extra_attrs_size().at(attr_name);
   } else if (is_info) {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 3 " << std::endl;
     src = &curr_query_results_->buffers()->info();
     src_size = curr_query_results_->info_size();
   } else {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 4 " << std::endl;
     src = &curr_query_results_->buffers()->fmt();
     src_size = curr_query_results_->fmt_size();
   }
+
+  std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value src_size.first " << src_size.first << std::endl;
+  std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value src_size.second " << src_size.second << std::endl;
 
   if (src == nullptr)
     throw std::runtime_error(
         "Error copying attribute '" + attr_name + "'; no source buffer.");
 
   const uint64_t num_cells = curr_query_results_->num_cells();
+  std::cerr << "*** JOE num_cells " << num_cells << std::endl;
   const auto& offsets = src->offsets();
   uint64_t offset = offsets[cell_idx];
+  std::cerr << "*** JOE offset " << offset << std::endl;
   uint64_t next_offset =
       cell_idx == num_cells - 1 ? src_size.second : offsets[cell_idx + 1];
+  std::cerr << "*** JOE next_offset " << next_offset << std::endl;
   uint64_t tot_nbytes = next_offset - offset;
+  std::cerr << "*** JOE tot_nbytes " << tot_nbytes << std::endl;
   const char* ptr = src->data<char>() + offset;
 
   // Check for null (dummy byte).
   if (tot_nbytes == 1 && *ptr == '\0') {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 5 " << std::endl;
     *data = nullptr;
     *nbytes = 0;
     *nelts = 0;
@@ -914,6 +936,7 @@ void InMemoryExporter::get_info_fmt_value(
   }
 
   if (is_extracted_attr) {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 6 " << std::endl;
     int type = *reinterpret_cast<const int*>(ptr);
     ptr += sizeof(int);
     int num_values = *reinterpret_cast<const int*>(ptr);
@@ -923,22 +946,39 @@ void InMemoryExporter::get_info_fmt_value(
     *nelts = num_values;
     return;
   } else {
+    std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 7 " << std::endl;
+
+    int nfmt = *reinterpret_cast<const int*>(ptr);
+    std::cerr << "*** JOE nfmt " << nfmt << std::endl;
+
     // Skip initial 'nfmt'/'ninfo' field.
     tot_nbytes -= sizeof(uint32_t);
     ptr += sizeof(uint32_t);
 
     const char* end = ptr + tot_nbytes + 1;
+    std::cerr << "*** JOE ptr " << static_cast<const void *>(ptr) << std::endl;
+    std::cerr << "*** JOE end " << static_cast<const void *>(end) << std::endl;
     while (ptr < end) {
+      std::cerr << "***** JOE InMemoryExporter::get_info_fmt_value 8, ptr " << static_cast<const void *>(ptr) << std::endl;
       size_t keylen = strlen(ptr);
+      std::cerr << "*** JOE keylen " << keylen << std::endl;
       bool match = strcmp(field_name.c_str(), ptr) == 0;
+      std::cerr << "*** JOE match " << match << std::endl;
       ptr += keylen + 1;
+      std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 9 " << std::endl;
       int type = *reinterpret_cast<const int*>(ptr);
+      std::cerr << "*** JOE type " << type << std::endl;
       int type_size = utils::bcf_type_size(type);
+      std::cerr << "*** JOE type_size " << type_size << std::endl;
       ptr += sizeof(int);
+      std::cerr << "*** JOE ptr " << static_cast<const void *>(ptr) << std::endl;
       int num_values = *reinterpret_cast<const int*>(ptr);
+      std::cerr << "*** JOE num_values " << num_values << std::endl;
       ptr += sizeof(int);
+      std::cerr << "*** JOE ptr " << static_cast<const void *>(ptr) << std::endl;
 
       if (match) {
+        std::cerr << "*** JOE InMemoryExporter::get_info_fmt_value 10 " << std::endl;
         *data = ptr;
         *nbytes = type_size * num_values;
         *nelts = num_values;

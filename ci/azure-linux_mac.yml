@@ -1,13 +1,4 @@
 steps:
-- bash: |
-    set -e pipefail
-    brew install clang-format
-    src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
-    cd $BUILD_REPOSITORY_LOCALPATH
-    ci/run-clang-format.sh $src clang-format 0 \
-      $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
-  condition: eq(variables['Agent.OS'], 'Darwin')
-  displayName: 'Check formatting (macOS only)'
 
 - bash: |
     set -e pipefail
@@ -56,36 +47,13 @@ steps:
 
     make -j4
     make -j4 -C libtiledbvcf tiledb_vcf_unit
-    make check
-    ../test/run-cli-tests.sh . ../test/inputs
+    #make check
+    #../test/run-cli-tests.sh . ../test/inputs
 
     make install-libtiledbvcf
 
   displayName: 'Build and test TileDB-VCF'
 
-- bash: |
-    set -ex pipefail
-
-    if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-      # Add conda to PATH
-      echo "##vso[task.prependpath]$CONDA/bin"
-
-      if [[ "$AGENT_OS" == "Darwin" ]]; then
-        # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
-        # We need to take ownership if we want to update conda or install packages globally
-        sudo chown -R $USER $CONDA
-      fi
-
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
-      conda env create --file conda-env.yml
-      # Note that 'conda init' doesn't seem to work directly.
-      source $CONDA/etc/profile.d/conda.sh
-      conda activate tiledbvcf-py
-      python setup.py install --user
-      python setup.py pytest
-    fi
-
-  displayName: 'Build and test TileDB-VCF Python API'
 
 - bash: |
     set -e pipefail
@@ -98,13 +66,116 @@ steps:
       ./gradlew jar
 
       export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-      ./gradlew test
+      ./gradlew test  --rerun-tasks
 
-      ./gradlew checkFormat
+      #./gradlew checkFormat
     fi
 
   displayName: 'Build and test TileDB-VCF Spark API'
 
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 2'
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 3'
+
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 4'
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 5'
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 6'
+- bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test  --rerun-tasks
+
+      #./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API 7'
 - bash: |
       set -e pipefail
       # Display log files if the build failed
