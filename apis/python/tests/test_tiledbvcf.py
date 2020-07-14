@@ -42,6 +42,48 @@ def test_read_must_specify_attrs(test_ds):
     with pytest.raises(Exception):
         df = test_ds.read()
 
+def test_retrieve_attributes(test_ds):
+    builtin_attrs = [
+        "sample_name",
+        "contig",
+        "pos_start",
+        "pos_end",
+        "query_bed_start",
+        "query_bed_end",
+        "alleles",
+        "id",
+        "filters",
+        "qual"
+    ]
+    assert test_ds.attributes(attr_type = "builtin") == sorted(builtin_attrs)
+
+    info_attrs = [
+        "info_BaseQRankSum",
+        "info_ClippingRankSum",
+        "info_DP",
+        "info_DS",
+        "info_END",
+        "info_HaplotypeScore",
+        "info_InbreedingCoeff",
+        "info_MLEAC",
+        "info_MLEAF",
+        "info_MQ",
+        "info_MQ0",
+        "info_MQRankSum",
+        "info_ReadPosRankSum"
+    ]
+    assert test_ds.attributes(attr_type = "info") == info_attrs
+
+    fmt_attrs = [
+        "fmt_AD",
+        "fmt_DP",
+        "fmt_GQ",
+        "fmt_GT",
+        "fmt_MIN_DP",
+        "fmt_PL",
+        "fmt_SB"
+    ]
+    assert test_ds.attributes(attr_type = "fmt") == fmt_attrs
 
 def test_basic_reads(test_ds):
     expected_df = pd.DataFrame(
