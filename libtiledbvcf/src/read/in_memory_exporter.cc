@@ -928,7 +928,7 @@ void InMemoryExporter::get_info_fmt_value(
     tot_nbytes -= sizeof(uint32_t);
     ptr += sizeof(uint32_t);
 
-    const char* end = ptr + tot_nbytes + 1;
+    const char* end = ptr + tot_nbytes;
     while (ptr < end) {
       size_t keylen = strlen(ptr);
       bool match = strcmp(field_name.c_str(), ptr) == 0;
