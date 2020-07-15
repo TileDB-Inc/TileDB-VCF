@@ -33,15 +33,30 @@ def test_ds():
     return tiledbvcf.Dataset(
         os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
 
+@pytest.fixture
+def test_ds_attrs():
+    return tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples_GT_DP_PL'))
 
 def test_basic_count(test_ds):
     assert test_ds.count() == 14
-
 
 def test_read_must_specify_attrs(test_ds):
     with pytest.raises(Exception):
         df = test_ds.read()
 
+def test_read_attrs(test_ds_attrs):
+    attrs = ['sample_name']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
+
+    attrs = ['sample_name', 'fmt_GT']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
+
+    attrs = ['sample_name']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
 
 def test_basic_reads(test_ds):
     expected_df = pd.DataFrame(
