@@ -38,12 +38,9 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("result_num_records", &Reader::result_num_records)
       .def("get_tiledb_stats_enabled", &Reader::get_tiledb_stats_enabled)
       .def("get_tiledb_stats", &Reader::get_tiledb_stats)
-      .def("get_fmt_attribute_count", &Reader::get_fmt_attribute_count)
-      .def("get_fmt_attribute_name", &Reader::get_fmt_attribute_name)
-      .def("get_info_attribute_count", &Reader::get_info_attribute_count)
-      .def("get_info_attribute_name", &Reader::get_info_attribute_name)
-      .def("get_queryable_attribute_count", &Reader::get_queryable_attribute_count)
-      .def("get_queryable_attribute_name", &Reader::get_queryable_attribute_name);
+      .def("get_fmt_attributes", &Reader::get_fmt_attributes)
+      .def("get_info_attributes", &Reader::get_info_attributes)
+      .def("get_queryable_attributes", &Reader::get_queryable_attributes);
 
 
   py::class_<Writer>(m, "Writer")

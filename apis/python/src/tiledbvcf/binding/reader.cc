@@ -353,46 +353,49 @@ std::string Reader::get_tiledb_stats() {
   return std::string(stats);
 }
 
-int32_t Reader::get_fmt_attribute_count() {
+std::vector<std::string> Reader::get_fmt_attributes() {
   auto reader = ptr.get();
   int32_t count;
+  std::vector<std::string> attrs;
   check_error(reader, tiledb_vcf_reader_get_fmt_attribute_count(reader, &count));
-  return (count);
+
+  for(int32_t i = 0; i < count; i++) {
+    char* name;
+    check_error(reader, tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &name));
+    attrs.emplace_back(name);
+  }
+
+  return attrs;
 }
 
-std::string Reader::get_fmt_attribute_name(int32_t index) {
-  auto reader = ptr.get();
-  char* name;
-  check_error(reader, tiledb_vcf_reader_get_fmt_attribute_name(reader, index, &name));
-  return std::string(name);
-}
-
-int32_t Reader::get_info_attribute_count() {
+std::vector<std::string> Reader::get_info_attributes() {
   auto reader = ptr.get();
   int32_t count;
+  std::vector<std::string> attrs;
   check_error(reader, tiledb_vcf_reader_get_info_attribute_count(reader, &count));
-  return (count);
+
+  for(int32_t i = 0; i < count; i++) {
+    char* name;
+    check_error(reader, tiledb_vcf_reader_get_info_attribute_name(reader, i, &name));
+    attrs.emplace_back(name);
+  }
+
+  return attrs;
 }
 
-std::string Reader::get_info_attribute_name(int32_t index) {
-  auto reader = ptr.get();
-  char* name;
-  check_error(reader, tiledb_vcf_reader_get_info_attribute_name(reader, index, &name));
-  return std::string(name);
-}
-
-int32_t Reader::get_queryable_attribute_count() {
+std::vector<std::string> Reader::get_queryable_attributes() {
   auto reader = ptr.get();
   int32_t count;
+  std::vector<std::string> attrs;
   check_error(reader, tiledb_vcf_reader_get_queryable_attribute_count(reader, &count));
-  return (count);
-}
 
-std::string Reader::get_queryable_attribute_name(int32_t index) {
-  auto reader = ptr.get();
-  char* name;
-  check_error(reader, tiledb_vcf_reader_get_queryable_attribute_name(reader, index, &name));
-  return std::string(name);
+  for(int32_t i = 0; i < count; i++) {
+    char* name;
+    check_error(reader, tiledb_vcf_reader_get_queryable_attribute_name(reader, i, &name));
+    attrs.emplace_back(name);
+  }
+
+  return attrs;
 }
 
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
