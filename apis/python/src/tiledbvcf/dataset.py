@@ -260,22 +260,13 @@ class Dataset(object):
             return sorted(list(attrs))
 
     def __queryable_attrs(self):
-        attrs = []
-        for i in range(self.reader.get_queryable_attribute_count()):
-            attrs.append(self.reader.get_queryable_attribute_name(i))
-        return attrs
+        return self.reader.get_queryable_attributes()
 
     def __fmt_attrs(self):
-        attrs = []
-        for i in range(self.reader.get_fmt_attribute_count()):
-            attrs.append(self.reader.get_fmt_attribute_name(i))
-        return attrs
+        return self.reader.get_fmt_attributes()
 
     def __info_attrs(self):
-        attrs = []
-        for i in range(self.reader.get_info_attribute_count()):
-            attrs.append(self.reader.get_info_attribute_name(i))
-        return attrs
+        return self.reader.get_info_attributes()
 
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""
