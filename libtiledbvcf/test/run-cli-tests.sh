@@ -3,11 +3,12 @@
 #
 # This file runs some TileDB-VCF CLI tests.
 #
-
 if [[ $# -lt 2 ]]; then
     echo "USAGE: $0 <build-dir> <inputs-dir>"
     exit 1
 fi
+# Enable tracing
+set -x
 
 build_dir=$1
 input_dir=$2
