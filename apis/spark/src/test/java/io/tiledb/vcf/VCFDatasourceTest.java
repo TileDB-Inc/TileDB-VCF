@@ -163,7 +163,6 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   @Test
   public void testBedFile() {
-    System.out.println("BED: " + testSampleFile());
     Dataset<Row> dfRead =
         session()
             .read()
@@ -201,6 +200,42 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     Assert.assertEquals(rows.get(0).getString(0), "HG01762");
     Assert.assertEquals(rows.get(1).getString(0), "HG01762");
     Assert.assertEquals(rows.get(2).getString(0), "HG01762");
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testSchemaPushDownSamplesError() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("samples", "HG01762")
+            .option("tiledb.vfs.num_threads", 1)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testSchemaPushDownSamplesError2() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("samplefile", testSampleFile())
+            .option("tiledb.vfs.num_threads", 1)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
   }
 
   @Test
