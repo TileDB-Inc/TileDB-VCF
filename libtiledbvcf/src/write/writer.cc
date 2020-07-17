@@ -225,7 +225,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
-  std::vector<std::unique_ptr<WriterWorker>> workers(1 /*params.num_threads*/);
+  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
     if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
