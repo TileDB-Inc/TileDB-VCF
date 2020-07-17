@@ -1038,7 +1038,7 @@ void Reader::prepare_regions_v3(
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty())
-    Region::parse_bed_file(*vfs_, params_.regions_file_uri, regions);
+    Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
 
   // No specified regions means all regions.
   if (regions->empty())
@@ -1147,7 +1147,7 @@ void Reader::prepare_regions_v2(
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty())
-    Region::parse_bed_file(*vfs_, params_.regions_file_uri, regions);
+    Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
 
   // No specified regions means all regions.
   if (regions->empty())
