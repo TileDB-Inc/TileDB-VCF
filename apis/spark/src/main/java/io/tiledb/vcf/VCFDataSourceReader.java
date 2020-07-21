@@ -56,6 +56,10 @@ public class VCFDataSourceReader
       boolean pushed = false;
       if (f instanceof EqualTo) {
         if (((EqualTo) f).attribute().equals("sampleName")) {
+          if (options.getSamples().isPresent() || options.getSampleURI().isPresent()) {
+            throw new UnsupportedOperationException(
+                "Cannot have a sampleName in where clause while also having samples or sampleFile in options list");
+          }
           String value = (String) ((EqualTo) f).value();
           pushedSampleNames.add(value);
           pushed = true;
