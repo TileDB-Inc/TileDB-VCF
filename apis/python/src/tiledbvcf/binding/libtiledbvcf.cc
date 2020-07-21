@@ -42,7 +42,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_info_attributes", &Reader::get_info_attributes)
       .def("get_queryable_attributes", &Reader::get_queryable_attributes);
 
-
   py::class_<Writer>(m, "Writer")
       .def(py::init())
       .def("init", &Writer::init)

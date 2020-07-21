@@ -288,6 +288,9 @@ void Reader::set_buffers() {
 }
 
 void Reader::release_buffers() {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_reset_buffers(reader));
+
   for (auto& b : buffers_) {
     b.data.release();
     b.offsets.release();
@@ -357,11 +360,13 @@ std::vector<std::string> Reader::get_fmt_attributes() {
   auto reader = ptr.get();
   int32_t count;
   std::vector<std::string> attrs;
-  check_error(reader, tiledb_vcf_reader_get_fmt_attribute_count(reader, &count));
+  check_error(
+      reader, tiledb_vcf_reader_get_fmt_attribute_count(reader, &count));
 
-  for(int32_t i = 0; i < count; i++) {
+  for (int32_t i = 0; i < count; i++) {
     char* name;
-    check_error(reader, tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &name));
+    check_error(
+        reader, tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &name));
     attrs.emplace_back(name);
   }
 
@@ -372,11 +377,13 @@ std::vector<std::string> Reader::get_info_attributes() {
   auto reader = ptr.get();
   int32_t count;
   std::vector<std::string> attrs;
-  check_error(reader, tiledb_vcf_reader_get_info_attribute_count(reader, &count));
+  check_error(
+      reader, tiledb_vcf_reader_get_info_attribute_count(reader, &count));
 
-  for(int32_t i = 0; i < count; i++) {
+  for (int32_t i = 0; i < count; i++) {
     char* name;
-    check_error(reader, tiledb_vcf_reader_get_info_attribute_name(reader, i, &name));
+    check_error(
+        reader, tiledb_vcf_reader_get_info_attribute_name(reader, i, &name));
     attrs.emplace_back(name);
   }
 
@@ -387,11 +394,14 @@ std::vector<std::string> Reader::get_queryable_attributes() {
   auto reader = ptr.get();
   int32_t count;
   std::vector<std::string> attrs;
-  check_error(reader, tiledb_vcf_reader_get_queryable_attribute_count(reader, &count));
+  check_error(
+      reader, tiledb_vcf_reader_get_queryable_attribute_count(reader, &count));
 
-  for(int32_t i = 0; i < count; i++) {
+  for (int32_t i = 0; i < count; i++) {
     char* name;
-    check_error(reader, tiledb_vcf_reader_get_queryable_attribute_name(reader, i, &name));
+    check_error(
+        reader,
+        tiledb_vcf_reader_get_queryable_attribute_name(reader, i, &name));
     attrs.emplace_back(name);
   }
 

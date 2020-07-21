@@ -127,6 +127,10 @@ class Reader {
    */
   void reset();
 
+  /** Reset user buffers. Used to reuse a reader but for different attributes.
+   */
+  void reset_buffers();
+
   /** Convenience function to set all parameters from the given struct. */
   void set_all_params(const ExportParams& params);
 

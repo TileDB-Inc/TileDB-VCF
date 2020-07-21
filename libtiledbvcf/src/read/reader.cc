@@ -62,6 +62,11 @@ void Reader::reset() {
     exporter_->reset();
 }
 
+void Reader::reset_buffers() {
+  auto exp = set_in_memory_exporter();
+  exp->reset_buffers();
+}
+
 void Reader::set_all_params(const ExportParams& params) {
   params_ = params;
   init_tiledb();

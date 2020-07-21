@@ -76,6 +76,10 @@ class InMemoryExporter : public Exporter {
   /** Resets any state of the exporter. */
   void reset() override;
 
+  /** Reset user buffers. Used to reuse a reader but for different attributes.
+   */
+  void reset_buffers();
+
   /**
    * Exports a cell by copying to the user's buffers.
    *

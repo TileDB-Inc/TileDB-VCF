@@ -239,6 +239,11 @@ void InMemoryExporter::reset() {
   reset_current_sizes();
 }
 
+void InMemoryExporter::reset_buffers() {
+  user_buffers_.clear();
+  user_buffers_by_idx_.clear();
+}
+
 void InMemoryExporter::result_size(
     const std::string& attribute,
     int64_t* num_offsets,

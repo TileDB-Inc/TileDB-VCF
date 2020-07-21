@@ -807,6 +807,18 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_dataset_version(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_reset(tiledb_vcf_reader_t* reader);
 
 /**
+ * Resets the reader's buffers This allows the same reader instance to
+ * be used for another read operation, without having to reopen/reinitialize the
+ * dataset. This is used in addition to tiledb_vcf_reader_reset() if the user
+ * wants to change attributes
+ *
+ * @param reader VCF reader object
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_reset_buffers(tiledb_vcf_reader_t* reader);
+
+/**
  * Gets the last error from the reader object. Don't forget to free the error
  * object.
  *
