@@ -88,6 +88,7 @@ class Dataset(object):
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):
+
         """Reads data from a TileDB-VCF dataset.
 
         For large datasets, a call to `read()` may not be able to fit all
@@ -109,15 +110,11 @@ class Dataset(object):
             raise Exception('Dataset not open in read mode')
 
         self.reader.reset()
+        self._set_samples(samples, samples_file)
 
-        samples = '' if samples is None else samples
         regions = '' if regions is None else regions
-        self.reader.set_samples(','.join(samples))
         self.reader.set_regions(','.join(regions))
         self.reader.set_attributes(attrs)
-
-        if samples_file is not None:
-            self.reader.set_samples_file(samples_file)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -250,23 +247,35 @@ class Dataset(object):
         comb_attrs = ("info", "fmt")
 
         if attr_type == "info":
-            return self.__info_attrs()
+            return self._info_attrs()
         elif attr_type == "fmt":
-             return self.__fmt_attrs()
+             return self._fmt_attrs()
         else:
-            attrs = set(self.__queryable_attrs()).difference(comb_attrs)
+            attrs = set(self._queryable_attrs()).difference(comb_attrs)
             if attr_type == "builtin":
-                attrs.difference_update(self.__info_attrs() + self.__fmt_attrs())
+                attrs.difference_update(self._info_attrs() + self._fmt_attrs())
             return sorted(list(attrs))
 
-    def __queryable_attrs(self):
+    def _queryable_attrs(self):
         return self.reader.get_queryable_attributes()
 
-    def __fmt_attrs(self):
+    def _fmt_attrs(self):
         return self.reader.get_fmt_attributes()
 
-    def __info_attrs(self):
+    def _info_attrs(self):
         return self.reader.get_info_attributes()
+
+    def _set_samples(self, samples = None, samples_file = None):
+        if samples is not None and samples_file is not None:
+            raise TypeError(
+                "Argument 'samples' not allowed with 'samples_file'. "
+                "Only one of these two arguments can be passed at a time."
+            )
+        elif samples is not None:
+            self.reader.set_samples(','.join(samples))
+        elif samples_file is not None:
+            self.reader.set_samples('')
+            self.reader.set_samples_file(samples_file)
 
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""

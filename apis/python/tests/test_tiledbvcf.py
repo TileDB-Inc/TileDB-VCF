@@ -325,6 +325,23 @@ def test_read_var_len_attrs(test_ds):
 
     _check_dfs(expected_df, df)
 
+def test_sample_args(test_ds, tmp_path):
+    sample_file = os.path.join(tmp_path, '1_sample.txt')
+    with open(sample_file, "w") as file:
+        file.write("HG00280")
+
+    region = ['1:12141-12141']
+    df1 = test_ds.read(['sample_name'], regions = region, samples = ['HG00280'])
+    df2 = test_ds.read(['sample_name'], regions = region, samples_file = sample_file)
+    _check_dfs(df1, df2)
+
+    with pytest.raises(TypeError):
+        test_ds.read(
+            attrs = ['sample_name'],
+            regions = region,
+            samples = ['HG00280'],
+            samples_file = sample_file
+        )
 
 def test_read_null_attrs(tmp_path):
     uri = os.path.join(tmp_path, 'dataset')
