@@ -142,7 +142,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             + task.partitionId()
             + " for TileDB-VCF Partition "
             + partitionId
-            + " started");
+            + "(region partition "
+            + rangePartitionInfo.getIndex()
+            + "/"
+            + rangePartitionInfo.getNumPartitions()
+            + ", sample partition "
+            + samplePartitionInfo.getIndex()
+            + "/"
+            + samplePartitionInfo.getNumPartitions()
+            + ") started");
 
     task.addTaskCompletionListener(
         context -> {
