@@ -419,8 +419,11 @@ bool Reader::next_read_batch() {
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
   read_state_.query->add_range(
       0, read_state_.sample_min, read_state_.sample_max);
-  for (const auto& query_region : read_state_.query_regions)
+  std::cout << partition_log_info() << " sample range: ["<< read_state_.sample_min << ", " << read_state_.sample_max<<"]" << std::endl;
+  for (const auto& query_region : read_state_.query_regions) {
+    std::cout << partition_log_info() << " region range: ["<< query_region.col_min << ", " << query_region.col_max<<"]" << std::endl;
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose)
     std::cout << partition_log_info() << " Initialized TileDB query with "
