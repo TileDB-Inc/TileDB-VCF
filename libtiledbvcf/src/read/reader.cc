@@ -327,9 +327,9 @@ void Reader::read() {
   } else if (params_.verbose) {
     auto old_locale = std::cout.getloc();
     utils::enable_pretty_print_numbers(std::cout);
-    std::cout << "Done. Exported " << read_state_.last_num_records_exported
-              << " records in " << utils::chrono_duration(start_all)
-              << " seconds." << std::endl;
+    std::cout << partition_log_info() << " Done. Exported "
+              << read_state_.last_num_records_exported << " records in "
+              << utils::chrono_duration(start_all) << " seconds." << std::endl;
     std::cout.imbue(old_locale);
   }
 }
@@ -412,7 +412,7 @@ bool Reader::next_read_batch() {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose)
-    std::cout << "Initialized TileDB query with "
+    std::cout << partition_log_info() << " Initialized TileDB query with "
               << read_state_.query_regions.size() << " column ranges."
               << std::endl;
 
@@ -526,9 +526,9 @@ bool Reader::read_current_batch() {
     }
 
     if (params_.verbose)
-      std::cout << "Processed " << read_state_.query_results.num_cells()
-                << " cells in " << utils::chrono_duration(t0)
-                << " sec. Reported "
+      std::cout << partition_log_info() << " Processed "
+                << read_state_.query_results.num_cells() << " cells in "
+                << utils::chrono_duration(t0) << " sec. Reported "
                 << (read_state_.last_num_records_exported - old_num_exported)
                 << " cells." << std::endl;
 
@@ -1381,6 +1381,15 @@ void Reader::info_attribute_name(int32_t index, char** name) {
 
 void Reader::set_verbose(const bool& verbose) {
   params_.verbose = verbose;
+}
+
+std::string Reader::partition_log_info() const {
+  std::stringstream ss;
+  ss << "region partition: " << params_.region_partitioning.partition_index
+     << "/" << params_.region_partitioning.num_partitions;
+  ss << ", sample_partition: " << params_.sample_partitioning.partition_index
+     << "/" << params_.sample_partitioning.num_partitions;
+  return ss.str();
 }
 
 }  // namespace vcf

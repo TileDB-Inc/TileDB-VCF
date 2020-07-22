@@ -562,6 +562,8 @@ class Reader {
   /** Checks that the partitioning values are valid. */
   static void check_partitioning(
       uint64_t partition_idx, uint64_t num_partitions);
+
+  std::string partition_log_info() const;
 };
 
 }  // namespace vcf
