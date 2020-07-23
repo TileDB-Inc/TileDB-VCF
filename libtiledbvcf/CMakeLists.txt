@@ -36,6 +36,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
 option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
 option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
+option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." ON)
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
 option(ENABLE_ARROW_EXPORT "Installs an extra header for exporting in-memory results with Apache Arrow" ON)
