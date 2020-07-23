@@ -118,6 +118,10 @@ def get_cmake_overrides():
     val = os.environ.get(key, default="ON")
     conf.append("-DFORCE_EXTERNAL_HTSLIB={}".format(val))
 
+    key = "TILEDBVCF_FORCE_EXTERNAL_TILEDB"
+    val = os.environ.get(key, default="OFF")
+    conf.append("-DFORCE_EXTERNAL_TILEDB={}".format(val))
+
     val = "ON" if TILEDBVCF_S3 else "OFF"
     conf.append("-DTILEDB_S3={}".format(val))
 
