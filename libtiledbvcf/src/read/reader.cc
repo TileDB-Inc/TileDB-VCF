@@ -37,6 +37,8 @@ namespace tiledb {
 namespace vcf {
 
 Reader::Reader() {
+  auto ver = tiledb::version();
+  std::cout << "starting with tiledb version " << std::get<0>(ver) << "." << std::get<1>(ver) << "." << std::get<2>(ver) << std::endl;
 }
 
 Reader::~Reader() {
