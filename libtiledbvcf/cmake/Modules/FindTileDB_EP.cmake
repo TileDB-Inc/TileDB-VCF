@@ -47,7 +47,7 @@ else()
 
     ExternalProject_Add(ep_tiledb
       PREFIX "externals"
-      URL "https://github.com/TileDB-Inc/TileDB/archive/release-2.0.7.zip"
+      URL "https://github.com/TileDB-Inc/TileDB/archive/ss/debug-tracing.zip"
 #      URL_HASH SHA1=4135b2513ccd019f50e67f651a1a3c5459a51575
       DOWNLOAD_NAME "tiledb.zip"
       CMAKE_ARGS
