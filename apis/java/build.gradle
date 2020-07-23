@@ -97,6 +97,9 @@ task cmakeNativeLibTask(type: Exec) {
     if (project.hasProperty("NO_FORCE_EXTERNAL_HTSLIB")) {
         buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=OFF")
     }
+    if (project.hasProperty("NO_FORCE_EXTERNAL_TILEDB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_TILEDB=OFF")
+    }
     buildArgs.add("..")
 
     args buildArgs

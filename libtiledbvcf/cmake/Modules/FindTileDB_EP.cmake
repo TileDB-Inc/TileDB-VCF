@@ -29,7 +29,11 @@
 # If TileDB was installed as an EP, need to search the EP install path also.
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${EP_INSTALL_PREFIX}")
 
-find_package(TileDB CONFIG QUIET)
+if (FORCE_EXTERNAL_TILEDB)
+  find_package(TileDB CONFIG PATHS ${EP_INSTALL_PREFIX} NO_DEFAULT_PATH)
+else()
+  find_package(TileDB CONFIG)
+endif()
 
 if (TILEDB_FOUND)
   get_target_property(TILEDB_LIB TileDB::tiledb_shared IMPORTED_LOCATION_RELEASE)
