@@ -519,8 +519,10 @@ bool Reader::read_current_batch() {
   do {
     std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // Block on query completion.
-    std::cout << partition_log_info() << "read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
-    auto query_status = read_state_.async_query.get();
+    std::cout << partition_log_info() << " read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
+    //auto query_status = read_state_.async_query.get();
+    auto query_status = tiledb::Query::Status::COMPLETE;
+    std::cout << partition_log_info() << " done!!" << std::endl;
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
     read_state_.cell_idx = 0;
 
