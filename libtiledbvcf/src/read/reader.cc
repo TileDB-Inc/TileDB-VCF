@@ -1341,6 +1341,8 @@ void Reader::init_tiledb() {
   // User overrides
   utils::set_tiledb_config(params_.tiledb_config, &cfg);
 
+  cfg["sm.log_prefix"] = partition_log_info();
+
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
 }
