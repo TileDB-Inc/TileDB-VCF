@@ -302,45 +302,45 @@ void Reader::read() {
   // If we are using the InMemoryExporter we need to reset the user buffer
   // sizes at the start of each query
   if (!params_.export_to_disk && exporter_ != nullptr) {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
     exp->reset_current_sizes();
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   }
 
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   while (pending_work) {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     bool complete = read_current_batch();
     if (!complete) {
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       read_state_.status = ReadStatus::INCOMPLETE;
       return;
     }
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     pending_work = next_read_batch();
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   }
 
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   // If we get here, query is complete.
   read_state_.status = ReadStatus::COMPLETED;
 
   // Close the exporter (flushes any buffers), and upload files if specified.
   if (exporter_ != nullptr) {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     exporter_->close();
     exporter_->upload_exported_files(*vfs_, params_.upload_dir);
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   }
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
   if (params_.cli_count_only) {
     std::cout << read_state_.last_num_records_exported << std::endl;
   } else if (params_.verbose) {
     auto old_locale = std::cout.getloc();
     utils::enable_pretty_print_numbers(std::cout);
-    std::cout << partition_log_info() << " Done. Exported "
+    std::cerr << partition_log_info() << " Done. Exported "
               << read_state_.last_num_records_exported << " records in "
               << utils::chrono_duration(start_all) << " seconds." << std::endl;
     std::cout.imbue(old_locale);
@@ -421,14 +421,14 @@ bool Reader::next_read_batch() {
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
   read_state_.query->add_range(
       0, read_state_.sample_min, read_state_.sample_max);
-  std::cout << partition_log_info() << " sample range: ["<< read_state_.sample_min << ", " << read_state_.sample_max<<"]" << std::endl;
+  std::cerr << partition_log_info() << " sample range: ["<< read_state_.sample_min << ", " << read_state_.sample_max<<"]" << std::endl;
   for (const auto& query_region : read_state_.query_regions) {
-    std::cout << partition_log_info() << " region range: ["<< query_region.col_min << ", " << query_region.col_max<<"]" << std::endl;
+    std::cerr << partition_log_info() << " region range: ["<< query_region.col_min << ", " << query_region.col_max<<"]" << std::endl;
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
   }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose)
-    std::cout << partition_log_info() << " Initialized TileDB query with "
+    std::cerr << partition_log_info() << " Initialized TileDB query with "
               << read_state_.query_regions.size() << " column ranges."
               << std::endl;
 
@@ -464,11 +464,11 @@ void Reader::init_exporter() {
 }
 
 bool Reader::read_current_batch() {
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   tiledb::Query* query = read_state_.query.get();
 
   if (read_state_.status == ReadStatus::INCOMPLETE) {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
     if (exp == nullptr)
       throw std::runtime_error(
@@ -478,16 +478,16 @@ bool Reader::read_current_batch() {
     // If the read status was incomplete, pick up processing the previous TileDB
     // query results.
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       if (!process_query_results_v3())
         return false;  // Still incomplete.
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       if (!process_query_results_v2())
         return false;  // Still incomplete.
     }
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
     // If we finished processing previous results and the TileDB query is now
     // complete, we are done. We check both the query_results and the query
@@ -497,34 +497,34 @@ bool Reader::read_current_batch() {
             tiledb::Query::Status::INCOMPLETE &&
         read_state_.query->query_status() !=
             tiledb::Query::Status::UNINITIALIZED) {
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       return true;
     }
   }
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
   // If a past TileDB query was in-flight (from incomplete reads), it was using
   // the B buffers, so start off with that. Otherwise, submit a new async query.
   if (read_state_.async_query.valid()) {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ <<  " async query was valid, swapping buffers" << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ <<  " async query was valid, swapping buffers" << std::endl;
     std::swap(buffers_a, buffers_b);
   } else {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     buffers_a->set_buffers(query, dataset_->metadata().version);
-    std::cout << partition_log_info() << " submitting query" << std::endl;
+    std::cerr << partition_log_info() << " submitting query" << std::endl;
     read_state_.async_query =
         std::async(std::launch::async, [&query]() { return query->submit(); });
   }
 
   do {
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // Block on query completion.
-    std::cout << partition_log_info() << "read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
+    std::cerr << partition_log_info() << "read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
     auto query_status = read_state_.async_query.get();
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
     read_state_.cell_idx = 0;
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
     if (read_state_.query_results.num_cells() == 0 &&
         read_state_.query_results.query_status() ==
@@ -535,17 +535,17 @@ bool Reader::read_current_batch() {
           std::to_string(read_state_.sample_max) +
           "; incomplete TileDB query with 0 results.");
 
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // If the query was incomplete, submit it again while processing the
     // current results.
     if (query_status == tiledb::Query::Status::INCOMPLETE) {
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query = std::async(
           std::launch::async, [&query]() { return query->submit(); });
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
     // Process the query results.
     auto old_num_exported = read_state_.last_num_records_exported;
@@ -553,36 +553,36 @@ bool Reader::read_current_batch() {
 
     bool complete;
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       complete = process_query_results_v3();
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       complete = process_query_results_v2();
-      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
 
     if (params_.verbose)
-      std::cout << partition_log_info() << " Processed "
+      std::cerr << partition_log_info() << " Processed "
                 << read_state_.query_results.num_cells() << " cells in "
                 << utils::chrono_duration(t0) << " sec. Reported "
                 << (read_state_.last_num_records_exported - old_num_exported)
                 << " cells." << std::endl;
 
     // Return early if we couldn't process all the results.
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     if (!complete)
       return false;
 
     // Swap the buffers.
     std::swap(buffers_a, buffers_b);
-    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   } while (read_state_.query_results.query_status() ==
                tiledb::Query::Status::INCOMPLETE &&
            read_state_.total_num_records_exported < params_.max_num_records);
 
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
@@ -591,7 +591,7 @@ bool Reader::read_current_batch() {
       exporter_->finalize_export(s, hdr.get());
     }
   }
-  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
   return true;
 }
