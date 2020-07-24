@@ -521,8 +521,10 @@ bool Reader::read_current_batch() {
     // Block on query completion.
     std::cout << partition_log_info() << "read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
     auto query_status = read_state_.async_query.get();
+    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
     read_state_.cell_idx = 0;
+    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
     if (read_state_.query_results.num_cells() == 0 &&
         read_state_.query_results.query_status() ==
@@ -533,13 +535,17 @@ bool Reader::read_current_batch() {
           std::to_string(read_state_.sample_max) +
           "; incomplete TileDB query with 0 results.");
 
+    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // If the query was incomplete, submit it again while processing the
     // current results.
     if (query_status == tiledb::Query::Status::INCOMPLETE) {
+      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query = std::async(
           std::launch::async, [&query]() { return query->submit(); });
+      std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
+    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
     // Process the query results.
     auto old_num_exported = read_state_.last_num_records_exported;
@@ -565,6 +571,7 @@ bool Reader::read_current_batch() {
                 << " cells." << std::endl;
 
     // Return early if we couldn't process all the results.
+    std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     if (!complete)
       return false;
 
@@ -575,6 +582,7 @@ bool Reader::read_current_batch() {
                tiledb::Query::Status::INCOMPLETE &&
            read_state_.total_num_records_exported < params_.max_num_records);
 
+  std::cout << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
