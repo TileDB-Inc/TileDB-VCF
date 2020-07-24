@@ -57,6 +57,7 @@ else()
         -DTILEDB_S3=${TILEDB_S3}
         -DTILEDB_VERBOSE=ON
         -DTILEDB_SERIALIZATION=ON
+        -DTILEDB_TBB=OFF
       UPDATE_COMMAND ""
       INSTALL_COMMAND
         ${CMAKE_COMMAND} --build . --target install-tiledb
