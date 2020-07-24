@@ -519,15 +519,16 @@ bool Reader::read_current_batch() {
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     buffers_a->set_buffers(query, dataset_->metadata().version);
     std::cerr << partition_log_info() << " submitting query" << std::endl;
-    read_state_.async_query =
-        std::async(std::launch::async, [query]() { return query->submit(); });
+//    read_state_.async_query =
+//        std::async(std::launch::async, [query]() { return query->submit(); });
+    query->submit();
   }
 
   do {
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // Block on query completion.
     std::cerr << partition_log_info() << "read_state_.async_query.valid()=" << read_state_.async_query.valid() << std::endl;
-    auto query_status = read_state_.async_query.get();
+    auto query_status = query->query_status();//read_state_.async_query.get();
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
     read_state_.cell_idx = 0;
@@ -548,13 +549,14 @@ bool Reader::read_current_batch() {
     if (query_status == tiledb::Query::Status::INCOMPLETE) {
       std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       buffers_b->set_buffers(query, dataset_->metadata().version);
-      read_state_.async_query = std::async(
-          std::launch::async, [query]() { return query->submit(); });
-      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
-      std::cerr << partition_log_info() << " - waiting for async query" << std::endl;
-      read_state_.async_query.wait();
-      std::cerr << partition_log_info() << " - waiting complete for async query" << std::endl;
-      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      query->submit();
+//      read_state_.async_query = std::async(
+//          std::launch::async, [query]() { return query->submit(); });
+//      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+//      std::cerr << partition_log_info() << " - waiting for async query" << std::endl;
+//      read_state_.async_query.wait();
+//      std::cerr << partition_log_info() << " - waiting complete for async query" << std::endl;
+//      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
