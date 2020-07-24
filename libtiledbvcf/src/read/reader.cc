@@ -1440,6 +1440,7 @@ void Reader::set_verbose(const bool& verbose) {
 
 std::string Reader::partition_log_info() const {
   std::stringstream ss;
+  ss << "(" << read_state_.query.get() << ") ";
   ss << "region partition: " << params_.region_partitioning.partition_index
      << "/" << params_.region_partitioning.num_partitions;
   ss << ", sample_partition: " << params_.sample_partitioning.partition_index
