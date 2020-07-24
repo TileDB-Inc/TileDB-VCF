@@ -520,7 +520,7 @@ bool Reader::read_current_batch() {
     buffers_a->set_buffers(query, dataset_->metadata().version);
     std::cerr << partition_log_info() << " submitting query" << std::endl;
     read_state_.async_query =
-        std::async(std::launch::async, [&query]() { return query->submit(); });
+        std::async(std::launch::async, [query]() { return query->submit(); });
   }
 
   do {
@@ -549,7 +549,7 @@ bool Reader::read_current_batch() {
       std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query = std::async(
-          std::launch::async, [&query]() { return query->submit(); });
+          std::launch::async, [query]() { return query->submit(); });
       std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
