@@ -42,16 +42,20 @@ Reader::Reader() {
 }
 
 Reader::~Reader() {
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   if (read_state_.async_query.valid()) {
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     // We must wait for the inflight query to finish before we destroy
     // everything. If we don't its possible to delete the buffers in the middle
     // of an active query
     ctx_->cancel_tasks();
     read_state_.async_query.wait();
+    std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   }
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 }
 
-void Reader::open_dataset(const std::string& dataset_uri) {
+    void Reader::open_dataset(const std::string& dataset_uri) {
   init_tiledb();
 
   dataset_.reset(new TileDBVCFDataset);
@@ -267,6 +271,7 @@ void Reader::get_buffer_validity_bitmap(
 }
 
 void Reader::read() {
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
   // If the user requests stats, enable them on read
   // Multiple calls to enable stats has no effect
   if (params_.tiledb_stats_enabled) {
@@ -276,6 +281,7 @@ void Reader::read() {
     tiledb::Stats::disable();
     tiledb::Stats::reset();
   }
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;
@@ -298,6 +304,7 @@ void Reader::read() {
       read_state_.status = ReadStatus::FAILED;
       break;
   }
+  std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 
   // If we are using the InMemoryExporter we need to reset the user buffer
   // sizes at the start of each query
