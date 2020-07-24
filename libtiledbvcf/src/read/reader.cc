@@ -55,7 +55,7 @@ Reader::~Reader() {
   std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
 }
 
-    void Reader::open_dataset(const std::string& dataset_uri) {
+void Reader::open_dataset(const std::string& dataset_uri) {
   init_tiledb();
 
   dataset_.reset(new TileDBVCFDataset);
@@ -550,6 +550,10 @@ bool Reader::read_current_batch() {
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query = std::async(
           std::launch::async, [query]() { return query->submit(); });
+      std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << partition_log_info() << " - waiting for async query" << std::endl;
+      read_state_.async_query.wait();
+      std::cerr << partition_log_info() << " - waiting complete for async query" << std::endl;
       std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
     }
     std::cerr << partition_log_info() << " - " << __FILE__ << ":" << __LINE__ << std::endl;
