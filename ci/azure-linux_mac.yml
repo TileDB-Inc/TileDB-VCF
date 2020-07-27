@@ -64,6 +64,19 @@ steps:
   displayName: 'Build and test TileDB-VCF'
 
 - bash: |
+    set -e pipefail
+    pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+
+    ./gradlew checkFormat
+    ./gradlew assemble
+
+    export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
+      
+    ./gradlew test
+
+  displayName: 'Build and test TileDB-VCF Java API'
+
+- bash: |
     set -ex pipefail
 
     if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
