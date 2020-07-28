@@ -487,7 +487,7 @@ bool Reader::read_current_batch() {
   } else {
     buffers_a->set_buffers(query, dataset_->metadata().version);
     read_state_.async_query =
-        std::async(std::launch::async, [&query]() { return query->submit(); });
+        std::async(std::launch::async, [query]() { return query->submit(); });
   }
 
   do {
@@ -509,8 +509,8 @@ bool Reader::read_current_batch() {
     // current results.
     if (query_status == tiledb::Query::Status::INCOMPLETE) {
       buffers_b->set_buffers(query, dataset_->metadata().version);
-      read_state_.async_query = std::async(
-          std::launch::async, [&query]() { return query->submit(); });
+      read_state_.async_query =
+          std::async(std::launch::async, [query]() { return query->submit(); });
     }
 
     // Process the query results.
