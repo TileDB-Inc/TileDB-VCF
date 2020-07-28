@@ -2,6 +2,7 @@
 temp
 docker
 dist
+temp
 libtiledbvcf/build
 apis/python/build
 apis/python/.eggs
