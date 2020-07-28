@@ -1,4 +1,4 @@
-FROM amazonlinux:latest
+FROM amazonlinux:latest as builder
 
 ENV AWS_EC2_METADATA_DISABLED true
 
@@ -23,7 +23,12 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
              -DOVERRIDE_INSTALL_PREFIX=OFF \
     && make -j4 \
     && make install-libtiledbvcf
-RUN rm -rf /tmp/libtiledbvcf
+
+FROM amazonlinux:latest
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
+COPY --from=builder /usr/local/include/* /usr/local/include/
+COPY --from=builder /usr/local/lib/* /usr/local/lib/
+COPY --from=builder /usr/lib64/libtbb.so.2 /usr/lib64/libtbb.so.2
 
 WORKDIR /data
 ENTRYPOINT ["/usr/local/bin/tiledbvcf"]
