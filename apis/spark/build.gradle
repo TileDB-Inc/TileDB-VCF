@@ -76,6 +76,12 @@ task makeVCFJava(type: Exec) {
     args "clean"
     args "assemble"
     args "publishToMavenLocal"
+    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
+        args "-PFORCE_EXTERNAL_HTSLIB=${project.property('FORCE_EXTERNAL_HTSLIB')}"
+    }
+    if (project.hasProperty("FORCE_EXTERNAL_TILEDB")) {
+        args "-PFORCE_EXTERNAL_TILEDB=${project.property('FORCE_EXTERNAL_TILEDB')}"
+    }
 }
 
 task format(type: GoogleJavaFormat) {

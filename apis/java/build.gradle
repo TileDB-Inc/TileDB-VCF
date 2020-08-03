@@ -94,8 +94,11 @@ task cmakeNativeLibTask(type: Exec) {
     executable = 'cmake'
 
     List<String> buildArgs = new ArrayList<String>()
-    if (project.hasProperty("NO_FORCE_EXTERNAL_HTSLIB")) {
-        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=OFF")
+    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=${project.property('FORCE_EXTERNAL_HTSLIB')}")
+    }
+    if (project.hasProperty("FORCE_EXTERNAL_TILEDB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_TILEDB=${project.property('FORCE_EXTERNAL_TILEDB')}")
     }
     buildArgs.add("..")
 
