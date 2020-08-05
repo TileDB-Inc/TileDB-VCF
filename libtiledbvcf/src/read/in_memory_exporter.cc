@@ -671,11 +671,19 @@ bool InMemoryExporter::copy_cell_data(
     return false;
 
   // Copy data
-  if (data != nullptr)
+  if (data != nullptr) {
     std::memcpy(
         static_cast<char*>(dest->data) + dest->curr_sizes.data_bytes,
         data,
         nbytes);
+  } else if (dest->bitmap_buff != nullptr && !var_len) {
+    // Handle null by setting the bytes and elements to 1
+    // Arrow expects null values to have 1 value which is ignored for fixed
+    // length fields
+    nbytes = attr_datatype_size(
+        get_info_fmt_datatype(this->dataset_, dest->attr_name));
+    nelts = 1;
+  }
 
   // Update offsets
   if (var_len) {
