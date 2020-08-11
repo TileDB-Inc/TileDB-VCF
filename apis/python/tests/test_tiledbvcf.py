@@ -352,7 +352,7 @@ def test_read_null_attrs(tmp_path):
 
     ds = tiledbvcf.Dataset(uri, mode='r')
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
-                        'info_BaseQRankSum', 'info_DP', 'fmt_DP'],
+                        'info_BaseQRankSum', 'info_DP', 'fmt_DP', 'fmt_MIN_DP'],
                  regions=['1:12700-13400', '1:69500-69800'])
     expected_df = pd.DataFrame(
         {'sample_name': pd.Series(
@@ -372,7 +372,9 @@ def test_read_null_attrs(tmp_path):
                                   np.array([89], dtype=np.int32), None,
                                   np.array([24], dtype=np.int32), None, None]),
             'fmt_DP': pd.Series([0, 0, 15, 64, 6, 2, 180,
-                                     88, 97, 24, 23, 21], dtype=np.int32)})
+                                     88, 97, 24, 23, 21], dtype=np.int32),
+            'fmt_MIN_DP': pd.Series([0, 0, 14, 30, 3, 1, 20,
+                                     None, 24, None, 23, 19])})
     _check_dfs(expected_df, df)
 
 
