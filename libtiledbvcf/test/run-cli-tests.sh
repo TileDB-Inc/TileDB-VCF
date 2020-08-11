@@ -288,12 +288,15 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 
 echo "Export records with a null fmt attribute (#142)"
 create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
-expected="HG00280\t69512\t24"
-
-matches=$("$tilevcf" export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69512-69512 \
-  | grep -o "$expected" \
-  | wc -l)
-test "$matches" -eq 1 || exit 1
+$tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
+diff -wq /tmp/pfx.tsv <(
+cat <<EOF
+SAMPLE	POS	S:MIN_DP
+HG00280	69511	.
+HG00280	69512	24
+EOF
+) || exit 1
+rm -f /tmp/pfx.tsv
 
 echo "Export non-contiguous samples (#79)"
 $tilevcf export -u ingested_3_samples -Ob -v -s G1,G3 || exit 1
