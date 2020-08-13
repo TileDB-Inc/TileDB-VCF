@@ -40,6 +40,7 @@
 #include <htslib/vcf.h>
 #include <tiledb/vfs.h>
 
+#include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/buffer.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"

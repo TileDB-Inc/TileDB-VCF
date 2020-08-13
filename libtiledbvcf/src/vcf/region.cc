@@ -24,10 +24,13 @@
  * THE SOFTWARE.
  */
 
+#include <htslib/hts.h>
 #include <algorithm>
 
+#include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
+#include "vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -126,50 +129,40 @@ Region Region::parse_region(
   return result;
 }
 
-void Region::parse_bed_file(
+void Region::parse_bed_file_htslib(
     const VFS& vfs,
     const std::string& bed_file_uri,
     std::vector<Region>* result) {
-  auto per_line = [&result](std::string* line) {
-    auto fields = utils::split(*line, '\t');
-    if (fields.size() < 3)
-      throw std::runtime_error(
-          "Error parsing BED file: line '" + *line + "' has invalid format.");
+  // htslib is very chatty as it will try (and fail) to find all possible index
+  // files resulting in a lot of output In the htslib vfs plugin we set the
+  // errors on opening a non-existent file to warning to avoid this
+  const auto old_log_level = hts_get_log_level();
+  hts_set_log_level(HTS_LOG_ERROR);
+  std::string path =
+      std::string(HFILE_TILEDB_VFS_SCHEME) + "://" + bed_file_uri;
 
-    // Contig name
-    std::string contig_name = fields[0];
-    if (contig_name.empty())
-      throw std::runtime_error(
-          "Error parsing BED file: line '" + *line +
-          "' has empty contig name.");
+  // If the user passes a http or ftp let htslib deal with it directly
+  if (bed_file_uri.substr(0, 6) == "ftp://" ||
+      bed_file_uri.substr(0, 7) == "http://" ||
+      bed_file_uri.substr(0, 8) == "https://")
+    path = bed_file_uri;
+  // 0, 1, -2 come from bcf_sr_set_regions, these are suppose to be ignored when
+  // reading from a file though
+  SafeRegionFh regionsFile(
+      bcf_sr_regions_init(path.c_str(), 1, 0, 1, -2), bcf_sr_regions_destroy);
 
-    // Range min/max, with some error checks.
-    uint32_t min = 0, max = 0;
-    try {
-      min = static_cast<uint32_t>(std::stoul(fields[1]));
-      max = static_cast<uint32_t>(std::stoul(fields[2]));
-    } catch (const std::exception& e) {
-      throw std::runtime_error(
-          "Error parsing BED file: could not parse min/max from line '" +
-          *line + "'.");
-    }
-    if (min > max)
-      throw std::runtime_error(
-          "Error parsing BED file: range from line '" + *line +
-          "' has min > max.");
-    if (min == max)
-      throw std::runtime_error(
-          "Error parsing BED file: range from line '" + *line +
-          "' is length 0.");
-    if (max == 0)
-      throw std::runtime_error(
-          "Error parsing BED file: max from line '" + *line + "' is 0.");
-    max--;
+  if (regionsFile == nullptr)
+    throw std::runtime_error("Error parsing BED file: " + bed_file_uri);
 
-    result->emplace_back(contig_name, min, max);
-  };
+  while (!bcf_sr_regions_next(regionsFile.get())) {
+    result->emplace_back(
+        regionsFile->seq_names[regionsFile->iseq],
+        regionsFile->start,
+        regionsFile->end);
+  }
 
-  utils::read_file_lines(vfs, bed_file_uri, per_line);
+  // reset htslib log level
+  hts_set_log_level(old_log_level);
 }
 
 void Region::sort(

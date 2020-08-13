@@ -54,6 +54,12 @@ void Writer::init(
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
 
   ctx_.reset(new Context(*tiledb_config_));
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_config(params.tiledb_config);
+  utils::set_htslib_tiledb_context(tiledb_config_->ptr().get());
+
   vfs_.reset(new VFS(*ctx_, *tiledb_config_));
   array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));

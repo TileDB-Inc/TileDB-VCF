@@ -36,6 +36,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/attribute_buffer_set.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/tiledbvcfdataset.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/htslib_plugin/hfile_tiledb_vfs.c
   ${CMAKE_CURRENT_SOURCE_DIR}/read/bcf_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/in_memory_exporter.cc

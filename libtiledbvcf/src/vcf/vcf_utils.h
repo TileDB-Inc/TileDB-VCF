@@ -54,6 +54,10 @@ typedef std::shared_ptr<bcf1_t> SafeSharedBCFRec;
 /** Alias for unique_ptr to htsFile. */
 typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
 
+/** Alias for unique_ptr to bcf_sr_regions_t. */
+typedef std::unique_ptr<bcf_sr_regions_t, decltype(&bcf_sr_regions_destroy)>
+    SafeRegionFh;
+
 /** HTSFile index type. */
 enum class Idx { HTS, TBX };
 
