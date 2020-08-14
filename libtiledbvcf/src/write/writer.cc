@@ -102,6 +102,12 @@ void Writer::set_allow_duplicates(const bool& allow_duplicates) {
   creation_params_.allow_duplicates = allow_duplicates;
 }
 
+void Writer::set_duplicate_sample_handling(
+    const DuplicateSampleHandling& duplicate_sample_handling) {
+  registration_params_.duplicate_sample_handling = duplicate_sample_handling;
+  ingestion_params_.duplicate_sample_handling = duplicate_sample_handling;
+}
+
 void Writer::create_dataset() {
   TileDBVCFDataset::create(creation_params_);
 }

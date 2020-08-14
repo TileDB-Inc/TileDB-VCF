@@ -80,6 +80,14 @@ typedef enum {
 #undef TILEDB_VCF_CHECKSUM_TYPE_ENUM
 } tiledb_vcf_checksum_type_t;
 
+/** Duplicate sample handling. */
+typedef enum {
+/** Helper macro for defining subset of tiledb filter type enums. */
+#define TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_ENUM(id) TILEDB_VCF_##id
+#include "tiledbvcf_enum.h"
+#undef TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_ENUM
+} tiledb_vcf_duplicate_sample_handling_t;
+
 /* ********************************* */
 /*           STRUCT TYPES            */
 /* ********************************* */
@@ -905,6 +913,18 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_checksum_type(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_allow_duplicates(
     tiledb_vcf_writer_t* writer, bool allow_duplicates);
 
+/**
+ * [Registration only] Sets whether an already registered sample causes an error
+ * or is gracefully skipped.
+ *
+ * @param writer
+ * @param duplicate_sample_handling boolean to ignore instead of error on
+ * already registered samples
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_duplicate_sample_handling(
+    tiledb_vcf_writer_t* writer,
+    tiledb_vcf_duplicate_sample_handling_t duplicate_sample_handling);
 /**
  * Creates a new TileDB-VCF dataset, using previously set parameters.
  *

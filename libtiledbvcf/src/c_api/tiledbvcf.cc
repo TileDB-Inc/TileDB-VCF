@@ -773,6 +773,22 @@ int32_t tiledb_vcf_writer_set_allow_duplicates(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_duplicate_sample_handling(
+    tiledb_vcf_writer_t* writer,
+    const tiledb_vcf_duplicate_sample_handling_t duplicate_sample_handling) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_duplicate_sample_handling(
+              static_cast<tiledb::vcf::DuplicateSampleHandling>(
+                  duplicate_sample_handling))))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_create_dataset(tiledb_vcf_writer_t* writer) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;

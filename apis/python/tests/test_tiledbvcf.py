@@ -536,3 +536,19 @@ def test_incremental_ingest(tmp_path):
     assert ds.count() == 14
     assert ds.count(regions=['1:12700-13400']) == 6
     assert ds.count(samples=['HG00280'], regions=['1:12700-13400']) == 4
+
+
+def test_duplicate_sample_skip(tmp_path):
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.Dataset(uri, mode='w')
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
+               ['small3.bcf', 'small.bcf']]
+    ds.ingest_samples(samples)
+
+    ds.ingest_samples(samples, duplicate_sample_handling='skip')
+
+    with pytest.raises(Exception):
+        ds.ingest_samples(samples, duplicate_sample_handling='wrong')
+
+    with pytest.raises(Exception):
+        ds.ingest_samples(samples, duplicate_sample_handling='error')

@@ -73,6 +73,12 @@ class Writer {
   */
   void set_scratch_space(const std::string& path, int64_t size);
 
+  /**
+    [Registration onl] Toggles gracefully skipping already registered samples
+    instead of erroring out.
+  */
+  void set_duplicate_sample_handling(const std::string& duplicate_sample_handling);
+
   void create_dataset();
 
   void register_samples();

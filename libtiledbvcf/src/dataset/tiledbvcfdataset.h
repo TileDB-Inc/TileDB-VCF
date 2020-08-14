@@ -47,6 +47,8 @@ namespace vcf {
 /*       AUXILIARY DATATYPES         */
 /* ********************************* */
 
+enum DuplicateSampleHandling { ERROR, SKIP, ACCEPT };
+
 /** Arguments/params for dataset creation. */
 struct CreationParams {
   std::string uri;
@@ -66,6 +68,8 @@ struct RegistrationParams {
   std::vector<std::string> sample_uris;
   ScratchSpaceInfo scratch_space;
   std::vector<std::string> tiledb_config;
+  DuplicateSampleHandling duplicate_sample_handling =
+      DuplicateSampleHandling::ERROR;
 };
 
 /** Arguments/params for the list operation. */
@@ -381,12 +385,14 @@ class TileDBVCFDataset {
    * @param metadata Metadata to be updated
    * @param sample_set Set of sample names to be updated
    * @param sample_headers Map of sample ID -> header string to be updated
+   * @param params registration params
    */
   static void register_samples_helper(
       const std::vector<SafeBCFHdr>& headers,
       Metadata* metadata,
       std::set<std::string>* sample_set,
-      std::map<uint32_t, std::string>* sample_headers);
+      std::map<uint32_t, std::string>* sample_headers,
+      const RegistrationParams& params);
 
   /** Returns the URI of the sample data array for the dataset. */
   static std::string data_array_uri(

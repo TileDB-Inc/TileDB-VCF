@@ -66,6 +66,8 @@ struct IngestionParams {
    * parallelism as well as load balancing of ingestion work across threads.
    */
   unsigned thread_task_size = 5000000;
+  DuplicateSampleHandling duplicate_sample_handling =
+      DuplicateSampleHandling::ERROR;
 };
 
 /* ********************************* */
@@ -134,6 +136,14 @@ class Writer {
    * @param set_allow_duplicates
    */
   void set_allow_duplicates(const bool& allow_duplicates);
+
+  /**
+   * Sets whether already registered samples are gracefully skipped cause an
+   * error or are accepted (stored or registered a second time)
+   * @param duplicate_sample_handling
+   */
+  void set_duplicate_sample_handling(
+      const DuplicateSampleHandling& duplicate_sample_handling);
 
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();

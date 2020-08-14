@@ -300,7 +300,23 @@ int main(int argc, char** argv) {
             "'<vcf-uri><TAB><index-uri>'" &
         value("path", register_args.sample_uris_file)) |
            (values("paths", register_args.sample_uris) %
-            "Argument list of VCF files to register"));
+            "Argument list of VCF files to register"),
+       option("--duplicate-sample") %
+               "Sets how to handle already exists in the dataset. Accepted "
+               "values are 'error' or 'skip' defaults to 'error'" &
+           value("duplicate_sample_handling")
+               .call([&register_args](const std::string& s) {
+                 if (s == "error")
+                   register_args.duplicate_sample_handling =
+                       DuplicateSampleHandling::ERROR;
+                 else if (s == "skip")
+                   register_args.duplicate_sample_handling =
+                       DuplicateSampleHandling::SKIP;
+                 else
+                   throw std::runtime_error(
+                       "Invalid --duplicate-sample option" + s +
+                       ", valid options are 'error', 'skip'");
+               }));
 
   IngestionParams store_args;
   auto store_mode =

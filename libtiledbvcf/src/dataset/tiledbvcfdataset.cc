@@ -406,15 +406,18 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
         batches[i],
         params.scratch_space);
     // Register the batch
-    register_samples_helper(headers, &metadata_, &sample_set, &sample_headers);
-    write_vcf_headers(ctx, root_uri_, sample_headers);
+    register_samples_helper(
+        headers, &metadata_, &sample_set, &sample_headers, params);
+    if (!sample_headers.empty())
+      write_vcf_headers(ctx, root_uri_, sample_headers);
     sample_headers.clear();
   }
 
   // Register the final batch.
   register_samples_helper(
-      future_headers.get(), &metadata_, &sample_set, &sample_headers);
-  write_vcf_headers(ctx, root_uri_, sample_headers);
+      future_headers.get(), &metadata_, &sample_set, &sample_headers, params);
+  if (!sample_headers.empty())
+    write_vcf_headers(ctx, root_uri_, sample_headers);
 
   // Write the updated metadata.
   write_metadata(ctx, root_uri_, metadata_);
@@ -803,7 +806,8 @@ void TileDBVCFDataset::register_samples_helper(
     const std::vector<SafeBCFHdr>& headers,
     Metadata* metadata,
     std::set<std::string>* sample_set,
-    std::map<uint32_t, std::string>* sample_headers) {
+    std::map<uint32_t, std::string>* sample_headers,
+    const RegistrationParams& params) {
   for (size_t i = 0; i < headers.size(); i++) {
     const auto& hdr = headers[i];
     auto hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
@@ -814,9 +818,15 @@ void TileDBVCFDataset::register_samples_helper(
           "from cVCF is not supported.");
 
     const auto& s = hdr_samples[0];
-    if (sample_set->count(s))
-      throw std::invalid_argument(
-          "Error registering samples; sample " + s + " already exists.");
+    if (sample_set->count(s)) {
+      if (params.duplicate_sample_handling == DuplicateSampleHandling::SKIP) {
+        continue;
+      } else if (
+          params.duplicate_sample_handling == DuplicateSampleHandling::ERROR) {
+        throw std::invalid_argument(
+            "Error registering samples; sample " + s + " already exists.");
+      }
+    }
     sample_set->insert(s);
 
     (*sample_headers)[metadata->free_sample_id] =

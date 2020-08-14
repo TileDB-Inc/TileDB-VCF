@@ -53,5 +53,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("create_dataset", &Writer::create_dataset)
       .def("register_samples", &Writer::register_samples)
       .def("set_verbose", &Writer::set_verbose)
+      .def("set_duplicate_sample_handling", &Writer::set_duplicate_sample_handling)
       .def("ingest_samples", &Writer::ingest_samples);
 }
