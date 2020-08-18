@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
            }),
        option("-n", "--no-duplicates")
                .set(create_args.allow_duplicates, false) %
-           "Do not allow records with duplicate end positions to be written to "
+           "Do not allow records with duplicate start positions to be written to "
            "the array.");
 
   RegistrationParams register_args;
