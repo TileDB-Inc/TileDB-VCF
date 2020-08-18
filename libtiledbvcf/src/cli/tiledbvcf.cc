@@ -378,6 +378,9 @@ int main(int argc, char** argv) {
         (option("-R", "--regions-file") %
              "File containing regions (BED format)" &
          value("path", export_args.regions_file_uri))),
+       option("--sorted")
+           .set(export_args.sort_regions, false) %
+               "Do not sort regions or regions file if they are pre-sorted",
        option("-n", "--limit") %
                "Only export the first N intersecting records." &
            value("N", export_args.max_num_records),
