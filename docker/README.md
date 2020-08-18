@@ -56,16 +56,15 @@ List all samples in the dataset:
 
 ```sh
 docker run --rm tiledb/tiledbvcf-cli list \
-  --uri s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20
+  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20
 ```
 
-Create a table of all variants within a region of interest for sample `v2-WpXCYApL` and save the results in `./exported-vars.tsv`.
+Create a table of all variants within a region of interest for sample `v2-WpXCYApL`
 
 ```sh
 docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
-  --uri s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20 \
-  -Ot --tsv-fields "CHR,POS,REF,S:GT" \
-  --output-path exported-vars.tsv \
+  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20 \
+  -Ot --tsv-fields "CHR,POS,REF,S:GT"
   --regions chr7:144000320-144008793 \
   --sample-names v2-WpXCYApL
 ```
@@ -83,7 +82,7 @@ The following script performs the same query as above but returns a pandas `Data
 ```py
 import tiledbvcf
 
-uri = "s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20"
+uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20"
 
 # open the array in 'read' mode
 ds = tiledbvcf.TileDBVCFDataset(uri, mode = "r")
