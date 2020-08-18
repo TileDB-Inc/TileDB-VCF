@@ -36,7 +36,7 @@ Check out our [docs][vcf] for installation and usage instructions:
 
 The docs linked above provide more comprehensive examples but here a few quick exercises to get you started.
 
-By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v2/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
+By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
 
 ### CLI
 
@@ -66,7 +66,7 @@ Running the same query in python
 ```py
 import tiledbvcf
 
-ds = tiledbvcf.TileDBVCFDataset(uri="vcf-samples-20", mode="r")
+ds = tiledbvcf.Dataset(uri="vcf-samples-20", mode="r")
 
 ds.read(
     attrs=["sample_name", "pos_start", "fmt_GT"],

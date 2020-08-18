@@ -85,7 +85,7 @@ import tiledbvcf
 uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20"
 
 # open the array in 'read' mode
-ds = tiledbvcf.TileDBVCFDataset(uri, mode = "r")
+ds = tiledbvcf.Dataset(uri, mode = "r")
 
 ds.read(
   attrs=['sample_name', 'pos_start', 'pos_end', 'alleles'],
