@@ -69,7 +69,6 @@ void Reader::reset_buffers() {
 
 void Reader::set_all_params(const ExportParams& params) {
   params_ = params;
-  init_tiledb();
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -155,7 +154,6 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
 
 void Reader::set_memory_budget(unsigned mb) {
   params_.memory_budget_mb = mb;
-  init_tiledb();
 }
 
 void Reader::set_record_limit(uint64_t max_num_records) {
@@ -164,7 +162,11 @@ void Reader::set_record_limit(uint64_t max_num_records) {
 
 void Reader::set_tiledb_config(const std::string& config_str) {
   params_.tiledb_config = utils::split(config_str, ',');
-  init_tiledb();
+  // Attempt to set config to check validity
+  // cfg object will be discarded as a later call to tiledb_init will properly
+  // create config/context
+  tiledb::Config cfg;
+  utils::set_tiledb_config(params_.tiledb_config, &cfg);
 }
 
 ReadStatus Reader::read_status() const {

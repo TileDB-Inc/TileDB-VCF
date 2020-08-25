@@ -241,6 +241,25 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
         tiledb_vcf_reader_set_tiledb_config(reader, config2) == TILEDB_VCF_ERR);
   }
 
+  SECTION("- TBB options") {
+    const char* config = "sm.num_tbb_threads=4";
+    REQUIRE(
+        tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
+  }
+
+  tiledb_vcf_reader_free(&reader);
+}
+
+TEST_CASE("C API: Reader set tbb and memory", "[capi][query]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  // Setting the memory budget first should not cause any error
+  REQUIRE(tiledb_vcf_reader_set_memory_budget(reader, 100) == TILEDB_VCF_OK);
+
+  const char* config = "sm.num_tbb_threads=4";
+  REQUIRE(tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
+
   tiledb_vcf_reader_free(&reader);
 }
 
