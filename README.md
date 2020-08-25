@@ -1,6 +1,6 @@
 <a href="https://tiledb.com"><img src="https://github.com/TileDB-Inc/TileDB/raw/dev/doc/source/_static/tiledb-logo_color_no_margin_@4x.png" alt="TileDB logo" width="400"></a>
 
-[![Build Status](https://img.shields.io/azure-devops/build/tiledb-inc/836549eb-f74a-4986-a18f-7fbba6bbb5f0/8?label=Azure%20Pipelines&logo=azure-pipelines&style=flat-square)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=master)
+[![Build Status](https://img.shields.io/azure-devops/build/tiledb-inc/836549eb-f74a-4986-a18f-7fbba6bbb5f0/8/master?label=Azure%20Pipelines&logo=azure-pipelines&style=flat-square)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=master)
 [![Docker-CLI](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-cli&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-cli)
 [![Docker-Py](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-py&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-py)
 
@@ -36,7 +36,7 @@ Check out our [docs][vcf] for installation and usage instructions:
 
 The docs linked above provide more comprehensive examples but here a few quick exercises to get you started.
 
-By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledb-arrays/2.0/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
+By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
 
 ### CLI
 
@@ -66,7 +66,7 @@ Running the same query in python
 ```py
 import tiledbvcf
 
-ds = tiledbvcf.TileDBVCFDataset(uri="vcf-samples-20", mode="r")
+ds = tiledbvcf.Dataset(uri="vcf-samples-20", mode="r")
 
 ds.read(
     attrs=["sample_name", "pos_start", "fmt_GT"],
