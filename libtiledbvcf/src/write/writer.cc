@@ -366,7 +366,13 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
   // Set sample id for later use
   for (const auto& pair : sorted) {
     auto s = pair.first;
-    s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    try {
+      s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    } catch (std::out_of_range& e) {
+      throw std::invalid_argument(
+          "Sample " + pair.second +
+          " is not registered, please register it before trying to store it");
+    }
     result.push_back(s);
   }
 
