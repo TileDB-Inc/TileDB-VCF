@@ -44,7 +44,9 @@ public class VCFDataSourceOptions implements Serializable {
 
   /** @return Optional array of contig regions to read */
   public Optional<String[]> getRanges() {
-    if (options.containsKey("ranges")) {
+    if (options.containsKey("regions")) {
+      return Optional.of(options.get("regions").split("\\s*,[,\\s]*"));
+    } else if (options.containsKey("ranges")) {
       return Optional.of(options.get("ranges").split("\\s*,[,\\s]*"));
     }
     return Optional.empty();

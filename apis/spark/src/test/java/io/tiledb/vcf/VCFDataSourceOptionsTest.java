@@ -59,6 +59,16 @@ public class VCFDataSourceOptionsTest {
   }
 
   @Test
+  public void testRegionsOption() {
+    HashMap<String, String> optionMap = new HashMap<>();
+    optionMap.put("regions", "CHR1:1-100, CHR2:2-200");
+    VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(optionMap));
+    Optional<String[]> ranges = options.getRanges();
+    Assert.assertTrue(ranges.isPresent());
+    Assert.assertArrayEquals(new String[] {"CHR1:1-100", "CHR2:2-200"}, ranges.get());
+  }
+
+  @Test
   public void testMemoryBudgetOptionMissing() {
     VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(new HashMap<>()));
     Assert.assertFalse(options.getMemoryBudget().isPresent());
