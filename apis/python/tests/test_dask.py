@@ -125,6 +125,12 @@ def test_incomplete_reads():
     df = dask_df.compute()
     _check_dfs(expected_df, df)
 
+    # Subset of partitions (limit_partitions)
+    dask_df = test_ds.read_dask(attrs=['sample_name', 'pos_start', 'pos_end'],
+                                region_partitions=10, sample_partitions=2,
+                                limit_partitions=2)
+    assert dask_df.npartitions == 2
+
 
 def test_basic_map(test_ds):
     expected_df = pd.DataFrame(
