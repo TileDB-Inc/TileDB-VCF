@@ -35,7 +35,7 @@ def _read_partition(read_args):
 
 
 def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
-             samples=None, regions=None, samples_file=None, bed_file=None):
+             limit_partitions=None, samples=None, regions=None, samples_file=None, bed_file=None):
     """Maps a function on a Dask dataframe obtained by reading from the dataset.
 
     May be more efficient in some cases than read_dask() followed by a regular
@@ -45,7 +45,6 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
 
     :return: Dask DataFrame with results
     """
-
     cfg = self.cfg if self.cfg is not None else ReadConfig()
     partitions = []
     for r in range(0, region_partitions):
@@ -58,11 +57,17 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
                                  samples_file, bed_file, fnc)
             partitions.append(dask.delayed(_read_partition)(read_args))
 
+            if (limit_partitions is not None and len(partitions) > limit_partitions):
+                break
+        else:
+            continue
+        break
+
     return dask.dataframe.from_delayed(partitions)
 
 
 def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
-              samples=None, regions=None, samples_file=None, bed_file=None):
+              limit_partitions=None, samples=None, regions=None, samples_file=None, bed_file=None):
     """Reads data from a TileDB-VCF into a Dask DataFrame.
 
     Partitioning proceeds by a straightforward block distribution, parameterized
@@ -80,7 +85,7 @@ def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
     """
 
     return map_dask(self, None, attrs, region_partitions, sample_partitions,
-                    samples, regions, samples_file, bed_file)
+                    limit_partitions, samples, regions, samples_file, bed_file)
 
 
 # Patch functions and members into dataset class
