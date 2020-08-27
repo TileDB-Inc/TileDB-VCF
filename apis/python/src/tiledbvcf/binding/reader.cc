@@ -291,13 +291,6 @@ void Reader::release_buffers() {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_reset_buffers(reader));
 
-  for (auto& b : buffers_) {
-    b.data.release();
-    b.offsets.release();
-    b.list_offsets.release();
-    b.bitmap.release();
-  }
-
   buffers_.clear();
 }
 
