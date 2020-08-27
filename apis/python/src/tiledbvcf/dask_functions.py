@@ -80,6 +80,7 @@ def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
 
     :param int region_partition: Number of partitions over regions
     :param int sample_partition: Number of partitions over samples
+    :param int limit_partitions: Maximum number of partitions to read (for testing/debugging)
 
     :return: Dask DataFrame with results
     """
