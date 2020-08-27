@@ -57,7 +57,7 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
                                  samples_file, bed_file, fnc)
             partitions.append(dask.delayed(_read_partition)(read_args))
 
-            if (limit_partitions is not None and len(partitions) > limit_partitions):
+            if (limit_partitions is not None and len(partitions) >= limit_partitions):
                 break
         else:
             continue
