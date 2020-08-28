@@ -304,7 +304,8 @@ class InMemoryExporter : public Exporter {
       UserBuffer* dest,
       int64_t index,
       bool is_null,
-      int32_t num_list_values) const;
+      int32_t num_list_values,
+      int64_t list_index) const;
 
   /**
    * Adds an offset for a 0-length var-len value.

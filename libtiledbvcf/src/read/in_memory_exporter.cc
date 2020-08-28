@@ -652,7 +652,7 @@ bool InMemoryExporter::copy_cell(
   if (!copy_cell_data(dest, data, nbytes, nelts))
     return false;
   bool is_null = data == nullptr;
-  if (!update_cell_list_and_bitmap(dest, index, is_null, 1))
+  if (!update_cell_list_and_bitmap(dest, index, is_null, 1, index))
     return false;
   return true;
 }
@@ -705,7 +705,8 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
     UserBuffer* dest,
     int64_t index,
     bool is_null,
-    int32_t num_list_values) const {
+    int32_t num_list_values,
+    int64_t list_index) const {
   const bool nullable = dest->bitmap_buff != nullptr;
   const bool list = dest->list_offsets != nullptr;
 
@@ -714,7 +715,7 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
     return true;
 
   // Check for bitmap overflow (nullable only)
-  if (nullable && (index / 8 >= dest->max_bitmap_bytes))
+  if (nullable && (list_index / 8 >= dest->max_bitmap_bytes))
     return false;
 
   // Check for list offsets overflow (lists only)
@@ -727,9 +728,9 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
   // Update validity bitmap
   if (nullable) {
     if (is_null)
-      dest->bitmap->clear(index);
+      dest->bitmap->clear(list_index);
     else
-      dest->bitmap->set(index);
+      dest->bitmap->set(list_index);
   }
 
   // Update offsets
@@ -774,7 +775,9 @@ bool InMemoryExporter::copy_alleles_list(
         "offsets.");
 
   // Find the data and size
+  // Use list offsets for index as this is a list datatype
   const int64_t index = dest->curr_sizes.num_offsets;
+  const int64_t list_index = dest->curr_sizes.num_list_offsets;
   const Buffer& src = curr_query_results_->buffers()->alleles();
   const uint64_t src_size = curr_query_results_->alleles_size().second;
   void* data = nullptr;
@@ -813,7 +816,7 @@ bool InMemoryExporter::copy_alleles_list(
     return false;
 
   // Update list offsets and bitmap.
-  if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts))
+  if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts, list_index))
     return false;
 
   return true;
@@ -839,7 +842,9 @@ bool InMemoryExporter::copy_filters_list(
   int num_filters = *int_data;
   const int* filter_ids = int_data + 1;
 
+  // Use list offsets for index as this is a list datatype
   const int64_t index = dest->curr_sizes.num_offsets;
+  const int64_t list_index = dest->curr_sizes.num_list_offsets;
   const bool is_null = num_filters == 0;
   if (is_null) {
     // To adhere to Arrow's offset semantics, a zero-length value still gets
@@ -857,7 +862,8 @@ bool InMemoryExporter::copy_filters_list(
   }
 
   // Update list offsets and bitmap.
-  if (!update_cell_list_and_bitmap(dest, index, is_null, num_filters))
+  if (!update_cell_list_and_bitmap(
+          dest, index, is_null, num_filters, list_index))
     return false;
 
   return true;
