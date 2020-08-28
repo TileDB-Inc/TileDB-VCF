@@ -257,6 +257,30 @@ def test_read_filters(test_ds):
     _check_dfs(expected_df, df)
 
 
+def test_read_var_length_filters(tmp_path):
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.Dataset(uri, mode='w')
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
+               ['varLenFilter.vcf.gz']]
+    ds.ingest_samples(samples)
+
+    ds = tiledbvcf.Dataset(uri, mode='r')
+    df = ds.read(['pos_start', 'filters'])
+
+    expected_df = pd.DataFrame({
+        'pos_start': pd.Series(
+            [12141, 12546, 13354, 13375, 13396, 13414, 13452, 13520, 13545,
+             17319, 17480], dtype=np.int32),
+
+        'filters': pd.Series(
+             map(lambda lst: np.array(lst, dtype=np.object),
+                [['PASS'], ['PASS'], ['ANEUPLOID', 'LowQual'], ['PASS'],
+                 ['PASS'], ['ANEUPLOID','LOWQ','LowQual'], ['PASS'],
+                 ['PASS'], ['PASS'], ['LowQual'], ['PASS']]))
+    })
+
+    _check_dfs(expected_df, df)
+
 def test_read_alleles(test_ds):
     df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
                              'alleles'],
