@@ -75,6 +75,7 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      logger.warning(e.getMessage());
     }
   }
 
@@ -87,6 +88,7 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      logger.warning(e.getMessage());
     }
   }
 
@@ -102,6 +104,7 @@ public class NativeLibLoader {
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
       // (if the library is not available via the system linker, a runtime error
       // will occur later).
+      logger.warning(e.getMessage());
     }
   }
 
