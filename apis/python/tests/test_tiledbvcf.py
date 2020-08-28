@@ -269,14 +269,14 @@ def test_read_var_length_filters(tmp_path):
 
     expected_df = pd.DataFrame({
         'pos_start': pd.Series(
-            [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545,
+            [12141, 12546, 13354, 13375, 13396, 13414, 13452, 13520, 13545,
              17319, 17480], dtype=np.int32),
 
         'filters': pd.Series(
              map(lambda lst: np.array(lst, dtype=np.object),
                 [['PASS'], ['PASS'], ['ANEUPLOID', 'LowQual'], ['PASS'],
                  ['PASS'], ['ANEUPLOID','LOWQ','LowQual'], ['PASS'],
-                 ['PASS'], ['PASS'], ['PASS'], ['PASS']]))
+                 ['PASS'], ['PASS'], ['LowQual'], ['PASS']]))
     })
 
     _check_dfs(expected_df, df)
