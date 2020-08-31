@@ -93,7 +93,25 @@ void Writer::set_checksum(const std::string& checksum) {
   else if (checksum == "none")
     checksum_type = TILEDB_VCF_CHECKSUM_NONE;
 
-  check_error(writer, tiledb_vcf_writer_set_checksum_type(writer, checksum_type));
+  check_error(
+      writer, tiledb_vcf_writer_set_checksum_type(writer, checksum_type));
+}
+
+void Writer::set_allow_duplicates(const bool& allow_duplicates) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_allow_duplicates(writer, allow_duplicates));
+}
+
+void Writer::set_scratch_space(const std::string& path, int64_t size) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_scratch_space(writer, path.c_str(), size));
+}
+
+void Writer::set_verbose(bool verbose) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_verbose(writer, verbose));
 }
 
 void Writer::create_dataset() {

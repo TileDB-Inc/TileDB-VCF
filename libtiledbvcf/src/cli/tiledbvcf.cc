@@ -33,8 +33,16 @@
 #include "read/reader.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
-#include "vcf/vcf.h"
 #include "write/writer.h"
+
+// macro for setting htslib config and context in scope of cli functions
+#define HTSLIB_CONFIG_SET                              \
+  tiledb::Config cfg;                                  \
+  utils::set_tiledb_config(args.tiledb_config, &cfg);  \
+  tiledb::Context ctx(cfg);                            \
+                                                       \
+  utils::set_htslib_tiledb_config(args.tiledb_config); \
+  utils::set_htslib_tiledb_context(cfg.ptr().get());
 
 using namespace tiledb::vcf;
 
@@ -167,6 +175,9 @@ void do_create(const CreationParams& args) {
 
 /** Register. */
 void do_register(const RegistrationParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.register_samples(args);
@@ -185,10 +196,20 @@ void do_export(const ExportParams& args) {
   reader.set_all_params(args);
   reader.open_dataset(args.uri);
   reader.read();
+
+  if (args.tiledb_stats_enabled) {
+    char* stats;
+    reader.tiledb_stats(&stats);
+    std::cout << "TileDB Internal Statistics:" << std::endl;
+    std::cout << stats << std::endl;
+  }
 }
 
 /** List. */
 void do_list(const ListParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_samples_list();
@@ -196,6 +217,9 @@ void do_list(const ListParams& args) {
 
 /** Stat. */
 void do_stat(const StatParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_dataset_stats();
@@ -239,7 +263,7 @@ int main(int argc, char** argv) {
            }),
        option("--checksum") %
                "Checksum to use for dataset validation on read and writes, "
-               "defauls to 'sha256'" &
+               "defaults to 'sha256'" &
            value("checksum").call([&create_args](const std::string& s) {
              if (s == "sha256")
                create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
@@ -247,7 +271,11 @@ int main(int argc, char** argv) {
                create_args.checksum = TILEDB_FILTER_CHECKSUM_MD5;
              else if (s == "none")
                create_args.checksum = TILEDB_FILTER_NONE;
-           }));
+           }),
+       option("-n", "--no-duplicates")
+               .set(create_args.allow_duplicates, false) %
+           "Do not allow records with duplicate start positions to be written "
+           "to the array.");
 
   RegistrationParams register_args;
   auto register_mode =
@@ -368,6 +396,8 @@ int main(int argc, char** argv) {
         (option("-R", "--regions-file") %
              "File containing regions (BED format)" &
          value("path", export_args.regions_file_uri))),
+       option("--sorted").set(export_args.sort_regions, false) %
+           "Do not sort regions or regions file if they are pre-sorted",
        option("-n", "--limit") %
                "Only export the first N intersecting records." &
            value("N", export_args.max_num_records),
@@ -416,11 +446,12 @@ int main(int argc, char** argv) {
        ((option("-f", "--samples-file") %
              "Path to file with 1 sample name per line" &
          value("path", export_args.samples_file_uri)) |
-        (required("-s", "--sample-names") %
-             "CSV list of sample names to export" &
+        (option("-s", "--sample-names") % "CSV list of sample names to export" &
          value("samples").call([&](const std::string& s) {
            export_args.sample_names = utils::split(s, ',');
-         }))));
+         }))),
+       option("--stats").set(export_args.tiledb_stats_enabled) %
+           "Enable TileDB stats");
 
   ListParams list_args;
   auto list_mode =

@@ -74,6 +74,22 @@ inline void attr_datatype_enum(
     throw std::runtime_error("Error converting string AttrDatatype to enum.");
 }
 
+/** Returns the byte size of the input attribute datatype. */
+inline uint64_t attr_datatype_size(AttrDatatype attr_datatype) {
+  switch (attr_datatype) {
+    case AttrDatatype::CHAR:
+      return sizeof(char);
+    case AttrDatatype::UINT8:
+      return sizeof(uint8_t);
+    case AttrDatatype::INT32:
+      return sizeof(int32_t);
+    case AttrDatatype::FLOAT32:
+      return sizeof(float);
+    default:
+      throw std::runtime_error("Error converting AttrDatatype to size.");
+  }
+}
+
 inline std::ostream& operator<<(
     std::ostream& os, const AttrDatatype& datatype) {
   os << attr_datatype_str(datatype);

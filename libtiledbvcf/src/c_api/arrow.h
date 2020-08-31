@@ -244,24 +244,21 @@ class Arrow {
               "Error converting to Arrow Array; unhandled var-len datatype.");
       }
     } else {
-      // Fixed-length attribute. None of the fixed-length attributes in
-      // TileDB-VCF are (currently) nullable.
-      if (buffer_info.nullable)
-        throw std::runtime_error(
-            "Error converting to Arrow Array; unhandled nullable fixed-len.");
       switch (buffer_info.datatype) {
         case TILEDB_VCF_UINT8:
           return make_arrow_array<uint8_t, arrow::UInt8Array>(
-              buffer_info, num_data_elements);
+              buffer_info, num_records, num_data_elements);
         case TILEDB_VCF_INT32:
           return make_arrow_array<int32_t, arrow::Int32Array>(
-              buffer_info, num_data_elements);
+              buffer_info, num_records, num_data_elements);
         case TILEDB_VCF_FLOAT32:
           return make_arrow_array<float, arrow::FloatArray>(
-              buffer_info, num_data_elements);
+              buffer_info, num_records, num_data_elements);
         default:
           throw std::runtime_error(
-              "Error converting to Arrow Array; unhandled fixed-len datatype.");
+              "Error converting to Arrow Array; unhandled fixed-len datatype "
+              "for " +
+              buffer_info.name);
       }
     }
   }
@@ -269,9 +266,20 @@ class Arrow {
   /** Creates a zero-copy Arrow Array for fixed-length data. */
   template <typename T, typename ArrayT>
   static std::shared_ptr<arrow::Array> make_arrow_array(
-      const BufferInfo& buffer_info, int64_t num_data_elements) {
+      const BufferInfo& buffer_info,
+      int64_t num_records,
+      int64_t num_data_elements) {
     auto arrow_buff = arrow::Buffer::Wrap(
         reinterpret_cast<T*>(buffer_info.values_buff), num_data_elements);
+
+    // Handle nulls
+    if (buffer_info.nullable) {
+      std::shared_ptr<arrow::Buffer> arrow_nulls =
+          arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+      return std::shared_ptr<arrow::Array>(
+          new ArrayT(num_data_elements, arrow_buff, arrow_nulls));
+    }
+
     return std::shared_ptr<arrow::Array>(
         new ArrayT(num_data_elements, arrow_buff));
   }
@@ -390,7 +398,7 @@ class Arrow {
       dtype = arrow::list(dtype);
     return dtype;
   }
-};
+};  // namespace vcf
 
 }  // namespace vcf
 }  // namespace tiledb

@@ -29,7 +29,11 @@
 # If TileDB was installed as an EP, need to search the EP install path also.
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${EP_INSTALL_PREFIX}")
 
-find_package(TileDB CONFIG QUIET)
+if (FORCE_EXTERNAL_TILEDB)
+  find_package(TileDB CONFIG PATHS ${EP_INSTALL_PREFIX} NO_DEFAULT_PATH)
+else()
+  find_package(TileDB CONFIG)
+endif()
 
 if (TILEDB_FOUND)
   get_target_property(TILEDB_LIB TileDB::tiledb_shared IMPORTED_LOCATION_RELEASE)
@@ -37,17 +41,20 @@ if (TILEDB_FOUND)
 else()
   if (SUPERBUILD)
     message(STATUS "Adding TileDB as an external project")
+    if (TILEDB_S3 STREQUAL "OFF")
+      message(STATUS "TileDB will be built WITHOUT S3 support")
+    endif()
 
     ExternalProject_Add(ep_tiledb
       PREFIX "externals"
-      URL "https://github.com/TileDB-Inc/TileDB/archive/2.0.0.zip"
-      URL_HASH SHA1=eb5295efc48a9c085814d0059bb4ade782df0c94
+      URL "https://github.com/TileDB-Inc/TileDB/archive/2.0.8.zip"
+      URL_HASH SHA1=f0ba8f768aafe844530f85f3c8b51ac2d27d7194
       DOWNLOAD_NAME "tiledb.zip"
       CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_BUILD_TYPE=Release
-        -DTILEDB_S3=ON
+        -DTILEDB_S3=${TILEDB_S3}
         -DTILEDB_VERBOSE=ON
         -DTILEDB_SERIALIZATION=ON
       UPDATE_COMMAND ""

@@ -2,13 +2,12 @@ plugins {
     id 'java'
     id 'idea'
     id 'maven-publish'
-    id 'com.github.sherter.google-java-format' version '0.7.1'
+    id 'com.github.sherter.google-java-format' version '0.8'
     id 'com.github.johnrengelman.shadow' version '4.0.3'
-    id 'com.palantir.git-version' version '0.12.3'
 }
 
 group 'io.tiledb'
-version gitVersion()
+version '0.5.1-SNAPSHOT'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -57,14 +56,23 @@ processResources {
     // Relative path within the jar to place libraries
     def destDirName = 'lib'
 
-    from ("${pathConfig.nativeLibInstallDir}/lib") {
-        include '*'
-        into destDirName
+    if (file("${pathConfig.root}/lib").exists()) {
+        from ("${pathConfig.root}/lib") {
+            include '*'
+            into destDirName
+        }
     }
+    else {
 
-    from ("${pathConfig.jniLibInstallDir}/lib") {
-        include '*'
-        into destDirName
+        from("${pathConfig.nativeLibInstallDir}/lib") {
+            include '*'
+            into destDirName
+        }
+
+        from("${pathConfig.jniLibInstallDir}/lib") {
+            include '*'
+            into destDirName
+        }
     }
 }
 
@@ -95,8 +103,11 @@ task cmakeNativeLibTask(type: Exec) {
     executable = 'cmake'
 
     List<String> buildArgs = new ArrayList<String>()
-    if (project.hasProperty("NO_FORCE_EXTERNAL_HTSLIB")) {
-        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=OFF")
+    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_HTSLIB=${project.property('FORCE_EXTERNAL_HTSLIB')}")
+    }
+    if (project.hasProperty("FORCE_EXTERNAL_TILEDB")) {
+        buildArgs.add("-DFORCE_EXTERNAL_TILEDB=${project.property('FORCE_EXTERNAL_TILEDB')}")
     }
     buildArgs.add("..")
 
@@ -162,7 +173,9 @@ task findNativeLib {
 }
 
 assemble {
-    dependsOn findNativeLib, installJNITask
+    if (!file("${pathConfig.root}/lib").exists()) {
+        dependsOn findNativeLib, installJNITask
+    }
 }
 
 task sourceJar(type: Jar) {

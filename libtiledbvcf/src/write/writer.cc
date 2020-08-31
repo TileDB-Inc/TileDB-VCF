@@ -31,6 +31,8 @@
 #include "utils/sample_utils.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
+#include "write/writer_worker_v2.h"
+#include "write/writer_worker_v3.h"
 
 namespace tiledb {
 namespace vcf {
@@ -52,12 +54,19 @@ void Writer::init(
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
 
   ctx_.reset(new Context(*tiledb_config_));
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_config(params.tiledb_config);
+  utils::set_htslib_tiledb_context(tiledb_config_->ptr().get());
+
   vfs_.reset(new VFS(*ctx_, *tiledb_config_));
   array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+  creation_params_.allow_duplicates = true;
 }
 
 void Writer::set_all_params(const IngestionParams& params) {
@@ -87,6 +96,10 @@ void Writer::set_checksum_type(const int& checksum) {
 
 void Writer::set_checksum_type(const tiledb_filter_type_t& checksum) {
   creation_params_.checksum = checksum;
+}
+
+void Writer::set_allow_duplicates(const bool& allow_duplicates) {
+  creation_params_.allow_duplicates = allow_duplicates;
 }
 
 void Writer::create_dataset() {
@@ -218,9 +231,17 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
-  std::vector<WriterWorker> workers(params.num_threads);
-  for (auto& worker : workers)
-    worker.init(dataset, params, samples);
+  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  for (size_t i = 0; i < workers.size(); ++i) {
+    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
+    }
+
+    workers[i]->init(dataset, params, samples);
+  }
 
   // First compose the set of contigs that are nonempty.
   // This can significantly speed things up in the common case that the sample
@@ -228,11 +249,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   const auto& metadata = dataset.metadata();
   std::set<std::string> nonempty_contigs;
   for (const auto& s : samples) {
-    VCF vcf;
-    vcf.open(s.sample_uri, s.index_uri);
-    for (const auto& p : metadata.contig_offsets) {
-      if (vcf.contig_has_records(p.first))
-        nonempty_contigs.insert(p.first);
+    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+      VCFV2 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+      VCFV3 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
     }
   }
 
@@ -240,7 +271,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   size_t region_idx = 0;
   std::vector<std::future<bool>> tasks;
   for (unsigned i = 0; i < workers.size(); i++) {
-    WriterWorker* worker = &workers[i];
+    WriterWorker* worker = workers[i].get();
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
@@ -260,14 +291,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       if (!tasks[i].valid())
         continue;
 
-      WriterWorker* worker = &workers[i];
+      WriterWorker* worker = workers[i].get();
       bool task_complete = false;
       while (!task_complete) {
         task_complete = tasks[i].get();
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
-          worker->buffers().set_buffers(query_.get());
+          worker->buffers().set_buffers(
+              query_.get(), dataset.metadata().version);
           auto st = query_->submit();
           if (st != Query::Status::COMPLETE)
             throw std::runtime_error(
@@ -352,6 +384,18 @@ std::vector<Region> Writer::prepare_region_list(
   }
 
   return result;
+}
+
+void Writer::set_scratch_space(const std::string path, uint64_t size) {
+  ScratchSpaceInfo scratchSpaceInfo;
+  scratchSpaceInfo.path = path;
+  scratchSpaceInfo.size_mb = size;
+  this->registration_params_.scratch_space = scratchSpaceInfo;
+  this->ingestion_params_.scratch_space = scratchSpaceInfo;
+}
+
+void Writer::set_verbose(const bool& verbose) {
+  ingestion_params_.verbose = verbose;
 }
 
 }  // namespace vcf

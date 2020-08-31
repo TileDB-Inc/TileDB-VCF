@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.log4j.Level;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -20,7 +21,7 @@ import org.junit.Test;
 public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   private String testSampleGroupURI(String sampleGroupName) {
-    Path arraysPath = Paths.get("src", "test", "resources", "arrays", sampleGroupName);
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v3", sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
@@ -43,6 +44,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("samples", "HG01762,HG00280")
             .option("ranges", "1:12100-13360,1:13500-17350")
             .option("tiledb.vfs.num_threads", 1)
+            .option("tiledb_stats_log_level", Level.INFO.toString())
             .load();
     return dfRead;
   }
@@ -51,33 +53,55 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
   public void testSchema() {
     SparkSession spark = session();
     Dataset<Row> dfRead =
-        spark.read().format("io.tiledb.vcf.VCFDataSource").option("uri", "s3://foo/bar").load();
+        spark
+            .read()
+            .format("io.tiledb.vcf.VCFDataSource")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .load();
 
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 14l);
+    Assert.assertEquals(numColumns, 32l);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
     List<String> colNames =
         colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toList());
     Assert.assertEquals(
-        colNames,
         Arrays.asList(
-            "sampleName",
-            "contig",
-            "posStart",
-            "posEnd",
-            "alleles",
-            "filter",
-            "genotype",
-            "fmt_DP",
-            "fmt_GQ",
+            "fmt_SB",
             "fmt_MIN_DP",
+            "info_DP",
+            "info_ClippingRankSum",
+            "info_ReadPosRankSum",
             "fmt",
-            "info",
             "queryBedStart",
-            "queryBedEnd"));
+            "fmt_AD",
+            "posStart",
+            "info_BaseQRankSum",
+            "info_MLEAF",
+            "posEnd",
+            "fmt_GQ",
+            "info_MLEAC",
+            "genotype",
+            "id",
+            "alleles",
+            "info",
+            "sampleName",
+            "info_MQ",
+            "queryBedEnd",
+            "info_MQ0",
+            "fmt_PL",
+            "filter",
+            "info_HaplotypeScore",
+            "contig",
+            "info_DS",
+            "info_InbreedingCoeff",
+            "info_END",
+            "fmt_DP",
+            "info_MQRankSum",
+            "qual"),
+        colNames);
   }
 
   @Test(expected = org.apache.spark.sql.AnalysisException.class)
@@ -139,7 +163,6 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   @Test
   public void testBedFile() {
-    System.out.println("BED: " + testSampleFile());
     Dataset<Row> dfRead =
         session()
             .read()
@@ -177,6 +200,42 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     Assert.assertEquals(rows.get(0).getString(0), "HG01762");
     Assert.assertEquals(rows.get(1).getString(0), "HG01762");
     Assert.assertEquals(rows.get(2).getString(0), "HG01762");
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testSchemaPushDownSamplesError() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("samples", "HG01762")
+            .option("tiledb.vfs.num_threads", 1)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testSchemaPushDownSamplesError2() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("samplefile", testSampleFile())
+            .option("tiledb.vfs.num_threads", 1)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
   }
 
   @Test
@@ -271,14 +330,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     // check null values
     for (int i = 0; i < rows.size(); i++) {
       boolean isNull = rows.get(i).isNullAt(0);
-      if (i == 4) {
-        Assert.assertFalse(isNull);
-        List<String> row = rows.get(i).getList(0);
-        Assert.assertEquals(row.size(), 1);
-        Assert.assertEquals(row.get(0), "LowQual");
-      } else {
-        Assert.assertTrue(isNull);
-      }
+      Assert.assertTrue(isNull);
     }
   }
 

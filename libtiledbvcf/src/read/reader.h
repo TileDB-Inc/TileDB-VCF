@@ -79,6 +79,7 @@ struct ExportParams {
   bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
+  bool tiledb_stats_enabled = false;
 
   // Memory/performance params:
   unsigned memory_budget_mb = 2 * 1024;
@@ -125,6 +126,10 @@ class Reader {
    * operation to occur without reopening the dataset.
    */
   void reset();
+
+  /** Reset user buffers. Used to reuse a reader but for different attributes.
+   */
+  void reset_buffers();
 
   /** Convenience function to set all parameters from the given struct. */
   void set_all_params(const ExportParams& params);
@@ -192,6 +197,15 @@ class Reader {
   /** Sets TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);
 
+  /** Enable tiledb stats */
+  void set_tiledb_stats_enabled(bool stats_enabled);
+
+  /** Returns if tiledb stats are enabled */
+  void tiledb_stats_enabled(bool* enabled);
+
+  /** Fetches tiledb stats as a string */
+  void tiledb_stats(char** stats);
+
   /** Returns the read status of the last read operation. */
   ReadStatus read_status() const;
 
@@ -250,6 +264,51 @@ class Reader {
   void get_buffer_validity_bitmap(
       int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
+  /**
+   * Get the count of materialized attributes
+   * @param count of attributes
+   */
+  void queryable_attribute_count(int32_t* count);
+
+  /**
+   * Get a materialized attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void queryable_attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the count of fmt attributes
+   * @param count of attributes
+   */
+  void fmt_attribute_count(int32_t* count);
+
+  /**
+   * Get a fmt attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void fmt_attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the count of info attributes
+   * @param count of attributes
+   */
+  void info_attribute_count(int32_t* count);
+
+  /**
+   * Get an info attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void info_attribute_name(int32_t index, char** name);
+
+  /**
+   * Sets verbose mode on or off
+   * @param verbose setting
+   */
+  void set_verbose(const bool& verbose);
+
  private:
   /* ********************************* */
   /*           PRIVATE DATATYPES       */
@@ -278,10 +337,16 @@ class Reader {
     uint32_t sample_max = 0;
 
     /** Map of current relative sample ID -> sample name. */
-    std::vector<SampleAndId> current_samples;
+    std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
     std::vector<SafeBCFHdr> current_hdrs;
+
+    /**
+     * Stores the index to a region that was unsuccessfully reported
+     * in the last read.
+     */
+    size_t last_intersecting_region_idx_;
 
     /** Map of current relative sample ID -> last real_end reported. */
     std::vector<uint32_t> last_reported_end;
@@ -402,7 +467,16 @@ class Reader {
    * regions with the contents of the regions file, sorts, and performs the
    * anchor gap widening and merging process.
    */
-  void prepare_regions(
+  void prepare_regions_v3(
+      std::vector<Region>* regions,
+      std::vector<QueryRegion>* query_regions) const;
+
+  /**
+   * Prepares the regions to be queried and exported. This merges the list of
+   * regions with the contents of the regions file, sorts, and performs the
+   * anchor gap widening and merging process.
+   */
+  void prepare_regions_v2(
       std::vector<Region>* regions,
       std::vector<QueryRegion>* query_regions) const;
 
@@ -414,7 +488,14 @@ class Reader {
    * during in-memory export, a user buffer filled up (which means it was an
    * incomplete read operation). Else, returns true.
    */
-  bool process_query_results();
+  bool process_query_results_v3();
+
+  /**
+   * Processes the result cells from the last TileDB query. Returns false if,
+   * during in-memory export, a user buffer filled up (which means it was an
+   * incomplete read operation). Else, returns true.
+   */
+  bool process_query_results_v2();
 
   /**
    * Reports (exports or copies into external buffers) the cell in the current
@@ -437,6 +518,31 @@ class Reader {
    *
    * @param regions Sorted regions vector to search
    * @param region_idx Index to start iteration
+   * @param real_start Real start pos of record to check for intersection
+   * @param start Start pos of record to check for intersection
+   * @param end End pos of record to check for intersection
+   * @param new_region_idx Will be set to the upper bound index (i.e. the second
+   *    element in the return value).
+   * @return A pair (lower, upper) of the interval of intersecting regions. If
+   *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
+   */
+  static std::pair<size_t, size_t> get_intersecting_regions_v3(
+      const std::vector<Region>& regions,
+      size_t region_idx,
+      uint32_t real_start,
+      uint32_t start,
+      uint32_t end,
+      size_t* new_region_idx);
+
+  /**
+   * Finds the interval of indexes in the sorted regions vector that intersect
+   * a record with the given start/end/real_end coordinates.
+   *
+   * This performs a linear search starting at the given index to find the first
+   * intersecting index, and then iterates forward to find the last index.
+   *
+   * @param regions Sorted regions vector to search
+   * @param region_idx Index to start iteration
    * @param start Start pos of record to check for intersection
    * @param end End pos of record to check for intersection
    * @param real_end Real end pos of record to check for intersection
@@ -445,7 +551,7 @@ class Reader {
    * @return A pair (lower, upper) of the interval of intersecting regions. If
    *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
    */
-  static std::pair<size_t, size_t> get_intersecting_regions(
+  static std::pair<size_t, size_t> get_intersecting_regions_v2(
       const std::vector<Region>& regions,
       size_t region_idx,
       uint32_t start,

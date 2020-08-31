@@ -1,6 +1,7 @@
 steps:
 
   - task: Docker@2
+<<<<<<< HEAD
     displayName: Docker image (latest)
     inputs:
       containerRegistry: 'Docker Hub'
@@ -20,3 +21,36 @@ steps:
       Dockerfile: $(dockerfile)
       buildContext: $(context)
       tags: $(Build.SourceBranchName)
+=======
+    displayName: Build Image
+    inputs:
+      command: build
+      repository: $(repository)
+      Dockerfile: $(dockerfile)
+      buildContext: $(context)
+      tags: |
+        dev
+        latest
+        $(build.SourceBranchName)
+
+  - task: Docker@2
+    displayName: Push Latest Tag
+    condition: eq(variables['build.sourceBranch'], 'refs/heads/master')
+    inputs:
+      command: push
+      containerRegistry: 'dockerHub'
+      repository: $(repository)
+      tags: dev
+
+  - task: Docker@2
+    displayName: Push Release Tag
+    condition: startsWith(variables['build.sourceBranch'], 'refs/tags')
+    inputs:
+      command: push
+      containerRegistry: 'dockerHub'
+      repository: $(repository)
+      tags: |
+        dev
+        latest
+        $(build.SourceBranchName)
+>>>>>>> origin/master

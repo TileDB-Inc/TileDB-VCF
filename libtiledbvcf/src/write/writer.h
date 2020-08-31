@@ -39,7 +39,6 @@
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "vcf/htslib_value.h"
-#include "write/record_heap.h"
 
 namespace tiledb {
 namespace vcf {
@@ -130,6 +129,12 @@ class Writer {
   void set_checksum_type(const int& checksum);
   void set_checksum_type(const tiledb_filter_type_t& checksum);
 
+  /**
+   * Sets whether duplicates are allowed in the sample array or not
+   * @param set_allow_duplicates
+   */
+  void set_allow_duplicates(const bool& allow_duplicates);
+
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();
 
@@ -138,6 +143,15 @@ class Writer {
 
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
+
+  /** Set ingestion scatch space for ingestion or registration */
+  void set_scratch_space(const std::string path, uint64_t size);
+
+  /**
+   * Sets verbose mode on or off
+   * @param verbose setting
+   */
+  void set_verbose(const bool& verbose);
 
  private:
   /* ********************************* */

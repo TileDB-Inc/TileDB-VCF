@@ -33,8 +33,10 @@
 #include <cstring>
 #include <iostream>
 
-static std::string INPUT_ARRAYS_DIR =
-    TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays");
+static std::string INPUT_ARRAYS_DIR_V3 =
+    TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v3");
+static std::string INPUT_ARRAYS_DIR_V2 =
+    TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v2");
 
 /* ********************************* */
 /*           HELPER MACROS           */
@@ -168,16 +170,11 @@ static std::string INPUT_ARRAYS_DIR =
           (reader), "fmt_GT", sizeof(fmt_GT_offsets), fmt_GT_offsets) == \
       TILEDB_VCF_OK);
 
-#define SET_BUFF_FMT_DP(r, nr)                                           \
-  int32_t fmt_DP_offsets[(nr) + 1];                                      \
-  int fmt_DP[(nr)];                                                      \
-  REQUIRE(                                                               \
-      tiledb_vcf_reader_set_buffer_values(                               \
-          (reader), "fmt_DP", sizeof(fmt_DP), fmt_DP) == TILEDB_VCF_OK); \
-  REQUIRE(                                                               \
-      tiledb_vcf_reader_set_buffer_offsets(                              \
-          (reader), "fmt_DP", sizeof(fmt_DP_offsets), fmt_DP_offsets) == \
-      TILEDB_VCF_OK);
+#define SET_BUFF_FMT_DP(r, nr)             \
+  int fmt_DP[(nr)];                        \
+  REQUIRE(                                 \
+      tiledb_vcf_reader_set_buffer_values( \
+          (reader), "fmt_DP", sizeof(fmt_DP), fmt_DP) == TILEDB_VCF_OK);
 
 /* ********************************* */
 /*               TESTS               */
@@ -195,13 +192,20 @@ TEST_CASE("C API: Reader initialization", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
 
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
-
   SECTION("- Nonexistent array") {
     REQUIRE(tiledb_vcf_reader_init(reader, "abc") == TILEDB_VCF_ERR);
   }
 
   SECTION("- Existing sample") {
+    std::string dataset_uri;
+    SECTION("- V2") {
+      dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+    }
+
+    SECTION("- V3") {
+      dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+    }
+
     REQUIRE(
         tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
   }
@@ -237,13 +241,104 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
         tiledb_vcf_reader_set_tiledb_config(reader, config2) == TILEDB_VCF_ERR);
   }
 
+  SECTION("- TBB options") {
+    const char* config = "sm.num_tbb_threads=4";
+    REQUIRE(
+        tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
+  }
+
+  tiledb_vcf_reader_free(&reader);
+}
+
+TEST_CASE("C API: Reader set tbb and memory", "[capi][query]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  // Setting the memory budget first should not cause any error
+  REQUIRE(tiledb_vcf_reader_set_memory_budget(reader, 100) == TILEDB_VCF_OK);
+
+  const char* config = "sm.num_tbb_threads=4";
+  REQUIRE(tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
+
+  tiledb_vcf_reader_free(&reader);
+}
+
+TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  int32_t count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_queryable_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_queryable_attribute_name(
+            reader, i, &attribute_name) == TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
+  count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_fmt_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_fmt_attribute_name(reader, i, &attribute_name) ==
+        TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
+  count = 0;
+  REQUIRE(
+      tiledb_vcf_reader_get_info_attribute_count(reader, &count) ==
+      TILEDB_VCF_OK);
+
+  REQUIRE(count > 0);
+
+  for (int32_t i = 0; i < count; i++) {
+    char* attribute_name;
+    REQUIRE(
+        tiledb_vcf_reader_get_info_attribute_name(reader, i, &attribute_name) ==
+        TILEDB_VCF_OK);
+    REQUIRE(attribute_name != nullptr);
+  }
+
   tiledb_vcf_reader_free(&reader);
 }
 
 TEST_CASE("C API: Reader set regions", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Empty string is ok
@@ -260,7 +355,16 @@ TEST_CASE("C API: Reader set regions", "[capi][reader]") {
 TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
   const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -278,7 +382,16 @@ TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
 TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
   const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -319,7 +432,20 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+
+  unsigned version;
+  SECTION("- V2") {
+    version = 2;
+  }
+
+  SECTION("- V3") {
+    version = 3;
+  }
+
+  std::string dataset_uri = version == 2 ?
+                                INPUT_ARRAYS_DIR_V2 + "/ingested_2samples" :
+                                INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -496,9 +622,13 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
+  if (version == 2) {
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
+  }
   REQUIRE(filters_offsets[4] == 0);
-  REQUIRE(strncmp("LowQual", &filters[filters_offsets[4]], 7) == 0);
   REQUIRE(fmt_GT_offsets[4] == 8);
   REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
@@ -520,7 +650,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  REQUIRE(filters_offsets[5] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[5] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[5] == 0);
+  }
   REQUIRE(fmt_GT_offsets[5] == 10);
   REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
@@ -542,7 +677,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  REQUIRE(filters_offsets[6] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[6] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[6] == 0);
+  }
   REQUIRE(fmt_GT_offsets[6] == 12);
   REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
@@ -564,7 +704,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  REQUIRE(filters_offsets[7] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[7] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[7] == 0);
+  }
   REQUIRE(fmt_GT_offsets[7] == 14);
   REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
@@ -586,7 +731,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  REQUIRE(filters_offsets[8] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[8] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[8] == 0);
+  }
   REQUIRE(fmt_GT_offsets[8] == 16);
   REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
@@ -608,7 +758,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[9] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[9] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[9] == 0);
+  }
   REQUIRE(fmt_GT_offsets[9] == 18);
   REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
@@ -619,7 +774,12 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
 
   // Check final offsets are equal to data size
   REQUIRE(sample_name_offsets[10] == 70);
-  REQUIRE(filters_offsets[10] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[10] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[10] == 0);
+  }
   REQUIRE(fmt_GT_offsets[10] == 20);
   REQUIRE(info_offsets[10] == 40);
   REQUIRE(format_offsets[10] == 950);
@@ -630,7 +790,20 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+
+  unsigned version;
+  SECTION("- V2") {
+    version = 2;
+  }
+
+  SECTION("- V3") {
+    version = 3;
+  }
+
+  std::string dataset_uri =
+      version == 2 ? INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL" :
+                     INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -699,7 +872,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 0)) == 0);
+  if (version == 2) {
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
+  }
   REQUIRE(filters_offsets[0] == 0);
   REQUIRE(fmt_GT_offsets[0] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 0);
@@ -708,7 +886,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[0] == 0);
   REQUIRE(query_bed_start[0] == 12099);
   REQUIRE(query_bed_end[0] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
+  REQUIRE(fmt_DP[0] == 0);
   REQUIRE(pl[pl_offsets[0]] == 0);
   REQUIRE(pl[pl_offsets[0] + 1] == 0);
   REQUIRE(pl[pl_offsets[0] + 2] == 0);
@@ -734,7 +912,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[1] == 38);
   REQUIRE(query_bed_start[1] == 12099);
   REQUIRE(query_bed_end[1] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
+  REQUIRE(fmt_DP[1] == 0);
   REQUIRE(pl[pl_offsets[1]] == 0);
   REQUIRE(pl[pl_offsets[1] + 1] == 0);
   REQUIRE(pl[pl_offsets[1] + 2] == 0);
@@ -760,7 +938,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[2] == 76);
   REQUIRE(query_bed_start[2] == 12099);
   REQUIRE(query_bed_end[2] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
+  REQUIRE(fmt_DP[2] == 0);
   REQUIRE(pl[pl_offsets[2]] == 0);
   REQUIRE(pl[pl_offsets[2] + 1] == 0);
   REQUIRE(pl[pl_offsets[2] + 2] == 0);
@@ -786,7 +964,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[3] == 114);
   REQUIRE(query_bed_start[3] == 12099);
   REQUIRE(query_bed_end[3] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
+  REQUIRE(fmt_DP[3] == 0);
   REQUIRE(pl[pl_offsets[3]] == 0);
   REQUIRE(pl[pl_offsets[3] + 1] == 0);
   REQUIRE(pl[pl_offsets[3] + 2] == 0);
@@ -803,9 +981,13 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
+  if (version == 2) {
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
+  }
   REQUIRE(filters_offsets[4] == 0);
-  REQUIRE(strncmp("LowQual", &filters[filters_offsets[4]], 7) == 0);
   REQUIRE(fmt_GT_offsets[4] == 8);
   REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
@@ -813,7 +995,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[4] == 152);
   REQUIRE(query_bed_start[4] == 12099);
   REQUIRE(query_bed_end[4] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
+  REQUIRE(fmt_DP[4] == 15);
   REQUIRE(pl[pl_offsets[4]] == 0);
   REQUIRE(pl[pl_offsets[4] + 1] == 24);
   REQUIRE(pl[pl_offsets[4] + 2] == 360);
@@ -831,7 +1013,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  REQUIRE(filters_offsets[5] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[5] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[5] == 0);
+  }
   REQUIRE(fmt_GT_offsets[5] == 10);
   REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
@@ -839,7 +1026,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[5] == 190);
   REQUIRE(query_bed_start[5] == 12099);
   REQUIRE(query_bed_end[5] == 13360);
-  REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
+  REQUIRE(fmt_DP[5] == 64);
   REQUIRE(pl[pl_offsets[5]] == 0);
   REQUIRE(pl[pl_offsets[5] + 1] == 66);
   REQUIRE(pl[pl_offsets[5] + 2] == 990);
@@ -857,7 +1044,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  REQUIRE(filters_offsets[6] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[6] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[6] == 0);
+  }
   REQUIRE(fmt_GT_offsets[6] == 12);
   REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
@@ -865,7 +1057,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[6] == 228);
   REQUIRE(query_bed_start[6] == 13499);
   REQUIRE(query_bed_end[6] == 17350);
-  REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
+  REQUIRE(fmt_DP[6] == 10);
   REQUIRE(pl[pl_offsets[6]] == 0);
   REQUIRE(pl[pl_offsets[6] + 1] == 21);
   REQUIRE(pl[pl_offsets[6] + 2] == 210);
@@ -883,7 +1075,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  REQUIRE(filters_offsets[7] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[7] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[7] == 0);
+  }
   REQUIRE(fmt_GT_offsets[7] == 14);
   REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
@@ -891,7 +1088,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[7] == 266);
   REQUIRE(query_bed_start[7] == 13499);
   REQUIRE(query_bed_end[7] == 17350);
-  REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
+  REQUIRE(fmt_DP[7] == 6);
   REQUIRE(pl[pl_offsets[7]] == 0);
   REQUIRE(pl[pl_offsets[7] + 1] == 6);
   REQUIRE(pl[pl_offsets[7] + 2] == 90);
@@ -909,7 +1106,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  REQUIRE(filters_offsets[8] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[8] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[8] == 0);
+  }
   REQUIRE(fmt_GT_offsets[8] == 16);
   REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
@@ -917,7 +1119,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[8] == 304);
   REQUIRE(query_bed_start[8] == 13499);
   REQUIRE(query_bed_end[8] == 17350);
-  REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
+  REQUIRE(fmt_DP[8] == 0);
   REQUIRE(pl[pl_offsets[8]] == 0);
   REQUIRE(pl[pl_offsets[8] + 1] == 0);
   REQUIRE(pl[pl_offsets[8] + 2] == 0);
@@ -935,7 +1137,12 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[9] == 7);
+  if (version == 2) {
+    REQUIRE(filters_offsets[9] == 7);
+  } else {
+    REQUIRE(version == 3);
+    REQUIRE(filters_offsets[9] == 0);
+  }
   REQUIRE(fmt_GT_offsets[9] == 18);
   REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
@@ -943,7 +1150,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(format_offsets[9] == 342);
   REQUIRE(query_bed_start[9] == 13499);
   REQUIRE(query_bed_end[9] == 17350);
-  REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
+  REQUIRE(fmt_DP[9] == 0);
   REQUIRE(pl[pl_offsets[9]] == 0);
   REQUIRE(pl[pl_offsets[9] + 1] == 0);
   REQUIRE(pl[pl_offsets[9] + 2] == 0);
@@ -954,7 +1161,16 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -1003,7 +1219,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
+  REQUIRE(fmt_DP[0] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
@@ -1014,7 +1230,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
+  REQUIRE(fmt_DP[1] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
@@ -1025,7 +1241,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
+  REQUIRE(fmt_DP[2] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
@@ -1036,7 +1252,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
+  REQUIRE(fmt_DP[3] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
@@ -1047,7 +1263,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
+  REQUIRE(fmt_DP[4] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
@@ -1058,7 +1274,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
+  REQUIRE(fmt_DP[5] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
@@ -1069,7 +1285,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
+  REQUIRE(fmt_DP[6] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
@@ -1080,7 +1296,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
+  REQUIRE(fmt_DP[7] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
@@ -1091,7 +1307,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
+  REQUIRE(fmt_DP[8] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
@@ -1102,7 +1318,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
+  REQUIRE(fmt_DP[9] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1110,7 +1326,14 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up ranges (defaulting to all samples)
@@ -1157,7 +1380,7 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
+  REQUIRE(fmt_DP[0] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
@@ -1168,7 +1391,7 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
+  REQUIRE(fmt_DP[1] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
@@ -1179,7 +1402,7 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
+  REQUIRE(fmt_DP[2] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
@@ -1190,7 +1413,7 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
+  REQUIRE(fmt_DP[3] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1198,7 +1421,14 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -1246,7 +1476,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
+  REQUIRE(fmt_DP[0] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
@@ -1257,7 +1487,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
+  REQUIRE(fmt_DP[1] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
@@ -1268,7 +1498,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
+  REQUIRE(fmt_DP[2] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
@@ -1279,7 +1509,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
+  REQUIRE(fmt_DP[3] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
@@ -1290,7 +1520,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
+  REQUIRE(fmt_DP[4] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
@@ -1301,7 +1531,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
+  REQUIRE(fmt_DP[5] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
@@ -1312,7 +1542,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
+  REQUIRE(fmt_DP[6] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
@@ -1323,7 +1553,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
+  REQUIRE(fmt_DP[7] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
@@ -1334,7 +1564,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
+  REQUIRE(fmt_DP[8] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
@@ -1345,7 +1575,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
+  REQUIRE(fmt_DP[9] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1353,7 +1583,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   auto sample_uri =
       TILEDB_VCF_TEST_INPUT_DIR + std::string("/sample_names.txt");
   REQUIRE(
@@ -1406,7 +1643,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 0);
+  REQUIRE(fmt_DP[0] == 0);
 
   REQUIRE(pos_end[1] == 12277);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
@@ -1417,7 +1654,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 0);
+  REQUIRE(fmt_DP[1] == 0);
 
   REQUIRE(pos_end[2] == 12771);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
@@ -1428,7 +1665,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 0);
+  REQUIRE(fmt_DP[2] == 0);
 
   REQUIRE(pos_end[3] == 12771);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
@@ -1439,7 +1676,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 0);
+  REQUIRE(fmt_DP[3] == 0);
 
   REQUIRE(pos_end[4] == 13374);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
@@ -1450,7 +1687,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 15);
+  REQUIRE(fmt_DP[4] == 15);
 
   REQUIRE(pos_end[5] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
@@ -1461,7 +1698,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[5]] == 64);
+  REQUIRE(fmt_DP[5] == 64);
 
   REQUIRE(pos_end[6] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
@@ -1472,7 +1709,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[6]] == 10);
+  REQUIRE(fmt_DP[6] == 10);
 
   REQUIRE(pos_end[7] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
@@ -1483,7 +1720,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[7]] == 6);
+  REQUIRE(fmt_DP[7] == 6);
 
   REQUIRE(pos_end[8] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
@@ -1494,7 +1731,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[8]] == 0);
+  REQUIRE(fmt_DP[8] == 0);
 
   REQUIRE(pos_end[9] == 17479);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
@@ -1505,7 +1742,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[9]] == 0);
+  REQUIRE(fmt_DP[9] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1513,7 +1750,14 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (empty result set)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -1550,7 +1794,14 @@ TEST_CASE(
     "C API: Reader submit (incomplete query)", "[capi][reader][incomplete]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -1788,7 +2039,14 @@ TEST_CASE(
     "C API: Reader submit (incomplete query 2)", "[capi][reader][incomplete]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -2047,7 +2305,14 @@ TEST_CASE("C API: Reader get error message", "[capi][reader]") {
   tiledb_vcf_error_free(&error);
 
   // Check OK operation clears error message
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_reader_get_last_error(reader, &error) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_error_get_message(error, &msg) == TILEDB_VCF_OK);
@@ -2060,7 +2325,14 @@ TEST_CASE("C API: Reader get error message", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -2202,7 +2474,14 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
   tiledb_vcf_reader_t *reader0 = nullptr, *reader1 = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader0) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_reader_alloc(&reader1) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(
       tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
   REQUIRE(
@@ -2324,7 +2603,14 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   tiledb_vcf_reader_t *reader0 = nullptr, *reader1 = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader0) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_reader_alloc(&reader1) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   const char* all_samples = "HG01762,HG00280";
   REQUIRE(
       tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
@@ -2446,7 +2732,14 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
 TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -2493,7 +2786,7 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[0]] == 15);
+  REQUIRE(fmt_DP[0] == 15);
 
   REQUIRE(pos_end[1] == 13389);
   REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
@@ -2504,7 +2797,7 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[1]] == 64);
+  REQUIRE(fmt_DP[1] == 64);
 
   REQUIRE(pos_end[2] == 13519);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
@@ -2515,7 +2808,7 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[2]] == 10);
+  REQUIRE(fmt_DP[2] == 10);
 
   REQUIRE(pos_end[3] == 13544);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[3]], 7) == 0);
@@ -2526,7 +2819,7 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[3]] == 6);
+  REQUIRE(fmt_DP[3] == 6);
 
   REQUIRE(pos_end[4] == 13689);
   REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
@@ -2537,7 +2830,7 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  REQUIRE(fmt_DP[fmt_DP_offsets[4]] == 0);
+  REQUIRE(fmt_DP[4] == 0);
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -2547,7 +2840,14 @@ TEST_CASE(
     "[capi][reader][incomplete]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
-  auto dataset_uri = INPUT_ARRAYS_DIR + "/ingested_2samples";
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges

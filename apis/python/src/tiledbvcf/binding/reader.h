@@ -85,6 +85,9 @@ class Reader {
   /** Sets CSV TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);
 
+  /** Sets whether internal TileDB Statistics are Enabled or Disabled*/
+  void set_tiledb_stats_enabled(const bool stats_enabled);
+
   /** Performs a blocking read operation. */
   void read();
 
@@ -105,6 +108,28 @@ class Reader {
 
   /** Returns true if the last read operation was complete. */
   bool completed();
+
+  /** Gets whether internal TileDB Statistics are Enabled or Disabled*/
+  bool get_tiledb_stats_enabled();
+
+  /** Fetches TileDB statistics */
+  std::string get_tiledb_stats();
+
+  /** Returns fmt attribute names */
+  std::vector<std::string> get_fmt_attributes();
+
+  /** Returns info attribute names */
+  std::vector<std::string> get_info_attributes();
+
+  /** Returns all queryable attribute names */
+  std::vector<std::string> get_queryable_attributes();
+
+  /**
+   * Set reader verbose output mode
+   *
+   * @param verbose mode
+   */
+  void set_verbose(bool verbose);
 
  private:
   /** Buffer struct to hold attribute data read from the dataset. */

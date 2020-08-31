@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import warnings
 
 from collections import namedtuple
 from . import libtiledbvcf
@@ -21,15 +22,18 @@ ReadConfig = namedtuple('ReadConfig', [
 ReadConfig.__new__.__defaults__ = (None,) * 6#len(ReadConfig._fields)
 
 
-class TileDBVCFDataset(object):
+class Dataset(object):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode='r', cfg=None):
+    def __init__(self, uri, mode='r', cfg=None, stats=False, verbose=False):
         """ Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
+        :param cfg: TileDB VCF configuration (optional)
+        :param stats: Enable or disable TileDB stats (optional)
+        :param verbose: Enable or disable TileDB VCF verbose output (optional)
         """
         self.uri = uri
         self.mode = mode
@@ -38,9 +42,12 @@ class TileDBVCFDataset(object):
             self.reader = libtiledbvcf.Reader()
             self._set_read_cfg(cfg)
             self.reader.init(uri)
+            self.reader.set_tiledb_stats_enabled(stats)
+            self.reader.set_verbose(verbose)
         elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
             self.writer.init(uri)
+            self.writer.set_verbose(verbose)
             if cfg is not None:
                 raise Exception('Config not supported in write mode')
         else:
@@ -81,6 +88,7 @@ class TileDBVCFDataset(object):
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):
+
         """Reads data from a TileDB-VCF dataset.
 
         For large datasets, a call to `read()` may not be able to fit all
@@ -102,15 +110,11 @@ class TileDBVCFDataset(object):
             raise Exception('Dataset not open in read mode')
 
         self.reader.reset()
+        self._set_samples(samples, samples_file)
 
-        samples = '' if samples is None else samples
         regions = '' if regions is None else regions
-        self.reader.set_samples(','.join(samples))
         self.reader.set_regions(','.join(regions))
         self.reader.set_attributes(attrs)
-
-        if samples_file is not None:
-            self.reader.set_samples_file(samples_file)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -168,16 +172,21 @@ class TileDBVCFDataset(object):
 
         return self.reader.result_num_records()
 
-    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None):
+    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True, scratch_space_path=None, scratch_space_size=None):
         """Ingest samples
 
         :param list of str samples: CSV list of sample names to include in
             the count.
         :param list of str extra_attrs: CSV list of extra attributes to
             materialize from fmt field
-        :param str checksum_type: Optional override checksum type for creating new dataset
-            valid values are sha256, md5 or none.
+        :param str checksum_type: Optional override checksum type for creating
+            new dataset valid values are sha256, md5 or none.
+        :param str scratch_space_path: Directory used for local storage of
+            downloaded remote samples.
+        :param int scratch_space_size: Amount of local storage that can be used
+            for downloading remote samples (MB).
         """
+
         if self.mode != 'w':
             raise Exception('Dataset not open in write mode')
 
@@ -188,6 +197,13 @@ class TileDBVCFDataset(object):
             checksum_type = checksum_type.lower()
             self.writer.set_checksum(checksum_type)
 
+        self.writer.set_allow_duplicates(allow_duplicates)
+
+        if scratch_space_path is not None and scratch_space_size is not None:
+            self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
+        elif scratch_space_path is not None or scratch_space_size is not None:
+            raise Exception('Must set both scratch_space_path and scratch_space_size to use scratch space')
+
         self.writer.set_samples(','.join(sample_uris))
 
         extra_attrs = '' if extra_attrs is None else extra_attrs
@@ -197,3 +213,85 @@ class TileDBVCFDataset(object):
         self.writer.create_dataset()
         self.writer.register_samples()
         self.writer.ingest_samples()
+
+    def tiledb_stats(self):
+        if self.mode != 'r':
+            raise Exception('Stats can only be called for reader')
+
+        if not self.reader.get_tiledb_stats_enabled:
+            raise Exception('Stats not enabled')
+
+        return self.reader.get_tiledb_stats();
+
+    def attributes(self, attr_type = "all"):
+        """List queryable attributes available in the VCF dataset
+
+        :param str type: The subset of attributes to retrieve; "info" or "fmt"
+            will only retrieve attributes ingested from the VCF INFO and FORMAT
+            fields, respectively, "builtin" retrieves the static attributes
+            defiend in TileDB-VCF's schema, "all" (the default) returns all
+            queryable attributes
+        :returns: a list of strings representing the attribute names
+        """
+
+        if self.mode != 'r':
+            raise Exception("Attributes can only be retrieved in read mode")
+
+        attr_types = ("all", "info", "fmt", "builtin")
+        if attr_type not in attr_types:
+            raise ValueError(
+                "Invalid attribute type. Must be one of: %s" % attr_types
+            )
+
+        # combined attributes with type object
+        comb_attrs = ("info", "fmt")
+
+        if attr_type == "info":
+            return self._info_attrs()
+        elif attr_type == "fmt":
+             return self._fmt_attrs()
+        else:
+            attrs = set(self._queryable_attrs()).difference(comb_attrs)
+            if attr_type == "builtin":
+                attrs.difference_update(self._info_attrs() + self._fmt_attrs())
+            return sorted(list(attrs))
+
+    def _queryable_attrs(self):
+        return self.reader.get_queryable_attributes()
+
+    def _fmt_attrs(self):
+        return self.reader.get_fmt_attributes()
+
+    def _info_attrs(self):
+        return self.reader.get_info_attributes()
+
+    def _set_samples(self, samples = None, samples_file = None):
+        if samples is not None and samples_file is not None:
+            raise TypeError(
+                "Argument 'samples' not allowed with 'samples_file'. "
+                "Only one of these two arguments can be passed at a time."
+            )
+        elif samples is not None:
+            self.reader.set_samples(','.join(samples))
+        elif samples_file is not None:
+            self.reader.set_samples('')
+            self.reader.set_samples_file(samples_file)
+
+class TileDBVCFDataset(Dataset):
+    """A handle on a TileDB-VCF dataset."""
+
+    def __init__(self, uri, mode='r', cfg=None, stats=False, verbose=False):
+        """ Initializes a TileDB-VCF dataset for interaction.
+
+        :param uri: URI of TileDB-VCF dataset
+        :param mode: Mode of operation.
+        :type mode: 'r' or 'w'
+        :param cfg: TileDB VCF configuration (optional)
+        :param stats: Enable or disable TileDB stats (optional)
+        :param verbose: Enable or disable TileDB VCF verbose output (optional)
+        """
+        warnings.warn(
+            "TileDBVCFDataset is deprecated, use Dataset instead",
+            DeprecationWarning
+        )
+        super().__init__(uri, mode, cfg, stats, verbose)

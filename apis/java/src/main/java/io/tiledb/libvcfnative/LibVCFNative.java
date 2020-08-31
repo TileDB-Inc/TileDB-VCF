@@ -83,8 +83,34 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_get_attribute_type(
       long readerPtr, String attribute, int[] datatype, int[] varLen, int[] nullable, int[] isList);
 
+  public static final native int tiledb_vcf_reader_get_attribute_count(long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_attribute_name(
+      long readerPtr, int index, byte[] name);
+
+  public static final native int tiledb_vcf_reader_get_fmt_attribute_count(
+      long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_fmt_attribute_name(
+      long readerPtr, int index, byte[] name);
+
+  public static final native int tiledb_vcf_reader_get_info_attribute_count(
+      long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_info_attribute_name(
+      long readerPtr, int index, byte[] name);
+
   public static final native int tiledb_vcf_reader_get_dataset_version(
       long readerPtr, int[] version);
 
+  public static final native int tiledb_vcf_reader_set_verbose(long readerPtr, boolean verbose);
+
   public static final native String tiledb_vcf_reader_get_last_error_message(long readerPtr);
+
+  public static final native int tiledb_vcf_reader_set_tiledb_stats_enabled(
+      long readerPtr, boolean statsEnabled);
+
+  public static final native boolean tiledb_vcf_reader_tiledb_stats_enabled(long readerPtr);
+
+  public static final native String tiledb_vcf_reader_tiledb_stats(long readerPtr);
 }

@@ -26,6 +26,7 @@
 
 #include <memory>
 
+#include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "read/bcf_exporter.h"
 #include "read/reader.h"
 

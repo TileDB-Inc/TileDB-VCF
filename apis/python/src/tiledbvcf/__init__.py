@@ -26,7 +26,7 @@ def _load_libs():
 _load_libs()
 
 # Load basic modules first
-from .dataset import (ReadConfig, TileDBVCFDataset)
+from .dataset import (ReadConfig, TileDBVCFDataset, Dataset)
 
 # Load dask additions, if dask is available
 try:

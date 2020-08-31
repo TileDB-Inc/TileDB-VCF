@@ -18,7 +18,9 @@ import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
 import org.apache.spark.sql.execution.arrow.ArrowUtils;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
@@ -28,7 +30,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
 public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBatch> {
-  private static Logger log = Logger.getLogger(VCFInputPartitionReader.class.getName());
+  private final Logger log;
 
   /**
    * Default memory budget (in MB). The Spark connector uses half for allocating columnar buffers,
@@ -78,6 +80,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   /** Stats counter: number of bytes in allocated buffers. */
   private long statsTotalBufferBytes;
 
+  private Level enableStatsLogLevel;
+
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -115,6 +119,42 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     } else {
       this.samples = new String[] {};
     }
+
+    this.enableStatsLogLevel = Level.OFF;
+    if (this.options.getTileDBStatsLogLevel().isPresent()) {
+      // If an invalid log level is set, the default is DEBUG
+      this.enableStatsLogLevel = Level.toLevel(this.options.getTileDBStatsLogLevel().get());
+    }
+
+    TaskContext task = TaskContext.get();
+    log =
+        Logger.getLogger(
+            VCFInputPartitionReader.class.getName()
+                + " (stage:"
+                + task.stageId()
+                + "/taskID:"
+                + task.partitionId()
+                + ")");
+    log.info(
+        "Task Stage ID - "
+            + task.stageId()
+            + ", Task Partition ID - "
+            + task.partitionId()
+            + " for TileDB-VCF Partition "
+            + partitionId
+            + " started");
+
+    task.addTaskCompletionListener(
+        context -> {
+          log.info(
+              "Task Stage ID - "
+                  + task.stageId()
+                  + ", Task Partition ID - "
+                  + task.partitionId()
+                  + " for TileDB-VCF Partition "
+                  + partitionId
+                  + " completed");
+        });
   }
 
   @Override
@@ -183,6 +223,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public void close() {
     log.info("Closing VCFReader for partition " + (this.partitionId));
 
+    if (!this.enableStatsLogLevel.equals(Level.OFF)) {
+      log.log(this.enableStatsLogLevel, this.vcfReader.stats());
+    }
+
     if (vcfReader != null) {
       vcfReader.close();
       vcfReader = null;
@@ -248,8 +292,17 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     // Set sort regions
     Optional<Boolean> sortRegions = options.getSortRegions();
     if (sortRegions.isPresent()) {
-      vcfReader.setSortRegions(sortRegions.get().booleanValue());
+      vcfReader.setSortRegions(sortRegions.get());
     }
+
+    // Set verbose
+    Optional<Boolean> verbose = options.getVerbose();
+    if (verbose.isPresent()) {
+      vcfReader.setVerbose(verbose.get());
+    }
+
+    // Enable VCFReader stats
+    if (!this.enableStatsLogLevel.equals(Level.OFF)) this.vcfReader.setStatsEnabled(true);
 
     // Set logical partition in array
     vcfReader.setRangePartition(
@@ -337,14 +390,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
-    long maxRowsL = (attributeBufferSize / 4L);
+    // Allocate an Arrow-backed buffer for the attribute.
+    ValueVector valueVector = makeArrowVector(fieldName, info);
+
+    long maxRowsL = (attributeBufferSize / Util.getDefaultRecordByteCount(valueVector.getClass()));
 
     // Max number of rows is nbytes / sizeof(int32_t), i.e. the max number of offsets that can be
     // stored.
     int maxNumRows = Util.longToInt(maxRowsL);
 
-    // Allocate an Arrow-backed buffer for the attribute.
-    ValueVector valueVector = makeArrowVector(fieldName, info);
     if (valueVector instanceof ListVector) {
       ((ListVector) valueVector).setInitialCapacity(maxNumRows, 1);
     } else {

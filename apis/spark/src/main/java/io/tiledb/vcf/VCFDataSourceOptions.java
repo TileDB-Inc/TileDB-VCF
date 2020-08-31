@@ -44,7 +44,9 @@ public class VCFDataSourceOptions implements Serializable {
 
   /** @return Optional array of contig regions to read */
   public Optional<String[]> getRanges() {
-    if (options.containsKey("ranges")) {
+    if (options.containsKey("regions")) {
+      return Optional.of(options.get("regions").split("\\s*,[,\\s]*"));
+    } else if (options.containsKey("ranges")) {
       return Optional.of(options.get("ranges").split("\\s*,[,\\s]*"));
     }
     return Optional.empty();
@@ -115,6 +117,23 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return The log level for the VCFReader stats reporting */
+  public Optional<String> getTileDBStatsLogLevel() {
+    if (options.containsKey("tiledb_stats_log_level")) {
+      String statsLogLevel = options.get("tiledb_stats_log_level");
+      return Optional.of(statsLogLevel);
+    }
+    return Optional.empty();
+  }
+
+  /** @return If TileDB-VCF reader should be set to verbose output mode */
+  public Optional<Boolean> getVerbose() {
+    if (options.containsKey("verbose")) {
+      return Optional.of(Boolean.parseBoolean(options.get("verbose")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);
@@ -123,6 +142,7 @@ public class VCFDataSourceOptions implements Serializable {
   /**
    * Generic parser of key-value property maps into a CSV.
    *
+   * @param configMap csv config map
    * @return Optional CSV String of config parameters
    */
   protected static Optional<String> getConfigCSV(final Map<String, String> configMap) {
@@ -144,6 +164,8 @@ public class VCFDataSourceOptions implements Serializable {
   /**
    * Combines two optional configuration into one.
    *
+   * @param first first config to combine
+   * @param second second config to combine
    * @return Optional CSV String of config parameters.
    */
   protected static Optional<String> combineCsvOptions(

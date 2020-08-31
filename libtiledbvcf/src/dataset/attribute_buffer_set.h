@@ -54,7 +54,8 @@ class AttributeBufferSet {
    * @param mem_budget_mb Memory budget (MB) of sum of allocations.
    */
   void allocate_fixed(
-      const std::set<std::string>& attr_names, unsigned mem_budget_mb);
+      const std::unordered_set<std::string>& attr_names,
+      unsigned mem_budget_mb);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size
@@ -63,7 +64,7 @@ class AttributeBufferSet {
   uint64_t total_size() const;
 
   /** Sets these buffers on the given TileDB query. */
-  void set_buffers(tiledb::Query* query) const;
+  void set_buffers(tiledb::Query* query, unsigned version) const;
 
   /** Clears all buffers. */
   void clear();
@@ -74,11 +75,17 @@ class AttributeBufferSet {
   /** sample buffer. */
   Buffer& sample();
 
-  /** end_pos buffer. */
-  const Buffer& end_pos() const;
+  /** start_pos buffer. */
+  const Buffer& start_pos() const;
 
-  /** end_pos buffer. */
-  Buffer& end_pos();
+  /** start_pos buffer. */
+  Buffer& start_pos();
+
+  /** real_start_pos buffer. */
+  const Buffer& real_start_pos() const;
+
+  /** real_start_pos buffer. */
+  Buffer& real_start_pos();
 
   /** pos buffer. */
   const Buffer& pos() const;
@@ -91,6 +98,12 @@ class AttributeBufferSet {
 
   /** real_end buffer. */
   Buffer& real_end();
+
+  /** end_pos buffer. */
+  const Buffer& end_pos() const;
+
+  /** end_pos buffer. */
+  Buffer& end_pos();
 
   /** qual buffer. */
   const Buffer& qual() const;
@@ -129,10 +142,10 @@ class AttributeBufferSet {
   Buffer& fmt();
 
   /** Set of buffers for optional "extracted"/"extra" info/fmt attributes. */
-  const std::map<std::string, Buffer>& extra_attrs() const;
+  const std::unordered_map<std::string, Buffer>& extra_attrs() const;
 
   /** Set of buffers for optional "extracted"/"extra" info/fmt attributes. */
-  std::map<std::string, Buffer>& extra_attrs();
+  std::unordered_map<std::string, Buffer>& extra_attrs();
 
   /**
    * Gets the optional buffer for the given attribute. Returns true if a buffer
@@ -147,38 +160,44 @@ class AttributeBufferSet {
   bool extra_attr(const std::string& name, Buffer** buffer);
 
  private:
-  /** sample (uint32_t) */
+  /** sample v3/v2 dimension (uint32_t) */
   Buffer sample_;
 
-  /** end_pos (uint32_t) */
-  Buffer end_pos_;
+  /** start_pos v3 dimension (uint32_t) */
+  Buffer start_pos_;
 
-  /** pos attribute (uint32_t) */
+  /** pos v2 dimension (uint32_t) */
   Buffer pos_;
 
-  /** real_end attribute (uint32_t) */
+  /** real_end v2 attribute (uint32_t) */
   Buffer real_end_;
 
-  /** qual attribute (float) */
+  /** real_start_pos v3 attribute (uint32_t) */
+  Buffer real_start_pos_;
+
+  /** end_pos v3 attribute, v2 dimension (uint32_t) */
+  Buffer end_pos_;
+
+  /** qual v3/v2 attribute (float) */
   Buffer qual_;
 
-  /** CSV alleles list (var-len char) */
+  /** CSV alleles v3/v2 attribute list (var-len char) */
   Buffer alleles_;
 
-  /** ID string (var-len char) */
+  /** ID string v3/v2 attribute (var-len char) */
   Buffer id_;
 
-  /** Filter IDs list (var-len int32_t) */
+  /** Filter IDs v3/v2 attribute list (var-len int32_t) */
   Buffer filter_ids_;
 
-  /** info (var-len uint8_t) */
+  /** info v3/v2 attribute (var-len uint8_t) */
   Buffer info_;
 
-  /** fmt (var-len uint8_t) */
+  /** fmt v3/v2 attribute (var-len uint8_t) */
   Buffer fmt_;
 
   /** Optional extra extracted info/fmt attributes (all var-len uint8_t). */
-  std::map<std::string, Buffer> extra_attrs_;
+  std::unordered_map<std::string, Buffer> extra_attrs_;
 
   /**
    * List of (var_num, name, buffer, datatype_size) for all fixed-alloced

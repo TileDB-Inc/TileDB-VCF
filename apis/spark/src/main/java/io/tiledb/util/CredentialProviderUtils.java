@@ -17,7 +17,13 @@ public final class CredentialProviderUtils {
   private static final String TILEDB_SECRET_KEY_PROP = "tiledb.vfs.s3.aws_secret_access_key";
   private static final String TILEDB_SESSION_TOKEN_PROP = "tiledb.vfs.s3.aws_session_token";
 
-  /** Builds a credentials provider using Java's reflection API. */
+  /**
+   * Builds a credentials provider using Java's reflection API.
+   *
+   * @param className class of credential provider
+   * @param roleArn IAM role arn to use
+   * @return credential provider
+   */
   public static Optional<AWSSessionCredentialsProvider> get(
       final String className, final String roleArn) {
 
@@ -35,7 +41,12 @@ public final class CredentialProviderUtils {
     }
   }
 
-  /** Builds a key-value configuration map of tile-db AWS credentials. */
+  /**
+   * Builds a key-value configuration map of tile-db AWS credentials.
+   *
+   * @param provider aws credential provider
+   * @return map of configuration
+   */
   public static Map<String, String> buildConfigMap(final AWSSessionCredentialsProvider provider) {
     final AWSSessionCredentials credentials = provider.getCredentials();
     return ImmutableMap.of(

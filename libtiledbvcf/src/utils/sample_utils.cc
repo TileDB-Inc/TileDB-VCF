@@ -27,7 +27,6 @@
 #include "utils/sample_utils.h"
 #include "utils/buffer.h"
 #include "utils/utils.h"
-#include "vcf/vcf.h"
 
 namespace tiledb {
 namespace vcf {

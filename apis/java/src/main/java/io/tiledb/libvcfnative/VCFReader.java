@@ -57,6 +57,10 @@ public class VCFReader implements AutoCloseable {
     }
   }
 
+  public final Map<String, AttributeTypeInfo> attributes;
+  public final Map<String, AttributeTypeInfo> fmtAttributes;
+  public final Map<String, AttributeTypeInfo> infoAttributes;
+
   public VCFReader(
       String uri, String[] samples, Optional<URI> samplesURI, Optional<String> config) {
     long[] readerPtrArray = new long[1];
@@ -87,7 +91,7 @@ public class VCFReader implements AutoCloseable {
       throw new RuntimeException("Error initializing reader object: " + msg);
     }
 
-    if (samples.length > 0) {
+    if (samples != null && samples.length > 0) {
       String samplesCSV = String.join(",", samples);
       rc = LibVCFNative.tiledb_vcf_reader_set_samples(readerPtrArray[0], samplesCSV);
       if (rc != 0) {
@@ -115,6 +119,85 @@ public class VCFReader implements AutoCloseable {
 
     readerPtr = readerPtrArray[0];
     buffers = new HashMap<>();
+
+    attributes = compileAttributeList();
+    fmtAttributes = compileFmtAttributeList();
+    infoAttributes = compileInfoAttributeList();
+  }
+
+  private Map<String, AttributeTypeInfo> compileAttributeList() {
+    int[] count = new int[1];
+    int rc = LibVCFNative.tiledb_vcf_reader_get_attribute_count(readerPtr, count);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+    }
+
+    Map<String, AttributeTypeInfo> res = new HashMap<>();
+    for (int i = 0; i < count[0]; i++) {
+      byte[] nameBytes = new byte[1024];
+      rc = LibVCFNative.tiledb_vcf_reader_get_attribute_name(readerPtr, i, nameBytes);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+      }
+      int j;
+      for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
+      String name = new String(nameBytes, 0, j);
+      res.put(name, getAttributeDatatype(name));
+    }
+
+    return res;
+  }
+
+  private Map<String, AttributeTypeInfo> compileFmtAttributeList() {
+    int[] count = new int[1];
+    int rc = LibVCFNative.tiledb_vcf_reader_get_fmt_attribute_count(readerPtr, count);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+    }
+
+    Map<String, AttributeTypeInfo> res = new HashMap<>();
+    for (int i = 0; i < count[0]; i++) {
+      byte[] nameBytes = new byte[1024];
+      rc = LibVCFNative.tiledb_vcf_reader_get_fmt_attribute_name(readerPtr, i, nameBytes);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+      }
+      int j;
+      for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
+      String name = new String(nameBytes, 0, j);
+      res.put(name, getAttributeDatatype(name));
+    }
+
+    return res;
+  }
+
+  private Map<String, AttributeTypeInfo> compileInfoAttributeList() {
+    int[] count = new int[1];
+    int rc = LibVCFNative.tiledb_vcf_reader_get_info_attribute_count(readerPtr, count);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+    }
+
+    Map<String, AttributeTypeInfo> res = new HashMap<>();
+    for (int i = 0; i < count[0]; i++) {
+      byte[] nameBytes = new byte[1024];
+      rc = LibVCFNative.tiledb_vcf_reader_get_info_attribute_name(readerPtr, i, nameBytes);
+      if (rc != 0) {
+        String msg = getLastErrorMessage();
+        throw new RuntimeException("Error compiling list of dataset attributes: " + msg);
+      }
+      int j;
+      for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
+      String name = new String(nameBytes, 0, j);
+      res.put(name, getAttributeDatatype(name));
+    }
+
+    return res;
   }
 
   private String getLastErrorMessage() {
@@ -353,6 +436,36 @@ public class VCFReader implements AutoCloseable {
       default:
         throw new RuntimeException("Unknown attribute datatype " + datatype[0]);
     }
+  }
+
+  public VCFReader setVerbose(boolean verbose) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_verbose(this.readerPtr, verbose);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting verbose: " + msg);
+    }
+    return this;
+  }
+
+  public VCFReader setStatsEnabled(boolean statsEnabled) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_tiledb_stats_enabled(this.readerPtr, statsEnabled);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting stats enabled: " + msg);
+    }
+    return this;
+  }
+
+  public boolean getStatsEnabled() {
+    boolean statsEnabled = LibVCFNative.tiledb_vcf_reader_tiledb_stats_enabled(this.readerPtr);
+
+    return statsEnabled;
+  }
+
+  public String stats() {
+    String stats = LibVCFNative.tiledb_vcf_reader_tiledb_stats(this.readerPtr);
+
+    return stats;
   }
 
   public VCFReader resetBuffers() {

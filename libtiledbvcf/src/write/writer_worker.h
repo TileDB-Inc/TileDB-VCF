@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2020 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,6 @@
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "vcf/htslib_value.h"
-#include "write/record_heap.h"
 #include "write/writer.h"
 
 namespace tiledb {
@@ -56,17 +55,17 @@ namespace vcf {
  */
 class WriterWorker {
  public:
-  /** Constructor. */
-  WriterWorker();
+  /** Destructor. */
+  virtual ~WriterWorker() = default;
 
   /**
    * Initializes: opens the specified VCF files and allocates empty attribute
    * buffers.
    */
-  void init(
+  virtual void init(
       const TileDBVCFDataset& dataset,
       const IngestionParams& params,
-      const std::vector<SampleAndIndex>& samples);
+      const std::vector<SampleAndIndex>& samples) = 0;
 
   /**
    * Parse the given region from all samples into the attribute buffers.
@@ -76,7 +75,7 @@ class WriterWorker {
    *    False if the buffers ran out of space, and there are more records
    *    to be read.
    */
-  bool parse(const Region& region);
+  virtual bool parse(const Region& region) = 0;
 
   /**
    * Resumes parsing from the current state. This is used if the buffers are too
@@ -85,71 +84,16 @@ class WriterWorker {
    * @return True if the last record from all samples was buffered. False if the
    *    buffers ran out of space, and there are more records to be read.
    */
-  bool resume();
+  virtual bool resume() = 0;
 
   /** Return a handle to the attribute buffers */
-  const AttributeBufferSet& buffers() const;
+  virtual const AttributeBufferSet& buffers() const = 0;
 
   /** Returns the number of records buffered by the last parse operation. */
-  uint64_t records_buffered() const;
+  virtual uint64_t records_buffered() const = 0;
 
   /** Returns the number of anchors buffered by the last parse operation. */
-  uint64_t anchors_buffered() const;
-
- private:
-  /** Attribute buffers holding parsed data. */
-  AttributeBufferSet buffers_;
-
-  /** The destination dataset. */
-  const TileDBVCFDataset* dataset_;
-
-  /** Vector of VCF files being parsed. */
-  std::vector<std::unique_ptr<VCF>> vcfs_;
-
-  /** Reusable memory allocation for getting record field values from htslib. */
-  HtslibValueMem val_;
-
-  /** Current number of records buffered. */
-  uint64_t records_buffered_;
-
-  /** Current number of anchors buffered. */
-  uint64_t anchors_buffered_;
-
-  /** Region being parsed. */
-  Region region_;
-
-  /** Record heap for sorting records across samples. */
-  RecordHeap record_heap_;
-
-  /**
-   * Copies all fields of a VCF record or anchor into the attribute buffers.
-   *
-   * @param contig_offset Offset of the record's contig
-   * @param node Record to buffer
-   * @return True if copy succeeded; false on buffer overflow.
-   */
-  bool buffer_record(uint32_t contig_offset, const RecordHeap::Node& node);
-
-  /** Helper function to buffer the alleles attribute. */
-  static void buffer_alleles(bcf1_t* record, Buffer* buffer);
-
-  /** Helper function to buffer an INFO field. */
-  static void buffer_info_field(
-      const bcf_hdr_t* hdr,
-      bcf1_t* r,
-      const bcf_info_t* info,
-      bool include_key,
-      HtslibValueMem* val,
-      Buffer* buff);
-
-  /** Helper function to buffer a FMT field. */
-  static void buffer_fmt_field(
-      const bcf_hdr_t* hdr,
-      bcf1_t* r,
-      const bcf_fmt_t* fmt,
-      bool include_key,
-      HtslibValueMem* val,
-      Buffer* buff);
+  virtual uint64_t anchors_buffered() const = 0;
 };
 
 }  // namespace vcf

@@ -29,7 +29,7 @@ public class VCFDataSourceReader
   public VCFDataSourceReader(URI uri, VCFDataSourceOptions options) {
     this.uri = uri;
     this.options = options;
-    this.schema = new VCFSparkSchema();
+    this.schema = new VCFSparkSchema(uri, options);
     this.pushedSampleNames = new ArrayList<>();
     this.pushedFilters = new ArrayList<>();
   }
@@ -56,6 +56,10 @@ public class VCFDataSourceReader
       boolean pushed = false;
       if (f instanceof EqualTo) {
         if (((EqualTo) f).attribute().equals("sampleName")) {
+          if (options.getSamples().isPresent() || options.getSampleURI().isPresent()) {
+            throw new UnsupportedOperationException(
+                "Cannot have a sampleName in where clause while also having samples or sampleFile in options list");
+          }
           String value = (String) ((EqualTo) f).value();
           pushedSampleNames.add(value);
           pushed = true;

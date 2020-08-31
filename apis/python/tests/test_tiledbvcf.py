@@ -30,18 +30,76 @@ def _check_dfs(expected, actual):
 
 @pytest.fixture
 def test_ds():
-    return tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+    return tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
 
+@pytest.fixture
+def test_ds_attrs():
+    return tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples_GT_DP_PL'))
 
 def test_basic_count(test_ds):
     assert test_ds.count() == 14
-
 
 def test_read_must_specify_attrs(test_ds):
     with pytest.raises(Exception):
         df = test_ds.read()
 
+def test_retrieve_attributes(test_ds):
+    builtin_attrs = [
+        "sample_name",
+        "contig",
+        "pos_start",
+        "pos_end",
+        "query_bed_start",
+        "query_bed_end",
+        "alleles",
+        "id",
+        "filters",
+        "qual"
+    ]
+    assert test_ds.attributes(attr_type = "builtin") == sorted(builtin_attrs)
+
+    info_attrs = [
+        "info_BaseQRankSum",
+        "info_ClippingRankSum",
+        "info_DP",
+        "info_DS",
+        "info_END",
+        "info_HaplotypeScore",
+        "info_InbreedingCoeff",
+        "info_MLEAC",
+        "info_MLEAF",
+        "info_MQ",
+        "info_MQ0",
+        "info_MQRankSum",
+        "info_ReadPosRankSum"
+    ]
+    assert test_ds.attributes(attr_type = "info") == info_attrs
+
+    fmt_attrs = [
+        "fmt_AD",
+        "fmt_DP",
+        "fmt_GQ",
+        "fmt_GT",
+        "fmt_MIN_DP",
+        "fmt_PL",
+        "fmt_SB"
+    ]
+    assert test_ds.attributes(attr_type = "fmt") == fmt_attrs
+
+def test_read_attrs(test_ds_attrs):
+    attrs = ['sample_name']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
+
+    attrs = ['sample_name', 'fmt_GT']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
+
+    attrs = ['sample_name']
+    df = test_ds_attrs.read(attrs = attrs)
+    assert df.columns.values.tolist() == attrs
 
 def test_basic_reads(test_ds):
     expected_df = pd.DataFrame(
@@ -126,24 +184,24 @@ def test_bad_attr_raises_exception(test_ds):
 
 
 def test_read_write_mode_exceptions():
-    ds = tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+    ds = tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
                ['small.bcf', 'small2.bcf']]
     with pytest.raises(Exception):
         ds.ingest_samples(samples)
 
-    ds = tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'), mode='w')
+    ds = tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'), mode='w')
     with pytest.raises(Exception):
         ds.count()
 
 
 def test_incomplete_reads():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    test_ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     df = test_ds.read(attrs=['pos_end'], regions=['1:12700-13400'])
     assert not test_ds.read_completed()
@@ -166,9 +224,9 @@ def test_incomplete_reads():
 
 def test_incomplete_read_generator():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    test_ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     overall_df = None
     for df in test_ds.read_iter(attrs=['pos_end'], regions=['1:12700-13400']):
@@ -194,10 +252,34 @@ def test_read_filters(test_ds):
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
             'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
-                                     [None, None, ['LowQual'], None, None,
+                                     [None, None, None, None, None,
                                       None]))})
     _check_dfs(expected_df, df)
 
+
+def test_read_var_length_filters(tmp_path):
+    uri = os.path.join(tmp_path, 'dataset')
+    ds = tiledbvcf.Dataset(uri, mode='w')
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
+               ['varLenFilter.vcf.gz']]
+    ds.ingest_samples(samples)
+
+    ds = tiledbvcf.Dataset(uri, mode='r')
+    df = ds.read(['pos_start', 'filters'])
+
+    expected_df = pd.DataFrame({
+        'pos_start': pd.Series(
+            [12141, 12546, 13354, 13375, 13396, 13414, 13452, 13520, 13545,
+             17319, 17480], dtype=np.int32),
+
+        'filters': pd.Series(
+             map(lambda lst: np.array(lst, dtype=np.object),
+                [['PASS'], ['PASS'], ['ANEUPLOID', 'LowQual'], ['PASS'],
+                 ['PASS'], ['ANEUPLOID','LOWQ','LowQual'], ['PASS'],
+                 ['PASS'], ['PASS'], ['LowQual'], ['PASS']]))
+    })
+
+    _check_dfs(expected_df, df)
 
 def test_read_alleles(test_ds):
     df = test_ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
@@ -224,12 +306,12 @@ def test_read_alleles(test_ds):
 
 def test_read_multiple_alleles(tmp_path):
     uri = os.path.join(tmp_path, 'dataset')
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    ds = tiledbvcf.Dataset(uri, mode='w')
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
                ['small3.bcf', 'small.bcf']]
     ds.ingest_samples(samples)
 
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    ds = tiledbvcf.Dataset(uri, mode='r')
     df = ds.read(attrs=['sample_name', 'pos_start', 'alleles', 'id', 'filters'],
                  regions=['1:70100-1300000'])
     expected_df = pd.DataFrame(
@@ -258,9 +340,7 @@ def test_read_var_len_attrs(test_ds):
             'pos_end': pd.Series(
                 [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689,
                  17479], dtype=np.int32),
-            'fmt_DP': pd.Series(map(lambda lst: np.array(lst, dtype=np.int32),
-                                    [[0], [0], [0], [0], [15], [64], [10], [6],
-                                     [0], [0]])),
+            'fmt_DP': pd.Series([0, 0, 0, 0, 15, 64, 10, 6, 0, 0], dtype=np.int32),
             'fmt_PL': pd.Series(
                 map(lambda lst: np.array(lst, dtype=np.int32),
                     [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 24, 360],
@@ -269,17 +349,34 @@ def test_read_var_len_attrs(test_ds):
 
     _check_dfs(expected_df, df)
 
+def test_sample_args(test_ds, tmp_path):
+    sample_file = os.path.join(tmp_path, '1_sample.txt')
+    with open(sample_file, "w") as file:
+        file.write("HG00280")
+
+    region = ['1:12141-12141']
+    df1 = test_ds.read(['sample_name'], regions = region, samples = ['HG00280'])
+    df2 = test_ds.read(['sample_name'], regions = region, samples_file = sample_file)
+    _check_dfs(df1, df2)
+
+    with pytest.raises(TypeError):
+        test_ds.read(
+            attrs = ['sample_name'],
+            regions = region,
+            samples = ['HG00280'],
+            samples_file = sample_file
+        )
 
 def test_read_null_attrs(tmp_path):
     uri = os.path.join(tmp_path, 'dataset')
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    ds = tiledbvcf.Dataset(uri, mode='w')
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
                ['small3.bcf', 'small.bcf']]
     ds.ingest_samples(samples)
 
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    ds = tiledbvcf.Dataset(uri, mode='r')
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
-                        'info_BaseQRankSum', 'info_DP', 'fmt_DP'],
+                        'info_BaseQRankSum', 'info_DP', 'fmt_DP', 'fmt_MIN_DP'],
                  regions=['1:12700-13400', '1:69500-69800'])
     expected_df = pd.DataFrame(
         {'sample_name': pd.Series(
@@ -298,22 +395,23 @@ def test_read_null_attrs(tmp_path):
             'info_DP': pd.Series([None, None, None, None, None, None, None,
                                   np.array([89], dtype=np.int32), None,
                                   np.array([24], dtype=np.int32), None, None]),
-            'fmt_DP': pd.Series(map(lambda lst: np.array(lst, dtype=np.int32),
-                                    [[0], [0], [15], [64], [6], [2], [180],
-                                     [88], [97], [24], [23], [21]]))})
+            'fmt_DP': pd.Series([0, 0, 15, 64, 6, 2, 180,
+                                     88, 97, 24, 23, 21], dtype=np.int32),
+            'fmt_MIN_DP': pd.Series([0, 0, 14, 30, 3, 1, 20,
+                                     None, 24, None, 23, 19])})
     _check_dfs(expected_df, df)
 
 
 def test_read_config():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig()
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=512,
                                region_partition=(0, 3),
                                tiledb_config=['sm.tile_cache_size=0',
                                               'sm.num_reader_threads=1'])
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     with pytest.raises(TypeError):
         cfg = tiledbvcf.ReadConfig(abc=123)
@@ -324,19 +422,19 @@ def test_read_config():
 # the number of TBB threads allowed).
 @pytest.mark.skip
 def test_tbb_threads_config():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(tiledb_config=['sm.num_tbb_threads=3'])
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     cfg = tiledbvcf.ReadConfig(tiledb_config=['sm.num_tbb_threads=4'])
     with pytest.raises(RuntimeError):
-        ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+        ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
 
 def test_read_limit():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(limit=3)
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end',
                         'fmt_DP', 'fmt_PL'],
                  regions=['1:12100-13360', '1:13500-17350'])
@@ -344,23 +442,23 @@ def test_read_limit():
 
 
 def test_region_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 4
 
     cfg = tiledbvcf.ReadConfig(region_partition=(1, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
 
     # Too many partitions still produces results
     cfg = tiledbvcf.ReadConfig(region_partition=(1, 3))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
@@ -368,21 +466,21 @@ def test_region_partitioned_read():
     # Error: index >= num partitions
     cfg = tiledbvcf.ReadConfig(region_partition=(2, 2))
     with pytest.raises(RuntimeError):
-        ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+        ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
 
 def test_sample_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(0, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-18000'])
     assert len(df) == 11
     assert (df.sample_name == 'HG00280').all()
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(1, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-18000'])
     assert len(df) == 3
@@ -390,7 +488,7 @@ def test_sample_partitioned_read():
 
     # Error: too many partitions
     cfg = tiledbvcf.ReadConfig(sample_partition=(1, 3))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     with pytest.raises(RuntimeError):
         df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                      regions=['1:12000-18000'])
@@ -398,15 +496,15 @@ def test_sample_partitioned_read():
     # Error: index >= num partitions
     cfg = tiledbvcf.ReadConfig(sample_partition=(2, 2))
     with pytest.raises(RuntimeError):
-        ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+        ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
 
 def test_sample_and_region_partitioned_read():
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2),
                                sample_partition=(0, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
@@ -414,7 +512,7 @@ def test_sample_and_region_partitioned_read():
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2),
                                sample_partition=(1, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
@@ -422,7 +520,7 @@ def test_sample_and_region_partitioned_read():
 
     cfg = tiledbvcf.ReadConfig(region_partition=(1, 2),
                                sample_partition=(0, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 2
@@ -430,7 +528,7 @@ def test_sample_and_region_partitioned_read():
 
     cfg = tiledbvcf.ReadConfig(region_partition=(1, 2),
                                sample_partition=(1, 2))
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
     df = ds.read(attrs=['sample_name', 'pos_start', 'pos_end'],
                  regions=['1:12000-13000', '1:17000-18000'])
     assert len(df) == 0
@@ -439,13 +537,13 @@ def test_sample_and_region_partitioned_read():
 def test_basic_ingest(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, 'dataset')
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    ds = tiledbvcf.Dataset(uri, mode='w')
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in
                ['small.bcf', 'small2.bcf']]
     ds.ingest_samples(samples)
 
     # Open it back in read mode and check some queries
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    ds = tiledbvcf.Dataset(uri, mode='r')
     assert ds.count() == 14
     assert ds.count(regions=['1:12700-13400']) == 6
     assert ds.count(samples=['HG00280'], regions=['1:12700-13400']) == 4
@@ -453,12 +551,12 @@ def test_basic_ingest(tmp_path):
 
 def test_incremental_ingest(tmp_path):
     uri = os.path.join(tmp_path, 'dataset')
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='w')
+    ds = tiledbvcf.Dataset(uri, mode='w')
     ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, 'small.bcf')])
     ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, 'small2.bcf')])
 
     # Open it back in read mode and check some queries
-    ds = tiledbvcf.TileDBVCFDataset(uri, mode='r')
+    ds = tiledbvcf.Dataset(uri, mode='r')
     assert ds.count() == 14
     assert ds.count(regions=['1:12700-13400']) == 6
     assert ds.count(samples=['HG00280'], regions=['1:12700-13400']) == 4

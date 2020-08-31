@@ -63,11 +63,28 @@ class Writer {
   */
   void set_checksum(const std::string& checksum);
 
+  /**
+    [Creation only] Sets whether duplicates are allowed in the array
+  */
+  void set_allow_duplicates(const bool& allow_duplicates);
+
+  /**
+    [Creation only] Allocates scratch space for downloading sample files
+  */
+  void set_scratch_space(const std::string& path, int64_t size);
+
   void create_dataset();
 
   void register_samples();
 
   void ingest_samples();
+
+  /**
+   * Set writer verbose output mode
+   *
+   * @param verbose mode
+   */
+  void set_verbose(bool verbose);
 
  private:
   /** Helper function to free a C writer instance */

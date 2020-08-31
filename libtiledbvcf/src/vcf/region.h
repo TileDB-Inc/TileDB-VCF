@@ -64,13 +64,13 @@ struct Region {
       const std::string& region_str, Region::Type parse_from);
 
   /**
-   * Parses a BED file.
+   * Parses a BED file using htslib.
    *
    * @param vfs TileDB VFS instance to use
    * @param bed_file_uri URI of BED file to parse
    * @param result Vector to hold parsed Regions
    */
-  static void parse_bed_file(
+  static void parse_bed_file_htslib(
       const VFS& vfs,
       const std::string& bed_file_uri,
       std::vector<Region>* result);

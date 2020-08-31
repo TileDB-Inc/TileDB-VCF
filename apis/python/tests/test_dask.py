@@ -39,8 +39,8 @@ def _check_dfs(expected, actual):
 
 @pytest.fixture
 def test_ds():
-    return tiledbvcf.TileDBVCFDataset(
-        os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples'))
+    return tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples'))
 
 
 def test_basic_reads(test_ds):
@@ -84,9 +84,9 @@ def test_basic_reads(test_ds):
 
 def test_incomplete_reads():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    test_ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     expected_df = pd.DataFrame(
         {'sample_name': pd.Series(
@@ -125,6 +125,12 @@ def test_incomplete_reads():
     df = dask_df.compute()
     _check_dfs(expected_df, df)
 
+    # Subset of partitions (limit_partitions)
+    dask_df = test_ds.read_dask(attrs=['sample_name', 'pos_start', 'pos_end'],
+                                region_partitions=10, sample_partitions=2,
+                                limit_partitions=2)
+    assert dask_df.npartitions == 2
+
 
 def test_basic_map(test_ds):
     expected_df = pd.DataFrame(
@@ -142,9 +148,9 @@ def test_basic_map(test_ds):
 
 def test_map_incomplete():
     # Using undocumented "0 MB" budget to test incomplete reads.
-    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/ingested_2samples')
+    uri = os.path.join(TESTS_INPUT_DIR, 'arrays/v3/ingested_2samples')
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.TileDBVCFDataset(uri, mode='r', cfg=cfg)
+    test_ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     expected_df = pd.DataFrame(
         {'sample_name': pd.Series(['HG00280', 'HG01762']),

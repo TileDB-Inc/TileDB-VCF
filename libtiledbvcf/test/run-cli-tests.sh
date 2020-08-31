@@ -3,11 +3,12 @@
 #
 # This file runs some TileDB-VCF CLI tests.
 #
-
 if [[ $# -lt 2 ]]; then
     echo "USAGE: $0 <build-dir> <inputs-dir>"
     exit 1
 fi
+# Enable tracing
+set -x
 
 build_dir=$1
 input_dir=$2
@@ -19,7 +20,9 @@ function clean_up {
     rm -rf ingested_1 ingested_2 ingested_3 ingested_3_attrs \
            ingested_1_2 ingested_1_2_vcf ingested_3_samples ingested_comb ingested_append \
            ingested_from_file ingested_diff_order ingested_buffered \
-           ingested_sep_indexes \
+           ingested_sep_indexes ingested_dupe_end_pos \
+           ingested_dupe_start_pos errored_dupe_start_pos \
+           ingested_null_attr \
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
            region-map.txt pfx.tsv
     rm -rf "$upload_dir"
@@ -46,6 +49,8 @@ create_register_ingest ingested_3 ${input_dir}/small3.bcf
 create_register_ingest ingested_1_2 ${input_dir}/small2.bcf ${input_dir}/small.bcf
 create_register_ingest ingested_1_2_vcf ${input_dir}/small2.bcf ${input_dir}/small.vcf.gz
 create_register_ingest ingested_3_samples ${input_dir}/random_synthetic/G{1,2,3}.bcf
+create_register_ingest ingested_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
+create_register_ingest ingested_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz
 
 $tilevcf create -u ingested_3_attrs -a fmt_DP,info_MLEAC,info_MLEAF,info_MQ,fmt_AD,info_GQ || exit 1
 $tilevcf register -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
@@ -216,7 +221,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -b 512 || exit 1
-diff -wq pfx.tsv <(
+diff -w pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -238,7 +243,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
-diff -wq /tmp/pfx.tsv <(
+diff -w /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -261,7 +266,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
-diff -wq $upload_dir/pfx.tsv <(
+diff -w $upload_dir/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -282,6 +287,18 @@ EOF
 rm -f /tmp/pfx.tsv
 rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 
+echo "Export records with a null fmt attribute (#142)"
+create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
+$tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
+diff -wq /tmp/pfx.tsv <(
+cat <<EOF
+SAMPLE	POS	S:MIN_DP
+HG00280	69511	.
+HG00280	69512	24
+EOF
+) || exit 1
+rm -f /tmp/pfx.tsv
+
 echo "Export non-contiguous samples (#79)"
 $tilevcf export -u ingested_3_samples -Ob -v -s G1,G3 || exit 1
 rm -f G{1,3}.bcf
@@ -289,14 +306,14 @@ rm -f G{1,3}.bcf
 # Check count only
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-diff -wq <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
+diff -w <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
 
 # Check TSV output with query range columns
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v -s HG01762,HG00280 || exit 1
-diff -wq pfx.tsv <(
+diff -w pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	Q:POS	Q:END
 HG00280	1	12141	12277	C	12142	15000
@@ -344,7 +361,7 @@ EOF
 diff -q <($tilevcf stat -u ingested_1_2) <(
 cat <<EOF
 Statistics for dataset 'ingested_1_2':
-- Version: 2
+- Version: 3
 - Row tile extent: 10
 - Tile capacity: 10,000
 - Anchor gap: 1,000
@@ -368,6 +385,11 @@ $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-p
 $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-partition 2:1 && exit 1
 $tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG01762,HG00280 -O v --sample-partition 0:3 && exit 1
 $tilevcf create -u ingested_bad -a GT && exit 1
+
+echo "Expecture failure with duplicate start pos"
+$tilevcf create -u errored_dupe_start_pos --no-duplicates || exit 1
+$tilevcf register -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz || exit 1
+$tilevcf store -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz && exit 1
 echo "** End expected error messages."
 
 # Clean up

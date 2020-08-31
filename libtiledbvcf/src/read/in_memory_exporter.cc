@@ -120,45 +120,103 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
       dataset_->metadata().extra_attributes.begin(),
       dataset_->metadata().extra_attributes.end());
 
+  const unsigned version = dataset_->metadata().version;
+
   std::set<std::string> result;
   for (const auto& it : user_buffers_) {
     switch (it.second.attr) {
       case ExportableAttribute::SampleName:
-        result.insert(TileDBVCFDataset::DimensionNames::sample);
-        break;
-      case ExportableAttribute::PosEnd:
-        result.insert(TileDBVCFDataset::DimensionNames::end_pos);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::DimensionNames::V3::sample);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::DimensionNames::V2::sample);
+        }
         break;
       case ExportableAttribute::PosStart:
-        result.insert(TileDBVCFDataset::AttrNames::pos);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::DimensionNames::V3::start_pos);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::pos);
+        }
+        break;
+      case ExportableAttribute::PosEnd:
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::end_pos);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::DimensionNames::V2::end_pos);
+        }
         break;
       case ExportableAttribute::Alleles:
-        result.insert(TileDBVCFDataset::AttrNames::alleles);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::alleles);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::alleles);
+        }
         break;
       case ExportableAttribute::Id:
-        result.insert(TileDBVCFDataset::AttrNames::id);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::id);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::id);
+        }
         break;
       case ExportableAttribute::Filters:
-        result.insert(TileDBVCFDataset::AttrNames::filter_ids);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::filter_ids);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::filter_ids);
+        }
         break;
       case ExportableAttribute::Qual:
-        result.insert(TileDBVCFDataset::AttrNames::qual);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::qual);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::qual);
+        }
         break;
       case ExportableAttribute::Fmt:
-        result.insert(TileDBVCFDataset::AttrNames::fmt);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::fmt);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::fmt);
+        }
         break;
       case ExportableAttribute::Info:
-        result.insert(TileDBVCFDataset::AttrNames::info);
+        if (version == TileDBVCFDataset::Version::V3) {
+          result.insert(TileDBVCFDataset::AttrNames::V3::info);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          result.insert(TileDBVCFDataset::AttrNames::V2::info);
+        }
         break;
       case ExportableAttribute::InfoOrFmt:
         if (extracted.count(it.first)) {
           result.insert(it.first);
         } else {
           auto p = TileDBVCFDataset::split_info_fmt_attr_name(it.first);
-          if (p.first == "info")
-            result.insert(TileDBVCFDataset::AttrNames::info);
-          else
-            result.insert(TileDBVCFDataset::AttrNames::fmt);
+          if (p.first == "info") {
+            if (version == TileDBVCFDataset::Version::V3) {
+              result.insert(TileDBVCFDataset::AttrNames::V3::info);
+            } else {
+              assert(version == TileDBVCFDataset::Version::V2);
+              result.insert(TileDBVCFDataset::AttrNames::V2::info);
+            }
+          } else {
+            if (version == TileDBVCFDataset::Version::V3) {
+              result.insert(TileDBVCFDataset::AttrNames::V3::fmt);
+            } else {
+              assert(version == TileDBVCFDataset::Version::V2);
+              result.insert(TileDBVCFDataset::AttrNames::V2::fmt);
+            }
+          }
         }
         break;
       case ExportableAttribute::Contig:
@@ -179,6 +237,11 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
 void InMemoryExporter::reset() {
   Exporter::reset();
   reset_current_sizes();
+}
+
+void InMemoryExporter::reset_buffers() {
+  user_buffers_.clear();
+  user_buffers_by_idx_.clear();
 }
 
 void InMemoryExporter::result_size(
@@ -260,6 +323,8 @@ bool InMemoryExporter::export_record(
     uint32_t contig_offset,
     const ReadQueryResults& query_results,
     uint64_t cell_idx) {
+  const unsigned version = dataset_->metadata().version;
+
   // Keep a convenience reference to the current query results.
   curr_query_results_ = &query_results;
 
@@ -302,15 +367,34 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::PosStart: {
-        const uint32_t pos =
-            (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1);
+        if (version == TileDBVCFDataset::Version::V3) {
+          const uint32_t real_start_pos =
+              (buffers->real_start_pos().value<uint32_t>(cell_idx) -
+               contig_offset) +
+              1;
+          overflow = !copy_cell(
+              &user_buff, &real_start_pos, sizeof(real_start_pos), 1);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          const uint32_t pos =
+              (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
+          overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1);
+        }
         break;
       }
       case ExportableAttribute::PosEnd: {
-        const uint32_t real_end =
-            (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) + 1;
-        overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+        if (version == TileDBVCFDataset::Version::V3) {
+          const uint32_t end_pos =
+              (buffers->end_pos().value<uint32_t>(cell_idx) - contig_offset) +
+              1;
+          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1);
+        } else {
+          assert(version == TileDBVCFDataset::Version::V2);
+          const uint32_t real_end =
+              (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) +
+              1;
+          overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+        }
         break;
       }
       case ExportableAttribute::QueryBedStart: {
@@ -426,7 +510,17 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
 
 bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
   std::set<std::string> fixed_len = {
-      "pos_start", "pos_end", "query_bed_start", "query_bed_end", "qual"};
+      "pos_start",
+      "pos_end",
+      "query_bed_start",
+      "query_bed_end",
+      "qual",
+      "fmt_DP",
+      "fmt_GQ",
+      "fmt_PS",
+      "fmt_PQ",
+      "fmt_MQ",
+      "fmt_MIN_DP"};
   return fixed_len.count(attr) > 0;
 }
 
@@ -549,11 +643,16 @@ void InMemoryExporter::get_var_attr_value(
 
 bool InMemoryExporter::copy_cell(
     UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
-  const int64_t index = dest->curr_sizes.num_offsets;
+  const bool var_len = dest->offsets != nullptr;
+  int64_t index = dest->curr_sizes.num_offsets;
+  // If its not var length get the index from data element count
+  if (!var_len)
+    index = dest->curr_sizes.data_nelts;
+
   if (!copy_cell_data(dest, data, nbytes, nelts))
     return false;
   bool is_null = data == nullptr;
-  if (!update_cell_list_and_bitmap(dest, index, is_null, 1))
+  if (!update_cell_list_and_bitmap(dest, index, is_null, 1, index))
     return false;
   return true;
 }
@@ -572,11 +671,19 @@ bool InMemoryExporter::copy_cell_data(
     return false;
 
   // Copy data
-  if (data != nullptr)
+  if (data != nullptr) {
     std::memcpy(
         static_cast<char*>(dest->data) + dest->curr_sizes.data_bytes,
         data,
         nbytes);
+  } else if (dest->bitmap_buff != nullptr && !var_len) {
+    // Handle null by setting the bytes and elements to 1
+    // Arrow expects null values to have 1 value which is ignored for fixed
+    // length fields
+    nbytes = attr_datatype_size(
+        get_info_fmt_datatype(this->dataset_, dest->attr_name));
+    nelts = 1;
+  }
 
   // Update offsets
   if (var_len) {
@@ -598,7 +705,8 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
     UserBuffer* dest,
     int64_t index,
     bool is_null,
-    int32_t num_list_values) const {
+    int32_t num_list_values,
+    int64_t list_index) const {
   const bool nullable = dest->bitmap_buff != nullptr;
   const bool list = dest->list_offsets != nullptr;
 
@@ -607,7 +715,7 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
     return true;
 
   // Check for bitmap overflow (nullable only)
-  if (nullable && (index / 8 >= dest->max_bitmap_bytes))
+  if (nullable && (list_index / 8 >= dest->max_bitmap_bytes))
     return false;
 
   // Check for list offsets overflow (lists only)
@@ -620,9 +728,9 @@ bool InMemoryExporter::update_cell_list_and_bitmap(
   // Update validity bitmap
   if (nullable) {
     if (is_null)
-      dest->bitmap->clear(index);
+      dest->bitmap->clear(list_index);
     else
-      dest->bitmap->set(index);
+      dest->bitmap->set(list_index);
   }
 
   // Update offsets
@@ -667,7 +775,9 @@ bool InMemoryExporter::copy_alleles_list(
         "offsets.");
 
   // Find the data and size
+  // Use list offsets for index as this is a list datatype
   const int64_t index = dest->curr_sizes.num_offsets;
+  const int64_t list_index = dest->curr_sizes.num_list_offsets;
   const Buffer& src = curr_query_results_->buffers()->alleles();
   const uint64_t src_size = curr_query_results_->alleles_size().second;
   void* data = nullptr;
@@ -706,7 +816,7 @@ bool InMemoryExporter::copy_alleles_list(
     return false;
 
   // Update list offsets and bitmap.
-  if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts))
+  if (!update_cell_list_and_bitmap(dest, index, is_null, num_parts, list_index))
     return false;
 
   return true;
@@ -732,7 +842,9 @@ bool InMemoryExporter::copy_filters_list(
   int num_filters = *int_data;
   const int* filter_ids = int_data + 1;
 
+  // Use list offsets for index as this is a list datatype
   const int64_t index = dest->curr_sizes.num_offsets;
+  const int64_t list_index = dest->curr_sizes.num_list_offsets;
   const bool is_null = num_filters == 0;
   if (is_null) {
     // To adhere to Arrow's offset semantics, a zero-length value still gets
@@ -750,7 +862,8 @@ bool InMemoryExporter::copy_filters_list(
   }
 
   // Update list offsets and bitmap.
-  if (!update_cell_list_and_bitmap(dest, index, is_null, num_filters))
+  if (!update_cell_list_and_bitmap(
+          dest, index, is_null, num_filters, list_index))
     return false;
 
   return true;
@@ -834,7 +947,7 @@ void InMemoryExporter::get_info_fmt_value(
     tot_nbytes -= sizeof(uint32_t);
     ptr += sizeof(uint32_t);
 
-    const char* end = ptr + tot_nbytes + 1;
+    const char* end = ptr + tot_nbytes;
     while (ptr < end) {
       size_t keylen = strlen(ptr);
       bool match = strcmp(field_name.c_str(), ptr) == 0;

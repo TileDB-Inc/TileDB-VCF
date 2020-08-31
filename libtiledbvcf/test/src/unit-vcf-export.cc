@@ -214,9 +214,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     pl.resize(1024);
     pl.offsets().resize(100);
     dp.resize(1024);
-    dp.offsets().resize(100);
     min_dp.resize(1024);
-    min_dp.offsets().resize(100);
 
     // Set buffers on the reader
     reader.set_buffer_values(
@@ -239,13 +237,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     reader.set_buffer_offsets(
         "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
     reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
-    reader.set_buffer_offsets(
-        "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
     reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
-    reader.set_buffer_offsets(
-        "fmt_MIN_DP",
-        min_dp.offsets().data(),
-        min_dp.offsets().size() * sizeof(int32_t));
 
     ExportParams params;
     params.uri = dataset_uri;
@@ -263,8 +255,8 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
         sample_name,
         {"HG01762",
          "HG00280",
-         "HG00280",
          "HG01762",
+         "HG00280",
          "HG00280",
          "HG00280",
          "HG00280"});
@@ -279,15 +271,15 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
         reader,
         "pos_end",
         end,
-        {12771, 12771, 13374, 13389, 13395, 13413, 17479});
+        {12771, 12771, 13389, 13374, 13395, 13413, 17479});
     check_var_result<int32_t>(
         reader, "fmt_GT", gt, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
     check_var_result<int32_t>(
-        reader, "fmt_PL", pl, {0,   0, 0, 0,  0, 0, 0,  24, 360, 0, 66,
-                               990, 0, 6, 90, 0, 3, 32, 0,  0,   0});
-    check_var_result<int32_t>(reader, "fmt_DP", dp, {0, 0, 15, 64, 6, 2, 0});
+        reader, "fmt_PL", pl, {0,   0, 0, 0,  0, 0, 0,  66, 990, 0, 24,
+                               360, 0, 6, 90, 0, 3, 32, 0,  0,   0});
+    check_var_result<int32_t>(reader, "fmt_DP", dp, {0, 0, 64, 15, 6, 2, 0});
     check_var_result<int32_t>(
-        reader, "fmt_MIN_DP", min_dp, {0, 0, 14, 30, 3, 1, 0});
+        reader, "fmt_MIN_DP", min_dp, {0, 0, 30, 14, 3, 1, 0});
   }
 
   // Check count operation
@@ -419,13 +411,7 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   reader.set_buffer_offsets(
       "fmt_PL", pl.offsets().data(), pl.offsets().size() * sizeof(int32_t));
   reader.set_buffer_values("fmt_DP", dp.data<void>(), dp.size());
-  reader.set_buffer_offsets(
-      "fmt_DP", dp.offsets().data(), dp.offsets().size() * sizeof(int32_t));
   reader.set_buffer_values("fmt_MIN_DP", min_dp.data<void>(), min_dp.size());
-  reader.set_buffer_offsets(
-      "fmt_MIN_DP",
-      min_dp.offsets().data(),
-      min_dp.offsets().size() * sizeof(int32_t));
 
   // Check buffer accessors
   int32_t num_buffers_set = 0;
@@ -442,9 +428,7 @@ TEST_CASE("TileDB-VCF: Test get buffers", "[tiledbvcf][export]") {
   REQUIRE(data == sample_name.data<void>());
 
   reader.get_buffer_values(7, &name, &data);
-  reader.get_buffer_offsets(7, &name, &offs);
   REQUIRE(name == std::string("fmt_MIN_DP"));
-  REQUIRE(offs == min_dp.offsets().data());
   REQUIRE(data == min_dp.data<void>());
 
   REQUIRE_THROWS(reader.get_buffer_values(8, &name, &data));
@@ -562,8 +546,8 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
          12277,
          12771,
          12771,
-         13374,
          13389,
+         13374,
          13395,
          13413,
          13451,
@@ -655,8 +639,8 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
          12277,
          12771,
          12771,
-         13374,
          13389,
+         13374,
          13395,
          13413,
          13451,
@@ -681,8 +665,8 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
          12277,
          12771,
          12771,
-         13374,
          13389,
+         13374,
          13395,
          13413,
          13451,
@@ -701,7 +685,7 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
     REQUIRE(reader.num_records_exported() == 6);
     check_result<uint32_t>(
-        reader, "pos_end", end, {12771, 12771, 13374, 13389, 13395, 13413});
+        reader, "pos_end", end, {12771, 12771, 13389, 13374, 13395, 13413});
   }
 
   // Check count operation
@@ -1160,19 +1144,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
     check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13374});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
     check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13389, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
@@ -1223,19 +1207,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
     check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13374});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
     check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13389, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
@@ -1300,11 +1284,12 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   ExportParams read_params;
   read_params.uri = dataset_uri;
   read_params.sample_names = {"G1", "G2", "G59"};
-  read_params.regions = {"1:12700-13400",
-                         "1:17000-17400",
-                         "2:1234-12340",
-                         "14:50000-100000",
-                         "14:100000-200000"};
+  read_params.regions = {
+      "1:12700-13400",
+      "1:17000-17400",
+      "2:1234-12340",
+      "14:50000-100000",
+      "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
@@ -1314,11 +1299,12 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   // Check with unsorted samples and regions
   reader.reset(new Reader);
   read_params.sample_names = {"G59", "G1", "G2"};
-  read_params.regions = {"1:12700-13400",
-                         "14:50000-100000",
-                         "2:1234-12340",
-                         "1:17000-17400",
-                         "14:100000-200000"};
+  read_params.regions = {
+      "1:12700-13400",
+      "14:50000-100000",
+      "2:1234-12340",
+      "1:17000-17400",
+      "14:100000-200000"};
   reader->set_all_params(read_params);
   reader->open_dataset(dataset_uri);
   reader->read();
@@ -1448,7 +1434,6 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     info_dp.offsets().resize(3 * 100);
     info_dp.bitmap().resize(3 * 100);
     fmt_dp.resize(3 * 1024);
-    fmt_dp.offsets().resize(3 * 100);
     fmt_dp.bitmap().resize(3 * 100);
 
     // Set buffers on the reader
@@ -1478,8 +1463,6 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     reader.set_buffer_validity_bitmap(
         "info_DP", info_dp.bitmap().data(), info_dp.bitmap().size());
     reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
-    reader.set_buffer_offsets(
-        "fmt_DP", fmt_dp.offsets().data(), fmt_dp.offsets().size());
     reader.set_buffer_validity_bitmap(
         "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
 

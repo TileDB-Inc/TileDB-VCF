@@ -22,7 +22,7 @@ public class VCFReaderTest {
    * @return The resulting URI
    */
   private String constructUri(String fileName) {
-    Path path = Paths.get("src", "test", "resources", "arrays", fileName);
+    Path path = Paths.get("src", "test", "resources", "arrays", "v3", fileName);
     return path.toAbsolutePath().toString();
   }
 
@@ -180,5 +180,44 @@ public class VCFReaderTest {
     while (reader.getStatus().equals(VCFReader.Status.INCOMPLETE)) reader.submit();
 
     Assert.assertEquals(results, BED_FILE_EXPECTED_RECORDS);
+  }
+
+  @Test
+  public void testSetStatsEnabled() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+
+    reader.setStatsEnabled(true);
+  }
+
+  @Test
+  public void testGetStatsEnabled() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+
+    Assert.assertFalse(reader.getStatsEnabled());
+    reader.setStatsEnabled(true);
+    Assert.assertTrue(reader.getStatsEnabled());
+    reader.setStatsEnabled(false);
+    Assert.assertFalse(reader.getStatsEnabled());
+  }
+
+  @Test
+  public void testStats() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    reader.setStatsEnabled(true);
+    Assert.assertNotNull(reader.stats());
+  }
+
+  /**
+   * * Checks that the reader attribute details are initialized in constructor
+   *
+   * @throws IOException
+   */
+  @Test
+  public void testAttributes() throws IOException {
+    VCFReader reader = getVFCReader(Optional.of(new String[] {getSamples()[0]}), Optional.empty());
+
+    Assert.assertTrue(reader.attributes.size() > 0);
+    Assert.assertTrue(reader.fmtAttributes.size() > 0);
+    Assert.assertTrue(reader.infoAttributes.size() > 0);
   }
 }

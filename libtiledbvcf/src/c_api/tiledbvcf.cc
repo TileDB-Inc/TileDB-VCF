@@ -354,6 +354,40 @@ int32_t tiledb_vcf_reader_set_tiledb_config(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_tiledb_stats_enabled(
+    tiledb_vcf_reader_t* reader, const bool stats_enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_tiledb_stats_enabled(stats_enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_stats_enabled(
+    tiledb_vcf_reader_t* reader, bool* enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->tiledb_stats_enabled(enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_stats(
+    tiledb_vcf_reader_t* reader, char** stats) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->tiledb_stats(stats)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_read(tiledb_vcf_reader_t* reader) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
@@ -524,6 +558,16 @@ int32_t tiledb_vcf_reader_reset(tiledb_vcf_reader_t* reader) {
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_reset_buffers(tiledb_vcf_reader_t* reader) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->reset_buffers()))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_get_last_error(
     tiledb_vcf_reader_t* reader, tiledb_vcf_error_t** error) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || error == nullptr)
@@ -538,6 +582,87 @@ int32_t tiledb_vcf_reader_get_last_error(
   }
 
   (*error)->errmsg_ = reader->saved_errmsg_;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_queryable_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->queryable_attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_queryable_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->queryable_attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_fmt_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->fmt_attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_fmt_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->fmt_attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_info_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->info_attribute_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_info_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->info_attribute_name(index, name)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_verbose(
+    tiledb_vcf_reader_t* reader, const bool verbose) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_verbose(verbose)))
+    return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }
@@ -636,6 +761,18 @@ int32_t tiledb_vcf_writer_set_checksum_type(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_allow_duplicates(
+    tiledb_vcf_writer_t* writer, bool allow_duplicates) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_allow_duplicates(allow_duplicates)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_create_dataset(tiledb_vcf_writer_t* writer) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
@@ -680,6 +817,24 @@ int32_t tiledb_vcf_writer_get_last_error(
   }
 
   (*error)->errmsg_ = writer->saved_errmsg_;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_scratch_space(
+    tiledb_vcf_writer_t* writer, const char* path, uint64_t size) {
+  writer->writer_->set_scratch_space(path, size);
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_verbose(
+    tiledb_vcf_writer_t* writer, const bool verbose) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbose(verbose)))
+    return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }

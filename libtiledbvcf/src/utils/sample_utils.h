@@ -40,21 +40,13 @@
 #include <htslib/vcf.h>
 #include <tiledb/vfs.h>
 
+#include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/buffer.h"
 #include "utils/utils.h"
-#include "vcf/vcf.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
-
-/** Alias for unique_ptr to bcf_hdr_t. */
-typedef std::unique_ptr<bcf_hdr_t, decltype(&bcf_hdr_destroy)> SafeBCFHdr;
-
-/** Alias for unique_ptr to bcf1_t. */
-typedef std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> SafeBCFRec;
-
-/** Alias for unique_ptr to htsFile. */
-typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
 
 /** Struct holding information about available scratch disk space. */
 struct ScratchSpaceInfo {
@@ -203,7 +195,7 @@ class SampleUtils {
         }
 
         // Allocate a header struct and try to parse from the local file.
-        SafeBCFHdr hdr(VCF::hdr_read_header(path), bcf_hdr_destroy);
+        SafeBCFHdr hdr(VCFUtils::hdr_read_header(path), bcf_hdr_destroy);
         if (hdr != nullptr) {
           result.push_back(process(std::move(hdr)));
           break;
