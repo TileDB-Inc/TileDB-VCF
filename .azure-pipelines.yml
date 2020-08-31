@@ -154,8 +154,8 @@ stages:
           - task: GithubRelease@0
             displayName: 'GitHub Release'
             inputs:
-              gitHubConnection: github_tiledb
-              repositoryName: TileDB-Inc/TileDB-VCF
+              gitHubConnection: aaronwolen
+              repositoryName: aaronwolen/TileDB-VCF
               tag: $(Build.SourceBranchName)
               action: "edit"
               assets: $(Build.BinariesDirectory)/jars/*.jar
