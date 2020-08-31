@@ -5,9 +5,12 @@ trigger:
     - release-*
     - refs/tags/*
 
+variables:
+  isRefTag: $[startsWith(variables['Build.SourceBranch'], 'refs/tags')]
+
 stages:
   - stage: CI
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    condition: eq(variables.isRefTag, false)
     jobs:
     - job: Build
       strategy:
@@ -37,29 +40,28 @@ stages:
         displayName: 'Print Env'
       - template: ci/azure-linux_mac.yml
 
-    - job: Docker
-      dependsOn: Build
-      pool:
-        vmImage: 'ubuntu-18.04'
-      condition: succeeded()
-
-      strategy:
-        matrix:
-          cli:
-            dockerfile: docker/Dockerfile-cli
-            repository: tiledb/tiledbvcf-cli
-            context: .
-          python:
-            dockerfile: docker/Dockerfile-py
-            repository: tiledb/tiledbvcf-py
-            context: .
-          # dask:
-          #   dockerfile: docker/Dockerfile-dask-py
-          #   repository: tiledb/tiledbvcf-dask
-          #   context: .
-
-      steps:
-      - template: ci/build-images.yml
+  - stage: Docker
+    condition: or(succeeded(), eq(variables.isRefTag, true))
+    jobs:
+      - job: Build
+        pool:
+          vmImage: 'ubuntu-18.04'
+        strategy:
+          matrix:
+            cli:
+              dockerfile: docker/Dockerfile-cli
+              repository: tiledb/tiledbvcf-cli
+              context: .
+            python:
+              dockerfile: docker/Dockerfile-py
+              repository: tiledb/tiledbvcf-py
+              context: .
+            # dask:
+            #   dockerfile: docker/Dockerfile-dask-py
+            #   repository: tiledb/tiledbvcf-dask
+            #   context: .
+        steps:
+        - template: ci/build-images.yml
 
   - stage: BuildNativeLibs
     condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
