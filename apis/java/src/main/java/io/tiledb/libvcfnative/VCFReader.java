@@ -302,7 +302,13 @@ public class VCFReader implements AutoCloseable {
       throw new RuntimeException("Error setting buffer (attribute: " + attribute + "): " + msg);
     }
 
-    BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(buffer, null, null, null));
+    BufferInfo info;
+    if (buffers.containsKey(attribute)) info = buffers.get(attribute);
+    else {
+      info = new BufferInfo(buffer, null, null, null);
+      buffers.put(attribute, info);
+    }
+
     info.values = buffer;
 
     return this;
@@ -322,7 +328,13 @@ public class VCFReader implements AutoCloseable {
           "Error setting offsets buffer (attribute: " + attribute + "): " + msg);
     }
 
-    BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, buffer, null, null));
+    BufferInfo info;
+    if (buffers.containsKey(attribute)) info = buffers.get(attribute);
+    else {
+      info = new BufferInfo(null, buffer, null, null);
+      buffers.put(attribute, info);
+    }
+
     info.offsets = buffer;
 
     return this;
@@ -344,7 +356,13 @@ public class VCFReader implements AutoCloseable {
           "Error setting list offsets buffer (attribute: " + attribute + "): " + msg);
     }
 
-    BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, buffer, null));
+    BufferInfo info;
+    if (buffers.containsKey(attribute)) info = buffers.get(attribute);
+    else {
+      info = new BufferInfo(null, null, buffer, null);
+      buffers.put(attribute, info);
+    }
+
     info.listOffsets = buffer;
 
     return this;
@@ -363,10 +381,32 @@ public class VCFReader implements AutoCloseable {
           "Error setting bitmap buffer (attribute: " + attribute + "): " + msg);
     }
 
-    BufferInfo info = buffers.getOrDefault(attribute, new BufferInfo(null, null, null, buffer));
+    BufferInfo info;
+    if (buffers.containsKey(attribute)) info = buffers.get(attribute);
+    else {
+      info = new BufferInfo(null, null, null, buffer);
+      buffers.put(attribute, info);
+    }
+
     info.bitmap = buffer;
 
     return this;
+  }
+
+  public ByteBuffer getBuffer(String attribute) {
+    return this.buffers.get(attribute).values;
+  }
+
+  public ByteBuffer getOffsets(String attribute) {
+    return this.buffers.get(attribute).offsets;
+  }
+
+  public ByteBuffer getListOffsets(String attribute) {
+    return this.buffers.get(attribute).listOffsets;
+  }
+
+  public ByteBuffer getBitMap(String attribute) {
+    return this.buffers.get(attribute).bitmap;
   }
 
   public void submit() {

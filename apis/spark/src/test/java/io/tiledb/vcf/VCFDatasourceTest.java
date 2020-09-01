@@ -1,22 +1,25 @@
 package io.tiledb.vcf;
 
+import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.callUDF;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.log4j.Level;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
 import org.junit.Assert;
 import org.junit.Test;
+import scala.collection.JavaConverters;
+import scala.collection.immutable.HashMap;
+import scala.collection.mutable.WrappedArray;
 
 public class VCFDatasourceTest extends SharedJavaSparkSession {
 
@@ -137,6 +140,167 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
     for (int i = 0; i < rows.size(); i++) {
       Assert.assertEquals(rows.get(i).getString(0), expectedRows.get(i).getString(0));
+    }
+  }
+
+  @Test
+  public void testDecoder() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samples", "HG01762,HG00280")
+            // .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("partitions", 2)
+            .load();
+
+    // Create and register the UDF
+    UDF1 decoderUDF = new VCFInfoFmtUDF();
+    session()
+        .sqlContext()
+        .udf()
+        .register(
+            "decode",
+            decoderUDF,
+            DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType));
+
+    Row[] fmt = (Row[]) dfRead.select(col("fmt"), callUDF("decode", col("fmt"))).collect();
+
+    List<byte[]> fmtList =
+        Arrays.stream(fmt)
+            .map(
+                x -> {
+                  return (byte[]) x.get(0);
+                })
+            .collect(Collectors.toList());
+    List<HashMap> decodedFmtList =
+        Arrays.stream(fmt)
+            .map(
+                x -> {
+                  return (HashMap) x.get(1);
+                })
+            .collect(Collectors.toList());
+
+    int idx = 0;
+    for (HashMap r : decodedFmtList) {
+      byte[] fmtBytes = fmtList.get(idx);
+
+      ByteBuffer bytes = ByteBuffer.allocateDirect(fmtBytes.length).order(ByteOrder.nativeOrder());
+      bytes.position(0);
+      for (byte b : fmtBytes) {
+        bytes.put(b);
+      }
+
+      Map<String, String> tmp = VCFInfoFmtDecoder.decodeInfoFmtBytes(bytes);
+
+      for (String key : tmp.keySet()) {
+        Assert.assertEquals(tmp.get(key), r.get(key).get());
+      }
+
+      ++idx;
+    }
+  }
+
+  @Test
+  public void testDecoder2() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samples", "HG01762,HG00280")
+            // .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("partitions", 2)
+            .load();
+
+    // Create and register the UDF
+    UDF1 decoderUDF = new VCFInfoFmtUDF();
+    session()
+        .sqlContext()
+        .udf()
+        .register(
+            "decode",
+            decoderUDF,
+            DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType));
+
+    List<Row> rows = dfRead.collectAsList();
+
+    Row[] fmt = (Row[]) dfRead.select(col("fmt"), callUDF("decode", col("fmt"))).collect();
+
+    String[] columns = dfRead.columns();
+
+    List<String> fmtColumns =
+        Arrays.asList(new String[] {"fmt_MIN_DP", "fmt_GQ", "fmt_DP", "fmt_PL", "fmt_GT"});
+
+    int idx = 0;
+
+    int fmtSchemaPosition = 5;
+    int infoSchemaPosition = 17;
+    int sampleNameSchemaPosition = 18;
+
+    for (Row row : rows) {
+      System.out.println("Sample Name: " + row.get(sampleNameSchemaPosition).toString());
+      byte[] fmtBytes = (byte[]) row.get(fmtSchemaPosition);
+      byte[] infoBytes = (byte[]) row.get(infoSchemaPosition);
+
+      ByteBuffer fmtBuffer =
+          ByteBuffer.allocateDirect(fmtBytes.length).order(ByteOrder.nativeOrder());
+      for (byte b : fmtBytes) {
+        fmtBuffer.put(b);
+      }
+
+      ByteBuffer infoBuffer =
+          ByteBuffer.allocateDirect(infoBytes.length).order(ByteOrder.nativeOrder());
+      for (byte b : infoBytes) {
+        infoBuffer.put(b);
+      }
+
+      Map<String, String> fmtMap = VCFInfoFmtDecoder.decodeInfoFmtBytes(fmtBuffer);
+      Map<String, String> infoMap = VCFInfoFmtDecoder.decodeInfoFmtBytes(infoBuffer);
+
+      // Keep track of the column position in the schema, so we can get
+      // the corresponding value of each row.
+      int colPosition = 0;
+      for (String column : columns) {
+        if (fmtColumns.contains(column)) {
+
+          // The decoder returns a HashMap, with keys like "MIN_DP", "GQ", and so on. Thus, we need
+          // to take
+          // the second part of the column name, that is, "DP" from "fmt_DP", "GQ" of "fmt_GQ" and
+          // so on.
+          String[] columnSplit = column.split("_");
+          columnSplit = Arrays.copyOfRange(columnSplit, 1, columnSplit.length);
+          String key = Arrays.stream(columnSplit).reduce((x, y) -> x + "_" + y).get();
+
+          String decoderValue = fmtMap.get(key);
+          Object attributeValue = row.get(colPosition);
+
+          // If the attribute value is a WrappedArray, convert it to a string of the form "0,0,0"
+          // so we can compare it with the attribute value.
+          if (attributeValue instanceof WrappedArray) {
+            WrappedArray array = (WrappedArray) attributeValue;
+            Object[] javaArray = JavaConverters.asJavaCollection(array).toArray();
+            String arrayStr = "";
+
+            for (int i = 0; i < javaArray.length; ++i) {
+              arrayStr += javaArray[i].toString();
+
+              if (i < javaArray.length - 1) arrayStr += ",";
+            }
+
+            attributeValue = arrayStr;
+          } else {
+            attributeValue = attributeValue.toString();
+          }
+
+          System.out.println(
+              column + " - Decoder: " + decoderValue + " Attribute: " + attributeValue);
+          Assert.assertEquals(decoderValue, attributeValue);
+        }
+
+        colPosition++;
+      }
     }
   }
 
