@@ -1039,8 +1039,18 @@ void Reader::prepare_regions_v3(
     regions->emplace_back(r, Region::Type::OneIndexedInclusive);
 
   // Add BED file regions, if specified.
-  if (!params_.regions_file_uri.empty())
+  if (!params_.regions_file_uri.empty()) {
+    auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Parsed bed file into " << regions->size() << " regions in "
+                << utils::chrono_duration(start_bed_file_parse) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
 
   // No specified regions means all regions.
   if (regions->empty())
@@ -1078,8 +1088,18 @@ void Reader::prepare_regions_v3(
   *regions = filtered_regions;
 
   // Sort all by global column coord.
-  if (params_.sort_regions)
+  if (params_.sort_regions) {
+    auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Sorted " << regions->size() << " regions in "
+                << utils::chrono_duration(start_region_sort) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
 
   // Apply region partitioning before expanding.
   // If we have less regions than requested partitions, handle that by allowing
@@ -1148,8 +1168,18 @@ void Reader::prepare_regions_v2(
     regions->emplace_back(r, Region::Type::OneIndexedInclusive);
 
   // Add BED file regions, if specified.
-  if (!params_.regions_file_uri.empty())
+  if (!params_.regions_file_uri.empty()) {
+    auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Parsed bed file into " << regions->size() << " regions in "
+                << utils::chrono_duration(start_bed_file_parse) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
 
   // No specified regions means all regions.
   if (regions->empty())
@@ -1189,8 +1219,18 @@ void Reader::prepare_regions_v2(
   *regions = filtered_regions;
 
   // Sort all by global column coord.
-  if (params_.sort_regions)
+  if (params_.sort_regions) {
+    auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Sorted " << regions->size() << " regions in "
+                << utils::chrono_duration(start_region_sort) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
 
   // Apply region partitioning before expanding.
   // If we have less regions than requested partitions, handle that by allowing
