@@ -312,8 +312,41 @@ void hFILE_tiledb_vfs_destroy() {
     tiledb_config_free(&hfile_tiledb_vfs_config);
 }
 
+/* If we want to support different files with some being marked remote (so they
+are downloaded and cached) we'd need a something like the function below. Seth
+originally tried to use this to work around htslib trying to `stat` index files.
+However htslib only checks the parent bed file for if remote or not. For now it
+was decided to keep things simple and mark vfs as `hfile_always_remote`. int
+hFILE_tiledb_vfs_is_remote(const char* fn) {
+  // For index files, if we set it to local it first tries to stat from sys
+  // so we have to pretend index files are remote
+
+  char* csi_ext = ".csi";
+  char* bai_ext = ".bai";
+  char* tbi_ext = ".tbi";
+  char* crai_ext = ".crai";
+  size_t len = strlen(fn);
+  size_t ext_start_pos = 0;
+  for (size_t i = len - 1; i > 0; --i) {
+    if (fn[i] == '.') {
+      ext_start_pos = i;
+      break;
+    }
+  }
+  printf("hFILE_tiledb_vfs_is_remote: checking %s\n", fn+ext_start_pos);
+  if (strcmp(fn + ext_start_pos, csi_ext) == 0 ||
+      strcmp(fn + ext_start_pos, bai_ext) == 0 ||
+      strcmp(fn + ext_start_pos, tbi_ext) == 0 ||
+      strcmp(fn + ext_start_pos, crai_ext) == 0)
+    return 1;
+  // Pretend VFS is local
+
+  printf("hFILE_tiledb_vfs_is_remote: returning 0 for local\n");
+  return 0;
+}*/
+
 const struct hFILE_scheme_handler tiledb_vfs_handler = {
-    hopen_tiledb_vfs, hfile_always_local, "tiledb_vfs", 10};
+    hopen_tiledb_vfs, hfile_always_remote, "tiledb_vfs", 10};
 
 int hfile_plugin_init(struct hFILE_plugin* self) {
   self->name = "tiledb_vfs";

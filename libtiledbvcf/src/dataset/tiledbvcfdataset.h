@@ -210,6 +210,12 @@ class TileDBVCFDataset {
   std::vector<Region> all_contigs() const;
 
   /**
+   * Returns a list of regions, one per contig (spanning the entire contig),
+   * sorted on global contig offset.
+   */
+  std::list<Region> all_contigs_list() const;
+
+  /**
    * Returns a pair of (offset, length) for the contig containing the given
    * global column coordinate value.
    */
