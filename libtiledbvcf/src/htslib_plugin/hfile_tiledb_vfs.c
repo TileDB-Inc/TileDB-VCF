@@ -161,7 +161,7 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
 
   // Initialize hFILE_tiledb_vfs
   hFILE_tiledb_vfs* fp =
-      (hFILE_tiledb_vfs*)hfile_init(sizeof(hFILE_tiledb_vfs), modestr, 1024);
+      (hFILE_tiledb_vfs*)hfile_init(sizeof(hFILE_tiledb_vfs), modestr, 0);
   if (fp == NULL) {
     printf("error in fp == NULL");
     return NULL;
