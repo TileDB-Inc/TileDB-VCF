@@ -511,7 +511,7 @@ class Reader {
 
   /**
    * Finds the interval of indexes in the sorted regions vector that intersect
-   * a record with the given start/end/real_end coordinates.
+   * a record with the given start/end/real_start coordinates.
    *
    * This performs a linear search starting at the given index to find the first
    * intersecting index, and then iterates forward to find the last index.

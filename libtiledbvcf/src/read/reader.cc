@@ -776,12 +776,11 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
   if (last == nil)
     return {nil, nil};
 
-  // Set the new region index to the last intersecting region index.
-  *new_region_idx = last;
+  size_t original_last = last;
 
-  // Next find the index of the last region that intersects the cell's REAL_END
-  // position. This is used as the actual interval of intersection.
-  for (size_t i = *new_region_idx; i < regions.size(); i++) {
+  // Next find the index of the last region that intersects the cell's
+  // REAL_START position. This is used as the actual interval of intersection.
+  for (size_t i = original_last; i < regions.size(); i++) {
     bool intersects = intersects_p(regions[i], real_start, end);
     if (i < regions.size() - 1) {
       bool next_intersects = intersects_p(regions[i + 1], real_start, end);
@@ -797,7 +796,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
 
   // Search backwards to find the first region that intersects the cell.
   size_t first = nil;
-  for (size_t i = *new_region_idx;; i--) {
+  for (size_t i = original_last;; i--) {
     bool intersects = intersects_p(regions[i], real_start, end);
     if (i > 0) {
       bool prev_intersects = intersects_p(regions[i - 1], real_start, end);
@@ -813,6 +812,11 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
     if (i == 0)
       break;
   }
+
+  // Set the new region index to the first intersecting region index.
+  // Since we sort on start position, we must wait for the start to cross to a
+  // new region to move
+  *new_region_idx = first;
 
   // If we're here then we must have a valid interval.
   if (first == nil || last == nil)
