@@ -1427,6 +1427,13 @@ void Reader::info_attribute_count(int32_t* count) {
   *count = this->dataset_->info_field_types().size();
 }
 
+void Reader::sample_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error(
+        "Error getting sample count; dataset is not open.");
+  *count = dataset_->metadata().sample_names.size();
+}
+
 void Reader::info_attribute_name(int32_t index, char** name) {
   auto info_attributes = this->dataset_->info_field_types();
   auto iter = info_attributes.begin();

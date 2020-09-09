@@ -656,6 +656,18 @@ int32_t tiledb_vcf_reader_get_info_attribute_name(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_get_sample_count(
+    tiledb_vcf_reader_t* reader, int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || count == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->sample_count(count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+
 int32_t tiledb_vcf_reader_set_verbose(
     tiledb_vcf_reader_t* reader, const bool verbose) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)

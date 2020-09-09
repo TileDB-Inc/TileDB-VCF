@@ -41,7 +41,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_dataset_version", &Reader::get_dataset_version)
       .def("get_fmt_attributes", &Reader::get_fmt_attributes)
       .def("get_info_attributes", &Reader::get_info_attributes)
-      .def("get_queryable_attributes", &Reader::get_queryable_attributes);
+      .def("get_queryable_attributes", &Reader::get_queryable_attributes)
+      .def("get_sample_count", &Reader::get_sample_count);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())

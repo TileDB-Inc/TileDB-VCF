@@ -575,6 +575,9 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_tiledb_stats_enabled(
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_get_tiledb_stats(tiledb_vcf_reader_t* reader, char** stats);
 
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_get_samples(tiledb_vcf_reader_t* reader, const char* samples);
+
 /**
  * Performs a blocking read operation. This reads data from the dataset into the
  * buffers that have been set on the reader.
@@ -777,6 +780,9 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_count(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_name(
     tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_count(
+    tiledb_vcf_reader_t* reader, int32_t* count);
 
 /**
  * Sets verbose mode on or off
