@@ -349,6 +349,13 @@ std::string Reader::get_tiledb_stats() {
   return std::string(stats);
 }
 
+int32_t Reader::get_dataset_version() {
+  auto reader = ptr.get();
+  int32_t version;
+  check_error(reader, tiledb_vcf_reader_get_dataset_version(reader, &version));
+  return version;
+}
+
 std::vector<std::string> Reader::get_fmt_attributes() {
   auto reader = ptr.get();
   int32_t count;

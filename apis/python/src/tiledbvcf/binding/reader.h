@@ -115,6 +115,9 @@ class Reader {
   /** Fetches TileDB statistics */
   std::string get_tiledb_stats();
 
+  /** Returns version number of the TileDB VCF dataset */
+  int32_t get_dataset_version();
+
   /** Returns fmt attribute names */
   std::vector<std::string> get_fmt_attributes();
 

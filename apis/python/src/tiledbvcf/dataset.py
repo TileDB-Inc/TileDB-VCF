@@ -223,6 +223,11 @@ class Dataset(object):
 
         return self.reader.get_tiledb_stats();
 
+    def dataset_version(self):
+        if self.mode != 'r':
+            raise Exception('Dataset version can only be called for reader')
+        return self.reader.get_dataset_version()
+
     def attributes(self, attr_type = "all"):
         """List queryable attributes available in the VCF dataset
 

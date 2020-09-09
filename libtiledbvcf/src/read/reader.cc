@@ -756,7 +756,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
   size_t last = nil;
   for (size_t i = region_idx; i < regions.size(); i++) {
     // Regions are sorted on END, so stop searching early if possible.
-    if (end < regions[i].seq_offset + regions[i].min)
+     if (end < regions[i].seq_offset + regions[i].min)
       break;
 
     bool intersects = intersects_p(regions[i], start, end);
@@ -779,7 +779,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
   size_t original_last = last;
 
   // Next find the index of the last region that intersects the cell's
-  // REAL_START position. This is used as the actual interval of intersection.
+  // REAL_START position. This is used as the actual interval of intersection
   for (size_t i = original_last; i < regions.size(); i++) {
     bool intersects = intersects_p(regions[i], real_start, end);
     if (i < regions.size() - 1) {
