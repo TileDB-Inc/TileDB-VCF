@@ -308,6 +308,8 @@ class Reader {
 
   void sample_count(int32_t* count);
 
+  void sample_name(int32_t index, char** name);
+
   /**
    * Sets verbose mode on or off
    * @param verbose setting

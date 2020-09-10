@@ -118,8 +118,11 @@ class Reader {
   /** Returns version number of the TileDB VCF dataset */
   int32_t get_dataset_version();
 
-  /** Retrieve list of samples from dataset */
+  /** Returns number of samples in the dataset */
   int32_t get_sample_count();
+
+  /** Retrieve list of samples from dataset metadata */
+  std::vector<std::string> get_sample_names();
 
   /** Returns fmt attribute names */
   std::vector<std::string> get_fmt_attributes();

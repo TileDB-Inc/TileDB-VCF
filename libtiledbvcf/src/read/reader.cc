@@ -1434,6 +1434,10 @@ void Reader::sample_count(int32_t* count) {
   *count = dataset_->metadata().sample_names.size();
 }
 
+void Reader::sample_name(int32_t index, char** name) {
+  *name = const_cast<char*>(dataset_->metadata().sample_names[index].c_str());
+}
+
 void Reader::info_attribute_name(int32_t index, char** name) {
   auto info_attributes = this->dataset_->info_field_types();
   auto iter = info_attributes.begin();

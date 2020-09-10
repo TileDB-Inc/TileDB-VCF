@@ -233,6 +233,11 @@ class Dataset(object):
             raise Exception('Samples can only be retrieved for reader')
         return self.reader.get_sample_count()
 
+    def samples(self):
+        if self.mode != 'r':
+            raise Exception('Samples can only be retrieved for reader')
+        return self.reader.get_sample_names()
+
     def attributes(self, attr_type = "all"):
         """List queryable attributes available in the VCF dataset
 

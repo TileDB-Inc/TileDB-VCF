@@ -784,6 +784,9 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_name(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_count(
     tiledb_vcf_reader_t* reader, int32_t* count);
 
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
 /**
  * Sets verbose mode on or off
  * @param reader VCF reader object
