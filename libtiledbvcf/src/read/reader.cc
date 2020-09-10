@@ -193,8 +193,7 @@ void Reader::tiledb_stats(char** stats) {
 
 void Reader::dataset_version(int32_t* version) const {
   if (dataset_ == nullptr)
-    throw std::runtime_error(
-        "Error getting dataset version; dataset is not open.");
+    throw std::runtime_error("Error getting dataset version");
   *version = dataset_->metadata().version;
 }
 
@@ -779,7 +778,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
   size_t original_last = last;
 
   // Next find the index of the last region that intersects the cell's
-  // REAL_START position. This is used as the actual interval of intersection
+  // REAL_START position. This is used as the actual interval of intersection.
   for (size_t i = original_last; i < regions.size(); i++) {
     bool intersects = intersects_p(regions[i], real_start, end);
     if (i < regions.size() - 1) {
@@ -1429,8 +1428,7 @@ void Reader::info_attribute_count(int32_t* count) {
 
 void Reader::sample_count(int32_t* count) {
   if (count == nullptr)
-    throw std::runtime_error(
-        "Error getting sample count; dataset is not open.");
+    throw std::runtime_error("Error getting sample count");
   *count = dataset_->metadata().sample_names.size();
 }
 
