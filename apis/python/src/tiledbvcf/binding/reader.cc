@@ -422,7 +422,7 @@ std::vector<std::string> Reader::get_sample_names() {
   check_error(reader, tiledb_vcf_reader_get_sample_count(reader, &count));
 
   for (int32_t i = 0; i < count; i++) {
-    char* name;
+    const char* name;
     check_error(reader, tiledb_vcf_reader_get_sample_name(reader, i, &name));
     names.emplace_back(name);
   }

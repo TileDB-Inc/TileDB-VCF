@@ -317,7 +317,7 @@ class Reader {
    * @param index of sample
    * @param name of sample
    */
-  void sample_name(int32_t index, char** name);
+  void sample_name(int32_t index, const char** name);
 
   /**
    * Sets verbose mode on or off

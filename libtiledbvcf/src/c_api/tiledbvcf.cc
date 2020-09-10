@@ -668,7 +668,7 @@ int32_t tiledb_vcf_reader_get_sample_count(
 }
 
 int32_t tiledb_vcf_reader_get_sample_name(
-    tiledb_vcf_reader_t* reader, int32_t index, char** name) {
+    tiledb_vcf_reader_t* reader, int32_t index, const char** name) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
     return TILEDB_VCF_ERR;
 
