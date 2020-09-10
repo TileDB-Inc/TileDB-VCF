@@ -421,6 +421,7 @@ std::vector<std::string> Reader::get_sample_names() {
   std::vector<std::string> names;
   check_error(reader, tiledb_vcf_reader_get_sample_count(reader, &count));
 
+  names.reserve(count);
   for (int32_t i = 0; i < count; i++) {
     const char* name;
     check_error(reader, tiledb_vcf_reader_get_sample_name(reader, i, &name));
