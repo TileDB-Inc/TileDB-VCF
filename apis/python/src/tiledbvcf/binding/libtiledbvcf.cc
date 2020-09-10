@@ -38,7 +38,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("result_num_records", &Reader::result_num_records)
       .def("get_tiledb_stats_enabled", &Reader::get_tiledb_stats_enabled)
       .def("get_tiledb_stats", &Reader::get_tiledb_stats)
-      .def("get_dataset_version", &Reader::get_dataset_version)
+      .def("get_schema_version", &Reader::get_schema_version)
       .def("get_fmt_attributes", &Reader::get_fmt_attributes)
       .def("get_info_attributes", &Reader::get_info_attributes)
       .def("get_queryable_attributes", &Reader::get_queryable_attributes)

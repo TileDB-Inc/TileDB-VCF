@@ -349,7 +349,7 @@ std::string Reader::get_tiledb_stats() {
   return std::string(stats);
 }
 
-int32_t Reader::get_dataset_version() {
+int32_t Reader::get_schema_version() {
   auto reader = ptr.get();
   int32_t version;
   check_error(reader, tiledb_vcf_reader_get_dataset_version(reader, &version));

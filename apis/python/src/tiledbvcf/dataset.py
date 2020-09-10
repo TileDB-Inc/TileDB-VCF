@@ -223,10 +223,12 @@ class Dataset(object):
 
         return self.reader.get_tiledb_stats();
 
-    def dataset_version(self):
+    def schema_version(self):
+        """Retrieve the VCF dataset's schema version
+        """
         if self.mode != 'r':
-            raise Exception('Dataset version can only be called for reader')
-        return self.reader.get_dataset_version()
+            raise Exception('Schema version can only be called for reader')
+        return self.reader.get_schema_version()
 
     def sample_count(self):
         if self.mode != 'r':
