@@ -672,13 +672,11 @@ int32_t tiledb_vcf_reader_get_sample_name(
   if (sanity_check(reader) == TILEDB_VCF_ERR || name == nullptr)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(
-          reader, reader->reader_->sample_name(index, name)))
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->sample_name(index, name)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
 }
-
 
 int32_t tiledb_vcf_reader_set_verbose(
     tiledb_vcf_reader_t* reader, const bool verbose) {

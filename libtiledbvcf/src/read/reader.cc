@@ -756,7 +756,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
   size_t last = nil;
   for (size_t i = region_idx; i < regions.size(); i++) {
     // Regions are sorted on END, so stop searching early if possible.
-     if (end < regions[i].seq_offset + regions[i].min)
+    if (end < regions[i].seq_offset + regions[i].min)
       break;
 
     bool intersects = intersects_p(regions[i], start, end);

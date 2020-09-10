@@ -781,9 +781,22 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_count(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_info_attribute_name(
     tiledb_vcf_reader_t* reader, int32_t index, char** name);
 
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_count(
-    tiledb_vcf_reader_t* reader, int32_t* count);
+/**
+ * Get the number of registered samples
+ * @param reader VCF reader object
+ * @param count number of samples registered in the dataset
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.*
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_get_sample_count(tiledb_vcf_reader_t* reader, int32_t* count);
 
+/**
+ * Retrieve sample name for a given index
+ * @param reader VCF reader object
+ * @param index the sample name to retrieve
+ * @param name char* sample name
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.*
+ */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_name(
     tiledb_vcf_reader_t* reader, int32_t index, char** name);
 

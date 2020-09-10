@@ -356,30 +356,6 @@ int32_t Reader::get_dataset_version() {
   return version;
 }
 
-int32_t Reader::get_sample_count() {
-  auto reader = ptr.get();
-  int32_t count;
-  check_error(reader, tiledb_vcf_reader_get_sample_count(reader, &count));
-  return count;
-}
-
-std::vector<std::string> Reader::get_sample_names() {
-  auto reader = ptr.get();
-  int32_t count;
-  std::vector<std::string> names;
-  check_error(
-      reader, tiledb_vcf_reader_get_sample_count(reader, &count));
-
-  for (int32_t i = 0; i < count; i++) {
-    char* name;
-    check_error(
-        reader, tiledb_vcf_reader_get_sample_name(reader, i, &name));
-    names.emplace_back(name);
-  }
-
-  return names;
-}
-
 std::vector<std::string> Reader::get_fmt_attributes() {
   auto reader = ptr.get();
   int32_t count;
@@ -430,6 +406,28 @@ std::vector<std::string> Reader::get_queryable_attributes() {
   }
 
   return attrs;
+}
+
+int32_t Reader::get_sample_count() {
+  auto reader = ptr.get();
+  int32_t count;
+  check_error(reader, tiledb_vcf_reader_get_sample_count(reader, &count));
+  return count;
+}
+
+std::vector<std::string> Reader::get_sample_names() {
+  auto reader = ptr.get();
+  int32_t count;
+  std::vector<std::string> names;
+  check_error(reader, tiledb_vcf_reader_get_sample_count(reader, &count));
+
+  for (int32_t i = 0; i < count; i++) {
+    char* name;
+    check_error(reader, tiledb_vcf_reader_get_sample_name(reader, i, &name));
+    names.emplace_back(name);
+  }
+
+  return names;
 }
 
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {

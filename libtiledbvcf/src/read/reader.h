@@ -306,8 +306,17 @@ class Reader {
    */
   void info_attribute_name(int32_t index, char** name);
 
+  /**
+   * Get the number of registered samples
+   * @param sample count
+   */
   void sample_count(int32_t* count);
 
+  /**
+   * Retrieve sample name by index
+   * @param index of sample
+   * @param name of sample
+   */
   void sample_name(int32_t index, char** name);
 
   /**
