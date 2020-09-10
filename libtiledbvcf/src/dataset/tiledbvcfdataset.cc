@@ -577,6 +577,36 @@ std::vector<Region> TileDBVCFDataset::all_contigs() const {
   return result;
 }
 
+std::list<Region> TileDBVCFDataset::all_contigs_list() const {
+  std::list<Region> result;
+
+  if (metadata_.contig_offsets.empty())
+    return result;
+
+  // Sort by offset
+  std::map<uint32_t, std::string> sorted_contigs;
+  for (const auto& c : metadata_.contig_offsets)
+    sorted_contigs[c.second] = c.first;
+
+  // Push one region per contig, sorted on global position.
+  uint32_t prev_offset = std::numeric_limits<uint32_t>::max();
+  std::string prev_contig;
+  for (const auto& c : sorted_contigs) {
+    if (prev_offset != std::numeric_limits<uint32_t>::max()) {
+      uint32_t prev_len = c.first - prev_offset;
+      result.emplace_back(prev_contig, 0, prev_len - 1);
+    }
+    prev_offset = c.first;
+    prev_contig = c.second;
+  }
+
+  // Final region
+  uint32_t last_len = metadata_.total_contig_length - prev_offset;
+  result.emplace_back(prev_contig, 0, last_len - 1);
+
+  return result;
+}
+
 std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
     uint32_t col) const {
   bool found = false;

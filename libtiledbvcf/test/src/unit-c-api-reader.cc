@@ -3182,3 +3182,131 @@ TEST_CASE(
 
   tiledb_vcf_reader_free(&reader);
 }
+
+TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  std::string bed_uri;
+  SECTION("- Compressed") {
+    bed_uri = std::string(TILEDB_VCF_TEST_INPUT_DIR) +
+              "/E001_15_coreMarks_dense.bed.gz";
+  }
+
+  SECTION("- Uncompressed") {
+    bed_uri =
+        std::string(TILEDB_VCF_TEST_INPUT_DIR) + "/E001_15_coreMarks_dense.bed";
+  }
+
+  std::string dataset_uri = INPUT_ARRAYS_DIR_V3 + "/synth-array";
+
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  // Set ranges
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_file(reader, bed_uri.c_str()) == TILEDB_VCF_OK);
+
+  // Allocate and set buffers, only set small buffers for a few records
+  const unsigned expected_num_records = 10;
+  SET_BUFF_POS_START(reader, expected_num_records);
+  SET_BUFF_POS_END(reader, expected_num_records);
+  SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
+  SET_BUFF_CONTIG(reader, expected_num_records);
+  SET_BUFF_FMT_GT(reader, expected_num_records);
+
+  int64_t num_records = ~0;
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 0);
+
+  tiledb_vcf_read_status_t status;
+  REQUIRE(tiledb_vcf_reader_get_status(reader, &status) == TILEDB_VCF_OK);
+  REQUIRE(status == TILEDB_VCF_UNINITIALIZED);
+
+  // Submit query
+  REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
+
+  // Check result size
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == expected_num_records);
+
+  // Check status
+  REQUIRE(tiledb_vcf_reader_get_status(reader, &status) == TILEDB_VCF_OK);
+  REQUIRE(status == TILEDB_VCF_INCOMPLETE);
+
+  // Check a few buffer sizes
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  REQUIRE(
+      tiledb_vcf_reader_get_result_size(
+          reader,
+          "pos_start",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == expected_num_records * sizeof(uint32_t));
+  REQUIRE(num_offsets == 0);
+  REQUIRE(
+      tiledb_vcf_reader_get_result_size(
+          reader,
+          "sample_name",
+          &num_offsets,
+          &num_data_elements,
+          &num_data_bytes) == TILEDB_VCF_OK);
+  REQUIRE(num_data_bytes == 31);
+  REQUIRE(num_offsets == (expected_num_records + 1));
+
+  // Check results
+  REQUIRE(pos_start[0] == 10626);
+  REQUIRE(pos_end[0] == 81854);
+  REQUIRE(sample_name_offsets[0] == 0);
+  REQUIRE(strncmp("G16", &sample_name[sample_name_offsets[0]], 3) == 0);
+  REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
+  REQUIRE(fmt_GT_offsets[0] == 0);
+  REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 1);
+  REQUIRE(fmt_GT[fmt_GT_offsets[0] + 1] == 0);
+
+  REQUIRE(pos_start[1] == 10717);
+  REQUIRE(pos_end[1] == 75204);
+  REQUIRE(sample_name_offsets[1] == 3);
+  REQUIRE(strncmp("G14", &sample_name[sample_name_offsets[1]], 3) == 0);
+  REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
+  REQUIRE(fmt_GT_offsets[1] == 2);
+  REQUIRE(fmt_GT[fmt_GT_offsets[1]] == 1);
+  REQUIRE(fmt_GT[fmt_GT_offsets[1] + 1] == 0);
+
+  REQUIRE(pos_start[2] == 10863);
+  REQUIRE(pos_end[2] == 83686);
+  REQUIRE(sample_name_offsets[2] == 6);
+  REQUIRE(strncmp("G17", &sample_name[sample_name_offsets[2]], 3) == 0);
+  REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
+  REQUIRE(fmt_GT_offsets[2] == 4);
+  REQUIRE(fmt_GT[fmt_GT_offsets[2]] == 0);
+  REQUIRE(fmt_GT[fmt_GT_offsets[2] + 1] == 1);
+
+  REQUIRE(pos_start[3] == 10872);
+  REQUIRE(pos_end[3] == 16376);
+  REQUIRE(sample_name_offsets[3] == 9);
+  REQUIRE(strncmp("G10", &sample_name[sample_name_offsets[3]], 3) == 0);
+  REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
+  REQUIRE(fmt_GT_offsets[3] == 6);
+  REQUIRE(fmt_GT[fmt_GT_offsets[3]] == 1);
+  REQUIRE(fmt_GT[fmt_GT_offsets[3] + 1] == 0);
+
+  REQUIRE(pos_start[4] == 11123);
+  REQUIRE(pos_end[4] == 89409);
+  REQUIRE(sample_name_offsets[4] == 12);
+  REQUIRE(strncmp("G15", &sample_name[sample_name_offsets[4]], 3) == 0);
+  REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
+  REQUIRE(fmt_GT_offsets[4] == 8);
+  REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 1);
+  REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
+
+  // Check final offsets are equal to data size
+  REQUIRE(sample_name_offsets[10] == 31);
+  REQUIRE(fmt_GT_offsets[10] == 20);
+
+  tiledb_vcf_reader_free(&reader);
+}

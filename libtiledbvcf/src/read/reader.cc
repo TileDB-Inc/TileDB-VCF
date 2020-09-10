@@ -1037,19 +1037,25 @@ void Reader::prepare_regions_v3(
     std::vector<Region>* regions,
     std::vector<QueryRegion>* query_regions) const {
   const uint32_t g = dataset_->metadata().anchor_gap;
+  // Use a linked list for pre-partition regions to allow for parallel parsing
+  // of BED file
+  std::list<Region> pre_partition_regions_list;
 
   // Manually-specified regions (-r) are 1-indexed and inclusive
   for (const std::string& r : params_.regions)
-    regions->emplace_back(r, Region::Type::OneIndexedInclusive);
+    pre_partition_regions_list.emplace_back(
+        r, Region::Type::OneIndexedInclusive);
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {
     auto start_bed_file_parse = std::chrono::steady_clock::now();
-    Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
+    Region::parse_bed_file_htslib(
+        params_.regions_file_uri, &pre_partition_regions_list);
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
       utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Parsed bed file into " << regions->size() << " regions in "
+      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
+                << " regions in "
                 << utils::chrono_duration(start_bed_file_parse) << " seconds."
                 << std::endl;
       std::cout.imbue(old_locale);
@@ -1057,8 +1063,8 @@ void Reader::prepare_regions_v3(
   }
 
   // No specified regions means all regions.
-  if (regions->empty())
-    *regions = dataset_->all_contigs();
+  if (pre_partition_regions_list.empty())
+    pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
   std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
@@ -1068,7 +1074,7 @@ void Reader::prepare_regions_v3(
   // Loop through all contigs to query and pre-filter to ones which fall inside
   // the nonEmptyDomain This will balance the partitioning better my removing
   // empty regions
-  for (auto& r : *regions) {
+  for (auto& r : pre_partition_regions_list) {
     uint32_t contig_offset;
     try {
       contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
@@ -1166,19 +1172,25 @@ void Reader::prepare_regions_v2(
     std::vector<Region>* regions,
     std::vector<QueryRegion>* query_regions) const {
   const uint32_t g = dataset_->metadata().anchor_gap;
+  // Use a linked list for pre-partition regions to allow for parallel parsing
+  // of BED file
+  std::list<Region> pre_partition_regions_list;
 
   // Manually-specified regions (-r) are 1-indexed and inclusive
   for (const std::string& r : params_.regions)
-    regions->emplace_back(r, Region::Type::OneIndexedInclusive);
+    pre_partition_regions_list.emplace_back(
+        r, Region::Type::OneIndexedInclusive);
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {
     auto start_bed_file_parse = std::chrono::steady_clock::now();
-    Region::parse_bed_file_htslib(*vfs_, params_.regions_file_uri, regions);
+    Region::parse_bed_file_htslib(
+        params_.regions_file_uri, &pre_partition_regions_list);
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
       utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Parsed bed file into " << regions->size() << " regions in "
+      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
+                << " regions in "
                 << utils::chrono_duration(start_bed_file_parse) << " seconds."
                 << std::endl;
       std::cout.imbue(old_locale);
@@ -1186,8 +1198,8 @@ void Reader::prepare_regions_v2(
   }
 
   // No specified regions means all regions.
-  if (regions->empty())
-    *regions = dataset_->all_contigs();
+  if (pre_partition_regions_list.empty())
+    pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
   std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
@@ -1197,7 +1209,7 @@ void Reader::prepare_regions_v2(
   // Loop through all contigs to query and pre-filter to ones which fall inside
   // the nonEmptyDomain This will balance the partitioning better my removing
   // empty regions
-  for (auto& r : *regions) {
+  for (auto& r : pre_partition_regions_list) {
     uint32_t contig_offset;
     try {
       contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);

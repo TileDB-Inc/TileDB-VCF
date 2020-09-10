@@ -26,6 +26,7 @@
 
 #include <htslib/hts.h>
 #include <algorithm>
+#include <future>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/utils.h"
@@ -130,9 +131,7 @@ Region Region::parse_region(
 }
 
 void Region::parse_bed_file_htslib(
-    const VFS& vfs,
-    const std::string& bed_file_uri,
-    std::vector<Region>* result) {
+    const std::string& bed_file_uri, std::list<Region>* result) {
   // htslib is very chatty as it will try (and fail) to find all possible index
   // files resulting in a lot of output In the htslib vfs plugin we set the
   // errors on opening a non-existent file to warning to avoid this
@@ -148,21 +147,81 @@ void Region::parse_bed_file_htslib(
     path = bed_file_uri;
   // 0, 1, -2 come from bcf_sr_set_regions, these are suppose to be ignored when
   // reading from a file though
-  SafeRegionFh regionsFile(
+  SafeRegionFh regions_file(
       bcf_sr_regions_init(path.c_str(), 1, 0, 1, -2), bcf_sr_regions_destroy);
 
-  if (regionsFile == nullptr)
+  if (regions_file == nullptr)
     throw std::runtime_error("Error parsing BED file: " + bed_file_uri);
 
-  while (!bcf_sr_regions_next(regionsFile.get())) {
-    result->emplace_back(
-        regionsFile->seq_names[regionsFile->iseq],
-        regionsFile->start,
-        regionsFile->end);
+  // If there is an index file process in parallel
+  if (regions_file->tbx) {
+    std::vector<std::future<std::list<Region>>> futures;
+    // Loop over the sequences in the index file and launch a task for each one
+    std::vector<SafeRegionFh> open_files;
+    for (int i = 0; i < regions_file->nseqs; i++) {
+      open_files.emplace_back(SafeRegionFh(
+          bcf_sr_regions_init(path.c_str(), 1, 0, 1, -2),
+          bcf_sr_regions_destroy));
+    }
+    for (int i = 0; i < regions_file->nseqs; i++) {
+      const char* chr = regions_file->seq_names[i];
+      auto open_file = std::move(open_files[i]);
+      futures.push_back(std::async(
+          std::launch::async,
+          [chr](SafeRegionFh file) {
+            return parse_bed_file_htslib_section(std::move(file), chr);
+          },
+          std::move(open_file)));
+    }
+
+    // Add results to final linked list, this will block on the future
+    // Order is preserved by always adding to the end of the list
+    for (auto& res : futures) {
+      if (!res.valid())
+        throw std::runtime_error("Parsing of BED file failed");
+      auto status = res.wait_for(std::chrono::seconds(30));
+      if (status != std::future_status::ready)
+        throw std::runtime_error("Parsing of BED file timed out");
+      std::list<Region> res_list = res.get();
+      result->splice(result->end(), res_list);
+    }
+  } else {
+    // If there is no index file just loop over the entire file
+    while (!bcf_sr_regions_next(regions_file.get())) {
+      result->emplace_back(
+          regions_file->seq_names[regions_file->iseq],
+          regions_file->start,
+          regions_file->end);
+    }
   }
 
   // reset htslib log level
   hts_set_log_level(old_log_level);
+}
+
+// std::mutex shared_mtx_parse;
+std::list<Region> Region::parse_bed_file_htslib_section(
+    SafeRegionFh regions_file, const char* chr) {
+  std::list<Region> result;
+
+  if (regions_file == nullptr)
+    throw std::runtime_error(
+        "Error parsing BED file for chromosome " + std::string(chr));
+
+  // Seek to the chromosome region of the BED file via the index
+  if (bcf_sr_regions_seek(regions_file.get(), chr) != 0)
+    throw std::runtime_error(
+        "Error parsing BED file seek to chromosome " + std::string(chr) +
+        " failed");
+
+  while (!bcf_sr_regions_next(regions_file.get())) {
+    result.emplace_back(
+        regions_file->seq_names[regions_file->iseq],
+        regions_file->start,
+        regions_file->end);
+  }
+
+  return result;
 }
 
 void Region::sort(

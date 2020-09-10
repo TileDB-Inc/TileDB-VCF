@@ -28,8 +28,10 @@
 #define TILEDB_VCF_REGION_H
 
 #include <tiledb/vfs.h>
+#include <list>
 #include <map>
 #include <string>
+#include "vcf_utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -71,9 +73,17 @@ struct Region {
    * @param result Vector to hold parsed Regions
    */
   static void parse_bed_file_htslib(
-      const VFS& vfs,
-      const std::string& bed_file_uri,
-      std::vector<Region>* result);
+      const std::string& bed_file_uri, std::list<Region>* result);
+
+  /**
+   * Parses a chromosome section of a BED file using htslib
+   *
+   * @param vfs TileDB VFS instance to use
+   * @param bed_file_uri URI of BED file to parse
+   * @param result Vector to hold parsed Regions
+   */
+  static std::list<Region> parse_bed_file_htslib_section(
+      SafeRegionFh regions_file, const char* chr);
 
   /**
    * Sorts the given list of Regions by their global offsets, using the provided
