@@ -7,6 +7,7 @@ trigger:
 
 variables:
   isRefTag: $[startsWith(variables['Build.SourceBranch'], 'refs/tags')]
+  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
 
 stages:
   - stage: CI
@@ -64,7 +65,7 @@ stages:
         - template: ci/build-images.yml
 
   - stage: BuildNativeLibs
-    condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    condition: and(succeeded(), or(eq(variables.isMaster, true), eq(variables.isRefTag, true)))
     jobs:
       - job: Linux_OSX
         strategy:
@@ -95,7 +96,7 @@ stages:
           - template: ci/native_libs-linux_osx.yml
 
   - stage: GitHubRelease
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+    condition: eq(variables.isRefTag, true)
     jobs:
       - job: All_OS
         strategy:
@@ -112,29 +113,7 @@ stages:
           - bash: |
               unset SYSTEM
               set +e
-
-              mv ../libraries/* .
-
-              mkdir lib
-
-              for arch in $(ls | grep .tar.gz)
-              do
-              tar -xf $arch
-              done
-
-              # OSX
-              mv *.dylib lib
-
-              # Linux
-              mv *.so lib
-
-              cd ./apis/spark
-
-              ./gradlew assemble
-              ./gradlew shadowJar
-
-              mkdir $BUILD_BINARIESDIRECTORY/jars
-              cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars
+              ci/collect-nativelibs.sh
 
           - task: ArchiveFiles@2
             inputs:
@@ -160,4 +139,5 @@ stages:
               repositoryName: TileDB-Inc/TileDB-VCF
               tag: $(Build.SourceBranchName)
               action: "edit"
+              isDraft: true
               assets: $(Build.BinariesDirectory)/jars/*.jar
