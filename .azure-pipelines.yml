@@ -7,6 +7,7 @@ trigger:
 
 variables:
   isRefTag: $[startsWith(variables['Build.SourceBranch'], 'refs/tags')]
+  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
 
 stages:
   - stage: CI
@@ -64,7 +65,7 @@ stages:
         - template: ci/build-images.yml
 
   - stage: BuildNativeLibs
-    condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    condition: or(eq(variables.isMaster, true), eq(variables.isRefTag, true))
     jobs:
       - job: Linux_OSX
         strategy:
@@ -95,7 +96,7 @@ stages:
           - template: ci/native_libs-linux_osx.yml
 
   - stage: GitHubRelease
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+    condition: eq(variables.isRefTag, true)
     jobs:
       - job: All_OS
         strategy:
