@@ -65,7 +65,7 @@ stages:
         - template: ci/build-images.yml
 
   - stage: BuildNativeLibs
-    condition: or(eq(variables.isMaster, true), eq(variables.isRefTag, true))
+    condition: and(succeeded(), or(eq(variables.isMaster, true), eq(variables.isRefTag, true)))
     jobs:
       - job: Linux_OSX
         strategy:
