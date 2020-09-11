@@ -161,4 +161,5 @@ stages:
               repositoryName: TileDB-Inc/TileDB-VCF
               tag: $(Build.SourceBranchName)
               action: "edit"
+              isDraft: true
               assets: $(Build.BinariesDirectory)/jars/*.jar
