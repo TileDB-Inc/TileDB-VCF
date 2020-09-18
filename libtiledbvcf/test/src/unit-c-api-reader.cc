@@ -33,6 +33,8 @@
 #include <cstring>
 #include <iostream>
 
+static std::string INPUT_ARRAYS_DIR_V4 =
+    TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v4");
 static std::string INPUT_ARRAYS_DIR_V3 =
     TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v3");
 static std::string INPUT_ARRAYS_DIR_V2 =

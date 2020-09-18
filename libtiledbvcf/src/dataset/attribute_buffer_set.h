@@ -75,6 +75,12 @@ class AttributeBufferSet {
   /** sample buffer. */
   Buffer& sample();
 
+  /** contig buffer. */
+  const Buffer& contig() const;
+
+  /** contig buffer. */
+  Buffer& contig();
+
   /** start_pos buffer. */
   const Buffer& start_pos() const;
 
@@ -162,6 +168,9 @@ class AttributeBufferSet {
  private:
   /** sample v3/v2 dimension (uint32_t) */
   Buffer sample_;
+
+  /** contig v4 dimension (string) */
+  Buffer contig_;
 
   /** start_pos v3 dimension (uint32_t) */
   Buffer start_pos_;

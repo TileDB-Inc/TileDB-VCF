@@ -95,6 +95,18 @@ class Buffer {
   }
 
   template <typename T>
+  T* value(uint64_t element_index, uint64_t* size) const {
+    assert(!offsets_.empty());
+    assert(data_);
+    uint64_t end = element_index == offsets_.size() - 1 ?
+                       data_size_ :
+                       offsets_[element_index + 1];
+    uint64_t start = offsets_[element_index];
+    *size = end - start;
+    return (T*)(data_ + start);
+  }
+
+  template <typename T>
   uint64_t nelts() const {
     return data_size_ / sizeof(T);
   }

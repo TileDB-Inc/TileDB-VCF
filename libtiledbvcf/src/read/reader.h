@@ -467,6 +467,15 @@ class Reader {
    * regions with the contents of the regions file, sorts, and performs the
    * anchor gap widening and merging process.
    */
+  void prepare_regions_v4(
+      std::vector<Region>* regions,
+      std::vector<QueryRegion>* query_regions) const;
+
+  /**
+   * Prepares the regions to be queried and exported. This merges the list of
+   * regions with the contents of the regions file, sorts, and performs the
+   * anchor gap widening and merging process.
+   */
   void prepare_regions_v3(
       std::vector<Region>* regions,
       std::vector<QueryRegion>* query_regions) const;
@@ -482,6 +491,13 @@ class Reader {
 
   /** Allocates required attribute buffers to receive TileDB query data. */
   void prepare_attribute_buffers();
+
+  /**
+   * Processes the result cells from the last TileDB query. Returns false if,
+   * during in-memory export, a user buffer filled up (which means it was an
+   * incomplete read operation). Else, returns true.
+   */
+  bool process_query_results_v4();
 
   /**
    * Processes the result cells from the last TileDB query. Returns false if,
@@ -508,6 +524,31 @@ class Reader {
 
   /** Initializes the TileDB context and VFS instances. */
   void init_tiledb();
+
+  /**
+   * Finds the interval of indexes in the sorted regions vector that intersect
+   * a record with the given start/end coordinates.
+   *
+   * This performs a linear search starting at the given index to find the first
+   * intersecting index, and then iterates forward to find the last index.
+   *
+   * @param regions Sorted regions vector to search
+   * @param region_idx Index to start iteration
+   * @param contig contig of record
+   * @param start Start pos of record to check for intersection
+   * @param end End pos of record to check for intersection
+   * @param new_region_idx Will be set to the upper bound index (i.e. the second
+   *    element in the return value).
+   * @return A pair (lower, upper) of the interval of intersecting regions. If
+   *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
+   */
+  static std::pair<size_t, size_t> get_intersecting_regions_v4(
+      const std::vector<Region>& regions,
+      size_t region_idx,
+      const std::string& contig,
+      uint32_t start,
+      uint32_t end,
+      size_t* new_region_idx);
 
   /**
    * Finds the interval of indexes in the sorted regions vector that intersect
