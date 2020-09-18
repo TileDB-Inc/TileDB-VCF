@@ -96,6 +96,12 @@ class TileDBVCFDataset {
   /* ********************************* */
 
   struct DimensionNames {
+    struct V4 {
+      static const std::string sample;
+      static const std::string contig;
+      static const std::string start_pos;
+    };
+
     struct V3 {
       static const std::string sample;
       static const std::string start_pos;
@@ -108,6 +114,17 @@ class TileDBVCFDataset {
   };
 
   struct AttrNames {
+    struct V4 {
+      static const std::string real_start_pos;
+      static const std::string end_pos;
+      static const std::string qual;
+      static const std::string alleles;
+      static const std::string id;
+      static const std::string filter_ids;
+      static const std::string info;
+      static const std::string fmt;
+    };
+
     struct V3 {
       static const std::string real_start_pos;
       static const std::string end_pos;
@@ -138,13 +155,13 @@ class TileDBVCFDataset {
   /**
    * The format version.
    */
-  enum Version { V2 = 2, V3 };
+  enum Version { V2 = 2, V3, V4 };
 
   /**
    * General metadata for a dataset. This should be kept relatively small.
    */
   struct Metadata {
-    unsigned version = Version::V3;
+    unsigned version = Version::V4;
     uint64_t tile_capacity;
     uint32_t row_tile_extent;
     uint32_t anchor_gap;
@@ -228,10 +245,13 @@ class TileDBVCFDataset {
   static std::pair<std::string, std::string> split_info_fmt_attr_name(
       const std::string& attr_name);
 
+  /** Return a set of the v4 attribute names for the "builtin" attributes. */
+  static std::set<std::string> builtin_attributes_v4();
+
   /** Return a set of the v3 attribute names for the "builtin" attributes. */
   static std::set<std::string> builtin_attributes_v3();
 
-  /** Return a set of the v3 attribute names for the "builtin" attributes. */
+  /** Return a set of the v2 attribute names for the "builtin" attributes. */
   static std::set<std::string> builtin_attributes_v2();
 
   /** Returns true if the builtin attribute is fixed-len in the schema. */

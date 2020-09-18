@@ -224,6 +224,14 @@ std::list<Region> Region::parse_bed_file_htslib_section(
   return result;
 }
 
+// void Region::sort_v4(std::vector<Region>* regions) {
+//  std::sort(
+//      regions->begin(), regions->end(), [](const Region& a, const Region& b) {
+//        if (a.)
+//        return a.min < b.min;
+//      });
+//}
+
 void Region::sort(
     const std::map<std::string, uint32_t>& contig_offsets,
     std::vector<Region>* regions) {

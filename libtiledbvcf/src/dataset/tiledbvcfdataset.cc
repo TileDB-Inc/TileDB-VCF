@@ -37,6 +37,11 @@
 namespace tiledb {
 namespace vcf {
 
+using dimNamesV4 = TileDBVCFDataset::DimensionNames::V4;
+const std::string dimNamesV4::sample = "sample";
+const std::string dimNamesV4::contig = "contig";
+const std::string dimNamesV4::start_pos = "start_pos";
+
 using dimNamesV3 = TileDBVCFDataset::DimensionNames::V3;
 const std::string dimNamesV3::sample = "sample";
 const std::string dimNamesV3::start_pos = "start_pos";
@@ -44,6 +49,16 @@ const std::string dimNamesV3::start_pos = "start_pos";
 using dimNamesV2 = TileDBVCFDataset::DimensionNames::V2;
 const std::string dimNamesV2::sample = "sample";
 const std::string dimNamesV2::end_pos = "end_pos";
+
+using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
+const std::string attrNamesV4::real_start_pos = "real_start_pos";
+const std::string attrNamesV4::end_pos = "end_pos";
+const std::string attrNamesV4::qual = "qual";
+const std::string attrNamesV4::alleles = "alleles";
+const std::string attrNamesV4::id = "id";
+const std::string attrNamesV4::filter_ids = "filter_ids";
+const std::string attrNamesV4::info = "info";
+const std::string attrNamesV4::fmt = "fmt";
 
 using attrNamesV3 = TileDBVCFDataset::AttrNames::V3;
 const std::string attrNamesV3::real_start_pos = "real_start_pos";
@@ -173,15 +188,17 @@ void TileDBVCFDataset::create_empty_data_array(
         dom_max - static_cast<uint32_t>(metadata.row_tile_extent);
     auto sample = Dimension::create<uint32_t>(
         ctx,
-        DimensionNames::V3::sample,
+        DimensionNames::V4::sample,
         {{dom_min, sample_dom_max}},
         metadata.row_tile_extent);
+    auto contig = Dimension::create(
+        ctx, DimensionNames::V4::contig, TILEDB_STRING_ASCII, nullptr, nullptr);
     auto start_pos = Dimension::create<uint32_t>(
         ctx,
-        DimensionNames::V3::start_pos,
+        DimensionNames::V4::start_pos,
         {{dom_min, dom_max}},
         dom_max - dom_min + 1);
-    domain.add_dimensions(sample, start_pos);
+    domain.add_dimensions(sample, contig, start_pos);
   }
   schema.set_domain(domain);
   auto offsets_filter_list = default_offsets_filter_list(ctx);
@@ -209,21 +226,21 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_offsets_filter_list(offsets_filter_list);
 
   auto real_start_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V3::real_start_pos, byteshuffle_zstd_filters);
+      ctx, AttrNames::V4::real_start_pos, byteshuffle_zstd_filters);
   auto end_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V3::end_pos, byteshuffle_zstd_filters);
+      ctx, AttrNames::V4::end_pos, byteshuffle_zstd_filters);
   auto qual =
-      Attribute::create<float>(ctx, AttrNames::V3::qual, attribute_filter_list);
+      Attribute::create<float>(ctx, AttrNames::V4::qual, attribute_filter_list);
   auto alleles = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V3::alleles, attribute_filter_list);
+      ctx, AttrNames::V4::alleles, attribute_filter_list);
   auto id = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V3::id, attribute_filter_list);
+      ctx, AttrNames::V4::id, attribute_filter_list);
   auto filters_ids = Attribute::create<std::vector<int32_t>>(
-      ctx, AttrNames::V3::filter_ids, byteshuffle_zstd_filters);
+      ctx, AttrNames::V4::filter_ids, byteshuffle_zstd_filters);
   auto info = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V3::info, attribute_filter_list);
+      ctx, AttrNames::V4::info, attribute_filter_list);
   auto fmt = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V3::fmt, attribute_filter_list);
+      ctx, AttrNames::V4::fmt, attribute_filter_list);
   schema.add_attributes(
       real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
@@ -292,11 +309,12 @@ void TileDBVCFDataset::open(
   metadata_ = read_metadata(ctx, root_uri_);
 
   // We support V2 and V3 (current) formats.
-  if (metadata_.version != Version::V2 && metadata_.version != Version::V3)
+  if (metadata_.version != Version::V2 && metadata_.version != Version::V3 &&
+      metadata_.version != Version::V4)
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset is version " +
         std::to_string(metadata_.version) +
-        " but only versions 2 and 3 are supported.");
+        " but only versions 2, 3 and 4 are supported.");
 
   load_field_type_maps(ctx);
 
@@ -937,6 +955,18 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
   return {kind, name};
 }
 
+std::set<std::string> TileDBVCFDataset::builtin_attributes_v4() {
+  return {
+      AttrNames::V4::real_start_pos,
+      AttrNames::V4::end_pos,
+      AttrNames::V4::qual,
+      AttrNames::V4::alleles,
+      AttrNames::V4::id,
+      AttrNames::V4::filter_ids,
+      AttrNames::V4::info,
+      AttrNames::V4::fmt};
+}
+
 std::set<std::string> TileDBVCFDataset::builtin_attributes_v3() {
   return {
       AttrNames::V3::real_start_pos,
@@ -962,10 +992,14 @@ std::set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
-  return attr == DimensionNames::V3::sample ||
+  return attr == DimensionNames::V4::sample ||
+         attr == DimensionNames::V4::start_pos ||
+         attr == DimensionNames::V3::sample ||
          attr == DimensionNames::V3::start_pos ||
          attr == DimensionNames::V2::sample ||
          attr == DimensionNames::V2::end_pos ||
+         attr == AttrNames::V4::real_start_pos ||
+         attr == AttrNames::V4::end_pos || attr == AttrNames::V4::qual ||
          attr == AttrNames::V3::real_start_pos ||
          attr == AttrNames::V3::end_pos || attr == AttrNames::V3::qual ||
          attr == AttrNames::V2::pos || attr == AttrNames::V2::real_end ||
@@ -980,9 +1014,11 @@ std::set<std::string> TileDBVCFDataset::all_attributes() const {
   std::set<std::string> result;
   if (metadata_.version == Version::V2) {
     result = builtin_attributes_v2();
-  } else {
-    assert(metadata_.version == Version::V3);
+  } else if (metadata_.version == Version::V3) {
     result = builtin_attributes_v3();
+  } else {
+    assert(metadata_.version == Version::V4);
+    result = builtin_attributes_v4();
   }
 
   for (const auto& s : metadata_.extra_attributes)

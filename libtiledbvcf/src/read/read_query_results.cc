@@ -43,6 +43,10 @@ void ReadQueryResults::set_results(
 
   auto result_el = query.result_buffer_elements();
   num_cells_ = result_el["sample"].second;
+  // Set config sizes for v4
+  if (dataset.metadata().version == TileDBVCFDataset::Version::V4)
+    contig_size_ = result_el["contig"];
+
   alleles_size_ = result_el["alleles"];
   id_size_ = result_el["id"];
   filter_ids_size_ = result_el["filter_ids"];
@@ -64,6 +68,10 @@ const AttributeBufferSet* ReadQueryResults::buffers() const {
 
 uint64_t ReadQueryResults::num_cells() const {
   return num_cells_;
+}
+
+const std::pair<uint64_t, uint64_t>& ReadQueryResults::contig_size() const {
+  return contig_size_;
 }
 
 const std::pair<uint64_t, uint64_t>& ReadQueryResults::alleles_size() const {

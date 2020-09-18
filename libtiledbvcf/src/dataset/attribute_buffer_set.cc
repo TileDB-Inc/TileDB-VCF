@@ -27,21 +27,29 @@ void AttributeBufferSet::allocate_fixed(
     num_offsets = nbytes / sizeof(uint64_t);
   }
 
+  using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
   using attrNamesV3 = TileDBVCFDataset::AttrNames::V3;
   using attrNamesV2 = TileDBVCFDataset::AttrNames::V2;
+  using dimNamesV4 = TileDBVCFDataset::DimensionNames::V4;
   using dimNamesV3 = TileDBVCFDataset::DimensionNames::V3;
   using dimNamesV2 = TileDBVCFDataset::DimensionNames::V2;
   for (const auto& s : attr_names) {
-    if (s == dimNamesV3::sample || s == dimNamesV2::sample) {
+    if (s == dimNamesV4::sample || s == dimNamesV3::sample ||
+        s == dimNamesV2::sample) {
       sample_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &sample_, sizeof(uint32_t));
-    } else if (s == dimNamesV3::start_pos) {
+    } else if (s == dimNamesV4::contig) {
+      contig_.resize(nbytes);
+      contig_.offsets().resize(num_offsets);
+      fixed_alloc_.emplace_back(true, s, &contig_, sizeof(char));
+    } else if (s == dimNamesV4::start_pos || s == dimNamesV3::start_pos) {
       start_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &start_pos_, sizeof(uint32_t));
     } else if (s == dimNamesV2::end_pos) {
       end_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &end_pos_, sizeof(uint32_t));
-    } else if (s == attrNamesV3::real_start_pos) {
+    } else if (
+        s == attrNamesV4::real_start_pos || s == attrNamesV3::real_start_pos) {
       real_start_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &real_start_pos_, sizeof(uint32_t));
     } else if (s == attrNamesV3::end_pos) {
@@ -53,26 +61,37 @@ void AttributeBufferSet::allocate_fixed(
     } else if (s == attrNamesV2::real_end) {
       real_end_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &real_end_, sizeof(uint32_t));
-    } else if (s == attrNamesV3::qual || s == attrNamesV2::qual) {
+    } else if (
+        s == attrNamesV4::qual || s == attrNamesV3::qual ||
+        s == attrNamesV2::qual) {
       qual_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &qual_, sizeof(float));
-    } else if (s == attrNamesV3::alleles || s == attrNamesV2::alleles) {
+    } else if (
+        s == attrNamesV4::alleles || s == attrNamesV3::alleles ||
+        s == attrNamesV2::alleles) {
       alleles_.resize(nbytes);
       alleles_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &alleles_, sizeof(char));
-    } else if (s == attrNamesV3::id || s == attrNamesV2::id) {
+    } else if (
+        s == attrNamesV4::id || s == attrNamesV3::id || s == attrNamesV2::id) {
       id_.resize(nbytes);
       id_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &id_, sizeof(char));
-    } else if (s == attrNamesV3::filter_ids || s == attrNamesV2::filter_ids) {
+    } else if (
+        s == attrNamesV4::filter_ids || s == attrNamesV3::filter_ids ||
+        s == attrNamesV2::filter_ids) {
       filter_ids_.resize(nbytes);
       filter_ids_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &filter_ids_, sizeof(int32_t));
-    } else if (s == attrNamesV3::info || s == attrNamesV2::info) {
+    } else if (
+        s == attrNamesV4::info || s == attrNamesV3::info ||
+        s == attrNamesV2::info) {
       info_.resize(nbytes);
       info_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &info_, sizeof(char));
-    } else if (s == attrNamesV3::fmt || s == attrNamesV2::fmt) {
+    } else if (
+        s == attrNamesV4::fmt || s == attrNamesV3::fmt ||
+        s == attrNamesV2::fmt) {
       fmt_.resize(nbytes);
       fmt_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &fmt_, sizeof(char));
@@ -98,6 +117,8 @@ uint64_t AttributeBufferSet::total_size() const {
   total_size += qual_.size();
 
   // Var-len attributes
+  total_size += contig_.size();
+  total_size += contig_.offsets().size() * sizeof(uint64_t);
   total_size += alleles_.size();
   total_size += alleles_.offsets().size() * sizeof(uint64_t);
   total_size += id_.size();
@@ -130,6 +151,8 @@ void AttributeBufferSet::clear() {
   qual_.clear();
 
   // Var-len attributes
+  contig_.clear();
+  contig_.offsets().clear();
   alleles_.clear();
   alleles_.offsets().clear();
   id_.clear();
@@ -152,7 +175,64 @@ void AttributeBufferSet::set_buffers(
     tiledb::Query* query, unsigned version) const {
   if (fixed_alloc_.empty()) {
     // Set all buffers
-    if (version == TileDBVCFDataset::Version::V3) {
+    if (version == TileDBVCFDataset::Version::V4) {
+      query->set_buffer(
+          TileDBVCFDataset::DimensionNames::V4::sample,
+          sample_.data<void>(),
+          sample_.nelts<uint32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::DimensionNames::V4::contig,
+          (uint64_t*)contig_.offsets().data(),
+          contig_.offsets().size(),
+          contig_.data<void>(),
+          contig_.nelts<char>());
+      query->set_buffer(
+          TileDBVCFDataset::DimensionNames::V4::start_pos,
+          start_pos_.data<void>(),
+          start_pos_.nelts<uint32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::real_start_pos,
+          real_start_pos_.data<void>(),
+          real_start_pos_.nelts<uint32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::end_pos,
+          end_pos_.data<void>(),
+          end_pos_.nelts<uint32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::qual,
+          qual_.data<void>(),
+          qual_.nelts<float>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::alleles,
+          (uint64_t*)alleles_.offsets().data(),
+          alleles_.offsets().size(),
+          alleles_.data<void>(),
+          alleles_.nelts<char>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::id,
+          (uint64_t*)id_.offsets().data(),
+          id_.offsets().size(),
+          id_.data<void>(),
+          id_.nelts<char>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          filter_ids_.offsets().size(),
+          filter_ids_.data<void>(),
+          filter_ids_.nelts<int32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::info,
+          (uint64_t*)info_.offsets().data(),
+          info_.offsets().size(),
+          info_.data<void>(),
+          info_.nelts<uint8_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::fmt,
+          (uint64_t*)fmt_.offsets().data(),
+          fmt_.offsets().size(),
+          fmt_.data<void>(),
+          fmt_.nelts<uint8_t>());
+    } else if (version == TileDBVCFDataset::Version::V3) {
       query->set_buffer(
           TileDBVCFDataset::DimensionNames::V3::sample,
           sample_.data<void>(),
@@ -294,6 +374,14 @@ const Buffer& AttributeBufferSet::sample() const {
 
 Buffer& AttributeBufferSet::sample() {
   return sample_;
+}
+
+const Buffer& AttributeBufferSet::contig() const {
+  return contig_;
+}
+
+Buffer& AttributeBufferSet::contig() {
+  return contig_;
 }
 
 const Buffer& AttributeBufferSet::start_pos() const {

@@ -153,7 +153,6 @@ class InMemoryExporter : public Exporter {
   /** The exportable attributes. */
   enum class ExportableAttribute {
     SampleName,
-    Contig,
     PosStart,
     PosEnd,
     QueryBedStart,
@@ -164,7 +163,8 @@ class InMemoryExporter : public Exporter {
     Qual,
     Fmt,
     Info,
-    InfoOrFmt
+    InfoOrFmt,
+    Contig,
   };
 
   /** Struct holding size info of user buffers. */
