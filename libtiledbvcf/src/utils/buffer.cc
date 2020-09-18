@@ -96,6 +96,8 @@ void Buffer::append(const void* data, size_t bytes) {
 void Buffer::clear() {
   offsets_.clear();
   data_size_ = 0;
+  offset_nelts_ = 0;
+  data_effective_size_ = 0;
 }
 
 void Buffer::reserve(size_t s, bool clear_new) {
@@ -107,6 +109,7 @@ void Buffer::resize(size_t s, bool clear_new) {
   if (s > data_alloced_size_)
     realloc(s, clear_new);
   data_size_ = s;
+  data_effective_size_ = s;
 }
 
 void Buffer::reserve_offsets(size_t s) {
@@ -160,6 +163,14 @@ void Buffer::realloc(uint64_t new_alloced_size, bool clear_new) {
   }
 
   assert(data_ != nullptr);
+}
+
+void Buffer::effective_size(uint64_t size) {
+  data_effective_size_ = size;
+}
+
+void Buffer::offset_nelts(uint64_t offset_nelts) {
+  offset_nelts_ = offset_nelts;
 }
 
 void Buffer::swap(Buffer& other) {

@@ -342,7 +342,12 @@ void Reader::init_for_reads() {
 
   init_exporter();
 
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    prepare_regions_v4(
+        &read_state_.regions,
+        &read_state_.regions_index_per_contig,
+        &read_state_.query_regions);
+  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
@@ -405,10 +410,36 @@ bool Reader::next_read_batch() {
   // Set ranges
   for (const auto& sample : read_state_.current_sample_batches)
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-  // Set regions
-  for (const auto& query_region : read_state_.query_regions)
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    std::vector<std::string> contigs;
+    for (const auto& query_region : read_state_.query_regions) {
+      read_state_.query->add_range(
+          2, query_region.col_min, query_region.col_max);
+      //      contigs.insert(query_region.contigs.rbegin(),
+      //      query_region.contigs.rend());
+      for (const auto& contig : query_region.contigs) {
+        bool found = false;
+        for (const auto& contig_recorded : contigs) {
+          if (contig_recorded == contig) {
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          contigs.emplace_back(contig);
+      }
+    }
+
+    for (const auto& contig : contigs)
+      read_state_.query->add_range(1, contig, contig);
+  } else {
+    // Set regions
+    for (const auto& query_region : read_state_.query_regions)
+      read_state_.query->add_range( 1, query_region.col_min, query_region.col_max);
+  }
   read_state_.query->set_layout(TILEDB_UNORDERED);
+  //  read_state_.query->set_layout(TILEDB_COL_MAJOR);
   if (params_.verbose)
     std::cout << "Initialized TileDB query with "
               << read_state_.query_regions.size() << " column ranges."
@@ -457,7 +488,10 @@ bool Reader::read_current_batch() {
 
     // If the read status was incomplete, pick up processing the previous TileDB
     // query results.
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      if (!process_query_results_v4())
+        return false;  // Still incomplete.
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       if (!process_query_results_v3())
         return false;  // Still incomplete.
     } else {
@@ -492,6 +526,15 @@ bool Reader::read_current_batch() {
     // Block on query completion.
     auto query_status = read_state_.async_query.get();
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
+
+    // TODO: We should update all sizes here
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      buffers_a->contig().effective_size(
+          read_state_.query_results.contig_size().second * sizeof(char));
+      buffers_a->contig().offset_nelts(
+          read_state_.query_results.contig_size().first);
+    }
+
     read_state_.cell_idx = 0;
 
     if (read_state_.query_results.num_cells() == 0 &&
@@ -516,7 +559,9 @@ bool Reader::read_current_batch() {
     auto t0 = std::chrono::steady_clock::now();
 
     bool complete;
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      complete = process_query_results_v4();
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       complete = process_query_results_v3();
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
@@ -569,6 +614,134 @@ struct RegionComparator {
     return left.max + left.seq_offset < right;
   }
 } RegionComparator;
+
+bool Reader::process_query_results_v4() {
+  if (read_state_.regions.empty())
+    throw std::runtime_error(
+        "Error processing query results; empty regions list.");
+
+  const auto& results = read_state_.query_results;
+  const uint64_t num_cells = results.num_cells();
+  if (num_cells == 0 || read_state_.cell_idx >= num_cells)
+    return true;
+
+  const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
+
+  for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
+    // For easy reference
+    const uint64_t i = read_state_.cell_idx;
+    //    const uint32_t sample_id =
+    //    results.buffers()->sample().value<uint32_t>(i);
+    const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
+    const uint32_t real_start =
+        results.buffers()->real_start_pos().value<uint32_t>(i);
+
+    // Get the contig
+    uint64_t contig_size = 0;
+    const char* contig_buff =
+        results.buffers()->contig().value<char>(i, &contig_size);
+    std::string contig(contig_buff, contig_size);
+
+    const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
+
+    // Lookup region indexes for contig only
+    // This lets us limit the scope of intersections to only regions for this
+    // cell's contig
+    const auto regions_indexes =
+        read_state_.regions_index_per_contig.find(contig);
+    // If we have a contig which isn't asked for error out
+    if (regions_indexes == read_state_.regions_index_per_contig.end())
+      throw std::runtime_error(
+          "Error in query result processing; range unexpectedly does not "
+          "intersect cell (" +
+          contig + "-" + std::to_string(real_start) + "-" +
+          std::to_string(end) + ").");
+    // Skip cell if we've already reported the gVCF record for it.
+    //    if (end ==
+    //        read_state_.last_reported_end[sample_id - read_state_.sample_min])
+    //      continue;
+
+    // Get original regions which intersect the cell's gVCF range (may be none).
+    /*    size_t new_region_idx;
+        std::pair<size_t, size_t> intersecting = get_intersecting_regions_v4(
+            read_state_.regions,
+            read_state_.region_idx,
+            contig,
+            real_start,
+            start,
+            end,
+            &new_region_idx);
+        if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
+            intersecting.second == std::numeric_limits<uint32_t>::max())
+          continue;*/
+
+    // Report all intersections. If the previous read returned before
+    // reporting all intersecting regions, 'last_intersecting_region_idx_'
+    // will be non-zero. All regions with an index less-than
+    // 'last_intersecting_region_idx_' have already been reported, so we
+    // must avoid reporting them multiple times.
+    /*    size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
+                       read_state_.last_intersecting_region_idx_ :
+                       intersecting.first;*/
+    for (size_t j = read_state_.last_intersecting_region_idx_;
+         j < regions_indexes->second.size();
+         j++) {
+      const size_t region_index = regions_indexes->second[j];
+      const auto& reg = read_state_.regions[region_index];
+      const uint32_t reg_min = reg.min;
+      const uint32_t reg_max = reg.max;
+      bool report = false;
+      //      bool intersects =
+      //          real_start <= reg_max && end >= reg_min && reg.seq_name ==
+      //          contig;
+      //      if (!intersects)
+      //        throw std::runtime_error(
+      //            "Error in query result processing; range unexpectedly does
+      //            not " "intersect cell.");
+
+      // If the region doesn't match the contig skip it
+      //      if (reg.seq_name != contig)
+      //        continue;
+
+      // If the vcf record is not contained in the region skip it
+      if (end < reg_min || real_start > reg_max)
+        continue;
+
+      // If the real_start is above the region start then only report the single cell where real_start == start
+      if (real_start == start && real_start >= reg_min)
+        report = true;
+      // If the start position is between the region start and the region start minus one anchor gap then report as this is the "first" cell to touch the region and our target
+      else if (reg_min - anchor_gap < start && start < reg_min)
+        report = true;
+
+      // If we overflow when reporting this cell, save the index of the
+      // current region so that we restart from the same position on the
+      // next read. Otherwise, we will re-report the cells in regions with
+      // an index below 'j'.
+      if (report) {
+        if (!report_cell(reg, reg.seq_offset, i)) {
+          read_state_.last_intersecting_region_idx_ = j;
+          return false;
+        }
+      }
+
+      // Return early if we've hit the record limit.
+      if (read_state_.total_num_records_exported >= params_.max_num_records)
+        return true;
+    }
+
+    // Clear 'last_intersecting_region_idx_' after successfully reporting
+    // all cells in intersecting regions.
+    read_state_.last_intersecting_region_idx_ = 0;
+
+    //    read_state_.last_reported_end[sample_id - read_state_.sample_min] =
+    //    end; read_state_.region_idx = new_region_idx;
+    // workaround check all regions always
+    read_state_.region_idx = 0;
+  }
+
+  return true;
+}
 
 bool Reader::process_query_results_v3() {
   if (read_state_.regions.empty())
@@ -767,6 +940,276 @@ bool Reader::process_query_results_v2() {
   return true;
 }
 
+std::pair<size_t, size_t> Reader::get_intersecting_regions_v4(
+    const std::vector<Region>& regions,
+    size_t region_idx,
+    const std::string& contig,
+    uint32_t real_start,
+    uint32_t start,
+    uint32_t end,
+    size_t* new_region_idx) {
+  const auto intersects_p =
+      [](const Region& r, const std::string& contig, uint32_t s, uint32_t e) {
+        return r.seq_name == contig && s <= r.max && e >= r.min;
+      };
+  const auto nil = std::numeric_limits<uint32_t>::max();
+
+  if (regions.empty())
+    return {nil, nil};
+
+  // Find the index of the last region that intersects the cell's END position.
+  // This is stored in the output variable for the new region index.
+  size_t last = nil;
+  for (size_t i = region_idx; i < regions.size(); i++) {
+    // Regions are sorted on END, so stop searching early if possible.
+    if (end < regions[i].min && contig == regions[i].seq_name)
+      break;
+
+    bool intersects = intersects_p(regions[i], contig, start, end);
+    if (i < regions.size() - 1) {
+      bool next_intersects = intersects_p(regions[i + 1], contig, start, end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Check if no regions intersect.
+  if (last == nil)
+    return {nil, nil};
+
+  size_t original_last = last;
+
+  // Next find the index of the last region that intersects the cell's
+  // REAL_START position. This is used as the actual interval of intersection.
+  for (size_t i = original_last; i < regions.size(); i++) {
+    bool intersects = intersects_p(regions[i], contig, real_start, end);
+    if (i < regions.size() - 1) {
+      bool next_intersects =
+          intersects_p(regions[i + 1], contig, real_start, end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Search backwards to find the first region that intersects the cell.
+  size_t first = nil;
+  for (size_t i = original_last;; i--) {
+    bool intersects = intersects_p(regions[i], contig, real_start, end);
+    if (i > 0) {
+      bool prev_intersects =
+          intersects_p(regions[i - 1], contig, real_start, end);
+      if (intersects && !prev_intersects) {
+        first = i;
+        break;
+      }
+    } else if (intersects) {
+      first = i;
+      break;
+    }
+
+    if (i == 0)
+      break;
+  }
+
+  // Set the new region index to the first intersecting region index.
+  // Since we sort on start position, we must wait for the start to cross to a
+  // new region to move
+  *new_region_idx = first;
+
+  // If we're here then we must have a valid interval.
+  if (first == nil || last == nil)
+    throw std::runtime_error(
+        "Error finding intersection region interval; invalid interval.");
+
+  return {first, last};
+}
+
+std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
+    const std::vector<Region>& regions,
+    size_t region_idx,
+    uint32_t real_start,
+    uint32_t start,
+    uint32_t end,
+    size_t* new_region_idx) {
+  const auto intersects_p = [](const Region& r, uint32_t s, uint32_t e) {
+    return s <= (r.seq_offset + r.max) && e >= (r.seq_offset + r.min);
+  };
+  const auto nil = std::numeric_limits<uint32_t>::max();
+
+  if (regions.empty())
+    return {nil, nil};
+
+  // Find the index of the last region that intersects the cell's END position.
+  // This is stored in the output variable for the new region index.
+  size_t last = nil;
+  for (size_t i = region_idx; i < regions.size(); i++) {
+    // Regions are sorted on END, so stop searching early if possible.
+    if (end < regions[i].seq_offset + regions[i].min)
+      break;
+
+    bool intersects = intersects_p(regions[i], start, end);
+    if (i < regions.size() - 1) {
+      bool next_intersects = intersects_p(regions[i + 1], start, end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Check if no regions intersect.
+  if (last == nil)
+    return {nil, nil};
+
+  size_t original_last = last;
+
+  // Next find the index of the last region that intersects the cell's
+  // REAL_START position. This is used as the actual interval of intersection.
+  for (size_t i = original_last; i < regions.size(); i++) {
+    bool intersects = intersects_p(regions[i], real_start, end);
+    if (i < regions.size() - 1) {
+      bool next_intersects = intersects_p(regions[i + 1], real_start, end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Search backwards to find the first region that intersects the cell.
+  size_t first = nil;
+  for (size_t i = original_last;; i--) {
+    bool intersects = intersects_p(regions[i], real_start, end);
+    if (i > 0) {
+      bool prev_intersects = intersects_p(regions[i - 1], real_start, end);
+      if (intersects && !prev_intersects) {
+        first = i;
+        break;
+      }
+    } else if (intersects) {
+      first = i;
+      break;
+    }
+
+    if (i == 0)
+      break;
+  }
+
+  // Set the new region index to the first intersecting region index.
+  // Since we sort on start position, we must wait for the start to cross to a
+  // new region to move
+  *new_region_idx = first;
+
+  // If we're here then we must have a valid interval.
+  if (first == nil || last == nil)
+    throw std::runtime_error(
+        "Error finding intersection region interval; invalid interval.");
+
+  return {first, last};
+}
+
+std::pair<size_t, size_t> Reader::get_intersecting_regions_v2(
+    const std::vector<Region>& regions,
+    size_t region_idx,
+    uint32_t start,
+    uint32_t end,
+    uint32_t real_end,
+    size_t* new_region_idx) {
+  const auto intersects_p = [](const Region& r, uint32_t s, uint32_t e) {
+    return s <= (r.seq_offset + r.max) && e >= (r.seq_offset + r.min);
+  };
+  const auto nil = std::numeric_limits<uint32_t>::max();
+
+  if (regions.empty())
+    return {nil, nil};
+
+  // Find the index of the last region that intersects the cell's END position.
+  // This is stored in the output variable for the new region index.
+  size_t last = nil;
+  for (size_t i = region_idx; i < regions.size(); i++) {
+    // Regions are sorted on END, so stop searching early if possible.
+    if (end < regions[i].seq_offset + regions[i].min)
+      break;
+
+    bool intersects = intersects_p(regions[i], start, end);
+    if (i < regions.size() - 1) {
+      bool next_intersects = intersects_p(regions[i + 1], start, end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Check if no regions intersect.
+  if (last == nil)
+    return {nil, nil};
+
+  // Set the new region index to the last intersecting region index.
+  *new_region_idx = last;
+
+  // Next find the index of the last region that intersects the cell's REAL_END
+  // position. This is used as the actual interval of intersection.
+  for (size_t i = *new_region_idx; i < regions.size(); i++) {
+    bool intersects = intersects_p(regions[i], start, real_end);
+    if (i < regions.size() - 1) {
+      bool next_intersects = intersects_p(regions[i + 1], start, real_end);
+      if (intersects && !next_intersects) {
+        last = i;
+        break;
+      }
+    } else if (intersects) {
+      last = i;
+      break;
+    }
+  }
+
+  // Search backwards to find the first region that intersects the cell.
+  size_t first = nil;
+  for (size_t i = *new_region_idx;; i--) {
+    bool intersects = intersects_p(regions[i], start, real_end);
+    if (i > 0) {
+      bool prev_intersects = intersects_p(regions[i - 1], start, real_end);
+      if (intersects && !prev_intersects) {
+        first = i;
+        break;
+      }
+    } else if (intersects) {
+      first = i;
+      break;
+    }
+
+    if (i == 0)
+      break;
+  }
+
+  // If we're here then we must have a valid interval.
+  if (first == nil || last == nil)
+    throw std::runtime_error(
+        "Error finding intersection region interval; invalid interval.");
+
+  return {first, last};
+}
+
 bool Reader::report_cell(
     const Region& region, uint32_t contig_offset, uint64_t cell_idx) {
   if (exporter_ == nullptr) {
@@ -886,6 +1329,214 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
 
   return result;
 }
+
+void Reader::prepare_regions_v4(
+    std::vector<Region>* regions,
+    std::unordered_map<std::string, std::vector<size_t>>*
+        regions_index_per_contig,
+    std::vector<QueryRegion>* query_regions) const {
+  const uint32_t g = dataset_->metadata().anchor_gap;
+  // Use a linked list for pre-partition regions to allow for parallel parsing
+  // of BED file
+  std::list<Region> pre_partition_regions_list;
+
+  // Manually-specified regions (-r) are 1-indexed and inclusive
+  for (const std::string& r : params_.regions)
+    pre_partition_regions_list.emplace_back(
+        r, Region::Type::OneIndexedInclusive);
+
+  // Add BED file regions, if specified.
+  if (!params_.regions_file_uri.empty()) {
+    auto start_bed_file_parse = std::chrono::steady_clock::now();
+    Region::parse_bed_file_htslib(
+        params_.regions_file_uri, &pre_partition_regions_list);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
+                << " regions in "
+                << utils::chrono_duration(start_bed_file_parse) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
+
+  // No specified regions means all regions.
+  if (pre_partition_regions_list.empty())
+    pre_partition_regions_list = dataset_->all_contigs_list();
+
+  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
+  //  std::pair<std::string, std::string> contigNonEmptyDomain =
+  //  array.non_empty_domain_var(1);
+  std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
+      array.non_empty_domain<uint32_t>(2);
+  std::vector<Region> filtered_regions;
+  // Loop through all contigs to query and pre-filter to ones which fall inside
+  // the nonEmptyDomain This will balance the partitioning better my removing
+  // empty regions
+  for (auto& r : pre_partition_regions_list) {
+    uint32_t contig_offset;
+    try {
+      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(
+          "Error preparing regions for export; no contig named '" + r.seq_name +
+          "' in dataset.");
+    }
+
+    r.seq_offset = contig_offset;
+    const uint32_t reg_min = r.min;
+    const uint32_t reg_max = r.max;
+
+    // Widen the query region by the anchor gap value, avoiding overflow.
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+    if (widened_reg_min <= regionNonEmptyDomain.second &&
+        reg_max >= regionNonEmptyDomain.first) {
+      filtered_regions.emplace_back(r);
+    }
+  }
+  *regions = filtered_regions;
+
+  // Sort all by global column coord.
+  if (params_.sort_regions) {
+    auto start_region_sort = std::chrono::steady_clock::now();
+    Region::sort(dataset_->metadata().contig_offsets, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Sorted " << regions->size() << " regions in "
+                << utils::chrono_duration(start_region_sort) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
+
+  // Apply region partitioning before expanding.
+  // If we have less regions than requested partitions, handle that by allowing
+  // empty partitions
+  if (regions->size() < params_.region_partitioning.num_partitions) {
+    // Make sure that we are not trying to fetch a partition that is out of
+    // bounds
+    if (params_.region_partitioning.partition_index >=
+        params_.region_partitioning.num_partitions)
+      throw std::runtime_error(
+          "Error partitioning vector; partition index " +
+          std::to_string(params_.region_partitioning.partition_index) +
+          " >= num partitions " +
+          std::to_string(params_.region_partitioning.num_partitions) + ".");
+    std::vector<Region> tmp;
+    if (params_.region_partitioning.partition_index < regions->size())
+      tmp.emplace_back((*regions)[params_.region_partitioning.partition_index]);
+    *regions = tmp;
+  } else {
+    utils::partition_vector(
+        params_.region_partitioning.partition_index,
+        params_.region_partitioning.num_partitions,
+        regions);
+  }
+
+  // Expand individual regions to a minimum width of the anchor gap.
+  //  uint32_t prev_reg_min = 0;
+  //  uint32_t prev_reg_max = 0;
+  size_t region_index = 0;
+  for (auto& r : *regions) {
+    uint32_t contig_offset;
+    try {
+      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(
+          "Error preparing regions for export; no contig named '" + r.seq_name +
+          "' in dataset.");
+    }
+
+    // Save mapping of contig to region indexing
+    // Used in read to limit region intersection checking to only regions of
+    // same contig
+    auto regions_index = regions_index_per_contig->find(r.seq_name);
+    if (regions_index == regions_index_per_contig->end())
+      regions_index_per_contig->emplace(r.seq_name, std::vector<size_t>());
+
+    regions_index_per_contig->find(r.seq_name)
+        ->second.emplace_back(region_index);
+    ++region_index;
+
+    r.seq_offset = contig_offset;
+    const uint32_t reg_min = r.min;
+    const uint32_t reg_max = r.max;
+
+    // Widen the query region by the anchor gap value, avoiding overflow.
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+
+    bool new_region = true;
+    for (auto& query_region : *query_regions) {
+      //      if (query_region.col_max + 1 >= widened_reg_min)
+      if (widened_reg_min <= query_region.col_max &&
+          reg_max >= query_region.col_min) {
+        query_region.col_max = std::max(query_region.col_max, reg_max);
+        query_region.col_min = std::min(
+            static_cast<uint64_t>(query_region.col_min), widened_reg_min);
+        query_region.contigs.emplace_back(r.seq_name);
+        new_region = false;
+        break;
+      }
+    }
+    if (new_region) {
+      // Start a new query region.
+      query_regions->push_back({});
+      query_regions->back().col_min = widened_reg_min;
+      query_regions->back().col_max = reg_max;
+      query_regions->back().contigs.emplace_back(r.seq_name);
+    }
+
+    //    bool new_region = true;
+
+    /*    if (!query_regions->empty()) {
+          //      if(prev_reg_max + 1 >= widened_reg_min && reg_max - g <=
+          //      prev_reg_max) {
+          // If the new max is greater than the previous and the min falls
+       between,
+          // then expand the end
+          if (reg_max > prev_reg_max && prev_reg_min > reg_min &&
+              prev_reg_min < reg_max) {
+            // Previous widened region overlaps this one; merge.
+            query_regions->back().col_max = reg_max;
+            new_region = false;
+          }
+          if (reg_min < prev_reg_min && prev_reg_min < reg_max &&
+              prev_reg_max > reg_max) {
+            // Previous widened region overlaps this one; merge.
+            query_regions->back().col_max = reg_max;
+            new_region = false;
+          }
+        }
+
+        if (new_region) {
+          // Start a new query region.
+          query_regions->push_back({});
+          query_regions->back().col_min = widened_reg_min;
+          query_regions->back().col_max = reg_max;
+          query_regions->back().contig = r.seq_name;
+        }*/
+
+    /*    if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
+          // Previous widened region overlaps this one; merge.
+          query_regions->back().col_max =
+       std::max(query_regions->back().col_max, reg_max);
+          query_regions->back().col_min =
+       std::min(static_cast<uint64_t>(query_regions->back().col_min),
+       widened_reg_min); query_regions->back().contigs.emplace_back(r.seq_name);
+        } else {
+          // Start a new query region.
+          query_regions->push_back({});
+          query_regions->back().col_min = widened_reg_min;
+          query_regions->back().col_max = reg_max;
+          query_regions->back().contigs.emplace_back(r.seq_name);
+        }*/
+
+    //    prev_reg_min = widened_reg_min;
+    //    prev_reg_max = reg_max;
+  }
+}  // namespace vcf
 
 void Reader::prepare_regions_v3(
     std::vector<Region>* regions,
@@ -1164,7 +1815,14 @@ void Reader::prepare_regions_v2(
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
   std::unordered_set<std::string> attrs;
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    attrs = {
+        TileDBVCFDataset::DimensionNames::V4::sample,
+        TileDBVCFDataset::DimensionNames::V4::contig,
+        TileDBVCFDataset::DimensionNames::V4::start_pos,
+        TileDBVCFDataset::AttrNames::V4::real_start_pos,
+        TileDBVCFDataset::AttrNames::V4::end_pos};
+  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     attrs = {
         TileDBVCFDataset::DimensionNames::V3::sample,
         TileDBVCFDataset::DimensionNames::V3::start_pos,

@@ -33,6 +33,7 @@
 #include "write/writer_worker.h"
 #include "write/writer_worker_v2.h"
 #include "write/writer_worker_v3.h"
+#include "write/writer_worker_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -235,9 +236,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   for (size_t i = 0; i < workers.size(); ++i) {
     if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
-    } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
     }
 
     workers[i]->init(dataset, params, samples);
@@ -256,9 +259,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (vcf.contig_has_records(p.first))
           nonempty_contigs.insert(p.first);
       }
-    } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
       VCFV3 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      VCFV4 vcf;
       vcf.open(s.sample_uri, s.index_uri);
       for (const auto& p : metadata.contig_offsets) {
         if (vcf.contig_has_records(p.first))
