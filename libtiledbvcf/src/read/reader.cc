@@ -412,8 +412,20 @@ bool Reader::next_read_batch() {
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
   read_state_.query->add_range(
       0, read_state_.sample_min, read_state_.sample_max);
-  for (const auto& query_region : read_state_.query_regions)
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    std::set<std::string> contigs;
+    for (const auto &query_region : read_state_.query_regions) {
+      read_state_.query->add_range(2, query_region.col_min, query_region.col_max);
+      if (!query_region.contig.empty())
+        contigs.emplace(query_region.contig);
+    }
+
+    for (const auto& contig : contigs)
+      read_state_.query->add_range(1, contig, contig);
+  } else {
+    for (const auto &query_region : read_state_.query_regions)
+      read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose)
     std::cout << "Initialized TileDB query with "
@@ -1346,6 +1358,7 @@ void Reader::prepare_regions_v4(
       query_regions->push_back({});
       query_regions->back().col_min = widened_reg_min;
       query_regions->back().col_max = reg_max;
+      query_regions->back().contig = r.seq_name;
     }
 
     prev_reg_max = reg_max;

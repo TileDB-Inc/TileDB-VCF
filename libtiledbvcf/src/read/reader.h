@@ -318,6 +318,7 @@ class Reader {
   struct QueryRegion {
     uint32_t col_min;
     uint32_t col_max;
+    std::string contig;
   };
 
   /**
