@@ -274,7 +274,6 @@ TEST_CASE("VCF: Test V3 iterator", "[tiledbvcf][iter][v3]") {
   REQUIRE(!vcf.front_record());
 }
 
-
 TEST_CASE("VCF: Test basic V4 iterator", "[tiledbvcf][iter][v4]") {
   VCFV4 vcf;
   REQUIRE(!vcf.is_open());
@@ -288,46 +287,46 @@ TEST_CASE("VCF: Test basic V4 iterator", "[tiledbvcf][iter][v4]") {
   check_iter_v4(
       &vcf,
       {{
-           Tup{"1", 12140, 12276},
-           Tup{"1", 12545, 12770},
-           Tup{"1", 13353, 13388},
-       }});
+          Tup{"1", 12140, 12276},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
+      }});
   REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12140));
   check_iter_v4(
       &vcf,
       {{
-           Tup{"1", 12140, 12276},
-           Tup{"1", 12545, 12770},
-           Tup{"1", 13353, 13388},
-       }});
+          Tup{"1", 12140, 12276},
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
+      }});
   REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12500));
   check_iter_v4(
       &vcf,
       {{
-           Tup{"1", 12545, 12770},
-           Tup{"1", 13353, 13388},
-       }});
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
+      }});
   REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 12600));
   check_iter_v4(
       &vcf,
       {{
-           Tup{"1", 12545, 12770},
-           Tup{"1", 13353, 13388},
-       }});
+          Tup{"1", 12545, 12770},
+          Tup{"1", 13353, 13388},
+      }});
   REQUIRE(!vcf.front_record());
 
   REQUIRE(vcf.seek("1", 13388));
   check_iter_v4(
       &vcf,
       {{
-           Tup{"1", 13353, 13388},
-       }});
+          Tup{"1", 13353, 13388},
+      }});
   REQUIRE(!vcf.front_record());
 
   REQUIRE(!vcf.seek("1", 14000));
@@ -350,10 +349,10 @@ TEST_CASE("VCF: Test V4 iterator", "[tiledbvcf][iter][v4]") {
   check_iter_v4(
       &vcf,
       {{
-           Tup{"7", 11989, 70061},
-           Tup{"7", 77583, 107339},
-           Tup{"7", 111162, 165905},
-       }});
+          Tup{"7", 11989, 70061},
+          Tup{"7", 77583, 107339},
+          Tup{"7", 111162, 165905},
+      }});
   // Check iterator doesn't span to the next contig
   REQUIRE(!vcf.front_record());
 }
