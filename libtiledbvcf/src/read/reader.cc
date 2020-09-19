@@ -1250,9 +1250,10 @@ void Reader::prepare_regions_v4(
     pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
-  std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
-  const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
-  regionNonEmptyDomain = nonEmptyDomain[1].second;
+  //  std::pair<std::string, std::string> contigNonEmptyDomain =
+  //  array.non_empty_domain_var(1);
+  std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
+      array.non_empty_domain<uint32_t>(2);
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall inside
   // the nonEmptyDomain This will balance the partitioning better my removing
