@@ -470,9 +470,9 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
 
   std::string dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
   if (version == 2)
-    INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
   else if (version == 3)
-    INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -799,9 +799,9 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
 
   std::string dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   if (version == 2)
-    INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
   else if (version == 3)
-    INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 

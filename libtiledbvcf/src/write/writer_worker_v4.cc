@@ -75,6 +75,8 @@ void WriterWorkerV4::insert_record(
 
   // TODO: Remove END
   const uint32_t end_pos = local_end_pos;
+  // record->pos is 0 indexed by vcf is 1 indexed so store with a +1
+  // TODO: Figure this out
   const uint32_t start_pos = record->pos;
   record_heap_.insert(
       vcf,
@@ -214,8 +216,8 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
   buffers_.sample().append(&row, sizeof(uint32_t));
-  buffers_.contig().append(contig.c_str(), contig.length());
   buffers_.contig().offsets().push_back(buffers_.contig().size());
+  buffers_.contig().append(contig.c_str(), contig.length());
   buffers_.start_pos().append(&col, sizeof(uint32_t));
   buffers_.qual().append(&r->qual, sizeof(float));
   buffers_.real_start_pos().append(&pos, sizeof(uint32_t));

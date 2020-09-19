@@ -184,7 +184,7 @@ void AttributeBufferSet::set_buffers(
           (uint64_t*)contig_.offsets().data(),
           contig_.offsets().size(),
           contig_.data<void>(),
-          contig_.nelts<uint8_t>());
+          contig_.nelts<char>());
       query->set_buffer(
           TileDBVCFDataset::DimensionNames::V4::start_pos,
           start_pos_.data<void>(),

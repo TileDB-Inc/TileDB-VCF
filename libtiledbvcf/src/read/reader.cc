@@ -414,8 +414,9 @@ bool Reader::next_read_batch() {
       0, read_state_.sample_min, read_state_.sample_max);
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
     std::set<std::string> contigs;
-    for (const auto &query_region : read_state_.query_regions) {
-      read_state_.query->add_range(2, query_region.col_min, query_region.col_max);
+    for (const auto& query_region : read_state_.query_regions) {
+      read_state_.query->add_range(
+          2, query_region.col_min, query_region.col_max);
       if (!query_region.contig.empty())
         contigs.emplace(query_region.contig);
     }
@@ -423,8 +424,9 @@ bool Reader::next_read_batch() {
     for (const auto& contig : contigs)
       read_state_.query->add_range(1, contig, contig);
   } else {
-    for (const auto &query_region : read_state_.query_regions)
-      read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    for (const auto& query_region : read_state_.query_regions)
+      read_state_.query->add_range(
+          1, query_region.col_min, query_region.col_max);
   }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose)
@@ -513,6 +515,15 @@ bool Reader::read_current_batch() {
     // Block on query completion.
     auto query_status = read_state_.async_query.get();
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
+
+    // TODO: We should update all sizes here
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      buffers_a->contig().effective_size(
+          read_state_.query_results.contig_size().second * sizeof(char));
+      buffers_a->contig().offset_nelts(
+          read_state_.query_results.contig_size().first);
+    }
+
     read_state_.cell_idx = 0;
 
     if (read_state_.query_results.num_cells() == 0 &&

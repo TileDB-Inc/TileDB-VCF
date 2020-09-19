@@ -98,8 +98,8 @@ class Buffer {
   T* value(uint64_t element_index, uint64_t* size) const {
     assert(!offsets_.empty());
     assert(data_);
-    uint64_t end = element_index == offsets_.size() - 1 ?
-                       data_size_ :
+    uint64_t end = element_index == offset_nelts_ - 1 ?
+                       data_effective_size_ :
                        offsets_[element_index + 1];
     uint64_t start = offsets_[element_index];
     *size = end - start;
@@ -111,7 +111,16 @@ class Buffer {
     return data_size_ / sizeof(T);
   }
 
+  template <typename T>
+  uint64_t allocated_nelts() const {
+    return data_alloced_size_ / sizeof(T);
+  }
+
+  void effective_size(uint64_t size);
+
   void swap(Buffer& other);
+
+  void offset_nelts(uint64_t offset_nelts);
 
  private:
   bool expecting_;
@@ -121,6 +130,10 @@ class Buffer {
   uint64_t data_alloced_size_;
 
   uint64_t data_size_;
+
+  uint64_t data_effective_size_;
+
+  uint64_t offset_nelts_;
 
   std::vector<uint64_t> offsets_;
 
