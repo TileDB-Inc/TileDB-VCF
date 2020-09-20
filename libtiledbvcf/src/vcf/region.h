@@ -96,6 +96,14 @@ struct Region {
       const std::map<std::string, uint32_t>& contig_offsets,
       std::vector<Region>* regions);
 
+  /**
+   * Sorts the given list of Regions by their global offsets, using the provided
+   * offsets map.
+   *
+   * @param regions Vector of regions to be sorted (in-place)
+   */
+  static void sort_v4(std::vector<Region>* regions);
+
   /** Contig (sequence/chromosome) name */
   std::string seq_name;
 

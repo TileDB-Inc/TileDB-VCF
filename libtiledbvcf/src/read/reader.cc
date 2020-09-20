@@ -640,7 +640,8 @@ bool Reader::process_query_results_v4() {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
-      bool intersects = start <= reg_max && end >= reg_min;
+      bool intersects =
+          start <= reg_max && end >= reg_min && reg.seq_name == contig;
       if (!intersects)
         throw std::runtime_error(
             "Error in query result processing; range unexpectedly does not "
@@ -665,7 +666,9 @@ bool Reader::process_query_results_v4() {
     read_state_.last_intersecting_region_idx_ = 0;
 
     read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
-    read_state_.region_idx = new_region_idx;
+    //    read_state_.region_idx = new_region_idx;
+    // workaround check all regions always
+    read_state_.region_idx = 0;
   }
 
   return true;
@@ -1307,7 +1310,7 @@ void Reader::prepare_regions_v4(
   // Sort all by global column coord.
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
-    Region::sort(dataset_->metadata().contig_offsets, regions);
+    Region::sort_v4(regions);
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
       utils::enable_pretty_print_numbers(std::cout);
@@ -1343,6 +1346,7 @@ void Reader::prepare_regions_v4(
   }
 
   // Expand individual regions to a minimum width of the anchor gap.
+  uint32_t prev_reg_min = 0;
   uint32_t prev_reg_max = 0;
   for (auto& r : *regions) {
     uint32_t contig_offset;
@@ -1361,6 +1365,36 @@ void Reader::prepare_regions_v4(
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
 
+    bool new_region = true;
+
+    /*    if (!query_regions->empty()) {
+          //      if(prev_reg_max + 1 >= widened_reg_min && reg_max - g <=
+          //      prev_reg_max) {
+          // If the new max is greater than the previous and the min falls
+       between,
+          // then expand the end
+          if (reg_max > prev_reg_max && prev_reg_min > reg_min &&
+              prev_reg_min < reg_max) {
+            // Previous widened region overlaps this one; merge.
+            query_regions->back().col_max = reg_max;
+            new_region = false;
+          }
+          if (reg_min < prev_reg_min && prev_reg_min < reg_max &&
+              prev_reg_max > reg_max) {
+            // Previous widened region overlaps this one; merge.
+            query_regions->back().col_max = reg_max;
+            new_region = false;
+          }
+        }
+
+        if (new_region) {
+          // Start a new query region.
+          query_regions->push_back({});
+          query_regions->back().col_min = widened_reg_min;
+          query_regions->back().col_max = reg_max;
+          query_regions->back().contig = r.seq_name;
+        }*/
+
     if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
       // Previous widened region overlaps this one; merge.
       query_regions->back().col_max = reg_max;
@@ -1372,6 +1406,7 @@ void Reader::prepare_regions_v4(
       query_regions->back().contig = r.seq_name;
     }
 
+    prev_reg_min = widened_reg_min;
     prev_reg_max = reg_max;
   }
 }
