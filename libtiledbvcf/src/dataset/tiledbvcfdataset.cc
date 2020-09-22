@@ -489,50 +489,68 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
           std::string(ex.what()));
     }
   }
-  std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
-  auto max_el = array->max_buffer_elements(subarray);
-  std::vector<uint64_t> offsets(max_el["header"].first);
-  std::vector<char> data(max_el["header"].second);
+
   Query query(ctx, *array);
-  query.set_layout(TILEDB_ROW_MAJOR)
-      .set_subarray(subarray)
-      .set_buffer("header", offsets, data);
-  query.submit();
-  if (query.query_status() != Query::Status::COMPLETE)
-    throw std::runtime_error(
-        "Error fetching VCF header data; unexpected TileDB query status.");
 
-  // Sanity check result size
-  auto result_el = query.result_buffer_elements();
-  auto num_offsets = result_el["header"].first;
-  auto num_chars = result_el["header"].second;
-  if (num_chars == 0 || sample_id_max - sample_id_min + 1 != num_offsets)
-    throw std::runtime_error(
-        "Error fetching VCF header data; unexpected query result size.");
+  std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
+  query.set_layout(TILEDB_ROW_MAJOR).set_subarray(subarray);
 
-  // Parse headers from text
-  for (uint32_t i = sample_id_min; i <= sample_id_max; i++) {
-    // Make a copy into a std::string to ensure null termination.
-    uint32_t ibase = i - sample_id_min;
-    uint64_t offset = offsets[ibase];
-    uint64_t next_offset =
-        ibase < num_offsets - 1 ? offsets[ibase + 1] : num_chars;
-    auto header_len = next_offset - offset;
-    std::string header_str(data.data() + offset, header_len);
+  std::pair<uint64_t, uint64_t> est_size = query.est_result_size_var("header");
+  std::vector<uint64_t> offsets(est_size.first);
+  std::vector<char> data(est_size.second);
 
-    bcf_hdr_t* hdr = bcf_hdr_init("r");
-    if (!hdr)
-      throw std::runtime_error(
-          "Error fetching VCF header data; error allocating VCF header.");
-    bcf_hdr_parse(hdr, const_cast<char*>(header_str.c_str()));
-    bcf_hdr_add_sample(hdr, metadata_.sample_names.at(i).c_str());
+  Query::Status status;
+  uint32_t sample_idx = sample_id_min;
 
-    if (bcf_hdr_sync(hdr) < 0)
-      throw std::runtime_error(
-          "Error in bcftools: failed to update VCF header.");
+  query.set_buffer("header", offsets, data);
 
-    result.emplace_back(hdr, bcf_hdr_destroy);
-  }
+  do {
+    status = query.submit();
+
+    std::pair<uint64_t, uint64_t> result_el =
+        query.result_buffer_elements()["header"];
+    uint64_t num_offsets = result_el.first;
+    uint64_t num_chars = result_el.second;
+
+    bool has_results = num_chars != 0;
+
+    if (status == Query::Status::INCOMPLETE && !has_results) {
+      // If there are no results, double the size of the buffer and then
+      // resubmit the query.
+
+      if (num_chars == 0)
+        data.resize(data.size() * 2);
+
+      if (num_offsets == 0)
+        offsets.resize(offsets.size() * 2);
+
+      query.set_buffer("header", offsets, data);
+    } else if (has_results) {
+      // Parse the samples.
+
+      for (size_t offset_idx = 0; offset_idx < num_offsets; ++offset_idx) {
+        char* beg_hdr = data.data() + offsets[offset_idx];
+        uint64_t hdr_size =
+            offset_idx == num_offsets - 1 ? num_chars : offsets[offset_idx + 1];
+        std::string hdr_str(beg_hdr, hdr_size);
+
+        bcf_hdr_t* hdr = bcf_hdr_init("r");
+        if (!hdr)
+          throw std::runtime_error(
+              "Error fetching VCF header data; error allocating VCF header.");
+
+        bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()));
+        bcf_hdr_add_sample(
+            hdr, metadata_.sample_names.at(sample_idx++).c_str());
+
+        if (bcf_hdr_sync(hdr) < 0)
+          throw std::runtime_error(
+              "Error in bcftools: failed to update VCF header.");
+
+        result.emplace_back(hdr, bcf_hdr_destroy);
+      }
+    }
+  } while (status == Query::Status::INCOMPLETE);
 
   return result;
 }  // namespace vcf
