@@ -193,8 +193,7 @@ void Reader::tiledb_stats(char** stats) {
 
 void Reader::dataset_version(int32_t* version) const {
   if (dataset_ == nullptr)
-    throw std::runtime_error(
-        "Error getting dataset version; dataset is not open.");
+    throw std::runtime_error("Error getting dataset version");
   *version = dataset_->metadata().version;
 }
 
@@ -556,6 +555,25 @@ bool Reader::read_current_batch() {
   return true;
 }
 
+/**
+ * Compatator used to binary search across regions to find the first index to
+ * start checking for interections
+ *
+ * We know that any region whose end is before the real_start of a region can't
+ * possibly intersect
+ */
+struct RegionComparator {
+  /**
+   * Compare for less than
+   * @param left region
+   * @param right real_start
+   * @return
+   */
+  bool operator()(const Region& left, uint32_t right) {
+    return left.max + left.seq_offset < right;
+  }
+} RegionComparator;
+
 bool Reader::process_query_results_v3() {
   if (read_state_.regions.empty())
     throw std::runtime_error(
@@ -589,6 +607,21 @@ bool Reader::process_query_results_v3() {
     if (end >= contig_info.first + contig_info.second)
       contig_info = dataset_->contig_from_column(end);
     const uint32_t contig_offset = contig_info.first;
+
+    // Perform a binary search to find first region we can intersection
+    // This is an optimization to avoid a linear scan over all regions for
+    // intersection This replaces the previous, incorrect, optimization of
+    // trying to keep a minimum region as we iterate
+    auto it = std::lower_bound(
+        read_state_.regions.begin(),
+        read_state_.regions.end(),
+        real_start,
+        RegionComparator);
+    if (it == read_state_.regions.end()) {
+      continue;
+    } else {
+      read_state_.region_idx = std::distance(read_state_.regions.begin(), it);
+    }
 
     // Get original regions which intersect the cell's gVCF range (may be none).
     size_t new_region_idx;
@@ -640,7 +673,9 @@ bool Reader::process_query_results_v3() {
     read_state_.last_intersecting_region_idx_ = 0;
 
     read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
-    read_state_.region_idx = new_region_idx;
+    // Always need to reset to original index for next record
+    // Records are unordered so we can't assume a minimum intersection region
+    read_state_.region_idx = 0;
   }
 
   return true;
@@ -678,6 +713,21 @@ bool Reader::process_query_results_v2() {
     if (end >= contig_info.first + contig_info.second)
       contig_info = dataset_->contig_from_column(end);
     const uint32_t contig_offset = contig_info.first;
+
+    // Perform a binary search to find first region we can intersection
+    // This is an optimization to avoid a linear scan over all regions for
+    // intersection This replaces the previous, incorrect, optimization of
+    // trying to keep a minimum region as we iterate
+    auto it = std::lower_bound(
+        read_state_.regions.begin(),
+        read_state_.regions.end(),
+        start,
+        RegionComparator);
+    if (it == read_state_.regions.end()) {
+      continue;
+    } else {
+      read_state_.region_idx = std::distance(read_state_.regions.begin(), it);
+    }
 
     // Get original regions which intersect the cell's gVCF range (may be none).
     size_t new_region_idx;
@@ -730,7 +780,9 @@ bool Reader::process_query_results_v2() {
 
     read_state_.last_reported_end[sample_id - read_state_.sample_min] =
         real_end;
-    read_state_.region_idx = new_region_idx;
+    // Always need to reset to original index for next record
+    // Records are unordered so we can't assume a minimum intersection region
+    read_state_.region_idx = 0;
   }
 
   return true;
@@ -1425,6 +1477,16 @@ void Reader::info_attribute_count(int32_t* count) {
     throw std::runtime_error("count must be non-null in attribute_count");
 
   *count = this->dataset_->info_field_types().size();
+}
+
+void Reader::sample_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("Error getting sample count");
+  *count = dataset_->metadata().sample_names.size();
+}
+
+void Reader::sample_name(int32_t index, const char** name) {
+  *name = dataset_->sample_name(index);
 }
 
 void Reader::info_attribute_name(int32_t index, char** name) {

@@ -115,6 +115,9 @@ class Reader {
   /** Fetches TileDB statistics */
   std::string get_tiledb_stats();
 
+  /** Returns schema version number of the TileDB VCF dataset */
+  int32_t get_schema_version();
+
   /** Returns fmt attribute names */
   std::vector<std::string> get_fmt_attributes();
 
@@ -123,6 +126,12 @@ class Reader {
 
   /** Returns all queryable attribute names */
   std::vector<std::string> get_queryable_attributes();
+
+  /** Returns number of registered samples in the dataset */
+  int32_t get_sample_count();
+
+  /** Retrieve list of registered samples names */
+  std::vector<std::string> get_sample_names();
 
   /**
    * Set reader verbose output mode

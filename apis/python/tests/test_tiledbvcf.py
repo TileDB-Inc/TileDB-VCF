@@ -88,6 +88,9 @@ def test_retrieve_attributes(test_ds):
     ]
     assert test_ds.attributes(attr_type = "fmt") == fmt_attrs
 
+def test_retrieve_samples(test_ds):
+    assert test_ds.samples() == ['HG00280', 'HG01762']
+
 def test_read_attrs(test_ds_attrs):
     attrs = ['sample_name']
     df = test_ds_attrs.read(attrs = attrs)
@@ -252,7 +255,7 @@ def test_read_filters(test_ds):
             'pos_end': pd.Series([12771, 12771, 13374, 13389, 13395, 13413],
                                  dtype=np.int32),
             'filters': pd.Series(map(lambda lst: np.array(lst, dtype=np.object),
-                                     [None, None, None, None, None,
+                                     [None, None, ['LowQual'], None, None,
                                       None]))})
     _check_dfs(expected_df, df)
 

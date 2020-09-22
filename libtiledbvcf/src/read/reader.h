@@ -215,6 +215,9 @@ class Reader {
   /** Gets the version number of the open dataset. */
   void dataset_version(int32_t* version) const;
 
+  /** Retrieve list of sample names. */
+  void get_samples(std::string* samples) const;
+
   /** Returns the size of the result last exported for the given attribute. */
   void result_size(
       const std::string& attribute,
@@ -302,6 +305,19 @@ class Reader {
    * @param name of attribute
    */
   void info_attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the number of registered samples
+   * @param sample count
+   */
+  void sample_count(int32_t* count);
+
+  /**
+   * Retrieve sample name by index
+   * @param index of sample
+   * @param name of sample
+   */
+  void sample_name(int32_t index, const char** name);
 
   /**
    * Sets verbose mode on or off

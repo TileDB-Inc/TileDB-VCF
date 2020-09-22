@@ -266,6 +266,13 @@ class TileDBVCFDataset {
    */
   const char* queryable_attribute_name(int32_t index) const;
 
+  /**
+   * Get sample name by index
+   * @param index
+   * @return
+   */
+  const char* sample_name(int32_t index) const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -288,6 +295,9 @@ class TileDBVCFDataset {
 
   /** List of all attributes of vcf for querying */
   std::vector<std::vector<char>> vcf_attributes_;
+
+  /** List of sample names for exporting */
+  std::vector<std::vector<char>> sample_names_;
 
   /* ********************************* */
   /*          STATIC METHODS           */

@@ -223,6 +223,26 @@ class Dataset(object):
 
         return self.reader.get_tiledb_stats();
 
+    def schema_version(self):
+        """Retrieve the VCF dataset's schema version
+        """
+        if self.mode != 'r':
+            raise Exception('Schema version can only be called for reader')
+        return self.reader.get_schema_version()
+
+    def sample_count(self):
+        if self.mode != 'r':
+            raise Exception('Samples can only be retrieved for reader')
+        return self.reader.get_sample_count()
+
+    def samples(self):
+        """Retrieve list of sample names registered in the VCF dataset
+        """
+        if self.mode != 'r':
+            raise Exception('Sample names can only be retrieved for reader')
+        return self.reader.get_sample_names()
+
+
     def attributes(self, attr_type = "all"):
         """List queryable attributes available in the VCF dataset
 

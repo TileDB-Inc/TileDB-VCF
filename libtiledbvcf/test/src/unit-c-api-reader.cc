@@ -622,12 +622,8 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  if (version == 2) {
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
-  }
+
+  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filters_offsets[4] == 0);
   REQUIRE(fmt_GT_offsets[4] == 8);
   REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
@@ -650,12 +646,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[5] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[5] == 0);
-  }
+  REQUIRE(filters_offsets[5] == 7);
   REQUIRE(fmt_GT_offsets[5] == 10);
   REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
@@ -677,12 +668,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[6] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[6] == 0);
-  }
+  REQUIRE(filters_offsets[6] == 7);
   REQUIRE(fmt_GT_offsets[6] == 12);
   REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
@@ -704,12 +690,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[7] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[7] == 0);
-  }
+  REQUIRE(filters_offsets[7] == 7);
   REQUIRE(fmt_GT_offsets[7] == 14);
   REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
@@ -731,12 +712,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[8] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[8] == 0);
-  }
+  REQUIRE(filters_offsets[8] == 7);
   REQUIRE(fmt_GT_offsets[8] == 16);
   REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
@@ -758,12 +734,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[9] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[9] == 0);
-  }
+  REQUIRE(filters_offsets[9] == 7);
   REQUIRE(fmt_GT_offsets[9] == 18);
   REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
@@ -774,12 +745,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
 
   // Check final offsets are equal to data size
   REQUIRE(sample_name_offsets[10] == 70);
-  if (version == 2) {
-    REQUIRE(filters_offsets[10] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[10] == 0);
-  }
+  REQUIRE(filters_offsets[10] == 7);
   REQUIRE(fmt_GT_offsets[10] == 20);
   REQUIRE(info_offsets[10] == 40);
   REQUIRE(format_offsets[10] == 950);
@@ -872,12 +838,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
           9) == 0);
-  if (version == 2) {
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
-  }
+  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filters_offsets[0] == 0);
   REQUIRE(fmt_GT_offsets[0] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 0);
@@ -981,12 +942,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           "<NON_REF>",
           &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
           9) == 0);
-  if (version == 2) {
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) == 0);
-  }
+  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
   REQUIRE(filters_offsets[4] == 0);
   REQUIRE(fmt_GT_offsets[4] == 8);
   REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
@@ -1013,12 +969,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[5] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[5] == 0);
-  }
+  REQUIRE(filters_offsets[5] == 7);
   REQUIRE(fmt_GT_offsets[5] == 10);
   REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
@@ -1044,12 +995,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[6] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[6] == 0);
-  }
+  REQUIRE(filters_offsets[6] == 7);
   REQUIRE(fmt_GT_offsets[6] == 12);
   REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
@@ -1075,12 +1021,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[7] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[7] == 0);
-  }
+  REQUIRE(filters_offsets[7] == 7);
   REQUIRE(fmt_GT_offsets[7] == 14);
   REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
@@ -1106,12 +1047,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[8] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[8] == 0);
-  }
+  REQUIRE(filters_offsets[8] == 7);
   REQUIRE(fmt_GT_offsets[8] == 16);
   REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
@@ -1137,12 +1073,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
           9) == 0);
   REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  if (version == 2) {
-    REQUIRE(filters_offsets[9] == 7);
-  } else {
-    REQUIRE(version == 3);
-    REQUIRE(filters_offsets[9] == 0);
-  }
+  REQUIRE(filters_offsets[9] == 7);
   REQUIRE(fmt_GT_offsets[9] == 18);
   REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
   REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
