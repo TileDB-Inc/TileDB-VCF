@@ -671,7 +671,7 @@ bool Reader::process_query_results_v4() {
         if (reg_min - anchor_gap < start && start < reg_min)
           report = true;
         else if (
-            real_start > reg_min && start < reg_max &&
+            real_start >= reg_min && start <= reg_max &&
             start >= reg_max - anchor_gap)
           report = true;
         else if (real_start == start && start >= reg_min && end <= reg_max)
