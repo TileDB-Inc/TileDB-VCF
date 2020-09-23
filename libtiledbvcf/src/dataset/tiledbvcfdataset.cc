@@ -51,6 +51,7 @@ const std::string dimNamesV2::sample = "sample";
 const std::string dimNamesV2::end_pos = "end_pos";
 
 using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
+const std::string attrNamesV4::real_start_pos = "real_start_pos";
 const std::string attrNamesV4::end_pos = "end_pos";
 const std::string attrNamesV4::qual = "qual";
 const std::string attrNamesV4::alleles = "alleles";
@@ -224,6 +225,8 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_coords_filter_list(coords_filter_list);
   schema.set_offsets_filter_list(offsets_filter_list);
 
+  auto real_start_pos = Attribute::create<uint32_t>(
+      ctx, AttrNames::V4::real_start_pos, byteshuffle_zstd_filters);
   auto end_pos = Attribute::create<uint32_t>(
       ctx, AttrNames::V4::end_pos, byteshuffle_zstd_filters);
   auto qual =
@@ -238,7 +241,8 @@ void TileDBVCFDataset::create_empty_data_array(
       ctx, AttrNames::V4::info, attribute_filter_list);
   auto fmt = Attribute::create<std::vector<uint8_t>>(
       ctx, AttrNames::V4::fmt, attribute_filter_list);
-  schema.add_attributes(end_pos, qual, alleles, id, filters_ids, info, fmt);
+  schema.add_attributes(
+      real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
   // Remaining INFO/FMT fields extracted as separate attributes:
   std::set<std::string> used;
@@ -902,6 +906,7 @@ std::pair<std::string, std::string> TileDBVCFDataset::split_info_fmt_attr_name(
 
 std::set<std::string> TileDBVCFDataset::builtin_attributes_v4() {
   return {
+      AttrNames::V4::real_start_pos,
       AttrNames::V4::end_pos,
       AttrNames::V4::qual,
       AttrNames::V4::alleles,
@@ -942,6 +947,7 @@ bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
          attr == DimensionNames::V3::start_pos ||
          attr == DimensionNames::V2::sample ||
          attr == DimensionNames::V2::end_pos ||
+         attr == AttrNames::V4::real_start_pos ||
          attr == AttrNames::V4::end_pos || attr == AttrNames::V4::qual ||
          attr == AttrNames::V3::real_start_pos ||
          attr == AttrNames::V3::end_pos || attr == AttrNames::V3::qual ||

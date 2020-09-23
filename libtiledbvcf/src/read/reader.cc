@@ -413,12 +413,23 @@ bool Reader::next_read_batch() {
   read_state_.query->add_range(
       0, read_state_.sample_min, read_state_.sample_max);
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    std::set<std::string> contigs;
+    std::vector<std::string> contigs;
     for (const auto& query_region : read_state_.query_regions) {
       read_state_.query->add_range(
           2, query_region.col_min, query_region.col_max);
-      if (!query_region.contig.empty())
-        contigs.emplace(query_region.contig);
+      //      contigs.insert(query_region.contigs.rbegin(),
+      //      query_region.contigs.rend());
+      for (const auto& contig : query_region.contigs) {
+        bool found = false;
+        for (const auto& contig_recorded : contigs) {
+          if (contig_recorded == contig) {
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          contigs.emplace_back(contig);
+      }
     }
 
     for (const auto& contig : contigs)
@@ -429,6 +440,7 @@ bool Reader::next_read_batch() {
           1, query_region.col_min, query_region.col_max);
   }
   read_state_.query->set_layout(TILEDB_UNORDERED);
+  //  read_state_.query->set_layout(TILEDB_COL_MAJOR);
   if (params_.verbose)
     std::cout << "Initialized TileDB query with "
               << read_state_.query_regions.size() << " column ranges."
@@ -601,6 +613,8 @@ bool Reader::process_query_results_v4() {
     const uint64_t i = read_state_.cell_idx;
     const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
     const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
+    const uint32_t real_start =
+        results.buffers()->real_start_pos().value<uint32_t>(i);
 
     // Get the contig
     uint64_t contig_size = 0;
@@ -621,6 +635,7 @@ bool Reader::process_query_results_v4() {
         read_state_.regions,
         read_state_.region_idx,
         contig,
+        real_start,
         start,
         end,
         &new_region_idx);
@@ -641,7 +656,7 @@ bool Reader::process_query_results_v4() {
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
       bool intersects =
-          start <= reg_max && end >= reg_min && reg.seq_name == contig;
+          real_start <= reg_max && end >= reg_min && reg.seq_name == contig;
       if (!intersects)
         throw std::runtime_error(
             "Error in query result processing; range unexpectedly does not "
@@ -858,6 +873,7 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v4(
     const std::vector<Region>& regions,
     size_t region_idx,
     const std::string& contig,
+    uint32_t real_start,
     uint32_t start,
     uint32_t end,
     size_t* new_region_idx) {
@@ -898,11 +914,12 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v4(
   size_t original_last = last;
 
   // Next find the index of the last region that intersects the cell's
-  // start position. This is used as the actual interval of intersection.
+  // REAL_START position. This is used as the actual interval of intersection.
   for (size_t i = original_last; i < regions.size(); i++) {
-    bool intersects = intersects_p(regions[i], contig, start, end);
+    bool intersects = intersects_p(regions[i], contig, real_start, end);
     if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], contig, start, end);
+      bool next_intersects =
+          intersects_p(regions[i + 1], contig, real_start, end);
       if (intersects && !next_intersects) {
         last = i;
         break;
@@ -916,9 +933,10 @@ std::pair<size_t, size_t> Reader::get_intersecting_regions_v4(
   // Search backwards to find the first region that intersects the cell.
   size_t first = nil;
   for (size_t i = original_last;; i--) {
-    bool intersects = intersects_p(regions[i], contig, start, end);
+    bool intersects = intersects_p(regions[i], contig, real_start, end);
     if (i > 0) {
-      bool prev_intersects = intersects_p(regions[i - 1], contig, start, end);
+      bool prev_intersects =
+          intersects_p(regions[i - 1], contig, real_start, end);
       if (intersects && !prev_intersects) {
         first = i;
         break;
@@ -1310,7 +1328,7 @@ void Reader::prepare_regions_v4(
   // Sort all by global column coord.
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
-    Region::sort_v4(regions);
+    Region::sort(dataset_->metadata().contig_offsets, regions);
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
       utils::enable_pretty_print_numbers(std::cout);
@@ -1346,8 +1364,8 @@ void Reader::prepare_regions_v4(
   }
 
   // Expand individual regions to a minimum width of the anchor gap.
-  uint32_t prev_reg_min = 0;
-  uint32_t prev_reg_max = 0;
+  //  uint32_t prev_reg_min = 0;
+  //  uint32_t prev_reg_max = 0;
   for (auto& r : *regions) {
     uint32_t contig_offset;
     try {
@@ -1366,6 +1384,27 @@ void Reader::prepare_regions_v4(
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
 
     bool new_region = true;
+    for (auto& query_region : *query_regions) {
+      //      if (query_region.col_max + 1 >= widened_reg_min)
+      if (widened_reg_min <= query_region.col_max &&
+          reg_max >= query_region.col_min) {
+        query_region.col_max = std::max(query_region.col_max, reg_max);
+        query_region.col_min = std::min(
+            static_cast<uint64_t>(query_region.col_min), widened_reg_min);
+        query_region.contigs.emplace_back(r.seq_name);
+        new_region = false;
+        break;
+      }
+    }
+    if (new_region) {
+      // Start a new query region.
+      query_regions->push_back({});
+      query_regions->back().col_min = widened_reg_min;
+      query_regions->back().col_max = reg_max;
+      query_regions->back().contigs.emplace_back(r.seq_name);
+    }
+
+    //    bool new_region = true;
 
     /*    if (!query_regions->empty()) {
           //      if(prev_reg_max + 1 >= widened_reg_min && reg_max - g <=
@@ -1395,21 +1434,25 @@ void Reader::prepare_regions_v4(
           query_regions->back().contig = r.seq_name;
         }*/
 
-    if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
-      // Previous widened region overlaps this one; merge.
-      query_regions->back().col_max = reg_max;
-    } else {
-      // Start a new query region.
-      query_regions->push_back({});
-      query_regions->back().col_min = widened_reg_min;
-      query_regions->back().col_max = reg_max;
-      query_regions->back().contig = r.seq_name;
-    }
+    /*    if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
+          // Previous widened region overlaps this one; merge.
+          query_regions->back().col_max =
+       std::max(query_regions->back().col_max, reg_max);
+          query_regions->back().col_min =
+       std::min(static_cast<uint64_t>(query_regions->back().col_min),
+       widened_reg_min); query_regions->back().contigs.emplace_back(r.seq_name);
+        } else {
+          // Start a new query region.
+          query_regions->push_back({});
+          query_regions->back().col_min = widened_reg_min;
+          query_regions->back().col_max = reg_max;
+          query_regions->back().contigs.emplace_back(r.seq_name);
+        }*/
 
-    prev_reg_min = widened_reg_min;
-    prev_reg_max = reg_max;
+    //    prev_reg_min = widened_reg_min;
+    //    prev_reg_max = reg_max;
   }
-}
+}  // namespace vcf
 
 void Reader::prepare_regions_v3(
     std::vector<Region>* regions,
@@ -1693,6 +1736,7 @@ void Reader::prepare_attribute_buffers() {
         TileDBVCFDataset::DimensionNames::V4::sample,
         TileDBVCFDataset::DimensionNames::V4::contig,
         TileDBVCFDataset::DimensionNames::V4::start_pos,
+        TileDBVCFDataset::AttrNames::V4::real_start_pos,
         TileDBVCFDataset::AttrNames::V4::end_pos};
   } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     attrs = {

@@ -102,7 +102,7 @@ struct Region {
    *
    * @param regions Vector of regions to be sorted (in-place)
    */
-  static void sort_v4(std::vector<Region>* regions);
+  //  static void sort_v4(std::vector<Region>* regions);
 
   /** Contig (sequence/chromosome) name */
   std::string seq_name;

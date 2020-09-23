@@ -48,7 +48,8 @@ void AttributeBufferSet::allocate_fixed(
     } else if (s == dimNamesV2::end_pos) {
       end_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &end_pos_, sizeof(uint32_t));
-    } else if (s == attrNamesV3::real_start_pos) {
+    } else if (
+        s == attrNamesV4::real_start_pos || s == attrNamesV3::real_start_pos) {
       real_start_pos_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &real_start_pos_, sizeof(uint32_t));
     } else if (s == attrNamesV3::end_pos) {
@@ -189,6 +190,10 @@ void AttributeBufferSet::set_buffers(
           TileDBVCFDataset::DimensionNames::V4::start_pos,
           start_pos_.data<void>(),
           start_pos_.nelts<uint32_t>());
+      query->set_buffer(
+          TileDBVCFDataset::AttrNames::V4::real_start_pos,
+          real_start_pos_.data<void>(),
+          real_start_pos_.nelts<uint32_t>());
       query->set_buffer(
           TileDBVCFDataset::AttrNames::V4::end_pos,
           end_pos_.data<void>(),

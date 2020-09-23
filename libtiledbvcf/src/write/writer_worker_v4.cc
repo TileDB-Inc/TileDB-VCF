@@ -188,7 +188,7 @@ bool WriterWorkerV4::resume() {
       record_heap_.pop();
 
       if (vcf->is_open()) {
-        // If there is a next record and it preceeds the anchor, insert it
+        // If there is a next record and it proceeds the anchor, insert it
         // on the heap.
         SafeSharedBCFRec next_r = vcf->front_record();
         if (next_r != nullptr && next_r->pos < anchor_start) {

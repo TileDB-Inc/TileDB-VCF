@@ -318,7 +318,7 @@ class Reader {
   struct QueryRegion {
     uint32_t col_min;
     uint32_t col_max;
-    std::string contig;
+    std::vector<std::string> contigs;
   };
 
   /**
@@ -547,6 +547,7 @@ class Reader {
       const std::vector<Region>& regions,
       size_t region_idx,
       const std::string& contig,
+      uint32_t real_start,
       uint32_t start,
       uint32_t end,
       size_t* new_region_idx);

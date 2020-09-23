@@ -181,7 +181,7 @@ class AttributeBufferSet {
   /** real_end v2 attribute (uint32_t) */
   Buffer real_end_;
 
-  /** real_start_pos v3 attribute (uint32_t) */
+  /** real_start_pos v4/v3 attribute (uint32_t) */
   Buffer real_start_pos_;
 
   /** end_pos v3 attribute, v2 dimension (uint32_t) */

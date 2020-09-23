@@ -115,6 +115,7 @@ class TileDBVCFDataset {
 
   struct AttrNames {
     struct V4 {
+      static const std::string real_start_pos;
       static const std::string end_pos;
       static const std::string qual;
       static const std::string alleles;

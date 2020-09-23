@@ -48,7 +48,7 @@ void Exporter::recover_record(
         "Record recovery error; no ID for contig name '" + contig_name + "'");
 
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    dst->pos = buffers->start_pos().value<uint32_t>(cell_idx);
+    dst->pos = buffers->real_start_pos().value<uint32_t>(cell_idx);
   } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     dst->pos =
         buffers->real_start_pos().value<uint32_t>(cell_idx) - contig_offset;

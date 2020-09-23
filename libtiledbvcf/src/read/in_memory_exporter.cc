@@ -400,14 +400,18 @@ bool InMemoryExporter::export_record(
       }
       case ExportableAttribute::PosStart: {
         if (version == TileDBVCFDataset::Version::V4) {
-          const uint32_t start_pos =
-              buffers->start_pos().value<uint32_t>(cell_idx) + 1;
-          overflow = !copy_cell(&user_buff, &start_pos, sizeof(start_pos), 1);
-          //          overflow = !copy_cell(
+          //          const uint32_t start_pos =
+          //              buffers->start_pos().value<uint32_t>(cell_idx) + 1;
+          //          overflow = !copy_cell(&user_buff, &start_pos,
+          //          sizeof(start_pos), 1); overflow = !copy_cell(
           //              &user_buff,
           //              &(buffers->start_pos().data<uint32_t>()[cell_idx]),
           //              sizeof(uint32_t),
           //              1);
+          const uint32_t real_start_pos =
+              buffers->real_start_pos().value<uint32_t>(cell_idx) + 1;
+          overflow = !copy_cell(
+              &user_buff, &real_start_pos, sizeof(real_start_pos), 1);
 
         } else if (version == TileDBVCFDataset::Version::V3) {
           const uint32_t real_start_pos =
