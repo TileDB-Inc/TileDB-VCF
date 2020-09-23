@@ -15,8 +15,8 @@ RUN apt-get update \
 # Copy the TileDB-VCF Python directory and build it.
 COPY apis/python/conda-env.yml .
 RUN conda env update -n base -f conda-env.yml \
-    && conda install -y -c bioconda htslib \
-    && conda install -y cmake \
+    && conda install -y -c bioconda 'htslib>=1.8' \
+    && conda install -y 'cmake>=3' \
     && conda clean -a -y \
     && rm conda-env.yml
 
