@@ -608,10 +608,12 @@ bool Reader::process_query_results_v4() {
   if (num_cells == 0 || read_state_.cell_idx >= num_cells)
     return true;
 
+  const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
+
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
-    const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
+//    const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
     const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
     const uint32_t real_start =
         results.buffers()->real_start_pos().value<uint32_t>(i);
@@ -625,9 +627,9 @@ bool Reader::process_query_results_v4() {
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
     // Skip cell if we've already reported the gVCF record for it.
-    if (end ==
-        read_state_.last_reported_end[sample_id - read_state_.sample_min])
-      continue;
+//    if (end ==
+//        read_state_.last_reported_end[sample_id - read_state_.sample_min])
+//      continue;
 
     // Get original regions which intersect the cell's gVCF range (may be none).
     size_t new_region_idx;
@@ -655,20 +657,32 @@ bool Reader::process_query_results_v4() {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
-      bool intersects =
-          real_start <= reg_max && end >= reg_min && reg.seq_name == contig;
-      if (!intersects)
-        throw std::runtime_error(
-            "Error in query result processing; range unexpectedly does not "
-            "intersect cell.");
+      bool report = false;
+//      bool intersects =
+//          real_start <= reg_max && end >= reg_min && reg.seq_name == contig;
+//      if (!intersects)
+//        throw std::runtime_error(
+//            "Error in query result processing; range unexpectedly does not "
+//            "intersect cell.");
+
+      if (reg.seq_name == contig) {
+        if (reg_min - anchor_gap < start && start < reg_min)
+          report = true;
+        else if (real_start > reg_min && start < reg_max && start >= reg_max - anchor_gap)
+          report = true;
+        else if (real_start == start && start >= reg_min && end <= reg_max)
+          report = true;
+      }
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the
       // next read. Otherwise, we will re-report the cells in regions with
       // an index below 'j'.
-      if (!report_cell(reg, reg.seq_offset, i)) {
-        read_state_.last_intersecting_region_idx_ = j;
-        return false;
+      if (report) {
+        if (!report_cell(reg, reg.seq_offset, i)) {
+          read_state_.last_intersecting_region_idx_ = j;
+          return false;
+        }
       }
 
       // Return early if we've hit the record limit.
@@ -680,7 +694,7 @@ bool Reader::process_query_results_v4() {
     // all cells in intersecting regions.
     read_state_.last_intersecting_region_idx_ = 0;
 
-    read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
+//    read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
     //    read_state_.region_idx = new_region_idx;
     // workaround check all regions always
     read_state_.region_idx = 0;
