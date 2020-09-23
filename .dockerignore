@@ -1,4 +1,5 @@
 .vscode*
+temp
 docker
 dist
 libtiledbvcf/build
