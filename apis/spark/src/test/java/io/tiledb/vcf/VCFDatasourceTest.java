@@ -491,10 +491,14 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     Dataset<Row> dfRead = testSampleDataset();
     List<Row> rows = dfRead.select("filter").collectAsList();
     Assert.assertEquals(10, rows.size());
-    // check null values
+    // expect empty filters for all records except HG00280's variant at 13354
     for (int i = 0; i < rows.size(); i++) {
       boolean isNull = rows.get(i).isNullAt(0);
-      Assert.assertTrue(isNull);
+      if (i == 4) {
+        Assert.assertFalse(isNull);
+      } else {
+        Assert.assertTrue(isNull);
+      }
     }
   }
 
