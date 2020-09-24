@@ -669,9 +669,11 @@ bool Reader::process_query_results_v4() {
       //            "Error in query result processing; range unexpectedly does
       //            not " "intersect cell.");
 
+      // If the region doesn't match the contig skip it
       if (reg.seq_name != contig)
         continue;
 
+      // If the vcf record is not contained in the region skip it
       if (end < reg_min || real_start > reg_max)
         continue;
 
