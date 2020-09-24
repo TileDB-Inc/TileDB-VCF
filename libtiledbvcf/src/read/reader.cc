@@ -633,28 +633,30 @@ bool Reader::process_query_results_v4() {
     //      continue;
 
     // Get original regions which intersect the cell's gVCF range (may be none).
-    size_t new_region_idx;
-    std::pair<size_t, size_t> intersecting = get_intersecting_regions_v4(
-        read_state_.regions,
-        read_state_.region_idx,
-        contig,
-        real_start,
-        start,
-        end,
-        &new_region_idx);
-    if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
-        intersecting.second == std::numeric_limits<uint32_t>::max())
-      continue;
+    /*    size_t new_region_idx;
+        std::pair<size_t, size_t> intersecting = get_intersecting_regions_v4(
+            read_state_.regions,
+            read_state_.region_idx,
+            contig,
+            real_start,
+            start,
+            end,
+            &new_region_idx);
+        if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
+            intersecting.second == std::numeric_limits<uint32_t>::max())
+          continue;*/
 
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
     // will be non-zero. All regions with an index less-than
     // 'last_intersecting_region_idx_' have already been reported, so we
     // must avoid reporting them multiple times.
-    size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
-                   read_state_.last_intersecting_region_idx_ :
-                   intersecting.first;
-    for (; j <= intersecting.second; j++) {
+    /*    size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
+                       read_state_.last_intersecting_region_idx_ :
+                       intersecting.first;*/
+    for (size_t j = read_state_.last_intersecting_region_idx_;
+         j <= read_state_.regions.size();
+         j++) {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
@@ -667,16 +669,20 @@ bool Reader::process_query_results_v4() {
       //            "Error in query result processing; range unexpectedly does
       //            not " "intersect cell.");
 
-      if (reg.seq_name == contig) {
-        if (reg_min - anchor_gap < start && start < reg_min)
-          report = true;
-        else if (
-            real_start >= reg_min && start <= reg_max &&
-            start >= reg_max - anchor_gap)
-          report = true;
-        else if (real_start == start && start >= reg_min && end <= reg_max)
-          report = true;
-      }
+      if (reg.seq_name != contig)
+        continue;
+
+      if (end < reg_min || real_start > reg_max)
+        continue;
+
+      if (reg_min - anchor_gap < start && start < reg_min)
+        report = true;
+      else if (
+          real_start >= reg_min && start <= reg_max &&
+          start >= reg_max - anchor_gap)
+        report = true;
+      else if (real_start == start && start >= reg_min && end <= reg_max)
+        report = true;
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the

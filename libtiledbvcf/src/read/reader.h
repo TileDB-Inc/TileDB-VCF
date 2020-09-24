@@ -347,7 +347,7 @@ class Reader {
      * Stores the index to a region that was unsuccessfully reported
      * in the last read.
      */
-    size_t last_intersecting_region_idx_;
+    size_t last_intersecting_region_idx_ = 0;
 
     /** Map of current relative sample ID -> last real_end reported. */
     std::vector<uint32_t> last_reported_end;
