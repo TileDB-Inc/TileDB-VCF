@@ -32,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -361,6 +362,10 @@ class Reader {
     /** The original genomic regions specified by the user to export. */
     std::vector<Region> regions;
 
+    /** Store index positions to only compare again regions for a contig */
+    std::unordered_map<std::string, std::vector<size_t>>
+        regions_index_per_contig;
+
     /**
      * The corresponding widened and merged regions that will be used as the
      * column ranges in the TileDB query.
@@ -470,6 +475,8 @@ class Reader {
    */
   void prepare_regions_v4(
       std::vector<Region>* regions,
+      std::unordered_map<std::string, std::vector<size_t>>*
+          regions_index_per_contig,
       std::vector<QueryRegion>* query_regions) const;
 
   /**

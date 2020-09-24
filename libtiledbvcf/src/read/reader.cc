@@ -344,7 +344,10 @@ void Reader::init_for_reads() {
   init_exporter();
 
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    prepare_regions_v4(&read_state_.regions, &read_state_.query_regions);
+    prepare_regions_v4(
+        &read_state_.regions,
+        &read_state_.regions_index_per_contig,
+        &read_state_.query_regions);
   } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
   } else {
@@ -627,6 +630,18 @@ bool Reader::process_query_results_v4() {
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
+    // Lookup region indexes for contig only
+    // This lets us limit the scope of intersections to only regions for this
+    // cell's contig
+    const auto regions_indexes =
+        read_state_.regions_index_per_contig.find(contig);
+    // If we have a contig which isn't asked for error out
+    if (regions_indexes == read_state_.regions_index_per_contig.end())
+      throw std::runtime_error(
+          "Error in query result processing; range unexpectedly does not "
+          "intersect cell (" +
+          contig + "-" + std::to_string(real_start) + "-" +
+          std::to_string(end) + ").");
     // Skip cell if we've already reported the gVCF record for it.
     //    if (end ==
     //        read_state_.last_reported_end[sample_id - read_state_.sample_min])
@@ -655,9 +670,10 @@ bool Reader::process_query_results_v4() {
                        read_state_.last_intersecting_region_idx_ :
                        intersecting.first;*/
     for (size_t j = read_state_.last_intersecting_region_idx_;
-         j <= read_state_.regions.size();
+         j < regions_indexes->second.size();
          j++) {
-      const auto& reg = read_state_.regions[j];
+      const size_t region_index = regions_indexes->second[j];
+      const auto& reg = read_state_.regions[region_index];
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
       bool report = false;
@@ -670,8 +686,8 @@ bool Reader::process_query_results_v4() {
       //            not " "intersect cell.");
 
       // If the region doesn't match the contig skip it
-      if (reg.seq_name != contig)
-        continue;
+      //      if (reg.seq_name != contig)
+      //        continue;
 
       // If the vcf record is not contained in the region skip it
       if (end < reg_min || real_start > reg_max)
@@ -1288,6 +1304,8 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
 
 void Reader::prepare_regions_v4(
     std::vector<Region>* regions,
+    std::unordered_map<std::string, std::vector<size_t>>*
+        regions_index_per_contig,
     std::vector<QueryRegion>* query_regions) const {
   const uint32_t g = dataset_->metadata().anchor_gap;
   // Use a linked list for pre-partition regions to allow for parallel parsing
@@ -1392,6 +1410,7 @@ void Reader::prepare_regions_v4(
   // Expand individual regions to a minimum width of the anchor gap.
   //  uint32_t prev_reg_min = 0;
   //  uint32_t prev_reg_max = 0;
+  size_t region_index = 0;
   for (auto& r : *regions) {
     uint32_t contig_offset;
     try {
@@ -1401,6 +1420,17 @@ void Reader::prepare_regions_v4(
           "Error preparing regions for export; no contig named '" + r.seq_name +
           "' in dataset.");
     }
+
+    // Save mapping of contig to region indexing
+    // Used in read to limit region intersection checking to only regions of
+    // same contig
+    auto regions_index = regions_index_per_contig->find(r.seq_name);
+    if (regions_index == regions_index_per_contig->end())
+      regions_index_per_contig->emplace(r.seq_name, std::vector<size_t>());
+
+    regions_index_per_contig->find(r.seq_name)
+        ->second.emplace_back(region_index);
+    ++region_index;
 
     r.seq_offset = contig_offset;
     const uint32_t reg_min = r.min;
