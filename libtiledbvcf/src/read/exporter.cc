@@ -84,11 +84,15 @@ void Exporter::recover_record(
     end = buffers->real_end().value<uint32_t>(cell_idx) - contig_offset;
   }
 
-  end += 1;
-  st = bcf_update_info(hdr, dst, "END", &end, 1, BCF_HT_INT);
-  if (st < 0)
-    throw std::runtime_error(
-        "Record recovery error; Error adding END tag, " + std::to_string(st));
+  // Only update the END field if it exists in the header
+  int inf_id = bcf_hdr_id2int(hdr, BCF_DT_ID, "END");
+  if (bcf_hdr_idinfo_exists(hdr, BCF_HL_INFO, inf_id)) {
+    end += 1;
+    st = bcf_update_info(hdr, dst, "END", &end, 1, BCF_HT_INT);
+    if (st < 0)
+      throw std::runtime_error(
+          "Record recovery error; Error adding END tag, " + std::to_string(st));
+  }
 
   const uint64_t id_offset = buffers->id().offsets()[cell_idx];
   st = bcf_update_id(hdr, dst, buffers->id().data<char>() + id_offset);
