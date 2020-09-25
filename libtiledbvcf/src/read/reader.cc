@@ -383,13 +383,6 @@ bool Reader::next_read_batch() {
   // User query regions
   read_state_.region_idx = 0;
 
-  // One element per sample (row) containing the end_pos (v3) or real_end (v2)
-  // position of the last record that was reported.
-  read_state_.last_reported_end.clear();
-  read_state_.last_reported_end.resize(
-      read_state_.sample_max - read_state_.sample_min + 1,
-      std::numeric_limits<uint32_t>::max());
-
   // Headers
   read_state_.current_hdrs.clear();
   read_state_.current_hdrs = dataset_->fetch_vcf_headers(
@@ -556,8 +549,8 @@ bool Reader::read_current_batch() {
 }
 
 /**
- * Compatator used to binary search across regions to find the first index to
- * start checking for interections
+ * Comparator used to binary search across regions to find the first index to
+ * start checking for intersections
  *
  * We know that any region whose end is before the real_start of a region can't
  * possibly intersect
@@ -592,16 +585,11 @@ bool Reader::process_query_results_v3() {
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
-    const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
     const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
     const uint32_t real_start =
         results.buffers()->real_start_pos().value<uint32_t>(i);
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
-
-    // Skip cell if we've already reported the gVCF record for it.
-    if (end ==
-        read_state_.last_reported_end[sample_id - read_state_.sample_min])
-      continue;
+    const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
     // If we've passed into a new contig, get the new info for it.
     if (end >= contig_info.first + contig_info.second)
@@ -623,19 +611,6 @@ bool Reader::process_query_results_v3() {
       read_state_.region_idx = std::distance(read_state_.regions.begin(), it);
     }
 
-    // Get original regions which intersect the cell's gVCF range (may be none).
-    size_t new_region_idx;
-    std::pair<size_t, size_t> intersecting = get_intersecting_regions_v3(
-        read_state_.regions,
-        read_state_.region_idx,
-        real_start,
-        start,
-        end,
-        &new_region_idx);
-    if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
-        intersecting.second == std::numeric_limits<uint32_t>::max())
-      continue;
-
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
     // will be non-zero. All regions with an index less-than
@@ -643,16 +618,27 @@ bool Reader::process_query_results_v3() {
     // must avoid reporting them multiple times.
     size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
                    read_state_.last_intersecting_region_idx_ :
-                   intersecting.first;
-    for (; j <= intersecting.second; j++) {
+                   read_state_.region_idx;
+    for (; j < read_state_.regions.size(); j++) {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
-      bool intersects = real_start <= reg_max && end >= reg_min;
-      if (!intersects)
-        throw std::runtime_error(
-            "Error in query result processing; range unexpectedly does not "
-            "intersect cell.");
+
+      // If the vcf record is not contained in the region skip it
+      if (end < reg_min || real_start > reg_max)
+        continue;
+
+      // Unless start is the real start (aka first record) then if we skip for
+      // any record greater than the region min the goal is to only capture
+      // starts which are within 1 anchor gap of the region start on the lower
+      // side of the region start
+      if (start != real_start && start >= reg_min)
+        continue;
+      // First lets make sure the anchor gap is smaller than the region minimum,
+      // this avoid overflow in the next check. second if the start is further
+      // away from the region_start than the anchor gap discard
+      if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the
@@ -672,7 +658,6 @@ bool Reader::process_query_results_v3() {
     // all cells in intersecting regions.
     read_state_.last_intersecting_region_idx_ = 0;
 
-    read_state_.last_reported_end[sample_id - read_state_.sample_min] = end;
     // Always need to reset to original index for next record
     // Records are unordered so we can't assume a minimum intersection region
     read_state_.region_idx = 0;
@@ -699,15 +684,10 @@ bool Reader::process_query_results_v2() {
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
-    const uint32_t sample_id = results.buffers()->sample().value<uint32_t>(i);
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
     const uint32_t start = results.buffers()->pos().value<uint32_t>(i);
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
-
-    // Skip cell if we've already reported the gVCF record for it.
-    if (real_end ==
-        read_state_.last_reported_end[sample_id - read_state_.sample_min])
-      continue;
+    const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
     // If we've passed into a new contig, get the new info for it.
     if (end >= contig_info.first + contig_info.second)
@@ -729,19 +709,6 @@ bool Reader::process_query_results_v2() {
       read_state_.region_idx = std::distance(read_state_.regions.begin(), it);
     }
 
-    // Get original regions which intersect the cell's gVCF range (may be none).
-    size_t new_region_idx;
-    std::pair<size_t, size_t> intersecting = get_intersecting_regions_v2(
-        read_state_.regions,
-        read_state_.region_idx,
-        start,
-        end,
-        real_end,
-        &new_region_idx);
-    if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
-        intersecting.second == std::numeric_limits<uint32_t>::max())
-      continue;
-
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
     // will be non-zero. All regions with an index less-than
@@ -749,16 +716,27 @@ bool Reader::process_query_results_v2() {
     // must avoid reporting them multiple times.
     size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
                    read_state_.last_intersecting_region_idx_ :
-                   intersecting.first;
-    for (; j <= intersecting.second; j++) {
+                   read_state_.region_idx;
+    for (; j < read_state_.regions.size(); j++) {
       const auto& reg = read_state_.regions[j];
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
-      bool intersects = start <= reg_max && real_end >= reg_min;
-      if (!intersects)
-        throw std::runtime_error(
-            "Error in query result processing; range unexpectedly does not "
-            "intersect cell.");
+
+      // If the vcf record is not contained in the region skip it
+      if (real_end < reg_min || start > reg_max)
+        continue;
+
+      // Unless start is the real start (aka first record) then if we skip for
+      // any record greater than the region min the goal is to only capture
+      // starts which are within 1 anchor gap of the region start on the lower
+      // side of the region start
+      if (end != real_end && start >= reg_min)
+        continue;
+      // First lets make sure the anchor gap is smaller than the region minimum,
+      // this avoid overflow in the next check. second if the start is further
+      // away from the region_start than the anchor gap discard
+      if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the
@@ -778,190 +756,12 @@ bool Reader::process_query_results_v2() {
     // all cells in intersecting regions.
     read_state_.last_intersecting_region_idx_ = 0;
 
-    read_state_.last_reported_end[sample_id - read_state_.sample_min] =
-        real_end;
     // Always need to reset to original index for next record
     // Records are unordered so we can't assume a minimum intersection region
     read_state_.region_idx = 0;
   }
 
   return true;
-}
-
-std::pair<size_t, size_t> Reader::get_intersecting_regions_v3(
-    const std::vector<Region>& regions,
-    size_t region_idx,
-    uint32_t real_start,
-    uint32_t start,
-    uint32_t end,
-    size_t* new_region_idx) {
-  const auto intersects_p = [](const Region& r, uint32_t s, uint32_t e) {
-    return s <= (r.seq_offset + r.max) && e >= (r.seq_offset + r.min);
-  };
-  const auto nil = std::numeric_limits<uint32_t>::max();
-
-  if (regions.empty())
-    return {nil, nil};
-
-  // Find the index of the last region that intersects the cell's END position.
-  // This is stored in the output variable for the new region index.
-  size_t last = nil;
-  for (size_t i = region_idx; i < regions.size(); i++) {
-    // Regions are sorted on END, so stop searching early if possible.
-    if (end < regions[i].seq_offset + regions[i].min)
-      break;
-
-    bool intersects = intersects_p(regions[i], start, end);
-    if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], start, end);
-      if (intersects && !next_intersects) {
-        last = i;
-        break;
-      }
-    } else if (intersects) {
-      last = i;
-      break;
-    }
-  }
-
-  // Check if no regions intersect.
-  if (last == nil)
-    return {nil, nil};
-
-  size_t original_last = last;
-
-  // Next find the index of the last region that intersects the cell's
-  // REAL_START position. This is used as the actual interval of intersection.
-  for (size_t i = original_last; i < regions.size(); i++) {
-    bool intersects = intersects_p(regions[i], real_start, end);
-    if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], real_start, end);
-      if (intersects && !next_intersects) {
-        last = i;
-        break;
-      }
-    } else if (intersects) {
-      last = i;
-      break;
-    }
-  }
-
-  // Search backwards to find the first region that intersects the cell.
-  size_t first = nil;
-  for (size_t i = original_last;; i--) {
-    bool intersects = intersects_p(regions[i], real_start, end);
-    if (i > 0) {
-      bool prev_intersects = intersects_p(regions[i - 1], real_start, end);
-      if (intersects && !prev_intersects) {
-        first = i;
-        break;
-      }
-    } else if (intersects) {
-      first = i;
-      break;
-    }
-
-    if (i == 0)
-      break;
-  }
-
-  // Set the new region index to the first intersecting region index.
-  // Since we sort on start position, we must wait for the start to cross to a
-  // new region to move
-  *new_region_idx = first;
-
-  // If we're here then we must have a valid interval.
-  if (first == nil || last == nil)
-    throw std::runtime_error(
-        "Error finding intersection region interval; invalid interval.");
-
-  return {first, last};
-}
-
-std::pair<size_t, size_t> Reader::get_intersecting_regions_v2(
-    const std::vector<Region>& regions,
-    size_t region_idx,
-    uint32_t start,
-    uint32_t end,
-    uint32_t real_end,
-    size_t* new_region_idx) {
-  const auto intersects_p = [](const Region& r, uint32_t s, uint32_t e) {
-    return s <= (r.seq_offset + r.max) && e >= (r.seq_offset + r.min);
-  };
-  const auto nil = std::numeric_limits<uint32_t>::max();
-
-  if (regions.empty())
-    return {nil, nil};
-
-  // Find the index of the last region that intersects the cell's END position.
-  // This is stored in the output variable for the new region index.
-  size_t last = nil;
-  for (size_t i = region_idx; i < regions.size(); i++) {
-    // Regions are sorted on END, so stop searching early if possible.
-    if (end < regions[i].seq_offset + regions[i].min)
-      break;
-
-    bool intersects = intersects_p(regions[i], start, end);
-    if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], start, end);
-      if (intersects && !next_intersects) {
-        last = i;
-        break;
-      }
-    } else if (intersects) {
-      last = i;
-      break;
-    }
-  }
-
-  // Check if no regions intersect.
-  if (last == nil)
-    return {nil, nil};
-
-  // Set the new region index to the last intersecting region index.
-  *new_region_idx = last;
-
-  // Next find the index of the last region that intersects the cell's REAL_END
-  // position. This is used as the actual interval of intersection.
-  for (size_t i = *new_region_idx; i < regions.size(); i++) {
-    bool intersects = intersects_p(regions[i], start, real_end);
-    if (i < regions.size() - 1) {
-      bool next_intersects = intersects_p(regions[i + 1], start, real_end);
-      if (intersects && !next_intersects) {
-        last = i;
-        break;
-      }
-    } else if (intersects) {
-      last = i;
-      break;
-    }
-  }
-
-  // Search backwards to find the first region that intersects the cell.
-  size_t first = nil;
-  for (size_t i = *new_region_idx;; i--) {
-    bool intersects = intersects_p(regions[i], start, real_end);
-    if (i > 0) {
-      bool prev_intersects = intersects_p(regions[i - 1], start, real_end);
-      if (intersects && !prev_intersects) {
-        first = i;
-        break;
-      }
-    } else if (intersects) {
-      first = i;
-      break;
-    }
-
-    if (i == 0)
-      break;
-  }
-
-  // If we're here then we must have a valid interval.
-  if (first == nil || last == nil)
-    throw std::runtime_error(
-        "Error finding intersection region interval; invalid interval.");
-
-  return {first, last};
 }
 
 bool Reader::report_cell(
