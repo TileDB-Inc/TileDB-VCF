@@ -630,8 +630,6 @@ bool Reader::process_query_results_v4() {
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
-    //    const uint32_t sample_id =
-    //    results.buffers()->sample().value<uint32_t>(i);
     const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
     const uint32_t real_start =
         results.buffers()->real_start_pos().value<uint32_t>(i);
@@ -656,33 +654,12 @@ bool Reader::process_query_results_v4() {
           "intersect cell (" +
           contig + "-" + std::to_string(real_start) + "-" +
           std::to_string(end) + ").");
-    // Skip cell if we've already reported the gVCF record for it.
-    //    if (end ==
-    //        read_state_.last_reported_end[sample_id - read_state_.sample_min])
-    //      continue;
-
-    // Get original regions which intersect the cell's gVCF range (may be none).
-    /*    size_t new_region_idx;
-        std::pair<size_t, size_t> intersecting = get_intersecting_regions_v4(
-            read_state_.regions,
-            read_state_.region_idx,
-            contig,
-            real_start,
-            start,
-            end,
-            &new_region_idx);
-        if (intersecting.first == std::numeric_limits<uint32_t>::max() ||
-            intersecting.second == std::numeric_limits<uint32_t>::max())
-          continue;*/
 
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
     // will be non-zero. All regions with an index less-than
     // 'last_intersecting_region_idx_' have already been reported, so we
     // must avoid reporting them multiple times.
-    /*    size_t j = read_state_.last_intersecting_region_idx_ > 0 ?
-                       read_state_.last_intersecting_region_idx_ :
-                       intersecting.first;*/
     for (size_t j = read_state_.last_intersecting_region_idx_;
          j < regions_indexes->second.size();
          j++) {
@@ -690,39 +667,31 @@ bool Reader::process_query_results_v4() {
       const auto& reg = read_state_.regions[region_index];
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
-      bool report = false;
-      //      bool intersects =
-      //          real_start <= reg_max && end >= reg_min && reg.seq_name ==
-      //          contig;
-      //      if (!intersects)
-      //        throw std::runtime_error(
-      //            "Error in query result processing; range unexpectedly does
-      //            not " "intersect cell.");
-
-      // If the region doesn't match the contig skip it
-      //      if (reg.seq_name != contig)
-      //        continue;
 
       // If the vcf record is not contained in the region skip it
       if (end < reg_min || real_start > reg_max)
         continue;
 
-      // If the real_start is above the region start then only report the single cell where real_start == start
-      if (real_start == start && real_start >= reg_min)
-        report = true;
-      // If the start position is between the region start and the region start minus one anchor gap then report as this is the "first" cell to touch the region and our target
-      else if (reg_min - anchor_gap < start && start < reg_min)
-        report = true;
+      // Unless start is the real start (aka first record) then if we skip for
+      // any record greater than the region min the goal is to only capture
+      // starts which are within 1 anchor gap of the region start on the lower
+      // side of the region start
+      if (start != real_start && start >= reg_min)
+        continue;
+
+      // First lets make sure the anchor gap is smaller than the region minimum,
+      // this avoid overflow in the next check.. second if the start is further
+      // away from the region_start than the anchor gap discard
+      if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the
       // next read. Otherwise, we will re-report the cells in regions with
       // an index below 'j'.
-      if (report) {
-        if (!report_cell(reg, reg.seq_offset, i)) {
-          read_state_.last_intersecting_region_idx_ = j;
-          return false;
-        }
+      if (!report_cell(reg, reg.seq_offset, i)) {
+        read_state_.last_intersecting_region_idx_ = j;
+        return false;
       }
 
       // Return early if we've hit the record limit.
