@@ -388,6 +388,9 @@ class Reader {
     /** The samples being exported, batched by space tile. */
     std::vector<std::vector<SampleAndId>> sample_batches;
 
+    /** current sample batch list */
+    std::vector<SampleAndId> current_sample_batches;
+
     /** Total number of records exported across all incomplete reads. */
     uint64_t total_num_records_exported = 0;
 

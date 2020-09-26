@@ -198,8 +198,7 @@ class TileDBVCFDataset {
 
   std::vector<SafeBCFHdr> fetch_vcf_headers(
       const tiledb::Context& ctx,
-      uint32_t sample_id_min,
-      uint32_t sample_id_max) const;
+      const std::vector<SampleAndId>& samples) const;
 
   std::string first_contig() const;
 

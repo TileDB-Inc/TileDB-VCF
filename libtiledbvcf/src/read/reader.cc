@@ -372,12 +372,13 @@ bool Reader::next_read_batch() {
   }
 
   // Sample row range
-  const auto& samples = read_state_.sample_batches[read_state_.batch_idx];
+  read_state_.current_sample_batches =
+      read_state_.sample_batches[read_state_.batch_idx];
   read_state_.sample_min = std::numeric_limits<uint32_t>::max();
   read_state_.sample_max = std::numeric_limits<uint32_t>::min();
-  for (const auto& s : samples) {
+  for (const auto& s : read_state_.current_sample_batches) {
     read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
-    read_state_.sample_max = std::max(read_state_.sample_min, s.sample_id);
+    read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
   }
 
   // User query regions
@@ -392,12 +393,12 @@ bool Reader::next_read_batch() {
 
   // Headers
   read_state_.current_hdrs.clear();
-  read_state_.current_hdrs = dataset_->fetch_vcf_headers(
-      *ctx_, read_state_.sample_min, read_state_.sample_max);
+  read_state_.current_hdrs =
+      dataset_->fetch_vcf_headers(*ctx_, read_state_.current_sample_batches);
 
   // Sample handles
   read_state_.current_samples.clear();
-  for (const auto& s : samples) {
+  for (const auto& s : read_state_.current_sample_batches) {
     read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
   }
 
@@ -407,8 +408,11 @@ bool Reader::next_read_batch() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
-  read_state_.query->add_range(
-      0, read_state_.sample_min, read_state_.sample_max);
+
+  // Set ranges
+  for (const auto& sample : read_state_.current_sample_batches)
+    read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
+  // Set regions
   for (const auto& query_region : read_state_.query_regions)
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
   read_state_.query->set_layout(TILEDB_UNORDERED);
