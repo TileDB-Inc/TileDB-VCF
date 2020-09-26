@@ -406,7 +406,7 @@ bool Reader::next_read_batch() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
-
+ 
   // Set ranges
   for (const auto& sample : read_state_.current_sample_batches)
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
