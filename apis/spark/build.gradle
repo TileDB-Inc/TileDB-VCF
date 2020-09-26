@@ -4,10 +4,11 @@ plugins {
     id 'maven-publish'
     id 'com.github.sherter.google-java-format' version '0.8'
     id 'com.github.johnrengelman.shadow' version '4.0.3'
+    id 'com.palantir.git-version' version '0.12.3'
 }
 
 group 'io.tiledb'
-version '0.5.3-SNAPSHOT'
+version gitVersion()
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
