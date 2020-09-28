@@ -56,7 +56,8 @@ steps:
 
     make -j4
     make -j4 -C libtiledbvcf tiledb_vcf_unit
-    make check
+    #make checka
+    lldb --batch --one-line "r" --one-line-on-crash "bt" libtiledbvcf/test/tiledb_vcf_unit -- --durations=yes
     ../test/run-cli-tests.sh . ../test/inputs
 
     make install-libtiledbvcf
