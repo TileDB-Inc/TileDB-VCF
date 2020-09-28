@@ -1433,7 +1433,7 @@ void Reader::sample_count(int32_t* count) {
 }
 
 void Reader::sample_name(int32_t index, const char** name) {
-  *name = dataset_->metadata().sample_names[index].c_str();
+  *name = dataset_->sample_name(index);
 }
 
 void Reader::info_attribute_name(int32_t index, char** name) {

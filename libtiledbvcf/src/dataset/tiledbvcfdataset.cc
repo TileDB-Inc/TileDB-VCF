@@ -302,7 +302,7 @@ void TileDBVCFDataset::open(
 
   open_ = true;
 
-  // Build queryable attribute list
+  // Build queryable attribute and sample lists
   std::set<std::string> unique_queryable_attributes{
       "sample_name", "query_bed_start", "query_bed_end", "contig"};
   for (auto s : this->all_attributes()) {
@@ -328,6 +328,12 @@ void TileDBVCFDataset::open(
     std::vector<char> name(key.begin(), key.end());
     name.emplace_back('\0');
     vcf_attributes_.push_back(name);
+  }
+
+  for (const auto& s : metadata_.sample_names) {
+    std::vector<char> sample(s.begin(), s.end());
+    sample.emplace_back('\0');
+    sample_names_.push_back(sample);
   }
 }
 
@@ -960,6 +966,10 @@ int32_t TileDBVCFDataset::queryable_attribute_count() const {
 const char* TileDBVCFDataset::queryable_attribute_name(
     const int32_t index) const {
   return this->vcf_attributes_[index].data();
+}
+
+const char* TileDBVCFDataset::sample_name(const int32_t index) const {
+  return this->sample_names_[index].data();
 }
 
 std::string TileDBVCFDataset::data_array_uri(
