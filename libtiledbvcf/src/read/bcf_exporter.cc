@@ -60,7 +60,7 @@ BCFExporter::BCFExporter(ExportFormat fmt) {
 void BCFExporter::reset() {
   Exporter::reset();
   file_info_.clear();
-  record_buffers_.clear();
+  record_buffers_v4_.clear();
 }
 
 bool BCFExporter::export_record(
@@ -88,10 +88,10 @@ bool BCFExporter::export_record(
 
 void BCFExporter::finalize_export(
     const SampleAndId& sample, const bcf_hdr_t* hdr) {
-  auto buff_it = record_buffers_.find(sample.sample_id);
-  if (buff_it != record_buffers_.end()) {
-    flush_record_buffer(sample, hdr, &buff_it->second);
-    record_buffers_.erase(buff_it);
+  auto buff_map_it = record_buffers_v4_.find(sample.sample_name);
+  if (buff_map_it != record_buffers_v4_.end()) {
+    flush_record_buffer(sample, hdr, &buff_map_it->second);
+    record_buffers_v4_.erase(buff_map_it);
   }
 
   auto file_it = file_info_.find(sample.sample_id);
@@ -106,7 +106,7 @@ std::set<std::string> BCFExporter::array_attributes_required() const {
 
 void BCFExporter::buffer_record(
     const SampleAndId& sample, const bcf_hdr_t* hdr, bcf1_t* rec) {
-  Buffer& buffer = record_buffers_[sample.sample_id];
+  Buffer& buffer = record_buffers_v4_[sample.sample_name];
 
   uint64_t num_buffered = buffer.size() / sizeof(bcf1_t*);
   if (num_buffered >= RECORD_BUFFER_LIMIT)

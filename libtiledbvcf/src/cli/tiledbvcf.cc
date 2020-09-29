@@ -180,7 +180,11 @@ void do_register(const RegistrationParams& args) {
   HTSLIB_CONFIG_SET
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
-  dataset.register_samples(args);
+  if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset.metadata().version == TileDBVCFDataset::Version::V3)
+    dataset.register_samples(args);
+  else
+    dataset.register_samples_v4(args);
 }
 
 /** Store/ingest. */

@@ -183,7 +183,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -453,7 +453,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -508,7 +508,7 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -601,7 +601,7 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -732,7 +732,7 @@ TEST_CASE("TileDB-VCF: Test export to BCF", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -791,7 +791,7 @@ TEST_CASE("TileDB-VCF: Test export to TSV", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -852,7 +852,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -927,7 +927,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -1025,7 +1025,7 @@ TEST_CASE("TileDB-VCF: Test export limit records", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -1091,7 +1091,7 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -1264,7 +1264,7 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1341,7 +1341,7 @@ TEST_CASE("TileDB-VCF: Test export 100 using BED", "[tiledbvcf][export]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1402,7 +1402,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small3.bcf", input_dir + "/small.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
