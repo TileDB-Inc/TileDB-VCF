@@ -193,8 +193,7 @@ void Reader::tiledb_stats(char** stats) {
 
 void Reader::dataset_version(int32_t* version) const {
   if (dataset_ == nullptr)
-    throw std::runtime_error(
-        "Error getting dataset version; dataset is not open.");
+    throw std::runtime_error("Error getting dataset version");
   *version = dataset_->metadata().version;
 }
 
@@ -1478,6 +1477,16 @@ void Reader::info_attribute_count(int32_t* count) {
     throw std::runtime_error("count must be non-null in attribute_count");
 
   *count = this->dataset_->info_field_types().size();
+}
+
+void Reader::sample_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("Error getting sample count");
+  *count = dataset_->metadata().sample_names.size();
+}
+
+void Reader::sample_name(int32_t index, const char** name) {
+  *name = dataset_->sample_name(index);
 }
 
 void Reader::info_attribute_name(int32_t index, char** name) {

@@ -88,6 +88,9 @@ def test_retrieve_attributes(test_ds):
     ]
     assert test_ds.attributes(attr_type = "fmt") == fmt_attrs
 
+def test_retrieve_samples(test_ds):
+    assert test_ds.samples() == ['HG00280', 'HG01762']
+
 def test_read_attrs(test_ds_attrs):
     attrs = ['sample_name']
     df = test_ds_attrs.read(attrs = attrs)
