@@ -63,10 +63,10 @@ uint64_t WriterWorkerV4::anchors_buffered() const {
 }
 
 void WriterWorkerV4::insert_record(
-    SafeSharedBCFRec record,
+    const SafeSharedBCFRec& record,
     VCFV4* vcf,
-    const std::string contig,
-    const uint32_t sample_id) {
+    const std::string& contig,
+    const std::string& sample_name) {
   // If a record exists but it's outside the region max, skip it.
   const uint32_t local_end_pos =
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
@@ -85,7 +85,7 @@ void WriterWorkerV4::insert_record(
       contig,
       start_pos,
       end_pos,
-      sample_id);
+      sample_name);
 }
 
 bool WriterWorkerV4::parse(const Region& region) {
@@ -96,7 +96,6 @@ bool WriterWorkerV4::parse(const Region& region) {
   region_ = region;
 
   // Initialize the record heap with the first record from each sample.
-  const auto& metadata = dataset_->metadata();
   for (auto& vcf : vcfs_) {
     vcf->seek(region.seq_name, region.min);
 
@@ -107,9 +106,7 @@ bool WriterWorkerV4::parse(const Region& region) {
     }
     vcf->pop_record();
 
-    const uint32_t sample_id = metadata.sample_ids.at(vcf->sample_name());
-
-    insert_record(r, vcf.get(), region.seq_name, sample_id);
+    insert_record(r, vcf.get(), region.seq_name, vcf->sample_name());
   }
 
   // Start buffering records (which can possibly be incomplete if the buffers
@@ -143,7 +140,7 @@ bool WriterWorkerV4::resume() {
   // 3. Repeat step (1) until the heap is empty.
   while (!record_heap_.empty()) {
     const RecordHeapV4::Node& top = record_heap_.top();
-    const uint32_t sample_id = top.sample_id;
+    const std::string sample_name = top.sample_name;
     VCFV4* vcf = top.vcf;
 
     // Copy the record into the buffers. If the record caused the buffers to
@@ -169,7 +166,8 @@ bool WriterWorkerV4::resume() {
         SafeSharedBCFRec next_r = vcf->front_record();
         if (next_r != nullptr) {
           vcf->pop_record();
-          insert_record(next_r, vcf, vcf->contig_name(next_r.get()), sample_id);
+          insert_record(
+              next_r, vcf, vcf->contig_name(next_r.get()), sample_name);
         }
       }
     } else {
@@ -182,7 +180,7 @@ bool WriterWorkerV4::resume() {
           top.contig,
           anchor_start,
           top.end_pos,
-          sample_id);
+          sample_name);
 
       // We're done with the top node. Remove it from the heap.
       record_heap_.pop();
@@ -194,7 +192,8 @@ bool WriterWorkerV4::resume() {
         if (next_r != nullptr &&
             static_cast<uint32_t>(next_r->pos) < anchor_start) {
           vcf->pop_record();
-          insert_record(next_r, vcf, vcf->contig_name(next_r.get()), sample_id);
+          insert_record(
+              next_r, vcf, vcf->contig_name(next_r.get()), sample_name);
         }
       }
     }
@@ -211,12 +210,13 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   bcf1_t* r = node.record.get();
   bcf_hdr_t* hdr = vcf->hdr();
   const std::string contig = vcf->contig_name(r);
-  const uint32_t row = node.sample_id;
+  const std::string sample_name = node.sample_name;
   const uint32_t col = node.start_pos;
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  buffers_.sample().append(&row, sizeof(uint32_t));
+  buffers_.sample_name().offsets().push_back(buffers_.sample_name().size());
+  buffers_.sample_name().append(sample_name.c_str(), sample_name.length());
   buffers_.contig().offsets().push_back(buffers_.contig().size());
   buffers_.contig().append(contig.c_str(), contig.length());
   buffers_.start_pos().append(&col, sizeof(uint32_t));

@@ -5,7 +5,9 @@ namespace tiledb {
 namespace vcf {
 
 void AttributeBufferSet::allocate_fixed(
-    const std::unordered_set<std::string>& attr_names, unsigned mem_budget_mb) {
+    const std::unordered_set<std::string>& attr_names,
+    unsigned mem_budget_mb,
+    unsigned version) {
   clear();
   fixed_alloc_.clear();
 
@@ -34,10 +36,16 @@ void AttributeBufferSet::allocate_fixed(
   using dimNamesV3 = TileDBVCFDataset::DimensionNames::V3;
   using dimNamesV2 = TileDBVCFDataset::DimensionNames::V2;
   for (const auto& s : attr_names) {
-    if (s == dimNamesV4::sample || s == dimNamesV3::sample ||
-        s == dimNamesV2::sample) {
+    if ((s == dimNamesV3::sample || s == dimNamesV2::sample) &&
+        (version == TileDBVCFDataset::Version::V2 ||
+         version == TileDBVCFDataset::Version::V3)) {
       sample_.resize(nbytes);
       fixed_alloc_.emplace_back(false, s, &sample_, sizeof(uint32_t));
+    } else if (
+        s == dimNamesV4::sample && version == TileDBVCFDataset::Version::V4) {
+      sample_name_.resize(nbytes);
+      sample_name_.offsets().resize(num_offsets);
+      fixed_alloc_.emplace_back(true, s, &sample_name_, sizeof(char));
     } else if (s == dimNamesV4::contig) {
       contig_.resize(nbytes);
       contig_.offsets().resize(num_offsets);
@@ -117,6 +125,8 @@ uint64_t AttributeBufferSet::total_size() const {
   total_size += qual_.size();
 
   // Var-len attributes
+  total_size += sample_name_.size();
+  total_size += sample_name_.size();
   total_size += contig_.size();
   total_size += contig_.offsets().size() * sizeof(uint64_t);
   total_size += alleles_.size();
@@ -151,6 +161,8 @@ void AttributeBufferSet::clear() {
   qual_.clear();
 
   // Var-len attributes
+  sample_name_.clear();
+  sample_name_.offsets().clear();
   contig_.clear();
   contig_.offsets().clear();
   alleles_.clear();
@@ -178,8 +190,10 @@ void AttributeBufferSet::set_buffers(
     if (version == TileDBVCFDataset::Version::V4) {
       query->set_buffer(
           TileDBVCFDataset::DimensionNames::V4::sample,
-          sample_.data<void>(),
-          sample_.nelts<uint32_t>());
+          (uint64_t*)sample_name_.offsets().data(),
+          sample_name_.offsets().size(),
+          sample_name_.data<void>(),
+          sample_name_.nelts<char>());
       query->set_buffer(
           TileDBVCFDataset::DimensionNames::V4::contig,
           (uint64_t*)contig_.offsets().data(),
@@ -366,6 +380,14 @@ void AttributeBufferSet::set_buffers(
       }
     }
   }
+}
+
+const Buffer& AttributeBufferSet::sample_name() const {
+  return sample_name_;
+}
+
+Buffer& AttributeBufferSet::sample_name() {
+  return sample_name_;
 }
 
 const Buffer& AttributeBufferSet::sample() const {

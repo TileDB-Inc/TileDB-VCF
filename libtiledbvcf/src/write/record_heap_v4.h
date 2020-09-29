@@ -46,7 +46,7 @@ class RecordHeapV4 {
         , contig()
         , start_pos(std::numeric_limits<uint32_t>::max())
         , end_pos(std::numeric_limits<uint32_t>::max())
-        , sample_id(std::numeric_limits<uint32_t>::max()) {
+        , sample_name() {
     }
 
     VCFV4* vcf;
@@ -55,7 +55,7 @@ class RecordHeapV4 {
     std::string contig;
     uint32_t start_pos;
     uint32_t end_pos;
-    uint32_t sample_id;
+    std::string sample_name;
   };
 
   void clear();
@@ -66,10 +66,10 @@ class RecordHeapV4 {
       VCFV4* vcf,
       NodeType type,
       SafeSharedBCFRec record,
-      std::string contig,
+      const std::string& contig,
       uint32_t start_pos,
       uint32_t end_pos,
-      uint32_t sample_id);
+      const std::string& sample_name);
 
   const Node& top() const;
 
@@ -89,7 +89,7 @@ class RecordHeapV4 {
       return a_contig > b_contig ||
              (a_contig == b_contig && a_start > b_start) ||
              (a_contig == b_contig && a_start == b_start &&
-              a->sample_id > b->sample_id);
+              a->sample_name > b->sample_name);
     }
   };
 

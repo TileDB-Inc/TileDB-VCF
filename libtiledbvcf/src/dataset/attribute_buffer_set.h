@@ -52,10 +52,12 @@ class AttributeBufferSet {
    *
    * @param extra List of attributes to allocate buffers for.
    * @param mem_budget_mb Memory budget (MB) of sum of allocations.
+   * @param version dataset version
    */
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
-      unsigned mem_budget_mb);
+      unsigned mem_budget_mb,
+      unsigned version);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size
@@ -68,6 +70,12 @@ class AttributeBufferSet {
 
   /** Clears all buffers. */
   void clear();
+
+  /** sample buffer. */
+  const Buffer& sample_name() const;
+
+  /** sample buffer. */
+  Buffer& sample_name();
 
   /** sample buffer. */
   const Buffer& sample() const;
@@ -166,6 +174,9 @@ class AttributeBufferSet {
   bool extra_attr(const std::string& name, Buffer** buffer);
 
  private:
+  /** sample_name v4 dimension (string) */
+  Buffer sample_name_;
+
   /** sample v3/v2 dimension (uint32_t) */
   Buffer sample_;
 

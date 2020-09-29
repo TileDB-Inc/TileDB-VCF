@@ -354,11 +354,13 @@ class Reader {
     /** Upper sample ID of the sample (row) range currently being queried. */
     uint32_t sample_max = 0;
 
-    /** Map of current relative sample ID -> sample name. */
+    /** Map of current relative sample ID -> sample name. Only used for v2/v3 */
     std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
     std::unordered_map<uint32_t, SafeBCFHdr> current_hdrs;
+
+    std::unordered_map<std::string, size_t> current_hdrs_lookup;
 
     /**
      * Stores the index to a region that was unsuccessfully reported
@@ -481,8 +483,18 @@ class Reader {
    */
   std::vector<std::vector<SampleAndId>> prepare_sample_batches() const;
 
+  /**
+   * Prepares sample batches for export
+   * @return
+   */
+  std::vector<std::vector<SampleAndId>> prepare_sample_batches_v4() const;
+
   /** Merges the list of sample names with the contents of the samples file. */
   std::vector<SampleAndId> prepare_sample_names() const;
+
+  /** Merges the list of sample names with the contents of the samples file for
+   * v4 arrays. */
+  std::vector<SampleAndId> prepare_sample_names_v4() const;
 
   /**
    * Prepares the regions to be queried and exported. This merges the list of

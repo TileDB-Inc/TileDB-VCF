@@ -92,10 +92,10 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
   {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    REQUIRE_THROWS(ds.register_samples({}));
+    REQUIRE_THROWS(ds.register_samples_v4({}));
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Reopen the dataset and check the metadata.
@@ -110,7 +110,7 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
     REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
 
-    auto hdrs = ds.fetch_vcf_headers(ctx, {{"HG01762", 0}});
+    auto hdrs = ds.fetch_vcf_headers_v4(ctx, {{"HG01762", 0}}, nullptr);
     REQUIRE(hdrs.size() == 1);
     REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
     REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
@@ -125,7 +125,7 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Check updated metadata
@@ -144,7 +144,8 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
     REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
 
-    auto hdrs = ds.fetch_vcf_headers(ctx, {{"HG01762", 0}, {"HG00280", 1}});
+    auto hdrs =
+        ds.fetch_vcf_headers_v4(ctx, {{"HG01762", 0}, {"HG00280", 1}}, nullptr);
     REQUIRE(hdrs.size() == 2);
     REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
     REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
@@ -180,7 +181,7 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   SECTION("- Sample list file") {
@@ -199,7 +200,7 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     args.sample_uris_file = samples_file;
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   SECTION("- Sample list file with explicit indices") {
@@ -218,7 +219,7 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     args.sample_uris_file = samples_file;
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   SECTION("- Incremental") {
@@ -233,7 +234,7 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
 
       TileDBVCFDataset ds;
       ds.open(dataset_uri);
-      ds.register_samples(args);
+      ds.register_samples_v4(args);
     }
   }
 
@@ -247,8 +248,8 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     REQUIRE(ds.metadata().sample_ids.at("G17") == 16);
     REQUIRE(ds.metadata().sample_names.at(16) == "G17");
 
-    auto hdrs =
-        ds.fetch_vcf_headers(ctx, {{"G10", 9}, {"G11", 10}, {"G12", 11}});
+    auto hdrs = ds.fetch_vcf_headers_v4(
+        ctx, {{"G10", 9}, {"G11", 10}, {"G12", 11}}, nullptr);
     REQUIRE(hdrs.size() == 3);
     REQUIRE(bcf_hdr_nsamples(hdrs.at(9)) == 1);
     std::vector<std::string> samples = {
@@ -282,7 +283,7 @@ TEST_CASE("TileDB-VCF: Test ingest", "[tiledbvcf][ingest]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -318,7 +319,7 @@ TEST_CASE("TileDB-VCF: Test ingest larger", "[tiledbvcf][ingest]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small3.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -354,7 +355,7 @@ TEST_CASE("TileDB-VCF: Test ingest .vcf.gz", "[tiledbvcf][ingest]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.vcf.gz"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -394,7 +395,7 @@ TEST_CASE("TileDB-VCF: Test ingest with attributes", "[tiledbvcf][ingest]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small3.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -438,7 +439,7 @@ TEST_CASE("TileDB-VCF: Test ingest 100", "[tiledbvcf][ingest]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest

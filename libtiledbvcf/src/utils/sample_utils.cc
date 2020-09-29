@@ -170,5 +170,30 @@ std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile(
   return result;
 }
 
+std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile_v4(
+    const std::vector<SampleAndIndex>& vec, uint64_t tile_size) {
+  std::vector<std::vector<SampleAndIndex>> result;
+  std::vector<SampleAndIndex> batch;
+  // Set last seen tile extent to max, as an initialized value
+  uint64_t count = 0;
+  for (unsigned vec_idx = 0; vec_idx < vec.size(); vec_idx++) {
+    auto sample = vec[vec_idx];
+    // When batching we must include samples only in the same tile extent
+    if (count >= tile_size) {
+      // reset count
+      count = 0;
+      result.emplace_back(batch);
+      batch = std::vector<SampleAndIndex>();
+    }
+    batch.push_back(vec[vec_idx]);
+    ++count;
+  }
+  // Add last batch if it exists
+  if (!batch.empty())
+    result.push_back(batch);
+
+  return result;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

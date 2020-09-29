@@ -43,10 +43,10 @@ void RecordHeapV4::insert(
     VCFV4* vcf,
     NodeType type,
     SafeSharedBCFRec record,
-    std::string contig,
+    const std::string& contig,
     uint32_t start_pos,
     uint32_t end_pos,
-    uint32_t sample_id) {
+    const std::string& sample_name) {
   // Sanity check start_pos is greater than the record start position.
   if (start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
@@ -56,7 +56,7 @@ void RecordHeapV4::insert(
         std::to_string(record->pos + 1) + "-" +
         std::to_string(
             VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val) + 1) +
-        "' into ingestion heap from sample ID " + std::to_string(sample_id) +
+        "' into ingestion heap from sample " + sample_name +
         "; sort start position " + std::to_string(start_pos + 1) +
         " cannot be less than start.");
   }
@@ -68,7 +68,7 @@ void RecordHeapV4::insert(
   node->contig = contig;
   node->start_pos = start_pos;
   node->end_pos = end_pos;
-  node->sample_id = sample_id;
+  node->sample_name = sample_name;
   heap_.push(std::move(node));
 }
 

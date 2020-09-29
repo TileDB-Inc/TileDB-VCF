@@ -133,10 +133,10 @@ class WriterWorkerV4 : public WriterWorker {
    * @param sample_id The sample id for the record.
    */
   void insert_record(
-      SafeSharedBCFRec record,
+      const SafeSharedBCFRec& record,
       VCFV4* vcf,
-      const std::string contig,
-      const uint32_t sample_id);
+      const std::string& contig,
+      const std::string& sample_name);
 
   /**
    * Copies all fields of a VCF record or anchor into the attribute buffers.
