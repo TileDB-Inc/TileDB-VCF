@@ -57,7 +57,7 @@ class BCFExporter : public Exporter {
   const unsigned RECORD_BUFFER_LIMIT = 10000;
 
   std::map<uint32_t, std::string> file_info_;
-  std::map<uint32_t, Buffer> record_buffers_;
+  std::unordered_map<std::string, Buffer> record_buffers_v4_;
   std::string extension_;
   std::string fmt_code_;
 

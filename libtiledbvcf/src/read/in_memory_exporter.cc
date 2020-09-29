@@ -374,9 +374,11 @@ bool InMemoryExporter::export_record(
     UserBuffer& user_buff = it.second;
     switch (user_buff.attr) {
       case ExportableAttribute::SampleName: {
-        const uint32_t sample_id = buffers->sample().value<uint32_t>(cell_idx);
-        const std::string& sample_name =
-            dataset_->metadata().sample_names[sample_id];
+        //        const uint32_t sample_id =
+        //        buffers->sample().value<uint32_t>(cell_idx); const
+        //        std::string& sample_name =
+        //            dataset_->metadata().sample_names[sample_id];
+        const std::string& sample_name = sample.sample_name;
         overflow = !copy_cell(
             &user_buff,
             sample_name.c_str(),
