@@ -406,7 +406,7 @@ bool Reader::next_read_batch() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
- 
+
   // Set ranges
   for (const auto& sample : read_state_.current_sample_batches)
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
@@ -436,7 +436,8 @@ bool Reader::next_read_batch() {
   } else {
     // Set regions
     for (const auto& query_region : read_state_.query_regions)
-      read_state_.query->add_range( 1, query_region.col_min, query_region.col_max);
+      read_state_.query->add_range(
+          1, query_region.col_min, query_region.col_max);
   }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   //  read_state_.query->set_layout(TILEDB_COL_MAJOR);
@@ -616,25 +617,21 @@ struct RegionComparator {
 } RegionComparator;
 
 struct RegionComparatorV4 {
-    std::vector<Region>* regions_;
+  std::vector<Region>* regions_;
 
-    explicit RegionComparatorV4(std::vector<Region>* regions) {
-      regions_ = regions;
-    }
-    /**
-     * Compare for less than
-     * @param left region
-     * @param right real_start
-     * @return
-     */
-/*    bool operator()(const Region& left, uint32_t right) {
-      return left.max < right;
-    }*/
-    bool operator()(const size_t& left, uint32_t right) {
-      return (*regions_)[left].max < right;
-    }
+  explicit RegionComparatorV4(std::vector<Region>* regions) {
+    regions_ = regions;
+  }
+  /**
+   * Compare for less than
+   * @param left region index
+   * @param right real_start
+   * @return
+   */
+  bool operator()(const size_t& left, uint32_t right) {
+    return (*regions_)[left].max < right;
+  }
 };
-
 
 bool Reader::process_query_results_v4() {
   if (read_state_.regions.empty())
@@ -647,9 +644,6 @@ bool Reader::process_query_results_v4() {
     return true;
 
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
-
-  if (params_.verbose)
-    std::cout << "checking " << num_cells << " cells for intersection" << std::endl;
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
@@ -686,7 +680,6 @@ bool Reader::process_query_results_v4() {
     // must avoid reporting them multiple times.
     const auto& regions = regions_indexes->second;
 
-
     // Perform a binary search to find first region we can intersection
     // This is an optimization to avoid a linear scan over all regions for
     // intersection This replaces the previous, incorrect, optimization of
@@ -699,9 +692,9 @@ bool Reader::process_query_results_v4() {
     if (it == regions.end()) {
       continue;
     } else {
-      read_state_.last_intersecting_region_idx_ = std::distance(regions.begin(), it);
+      read_state_.last_intersecting_region_idx_ =
+          std::distance(regions.begin(), it);
     }
-
 
     for (size_t j = read_state_.last_intersecting_region_idx_;
          j < regions.size();
@@ -715,7 +708,7 @@ bool Reader::process_query_results_v4() {
       const uint32_t reg_max = reg.max;
 
       // If the vcf record is not contained in the region skip it
-      if(real_start > reg_max)
+      if (real_start > reg_max)
         continue;
 
       // Exit early, in this case all regions are now passed this record
@@ -1514,54 +1507,6 @@ void Reader::prepare_regions_v4(
       query_regions->back().col_max = reg_max;
       query_regions->back().contigs.emplace_back(r.seq_name);
     }
-
-    //    bool new_region = true;
-
-    /*    if (!query_regions->empty()) {
-          //      if(prev_reg_max + 1 >= widened_reg_min && reg_max - g <=
-          //      prev_reg_max) {
-          // If the new max is greater than the previous and the min falls
-       between,
-          // then expand the end
-          if (reg_max > prev_reg_max && prev_reg_min > reg_min &&
-              prev_reg_min < reg_max) {
-            // Previous widened region overlaps this one; merge.
-            query_regions->back().col_max = reg_max;
-            new_region = false;
-          }
-          if (reg_min < prev_reg_min && prev_reg_min < reg_max &&
-              prev_reg_max > reg_max) {
-            // Previous widened region overlaps this one; merge.
-            query_regions->back().col_max = reg_max;
-            new_region = false;
-          }
-        }
-
-        if (new_region) {
-          // Start a new query region.
-          query_regions->push_back({});
-          query_regions->back().col_min = widened_reg_min;
-          query_regions->back().col_max = reg_max;
-          query_regions->back().contig = r.seq_name;
-        }*/
-
-    /*    if (prev_reg_max + 1 >= widened_reg_min && !query_regions->empty()) {
-          // Previous widened region overlaps this one; merge.
-          query_regions->back().col_max =
-       std::max(query_regions->back().col_max, reg_max);
-          query_regions->back().col_min =
-       std::min(static_cast<uint64_t>(query_regions->back().col_min),
-       widened_reg_min); query_regions->back().contigs.emplace_back(r.seq_name);
-        } else {
-          // Start a new query region.
-          query_regions->push_back({});
-          query_regions->back().col_min = widened_reg_min;
-          query_regions->back().col_max = reg_max;
-          query_regions->back().contigs.emplace_back(r.seq_name);
-        }*/
-
-    //    prev_reg_min = widened_reg_min;
-    //    prev_reg_max = reg_max;
   }
 }  // namespace vcf
 
