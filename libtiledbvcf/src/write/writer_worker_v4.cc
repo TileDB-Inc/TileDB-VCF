@@ -191,7 +191,7 @@ bool WriterWorkerV4::resume() {
         // If there is a next record and it proceeds the anchor, insert it
         // on the heap.
         SafeSharedBCFRec next_r = vcf->front_record();
-        if (next_r != nullptr && next_r->pos < anchor_start) {
+        if (next_r != nullptr && static_cast<uint32_t>(next_r->pos) < anchor_start) {
           vcf->pop_record();
           insert_record(next_r, vcf, vcf->contig_name(next_r.get()), sample_id);
         }
