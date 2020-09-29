@@ -645,15 +645,15 @@ bool Reader::process_query_results_v4() {
     // Lookup region indexes for contig only
     // This lets us limit the scope of intersections to only regions for this
     // cell's contig
-    const auto regions_indexes =
-        read_state_.regions_index_per_contig.find(contig);
+//    const auto regions_indexes =
+//        read_state_.regions_index_per_contig.find(contig);
     // If we have a contig which isn't asked for error out
-    if (regions_indexes == read_state_.regions_index_per_contig.end())
-      throw std::runtime_error(
-          "Error in query result processing; range unexpectedly does not "
-          "intersect cell (" +
-          contig + "-" + std::to_string(real_start) + "-" +
-          std::to_string(end) + ").");
+//    if (regions_indexes == read_state_.regions_index_per_contig.end())
+//      throw std::runtime_error(
+//          "Error in query result processing; range unexpectedly does not "
+//          "intersect cell (" +
+//          contig + "-" + std::to_string(real_start) + "-" +
+//          std::to_string(end) + ").");
 
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
@@ -661,10 +661,15 @@ bool Reader::process_query_results_v4() {
     // 'last_intersecting_region_idx_' have already been reported, so we
     // must avoid reporting them multiple times.
     for (size_t j = read_state_.last_intersecting_region_idx_;
-         j < regions_indexes->second.size();
+         j < read_state_.regions.size();
          j++) {
-      const size_t region_index = regions_indexes->second[j];
-      const auto& reg = read_state_.regions[region_index];
+//      const size_t region_index = regions_indexes->second[j];
+//      const auto& reg = read_state_.regions[region_index];
+      const auto& reg = read_state_.regions[j];
+
+      if (reg.seq_name != contig)
+        continue;
+
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
 
