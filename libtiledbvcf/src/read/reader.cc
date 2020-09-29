@@ -615,6 +615,27 @@ struct RegionComparator {
   }
 } RegionComparator;
 
+struct RegionComparatorV4 {
+    std::vector<Region>* regions_;
+
+    explicit RegionComparatorV4(std::vector<Region>* regions) {
+      regions_ = regions;
+    }
+    /**
+     * Compare for less than
+     * @param left region
+     * @param right real_start
+     * @return
+     */
+/*    bool operator()(const Region& left, uint32_t right) {
+      return left.max < right;
+    }*/
+    bool operator()(const size_t& left, uint32_t right) {
+      return (*regions_)[left].max < right;
+    }
+};
+
+
 bool Reader::process_query_results_v4() {
   if (read_state_.regions.empty())
     throw std::runtime_error(
@@ -626,6 +647,9 @@ bool Reader::process_query_results_v4() {
     return true;
 
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
+
+  if (params_.verbose)
+    std::cout << "checking " << num_cells << " cells for intersection" << std::endl;
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
@@ -645,27 +669,44 @@ bool Reader::process_query_results_v4() {
     // Lookup region indexes for contig only
     // This lets us limit the scope of intersections to only regions for this
     // cell's contig
-//    const auto regions_indexes =
-//        read_state_.regions_index_per_contig.find(contig);
+    const auto regions_indexes =
+        read_state_.regions_index_per_contig.find(contig);
     // If we have a contig which isn't asked for error out
-//    if (regions_indexes == read_state_.regions_index_per_contig.end())
-//      throw std::runtime_error(
-//          "Error in query result processing; range unexpectedly does not "
-//          "intersect cell (" +
-//          contig + "-" + std::to_string(real_start) + "-" +
-//          std::to_string(end) + ").");
+    if (regions_indexes == read_state_.regions_index_per_contig.end())
+      throw std::runtime_error(
+          "Error in query result processing; range unexpectedly does not "
+          "intersect cell (" +
+          contig + "-" + std::to_string(real_start) + "-" +
+          std::to_string(end) + ").");
 
     // Report all intersections. If the previous read returned before
     // reporting all intersecting regions, 'last_intersecting_region_idx_'
     // will be non-zero. All regions with an index less-than
     // 'last_intersecting_region_idx_' have already been reported, so we
     // must avoid reporting them multiple times.
+    const auto& regions = regions_indexes->second;
+
+
+    // Perform a binary search to find first region we can intersection
+    // This is an optimization to avoid a linear scan over all regions for
+    // intersection This replaces the previous, incorrect, optimization of
+    // trying to keep a minimum region as we iterate
+    auto it = std::lower_bound(
+        regions.begin(),
+        regions.end(),
+        real_start,
+        RegionComparatorV4(&read_state_.regions));
+    if (it == regions.end()) {
+      continue;
+    } else {
+      read_state_.last_intersecting_region_idx_ = std::distance(regions.begin(), it);
+    }
+
+
     for (size_t j = read_state_.last_intersecting_region_idx_;
-         j < read_state_.regions.size();
+         j < regions.size();
          j++) {
-//      const size_t region_index = regions_indexes->second[j];
-//      const auto& reg = read_state_.regions[region_index];
-      const auto& reg = read_state_.regions[j];
+      const auto& reg = read_state_.regions[regions[j]];
 
       if (reg.seq_name != contig)
         continue;
@@ -674,8 +715,12 @@ bool Reader::process_query_results_v4() {
       const uint32_t reg_max = reg.max;
 
       // If the vcf record is not contained in the region skip it
-      if (end < reg_min || real_start > reg_max)
+      if(real_start > reg_max)
         continue;
+
+      // Exit early, in this case all regions are now passed this record
+      if (end < reg_min)
+        break;
 
       // Unless start is the real start (aka first record) then if we skip for
       // any record greater than the region min the goal is to only capture
@@ -700,8 +745,9 @@ bool Reader::process_query_results_v4() {
       }
 
       // Return early if we've hit the record limit.
-      if (read_state_.total_num_records_exported >= params_.max_num_records)
+      if (read_state_.total_num_records_exported >= params_.max_num_records) {
         return true;
+      }
     }
 
     // Clear 'last_intersecting_region_idx_' after successfully reporting
