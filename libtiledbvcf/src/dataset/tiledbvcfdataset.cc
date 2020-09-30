@@ -512,7 +512,6 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   std::vector<uint32_t> sample_data(sample_est_size);
 
   Query::Status status;
-  //  uint32_t sample_idx = sample_id_min;
 
   query.set_buffer("header", offsets, data);
   query.set_buffer("sample", sample_data);
@@ -553,25 +552,23 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
         uint64_t hdr_size =
             offset_idx == num_offsets - 1 ? num_chars : offsets[offset_idx + 1];
         hdr_size = hdr_size - offsets[offset_idx];
-        std::string hdr_str(beg_hdr, hdr_size);
+        char* hdr_str =
+            static_cast<char*>(std::malloc(sizeof(char) * (hdr_size + 1)));
+        memcpy(hdr_str, beg_hdr, hdr_size);
+        hdr_str[hdr_size] = '\0';
 
         bcf_hdr_t* hdr = bcf_hdr_init("r");
         if (!hdr)
           throw std::runtime_error(
               "Error fetching VCF header data; error allocating VCF header.");
 
-        char* hdr_raw_str = strndup(hdr_str.c_str(), hdr_size);
-        if (NULL == hdr_raw_str) {
-          throw std::runtime_error(
-              "Error allocating space for the char* header string.");
-        }
-        if (0 != bcf_hdr_parse(hdr, hdr_raw_str)) {
+        if (0 != bcf_hdr_parse(hdr, hdr_str)) {
           throw std::runtime_error("Error parsing the BCF header.");
         }
-        free(hdr_raw_str);
+        std::free(hdr_str);
 
-        if (0 != bcf_hdr_add_sample(
-                     hdr, metadata_.sample_names[sample_idx++].c_str())) {
+        if (0 !=
+            bcf_hdr_add_sample(hdr, metadata_.sample_names[sample].c_str())) {
           throw std::runtime_error("Error adding the sample.");
         }
 
