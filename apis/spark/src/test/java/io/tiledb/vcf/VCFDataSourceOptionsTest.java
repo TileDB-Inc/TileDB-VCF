@@ -141,12 +141,11 @@ public class VCFDataSourceOptionsTest {
   @Test
   public void testConfigOption() {
     HashMap<String, String> optionMap = new HashMap<>();
-    optionMap.put("tiledb.sm.num_reader_threads", "5");
-    optionMap.put("tiledb.sm.num_writer_threads", "10");
+    optionMap.put("tiledb.sm.compute_concurrency_level", "5");
     VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(optionMap));
     Optional<String> config = options.getConfigCSV();
     Assert.assertTrue(config.isPresent());
-    Assert.assertEquals("sm.num_reader_threads=5,sm.num_writer_threads=10", config.get());
+    Assert.assertEquals("sm.compute_concurrency_level=5", config.get());
   }
 
   @Test

@@ -1405,7 +1405,7 @@ void Reader::init_tiledb() {
 
   // Default settings
   cfg["sm.tile_cache_size"] = uint64_t(1) * 1024 * 1024 * 1024;
-  cfg["sm.num_reader_threads"] =
+  cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
   // TileDB gets half of our memory budget, and a minimum of 10MB.
