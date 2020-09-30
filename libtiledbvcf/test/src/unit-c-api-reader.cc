@@ -29,6 +29,7 @@
 
 #include "c_api/tiledbvcf.h"
 #include "catch.hpp"
+#include "unit-helpers.h"
 
 #include <cstring>
 #include <iostream>
@@ -209,6 +210,145 @@ static std::string INPUT_ARRAYS_DIR_V2 =
       tiledb_vcf_reader_set_buffer_values(                                   \
           (reader), "fmt_DP", sizeof(int) * fmt_DP.size(), fmt_DP.data()) == \
       TILEDB_VCF_OK);
+
+#define SET_BUFF_FMT_PL(r, nr)                                               \
+  std::vector<int32_t> fmt_PL_offsets((nr) + 1);                             \
+  std::vector<int> fmt_PL((nr * 3));                                         \
+  REQUIRE(                                                                   \
+      tiledb_vcf_reader_set_buffer_values(                                   \
+          (reader), "fmt_PL", sizeof(int) * fmt_PL.size(), fmt_PL.data()) == \
+      TILEDB_VCF_OK);                                                        \
+  REQUIRE(                                                                   \
+      tiledb_vcf_reader_set_buffer_offsets(                                  \
+          (reader),                                                          \
+          "fmt_PL",                                                          \
+          sizeof(int32_t) * fmt_PL_offsets.size(),                           \
+          fmt_PL_offsets.data()) == TILEDB_VCF_OK);
+
+std::vector<record> build_records(
+    uint64_t num_records,
+    const std::vector<char>& samples,
+    const std::vector<int32_t>& sample_offsets,
+    const std::vector<uint32_t>& start_pos,
+    const std::vector<uint32_t>& end_pos,
+    const std::vector<uint32_t>& query_bed_start,
+    const std::vector<uint32_t>& query_bed_end,
+    const std::vector<char>& contig,
+    const std::vector<int32_t>& contig_offsets,
+    const std::vector<char>& alleles,
+    const std::vector<int32_t>& alleles_offsets,
+    const std::vector<int32_t>& alleles_list_offsets,
+    const std::vector<char>& filters,
+    const std::vector<int32_t>& filters_offsets,
+    const std::vector<int32_t>& filters_list_offsets,
+    const std::vector<uint8_t>& filters_bitmap,
+    const std::vector<char>& info,
+    const std::vector<int32_t>& info_offsets,
+    const std::vector<char>& fmt,
+    const std::vector<int32_t>& fmt_offsets,
+    const std::vector<int32_t>& fmt_GT,
+    const std::vector<int32_t>& fmt_GT_offsets,
+    std::vector<int> fmt_DP,
+    const std::vector<int32_t>& fmt_PL = {},
+    const std::vector<int32_t>& fmt_PL_offsets = {}) {
+  std::vector<record> ret(num_records);
+
+  for (size_t i = 0; i < num_records; i++) {
+    std::string sample_val;
+    if (!samples.empty()) {
+      std::vector<char> sample_vec =
+          var_value<char>(samples, sample_offsets, i);
+      sample_val = std::string(sample_vec.begin(), sample_vec.end());
+    }
+
+    uint32_t start_pos_val = 0;
+    if (!start_pos.empty())
+      start_pos_val = start_pos[i];
+
+    uint32_t end_pos_val = 0;
+    if (!end_pos.empty())
+      end_pos_val = end_pos[i];
+
+    uint32_t query_bed_start_val = 0;
+    if (!query_bed_start.empty())
+      query_bed_start_val = query_bed_start[i];
+
+    uint32_t query_bed_end_val = 0;
+    if (!query_bed_end.empty())
+      query_bed_end_val = query_bed_end[i];
+
+    std::string contig_val;
+    if (!contig.empty()) {
+      std::vector<char> contig_vec = var_value<char>(contig, contig_offsets, i);
+      contig_val = std::string(contig_vec.begin(), contig_vec.end());
+    }
+
+    std::vector<std::string> alleles_val;
+    if (!alleles_list_offsets.empty()) {
+      alleles_val =
+          var_list_value(alleles, alleles_offsets, alleles_list_offsets, i);
+    }
+
+    std::vector<std::string> filters_val;
+    if (!filters_list_offsets.empty()) {
+      filters_val =
+          var_list_value(filters, filters_offsets, filters_list_offsets, i);
+    }
+
+    bool filter_valid_val = false;
+    if (!filters_bitmap.empty()) {
+      size_t bitmap_index = i / 8;
+      uint8_t bitmap_val = filters_bitmap[bitmap_index];
+      uint8_t bit_position = i % 8;
+      filter_valid_val = (bitmap_val >> bit_position) & 1;
+    }
+
+    std::string info_val;
+    if (!info.empty()) {
+      std::vector<char> info_vec = var_value<char>(info, info_offsets, i);
+      info_val = std::string(info_vec.begin(), info_vec.end());
+    }
+
+    std::string fmt_val;
+    if (!fmt.empty()) {
+      std::vector<char> fmt_vec = var_value<char>(fmt, fmt_offsets, i);
+      fmt_val = std::string(fmt_vec.begin(), fmt_vec.end());
+    }
+
+    std::vector<int32_t> fmt_GT_val;
+    if (!fmt_GT.empty())
+      fmt_GT_val = var_value<int32_t>(fmt_GT, fmt_GT_offsets, i);
+
+    int fmt_DP_val = 0;
+    if (!fmt_DP.empty())
+      fmt_DP_val = fmt_DP[i];
+
+    std::vector<int32_t> fmt_PL_val;
+    if (!fmt_PL.empty())
+      fmt_PL_val = var_value<int32_t>(fmt_PL, fmt_PL_offsets, i);
+
+    record vcf_record(
+        sample_val,           // sample
+        start_pos_val,        // start_pos
+        end_pos_val,          // end_pos
+        query_bed_start_val,  // query_bed_start
+        query_bed_end_val,    // query_bed_end
+        contig_val,           // contig
+        alleles_val,          // alleles
+        filters_val,          // filters
+        filter_valid_val,     // filter_valid
+        info_val,             // info
+        fmt_val,              // fmt
+        fmt_GT,               // fmt_GT
+        fmt_DP_val,           // fmt_DP
+        fmt_PL_val            // fmt_PL_val
+    );
+
+    ret[i] = std::move(vcf_record);
+  }
+
+  return ret;
+}
 
 /* ********************************* */
 /*               TESTS               */
@@ -399,7 +539,6 @@ TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
 
-  const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   REQUIRE(
@@ -426,7 +565,6 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
 
-  const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   int32_t offsets[10];
@@ -556,233 +694,283 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
   REQUIRE(num_offsets == (2 * expected_num_records + 1));
 
   // Check results
-  REQUIRE(pos_start[0] == 12141);
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(sample_name_offsets[0] == 0);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 0)) == 0);
-  REQUIRE(filters_offsets[0] == 0);
-  REQUIRE(fmt_GT_offsets[0] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0] + 1] == 0);
-  REQUIRE(info_offsets[0] == 0);
-  REQUIRE(format_offsets[0] == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          12099,
+          13360,
+          "1",
+          {"C", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          12099,
+          13360,
+          "1",
+          {"C", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          12099,
+          13360,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          12099,
+          13360,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          12099,
+          13360,
+          "1",
+          {"T", "<NON_REF>"},
+          {std::string("LowQual")},
+          true,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\017', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '*',    '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\016', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\030',
+           '\000', '\000', '\000', 'h',    '\001', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          12099,
+          13360,
+          "1",
+          {"T", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '@',    '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', 'c',    '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\036', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', 'B',
+           '\000', '\000', '\000', '\336', '\003', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\n',   '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\036', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\a',   '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\025',
+           '\000', '\000', '\000', '\322', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\006', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\f',   '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\004', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\006',
+           '\000', '\000', '\000', 'Z',    '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          13499,
+          17350,
+          "1",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', '\002',
+           '\000', '\000', '\000', '\002', '\000', '\000', '\000', 'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', 'G',    'Q',
+           '\000', '\001', '\000', '\000', '\000', '\001', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', 'M',    'I',    'N',
+           '_',    'D',    'P',    '\000', '\001', '\000', '\000', '\000',
+           '\001', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           'P',    'L',    '\000', '\001', '\000', '\000', '\000', '\003',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0)};
 
-  REQUIRE(pos_start[1] == 12141);
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(sample_name_offsets[1] == 7);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[1] == 0);
-  REQUIRE(fmt_GT_offsets[1] == 2);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1] + 1] == 0);
-  REQUIRE(info_offsets[1] == 4);
-  REQUIRE(format_offsets[1] == 95);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
-
-  REQUIRE(pos_start[2] == 12546);
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(sample_name_offsets[2] == 14);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 2)) == 0);
-  REQUIRE(filters_offsets[2] == 0);
-  REQUIRE(fmt_GT_offsets[2] == 4);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2] + 1] == 0);
-  REQUIRE(info_offsets[2] == 8);
-  REQUIRE(format_offsets[2] == 190);
-  REQUIRE(query_bed_start[2] == 12099);
-  REQUIRE(query_bed_end[2] == 13360);
-
-  REQUIRE(pos_start[3] == 12546);
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(sample_name_offsets[3] == 21);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 3)) == 0);
-  REQUIRE(filters_offsets[3] == 0);
-  REQUIRE(fmt_GT_offsets[3] == 6);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3] + 1] == 0);
-  REQUIRE(info_offsets[3] == 12);
-  REQUIRE(format_offsets[3] == 285);
-  REQUIRE(query_bed_start[3] == 12099);
-  REQUIRE(query_bed_end[3] == 13360);
-
-  REQUIRE(pos_start[4] == 13354);
-  REQUIRE(pos_end[4] == 13374);
-  REQUIRE(sample_name_offsets[4] == 28);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  REQUIRE(filters_offsets[4] == 0);
-  REQUIRE(fmt_GT_offsets[4] == 8);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
-  REQUIRE(info_offsets[4] == 16);
-  REQUIRE(format_offsets[4] == 380);
-  REQUIRE(query_bed_start[4] == 12099);
-  REQUIRE(query_bed_end[4] == 13360);
-
-  REQUIRE(pos_start[5] == 13354);
-  REQUIRE(pos_end[5] == 13389);
-  REQUIRE(sample_name_offsets[5] == 35);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[5]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  REQUIRE(filters_offsets[5] == 7);
-  REQUIRE(fmt_GT_offsets[5] == 10);
-  REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
-  REQUIRE(info_offsets[5] == 20);
-  REQUIRE(format_offsets[5] == 475);
-  REQUIRE(query_bed_start[5] == 12099);
-  REQUIRE(query_bed_end[5] == 13360);
-
-  REQUIRE(pos_start[6] == 13452);
-  REQUIRE(pos_end[6] == 13519);
-  REQUIRE(sample_name_offsets[6] == 42);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[6]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  REQUIRE(filters_offsets[6] == 7);
-  REQUIRE(fmt_GT_offsets[6] == 12);
-  REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
-  REQUIRE(info_offsets[6] == 24);
-  REQUIRE(format_offsets[6] == 570);
-  REQUIRE(query_bed_start[6] == 13499);
-  REQUIRE(query_bed_end[6] == 17350);
-
-  REQUIRE(pos_start[7] == 13520);
-  REQUIRE(pos_end[7] == 13544);
-  REQUIRE(sample_name_offsets[7] == 49);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[7]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  REQUIRE(filters_offsets[7] == 7);
-  REQUIRE(fmt_GT_offsets[7] == 14);
-  REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
-  REQUIRE(info_offsets[7] == 28);
-  REQUIRE(format_offsets[7] == 665);
-  REQUIRE(query_bed_start[7] == 13499);
-  REQUIRE(query_bed_end[7] == 17350);
-
-  REQUIRE(pos_start[8] == 13545);
-  REQUIRE(pos_end[8] == 13689);
-  REQUIRE(sample_name_offsets[8] == 56);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[8]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  REQUIRE(filters_offsets[8] == 7);
-  REQUIRE(fmt_GT_offsets[8] == 16);
-  REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
-  REQUIRE(info_offsets[8] == 32);
-  REQUIRE(format_offsets[8] == 760);
-  REQUIRE(query_bed_start[8] == 13499);
-  REQUIRE(query_bed_end[8] == 17350);
-
-  REQUIRE(pos_start[9] == 17319);
-  REQUIRE(pos_end[9] == 17479);
-  REQUIRE(sample_name_offsets[9] == 63);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[9]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[9] == 7);
-  REQUIRE(fmt_GT_offsets[9] == 18);
-  REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
-  REQUIRE(info_offsets[9] == 36);
-  REQUIRE(format_offsets[9] == 855);
-  REQUIRE(query_bed_start[9] == 13499);
-  REQUIRE(query_bed_end[9] == 17350);
-
-  // Check final offsets are equal to data size
-  REQUIRE(sample_name_offsets[10] == 70);
-  REQUIRE(filters_offsets[10] == 7);
-  REQUIRE(fmt_GT_offsets[10] == 20);
-  REQUIRE(info_offsets[10] == 40);
-  REQUIRE(format_offsets[10] == 950);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      contig,
+      contig_offsets,
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      filters,
+      filters_offsets,
+      filters_list_offsets,
+      filters_bitmap,
+      info,
+      info_offsets,
+      format,
+      format_offsets,
+      fmt_GT,
+      fmt_GT_offsets,
+      {});
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -826,15 +1014,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   SET_BUFF_FORMAT(reader, expected_num_records);
   SET_BUFF_FMT_GT(reader, expected_num_records);
   SET_BUFF_FMT_DP(reader, expected_num_records);
-
-  int32_t pl_offsets[expected_num_records + 1];
-  int pl[expected_num_records * 3];
-  REQUIRE(
-      tiledb_vcf_reader_set_buffer_values(reader, "fmt_PL", sizeof(pl), pl) ==
-      TILEDB_VCF_OK);
-  REQUIRE(
-      tiledb_vcf_reader_set_buffer_offsets(
-          reader, "fmt_PL", sizeof(pl_offsets), pl_offsets) == TILEDB_VCF_OK);
+  SET_BUFF_FMT_PL(reader, expected_num_records);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -860,265 +1040,226 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_start[0] == 12141);
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(sample_name_offsets[0] == 0);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  REQUIRE(filters_offsets[0] == 0);
-  REQUIRE(fmt_GT_offsets[0] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0] + 1] == 0);
-  REQUIRE(info_offsets[0] == 0);
-  REQUIRE(format_offsets[0] == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
-  REQUIRE(fmt_DP[0] == 0);
-  REQUIRE(pl[pl_offsets[0]] == 0);
-  REQUIRE(pl[pl_offsets[0] + 1] == 0);
-  REQUIRE(pl[pl_offsets[0] + 2] == 0);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          12099,
+          13360,
+          "1",
+          {"C", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          12099,
+          13360,
+          "1",
+          {"C", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          12099,
+          13360,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          12099,
+          13360,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          12099,
+          13360,
+          "1",
+          {"T", "<NON_REF>"},
+          {std::string("LowQual")},
+          true,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '*',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\016', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          15,
+          {0, 24, 360}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          12099,
+          13360,
+          "1",
+          {"T", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', 'c',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\036', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          64,
+          {0, 66, 990}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\036',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\a',   '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          10,
+          {0, 21, 210}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\f',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\004', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          6,
+          {0, 6, 90}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          13499,
+          17350,
+          "1",
+          {"G", "<NON_REF>"},
+          {std::string("")},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0}),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          13499,
+          17350,
+          "1",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {'\000', '\000', '\000', '\0'},
+          {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
+           '\000', '\000', '\000', '\001', '\000', '\000', '\000', '\000',
+           '\000', '\000', '\000', 'M',    'I',    'N',    '_',    'D',
+           'P',    '\000', '\001', '\000', '\000', '\000', '\001', '\000',
+           '\000', '\000', '\000', '\000', '\000', '\0'},
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          0,
+          {0, 0, 0})};
 
-  REQUIRE(pos_start[1] == 12141);
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(sample_name_offsets[1] == 7);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[1] == 0);
-  REQUIRE(fmt_GT_offsets[1] == 2);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1] + 1] == 0);
-  REQUIRE(info_offsets[1] == 4);
-  REQUIRE(format_offsets[1] == 38);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
-  REQUIRE(fmt_DP[1] == 0);
-  REQUIRE(pl[pl_offsets[1]] == 0);
-  REQUIRE(pl[pl_offsets[1] + 1] == 0);
-  REQUIRE(pl[pl_offsets[1] + 2] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      contig,
+      contig_offsets,
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      filters,
+      filters_offsets,
+      filters_list_offsets,
+      filters_bitmap,
+      info,
+      info_offsets,
+      format,
+      format_offsets,
+      fmt_GT,
+      fmt_GT_offsets,
+      fmt_DP,
+      fmt_PL,
+      fmt_PL_offsets);
 
-  REQUIRE(pos_start[2] == 12546);
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(sample_name_offsets[2] == 14);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 2)) == 0);
-  REQUIRE(filters_offsets[2] == 0);
-  REQUIRE(fmt_GT_offsets[2] == 4);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2] + 1] == 0);
-  REQUIRE(info_offsets[2] == 8);
-  REQUIRE(format_offsets[2] == 76);
-  REQUIRE(query_bed_start[2] == 12099);
-  REQUIRE(query_bed_end[2] == 13360);
-  REQUIRE(fmt_DP[2] == 0);
-  REQUIRE(pl[pl_offsets[2]] == 0);
-  REQUIRE(pl[pl_offsets[2] + 1] == 0);
-  REQUIRE(pl[pl_offsets[2] + 2] == 0);
-
-  REQUIRE(pos_start[3] == 12546);
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(sample_name_offsets[3] == 21);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 3)) == 0);
-  REQUIRE(filters_offsets[3] == 0);
-  REQUIRE(fmt_GT_offsets[3] == 6);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3] + 1] == 0);
-  REQUIRE(info_offsets[3] == 12);
-  REQUIRE(format_offsets[3] == 114);
-  REQUIRE(query_bed_start[3] == 12099);
-  REQUIRE(query_bed_end[3] == 13360);
-  REQUIRE(fmt_DP[3] == 0);
-  REQUIRE(pl[pl_offsets[3]] == 0);
-  REQUIRE(pl[pl_offsets[3] + 1] == 0);
-  REQUIRE(pl[pl_offsets[3] + 2] == 0);
-
-  REQUIRE(pos_start[4] == 13354);
-  REQUIRE(pos_end[4] == 13374);
-  REQUIRE(sample_name_offsets[4] == 28);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 4)) != 0);
-  REQUIRE(filters_offsets[4] == 0);
-  REQUIRE(fmt_GT_offsets[4] == 8);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
-  REQUIRE(info_offsets[4] == 16);
-  REQUIRE(format_offsets[4] == 152);
-  REQUIRE(query_bed_start[4] == 12099);
-  REQUIRE(query_bed_end[4] == 13360);
-  REQUIRE(fmt_DP[4] == 15);
-  REQUIRE(pl[pl_offsets[4]] == 0);
-  REQUIRE(pl[pl_offsets[4] + 1] == 24);
-  REQUIRE(pl[pl_offsets[4] + 2] == 360);
-
-  REQUIRE(pos_start[5] == 13354);
-  REQUIRE(pos_end[5] == 13389);
-  REQUIRE(sample_name_offsets[5] == 35);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[5]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 5)) == 0);
-  REQUIRE(filters_offsets[5] == 7);
-  REQUIRE(fmt_GT_offsets[5] == 10);
-  REQUIRE(fmt_GT[fmt_GT_offsets[5]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[5] + 1] == 0);
-  REQUIRE(info_offsets[5] == 20);
-  REQUIRE(format_offsets[5] == 190);
-  REQUIRE(query_bed_start[5] == 12099);
-  REQUIRE(query_bed_end[5] == 13360);
-  REQUIRE(fmt_DP[5] == 64);
-  REQUIRE(pl[pl_offsets[5]] == 0);
-  REQUIRE(pl[pl_offsets[5] + 1] == 66);
-  REQUIRE(pl[pl_offsets[5] + 2] == 990);
-
-  REQUIRE(pos_start[6] == 13452);
-  REQUIRE(pos_end[6] == 13519);
-  REQUIRE(sample_name_offsets[6] == 42);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[6]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 6)) == 0);
-  REQUIRE(filters_offsets[6] == 7);
-  REQUIRE(fmt_GT_offsets[6] == 12);
-  REQUIRE(fmt_GT[fmt_GT_offsets[6]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[6] + 1] == 0);
-  REQUIRE(info_offsets[6] == 24);
-  REQUIRE(format_offsets[6] == 228);
-  REQUIRE(query_bed_start[6] == 13499);
-  REQUIRE(query_bed_end[6] == 17350);
-  REQUIRE(fmt_DP[6] == 10);
-  REQUIRE(pl[pl_offsets[6]] == 0);
-  REQUIRE(pl[pl_offsets[6] + 1] == 21);
-  REQUIRE(pl[pl_offsets[6] + 2] == 210);
-
-  REQUIRE(pos_start[7] == 13520);
-  REQUIRE(pos_end[7] == 13544);
-  REQUIRE(sample_name_offsets[7] == 49);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[7]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[0] & ((uint8_t)1 << 7)) == 0);
-  REQUIRE(filters_offsets[7] == 7);
-  REQUIRE(fmt_GT_offsets[7] == 14);
-  REQUIRE(fmt_GT[fmt_GT_offsets[7]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[7] + 1] == 0);
-  REQUIRE(info_offsets[7] == 28);
-  REQUIRE(format_offsets[7] == 266);
-  REQUIRE(query_bed_start[7] == 13499);
-  REQUIRE(query_bed_end[7] == 17350);
-  REQUIRE(fmt_DP[7] == 6);
-  REQUIRE(pl[pl_offsets[7]] == 0);
-  REQUIRE(pl[pl_offsets[7] + 1] == 6);
-  REQUIRE(pl[pl_offsets[7] + 2] == 90);
-
-  REQUIRE(pos_start[8] == 13545);
-  REQUIRE(pos_end[8] == 13689);
-  REQUIRE(sample_name_offsets[8] == 56);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[8]], 1) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 0)) == 0);
-  REQUIRE(filters_offsets[8] == 7);
-  REQUIRE(fmt_GT_offsets[8] == 16);
-  REQUIRE(fmt_GT[fmt_GT_offsets[8]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[8] + 1] == 0);
-  REQUIRE(info_offsets[8] == 32);
-  REQUIRE(format_offsets[8] == 304);
-  REQUIRE(query_bed_start[8] == 13499);
-  REQUIRE(query_bed_end[8] == 17350);
-  REQUIRE(fmt_DP[8] == 0);
-  REQUIRE(pl[pl_offsets[8]] == 0);
-  REQUIRE(pl[pl_offsets[8] + 1] == 0);
-  REQUIRE(pl[pl_offsets[8] + 2] == 0);
-
-  REQUIRE(pos_start[9] == 17319);
-  REQUIRE(pos_end[9] == 17479);
-  REQUIRE(sample_name_offsets[9] == 63);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[9]], 1) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
-          9) == 0);
-  REQUIRE((filters_bitmap[1] & ((uint8_t)1 << 1)) == 0);
-  REQUIRE(filters_offsets[9] == 7);
-  REQUIRE(fmt_GT_offsets[9] == 18);
-  REQUIRE(fmt_GT[fmt_GT_offsets[9]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[9] + 1] == 0);
-  REQUIRE(info_offsets[9] == 36);
-  REQUIRE(format_offsets[9] == 342);
-  REQUIRE(query_bed_start[9] == 13499);
-  REQUIRE(query_bed_end[9] == 17350);
-  REQUIRE(fmt_DP[9] == 0);
-  REQUIRE(pl[pl_offsets[9]] == 0);
-  REQUIRE(pl[pl_offsets[9] + 1] == 0);
-  REQUIRE(pl[pl_offsets[9] + 2] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1146,6 +1287,7 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
 
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
+  SET_BUFF_POS_START(reader, expected_num_records);
   SET_BUFF_POS_END(reader, expected_num_records);
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
@@ -1175,115 +1317,186 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[0] == 0);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          10,
+          {}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[1] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[2] == 0);
-
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[3] == 0);
-
-  REQUIRE(pos_end[4] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[4] == 15);
-
-  REQUIRE(pos_end[5] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[5] == 64);
-
-  REQUIRE(pos_end[6] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[6] == 10);
-
-  REQUIRE(pos_end[7] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[7] == 6);
-
-  REQUIRE(pos_end[8] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[8] == 0);
-
-  REQUIRE(pos_end[9] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[9] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1307,6 +1520,7 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
 
   // Allocate and set buffers
   const unsigned expected_num_records = 4;
+  SET_BUFF_POS_START(reader, expected_num_records);
   SET_BUFF_POS_END(reader, expected_num_records);
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
@@ -1336,49 +1550,96 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[0] == 0);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[1] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[2] == 0);
-
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[3] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1403,6 +1664,7 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
 
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
+  SET_BUFF_POS_START(reader, expected_num_records);
   SET_BUFF_POS_END(reader, expected_num_records);
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
@@ -1432,115 +1694,186 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[0] == 0);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          10,
+          {}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[1] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[2] == 0);
-
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[3] == 0);
-
-  REQUIRE(pos_end[4] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[4] == 15);
-
-  REQUIRE(pos_end[5] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[5] == 64);
-
-  REQUIRE(pos_end[6] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[6] == 10);
-
-  REQUIRE(pos_end[7] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[7] == 6);
-
-  REQUIRE(pos_end[8] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[8] == 0);
-
-  REQUIRE(pos_end[9] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[9] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1570,6 +1903,7 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
 
   // Allocate and set buffers
   const unsigned expected_num_records = 10;
+  SET_BUFF_POS_START(reader, expected_num_records);
   SET_BUFF_POS_END(reader, expected_num_records);
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
@@ -1599,115 +1933,186 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[0] == 0);
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          0,
+          0,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          10,
+          {}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(
-      strncmp("C", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[1] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_end[2] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[2] == 0);
-
-  REQUIRE(pos_end[3] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[3] == 0);
-
-  REQUIRE(pos_end[4] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[4] == 15);
-
-  REQUIRE(pos_end[5] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[5]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[5]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[5] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[5] == 64);
-
-  REQUIRE(pos_end[6] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[6]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[6]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[6] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[6] == 10);
-
-  REQUIRE(pos_end[7] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[7]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[7]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[7] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[7] == 6);
-
-  REQUIRE(pos_end[8] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[8]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[8]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[8] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[8] == 0);
-
-  REQUIRE(pos_end[9] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[9]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[9]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[9] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[9] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -1782,7 +2187,145 @@ TEST_CASE(
   SET_BUFF_SAMPLE_NAME(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_START(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_END(reader, alloced_num_records);
+  SET_BUFF_ALLELES(reader, alloced_num_records);
   SET_BUFF_FMT_DP(reader, alloced_num_records);
+
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          12099,
+          13360,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          12099,
+          13360,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          12099,
+          13360,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          12099,
+          13360,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          12099,
+          13360,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          12099,
+          13360,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          13499,
+          16000,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          10,
+          {}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          13499,
+          16000,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          13499,
+          16000,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
   uint64_t tot_num_records = 0;
   int64_t num_records = ~0;
@@ -1831,17 +2374,34 @@ TEST_CASE(
   REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
-  REQUIRE(pos_start[0] == 12141);
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 12141);
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1858,17 +2418,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check next results
-  REQUIRE(pos_start[0] == 12546);
-  REQUIRE(pos_end[0] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 12546);
-  REQUIRE(pos_end[1] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1905,17 +2482,34 @@ TEST_CASE(
   REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check next results
-  REQUIRE(pos_start[0] == 13354);
-  REQUIRE(pos_end[0] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 13354);
-  REQUIRE(pos_end[1] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1932,17 +2526,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check next results
-  REQUIRE(pos_start[0] == 13452);
-  REQUIRE(pos_end[0] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 13499);
-  REQUIRE(query_bed_end[0] == 16000);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 13520);
-  REQUIRE(pos_end[1] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 13499);
-  REQUIRE(query_bed_end[1] == 16000);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -1959,11 +2570,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check last results
-  REQUIRE(pos_start[0] == 13545);
-  REQUIRE(pos_end[0] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 13499);
-  REQUIRE(query_bed_end[0] == 16000);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
+
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Check total num records
   REQUIRE(tot_num_records == expected_num_records);
@@ -2026,7 +2660,160 @@ TEST_CASE(
   SET_BUFF_SAMPLE_NAME(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_START(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_END(reader, alloced_num_records);
+  SET_BUFF_ALLELES(reader, alloced_num_records);
   SET_BUFF_FMT_DP(reader, alloced_num_records);
+
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          12276,
+          13400,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          12276,
+          13400,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          12276,
+          13400,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12546,
+          12771,
+          12276,
+          13400,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          12276,
+          13400,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          12276,
+          13400,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13375,
+          13395,
+          12276,
+          13400,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13396,
+          13413,
+          12276,
+          13400,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          2,
+          {}),
+      record(
+          "HG00280",
+          17319,
+          17479,
+          16999,
+          18000,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          17480,
+          17486,
+          16999,
+          18000,
+          "",
+          {"A", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          3,
+          {})};
 
   uint64_t tot_num_records = 0;
   int64_t num_records = ~0;
@@ -2075,17 +2862,34 @@ TEST_CASE(
   REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
-  REQUIRE(pos_start[0] == 12141);
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12276);
-  REQUIRE(query_bed_end[0] == 13400);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 12141);
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12276);
-  REQUIRE(query_bed_end[1] == 13400);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2102,17 +2906,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check next results
-  REQUIRE(pos_start[0] == 12546);
-  REQUIRE(pos_end[0] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12276);
-  REQUIRE(query_bed_end[0] == 13400);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 12546);
-  REQUIRE(pos_end[1] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12276);
-  REQUIRE(query_bed_end[1] == 13400);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2149,17 +2970,34 @@ TEST_CASE(
   REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check next results
-  REQUIRE(pos_start[0] == 13354);
-  REQUIRE(pos_end[0] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12276);
-  REQUIRE(query_bed_end[0] == 13400);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 13354);
-  REQUIRE(pos_end[1] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12276);
-  REQUIRE(query_bed_end[1] == 13400);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2176,17 +3014,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check next results
-  REQUIRE(pos_start[0] == 13375);
-  REQUIRE(pos_end[0] == 13395);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12276);
-  REQUIRE(query_bed_end[0] == 13400);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 13396);
-  REQUIRE(pos_end[1] == 13413);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12276);
-  REQUIRE(query_bed_end[1] == 13400);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2203,17 +3058,34 @@ TEST_CASE(
   tot_num_records += num_records;
 
   // Check last results
-  REQUIRE(pos_start[0] == 17319);
-  REQUIRE(pos_end[0] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 16999);
-  REQUIRE(query_bed_end[0] == 18000);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 17480);
-  REQUIRE(pos_end[1] == 17486);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 16999);
-  REQUIRE(query_bed_end[1] == 18000);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Check total num records
   REQUIRE(tot_num_records == expected_num_records);
@@ -2255,7 +3127,6 @@ TEST_CASE("C API: Reader get error message", "[capi][reader]") {
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
 
   // Error with nonexistent array
-  const char* all_samples = "HG01762,HG00280";
   REQUIRE(tiledb_vcf_reader_init(reader, "abc") == TILEDB_VCF_ERR);
 
   // Get error
@@ -2318,7 +3189,55 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   SET_BUFF_SAMPLE_NAME(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_START(reader, alloced_num_records);
   SET_BUFF_QUERY_BED_END(reader, alloced_num_records);
+  SET_BUFF_ALLELES(reader, alloced_num_records);
   SET_BUFF_FMT_DP(reader, alloced_num_records);
+
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          12141,
+          12277,
+          12099,
+          13360,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG01762",
+          12141,
+          12277,
+          12099,
+          13360,
+          "",
+          {"C", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {}),
+      record(
+          "HG00280",
+          12546,
+          12771,
+          12099,
+          13360,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
 
   uint64_t tot_num_records = 0;
   int64_t num_records = ~0;
@@ -2367,17 +3286,34 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   REQUIRE(num_offsets == (alloced_num_records + 1));
 
   // Check first results
-  REQUIRE(pos_start[0] == 12141);
-  REQUIRE(pos_end[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 12141);
-  REQUIRE(pos_end[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(query_bed_start[1] == 12099);
-  REQUIRE(query_bed_end[1] == 13360);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Resubmit query
   REQUIRE(tiledb_vcf_reader_read(reader) == TILEDB_VCF_OK);
@@ -2394,11 +3330,34 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
   tot_num_records += num_records;
 
   // Check results
-  REQUIRE(pos_start[0] == 12546);
-  REQUIRE(pos_end[0] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(query_bed_start[0] == 12099);
-  REQUIRE(query_bed_end[0] == 13360);
+  records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      query_bed_start,
+      query_bed_end,
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
+
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records));
 
   // Check total num records
   REQUIRE(tot_num_records == expected_num_records);
@@ -2461,40 +3420,86 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
   REQUIRE(
       tiledb_vcf_reader_set_region_partition(reader1, 1, 2) == TILEDB_VCF_OK);
 
+  std::vector<record> expected_records = {
+      record(
+          "HG00280", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13354, 13374, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 13354, 13389, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13375, 13395, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13396, 13413, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17319, 17479, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17480, 17486, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {})};
+
   // Allocate and set buffers
   const unsigned allocated_num_records = 10;
-  uint32_t pos_end0[allocated_num_records];
-  int32_t sample_name_offsets0[allocated_num_records + 1];
-  char sample_name0[allocated_num_records * 10];
-  uint32_t pos_end1[allocated_num_records];
-  int32_t sample_name_offsets1[allocated_num_records + 1];
-  char sample_name1[allocated_num_records * 10];
+  std::vector<uint32_t> pos_start0(allocated_num_records);
+  std::vector<uint32_t> pos_end0(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets0(allocated_num_records + 1);
+  std::vector<char> sample_name0(allocated_num_records * 10);
+  std::vector<uint32_t> pos_start1(allocated_num_records);
+  std::vector<uint32_t> pos_end1(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets1(allocated_num_records + 1);
+  std::vector<char> sample_name1(allocated_num_records * 10);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader0, "pos_end", sizeof(pos_end0), pos_end0) == TILEDB_VCF_OK);
+          reader0,
+          "pos_start",
+          sizeof(uint32_t) * pos_start0.size(),
+          pos_start0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader0, "sample_name", sizeof(sample_name0), sample_name0) ==
-      TILEDB_VCF_OK);
+          reader0,
+          "pos_end",
+          sizeof(uint32_t) * pos_end0.size(),
+          pos_end0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "sample_name",
+          sizeof(char) * sample_name0.size(),
+          sample_name0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_offsets(
           reader0,
           "sample_name",
-          sizeof(sample_name_offsets0),
-          sample_name_offsets0) == TILEDB_VCF_OK);
+          sizeof(int32_t) * sample_name_offsets0.size(),
+          sample_name_offsets0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader1, "pos_end", sizeof(pos_end1), pos_end1) == TILEDB_VCF_OK);
+          reader1,
+          "pos_start",
+          sizeof(uint32_t) * pos_start1.size(),
+          pos_start1.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader1, "sample_name", sizeof(sample_name1), sample_name1) ==
-      TILEDB_VCF_OK);
+          reader1,
+          "pos_end",
+          sizeof(uint32_t) * pos_end1.size(),
+          pos_end1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "sample_name",
+          sizeof(char) * sample_name1.size(),
+          sample_name1.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_offsets(
           reader1,
           "sample_name",
-          sizeof(sample_name_offsets1),
-          sample_name_offsets1) == TILEDB_VCF_OK);
+          sizeof(int32_t) * sample_name_offsets1.size(),
+          sample_name_offsets1.data()) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -2527,38 +3532,63 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
   REQUIRE(num_records == 1);
 
   // Check results
-  REQUIRE(pos_end0[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[0]], 7) == 0);
+  std::vector<record> records0 = build_records(
+      num_records,
+      sample_name0,
+      sample_name_offsets0,
+      pos_start0,
+      pos_end0,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
 
-  REQUIRE(pos_end0[1] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name0[sample_name_offsets0[1]], 7) == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records0));
 
-  REQUIRE(pos_end0[2] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[2]], 7) == 0);
+  std::vector<record> records1 = build_records(
+      num_records,
+      sample_name1,
+      sample_name_offsets1,
+      pos_start1,
+      pos_end1,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
 
-  REQUIRE(pos_end0[3] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name0[sample_name_offsets0[3]], 7) == 0);
-
-  REQUIRE(pos_end0[4] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[4]], 7) == 0);
-
-  REQUIRE(pos_end0[5] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name0[sample_name_offsets0[5]], 7) == 0);
-
-  REQUIRE(pos_end0[6] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[6]], 7) == 0);
-
-  REQUIRE(pos_end0[7] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[7]], 7) == 0);
-
-  REQUIRE(pos_end0[8] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[8]], 7) == 0);
-
-  REQUIRE(pos_end0[9] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[9]], 7) == 0);
-
-  REQUIRE(pos_end1[0] == 17486);
-  REQUIRE(strncmp("HG00280", &sample_name1[sample_name_offsets1[0]], 7) == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records1));
 
   tiledb_vcf_reader_free(&reader0);
   tiledb_vcf_reader_free(&reader1);
@@ -2576,7 +3606,6 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
   }
-  const char* all_samples = "HG01762,HG00280";
   REQUIRE(
       tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
   REQUIRE(
@@ -2591,40 +3620,86 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   REQUIRE(
       tiledb_vcf_reader_set_sample_partition(reader1, 1, 2) == TILEDB_VCF_OK);
 
+  std::vector<record> expected_records = {
+      record(
+          "HG00280", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13354, 13374, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 13354, 13389, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13375, 13395, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13396, 13413, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17319, 17479, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17480, 17486, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {})};
+
   // Allocate and set buffers
   const unsigned allocated_num_records = 10;
-  uint32_t pos_end0[allocated_num_records];
-  int32_t sample_name_offsets0[allocated_num_records];
-  char sample_name0[allocated_num_records * 10];
-  uint32_t pos_end1[allocated_num_records];
-  int32_t sample_name_offsets1[allocated_num_records];
-  char sample_name1[allocated_num_records * 10];
+  std::vector<uint32_t> pos_start0(allocated_num_records);
+  std::vector<uint32_t> pos_end0(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets0(allocated_num_records + 1);
+  std::vector<char> sample_name0(allocated_num_records * 10);
+  std::vector<uint32_t> pos_start1(allocated_num_records);
+  std::vector<uint32_t> pos_end1(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets1(allocated_num_records + 1);
+  std::vector<char> sample_name1(allocated_num_records * 10);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader0, "pos_end", sizeof(pos_end0), pos_end0) == TILEDB_VCF_OK);
+          reader0,
+          "pos_start",
+          sizeof(uint32_t) * pos_start0.size(),
+          pos_start0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader0, "sample_name", sizeof(sample_name0), sample_name0) ==
-      TILEDB_VCF_OK);
+          reader0,
+          "pos_end",
+          sizeof(uint32_t) * pos_end0.size(),
+          pos_end0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "sample_name",
+          sizeof(char) * sample_name0.size(),
+          sample_name0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_offsets(
           reader0,
           "sample_name",
-          sizeof(sample_name_offsets0),
-          sample_name_offsets0) == TILEDB_VCF_OK);
+          sizeof(int32_t) * sample_name_offsets0.size(),
+          sample_name_offsets0.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader1, "pos_end", sizeof(pos_end1), pos_end1) == TILEDB_VCF_OK);
+          reader1,
+          "pos_start",
+          sizeof(uint32_t) * pos_start1.size(),
+          pos_start1.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_values(
-          reader1, "sample_name", sizeof(sample_name1), sample_name1) ==
-      TILEDB_VCF_OK);
+          reader1,
+          "pos_end",
+          sizeof(uint32_t) * pos_end1.size(),
+          pos_end1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "sample_name",
+          sizeof(char) * sample_name1.size(),
+          sample_name1.data()) == TILEDB_VCF_OK);
   REQUIRE(
       tiledb_vcf_reader_set_buffer_offsets(
           reader1,
           "sample_name",
-          sizeof(sample_name_offsets1),
-          sample_name_offsets1) == TILEDB_VCF_OK);
+          sizeof(int32_t) * sample_name_offsets1.size(),
+          sample_name_offsets1.data()) == TILEDB_VCF_OK);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -2657,38 +3732,63 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   REQUIRE(num_records == 3);
 
   // Check results
-  REQUIRE(pos_end0[0] == 12277);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[0]], 7) == 0);
+  std::vector<record> records0 = build_records(
+      num_records,
+      sample_name0,
+      sample_name_offsets0,
+      pos_start0,
+      pos_end0,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
 
-  REQUIRE(pos_end0[1] == 12771);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[1]], 7) == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records0));
 
-  REQUIRE(pos_end0[2] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[2]], 7) == 0);
+  std::vector<record> records1 = build_records(
+      num_records,
+      sample_name1,
+      sample_name_offsets1,
+      pos_start1,
+      pos_end1,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
 
-  REQUIRE(pos_end0[3] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[3]], 7) == 0);
-
-  REQUIRE(pos_end0[4] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[4]], 7) == 0);
-
-  REQUIRE(pos_end0[5] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[5]], 7) == 0);
-
-  REQUIRE(pos_end0[6] == 17479);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[6]], 7) == 0);
-
-  REQUIRE(pos_end0[7] == 17486);
-  REQUIRE(strncmp("HG00280", &sample_name0[sample_name_offsets0[7]], 7) == 0);
-
-  REQUIRE(pos_end1[0] == 12277);
-  REQUIRE(strncmp("HG01762", &sample_name1[sample_name_offsets1[0]], 7) == 0);
-
-  REQUIRE(pos_end1[1] == 12771);
-  REQUIRE(strncmp("HG01762", &sample_name1[sample_name_offsets1[1]], 7) == 0);
-
-  REQUIRE(pos_end1[2] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name1[sample_name_offsets1[2]], 7) == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records1));
 
   tiledb_vcf_reader_free(&reader0);
   tiledb_vcf_reader_free(&reader1);
@@ -2711,8 +3811,86 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   const char* regions = "1:13000-13360,1:13500-16000";
   REQUIRE(tiledb_vcf_reader_set_regions(reader, regions) == TILEDB_VCF_OK);
 
+  std::vector<record> expected_records = {
+      record(
+          "HG00280",
+          13354,
+          13374,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          0,
+          0,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13452,
+          13519,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          10,
+          {}),
+      record(
+          "HG00280",
+          13520,
+          13544,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          6,
+          {}),
+      record(
+          "HG00280",
+          13545,
+          13689,
+          0,
+          0,
+          "",
+          {"G", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          0,
+          {})};
+
   // Allocate and set buffers
   const unsigned expected_num_records = 5;
+  SET_BUFF_POS_START(reader, expected_num_records);
   SET_BUFF_POS_END(reader, expected_num_records);
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
@@ -2742,60 +3920,34 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   REQUIRE(num_records == expected_num_records);
 
   // Check results
-  REQUIRE(pos_end[0] == 13374);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[0]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[0]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[0] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[0] == 15);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      {},
+      {},
+      alleles,
+      alleles_offsets,
+      alleles_list_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_DP,
+      {},
+      {});
 
-  REQUIRE(pos_end[1] == 13389);
-  REQUIRE(strncmp("HG01762", &sample_name[sample_name_offsets[1]], 7) == 0);
-  REQUIRE(
-      strncmp("T", &alleles[alleles_offsets[alleles_list_offsets[1]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[1] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[1] == 64);
-
-  REQUIRE(pos_end[2] == 13519);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[2]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[2]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[2] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[2] == 10);
-
-  REQUIRE(pos_end[3] == 13544);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[3]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[3]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[3] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[3] == 6);
-
-  REQUIRE(pos_end[4] == 13689);
-  REQUIRE(strncmp("HG00280", &sample_name[sample_name_offsets[4]], 7) == 0);
-  REQUIRE(
-      strncmp("G", &alleles[alleles_offsets[alleles_list_offsets[4]]], 1) == 0);
-  REQUIRE(
-      strncmp(
-          "<NON_REF>",
-          &alleles[alleles_offsets[alleles_list_offsets[4] + 1]],
-          9) == 0);
-  REQUIRE(fmt_DP[4] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   tiledb_vcf_reader_free(&reader);
 }
@@ -3171,6 +4323,159 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
   REQUIRE(
       tiledb_vcf_reader_set_bed_file(reader, bed_uri.c_str()) == TILEDB_VCF_OK);
 
+  std::vector<record> expected_records = {
+      record(
+          "G16",
+          10626,
+          81854,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G14",
+          10717,
+          75204,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G17",
+          10863,
+          83686,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G10",
+          10872,
+          16376,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G15",
+          11123,
+          89409,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G11",
+          12430,
+          48068,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G13",
+          13519,
+          34681,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G100",
+          13792,
+          102213,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G12",
+          14199,
+          70699,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+      record(
+          "G18",
+          14563,
+          102086,
+          0,
+          0,
+          "1",
+          {},
+          {},
+          false,
+          {},
+          {},
+          {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
+          0,
+          {}),
+  };
+
   // Allocate and set buffers, only set small buffers for a few records
   const unsigned expected_num_records = 10;
   SET_BUFF_POS_START(reader, expected_num_records);
@@ -3224,50 +4529,34 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
   REQUIRE(num_offsets == (expected_num_records + 1));
 
   // Check results
-  REQUIRE(pos_start[0] == 10626);
-  REQUIRE(pos_end[0] == 81854);
-  REQUIRE(sample_name_offsets[0] == 0);
-  REQUIRE(strncmp("G16", &sample_name[sample_name_offsets[0]], 3) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[0]], 1) == 0);
-  REQUIRE(fmt_GT_offsets[0] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0]] == 1);
-  REQUIRE(fmt_GT[fmt_GT_offsets[0] + 1] == 0);
+  std::vector<record> records = build_records(
+      num_records,
+      sample_name,
+      sample_name_offsets,
+      pos_start,
+      pos_end,
+      {},
+      {},
+      contig,
+      contig_offsets,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      fmt_GT,
+      fmt_GT_offsets,
+      {},
+      {},
+      {});
 
-  REQUIRE(pos_start[1] == 10717);
-  REQUIRE(pos_end[1] == 75204);
-  REQUIRE(sample_name_offsets[1] == 3);
-  REQUIRE(strncmp("G14", &sample_name[sample_name_offsets[1]], 3) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[1]], 1) == 0);
-  REQUIRE(fmt_GT_offsets[1] == 2);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1]] == 1);
-  REQUIRE(fmt_GT[fmt_GT_offsets[1] + 1] == 0);
-
-  REQUIRE(pos_start[2] == 10863);
-  REQUIRE(pos_end[2] == 83686);
-  REQUIRE(sample_name_offsets[2] == 6);
-  REQUIRE(strncmp("G17", &sample_name[sample_name_offsets[2]], 3) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[2]], 1) == 0);
-  REQUIRE(fmt_GT_offsets[2] == 4);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2]] == 0);
-  REQUIRE(fmt_GT[fmt_GT_offsets[2] + 1] == 1);
-
-  REQUIRE(pos_start[3] == 10872);
-  REQUIRE(pos_end[3] == 16376);
-  REQUIRE(sample_name_offsets[3] == 9);
-  REQUIRE(strncmp("G10", &sample_name[sample_name_offsets[3]], 3) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[3]], 1) == 0);
-  REQUIRE(fmt_GT_offsets[3] == 6);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3]] == 1);
-  REQUIRE(fmt_GT[fmt_GT_offsets[3] + 1] == 0);
-
-  REQUIRE(pos_start[4] == 11123);
-  REQUIRE(pos_end[4] == 89409);
-  REQUIRE(sample_name_offsets[4] == 12);
-  REQUIRE(strncmp("G15", &sample_name[sample_name_offsets[4]], 3) == 0);
-  REQUIRE(strncmp("1", &contig[contig_offsets[4]], 1) == 0);
-  REQUIRE(fmt_GT_offsets[4] == 8);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4]] == 1);
-  REQUIRE(fmt_GT[fmt_GT_offsets[4] + 1] == 0);
+  REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
   // Check final offsets are equal to data size
   REQUIRE(sample_name_offsets[10] == 31);
