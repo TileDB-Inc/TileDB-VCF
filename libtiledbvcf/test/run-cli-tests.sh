@@ -221,7 +221,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -b 512 || exit 1
-diff -w pfx.tsv <(
+diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -243,7 +243,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
-diff -w /tmp/pfx.tsv <(
+diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -266,7 +266,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
-diff -w $upload_dir/pfx.tsv <(
+diff -uw $upload_dir/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
@@ -290,7 +290,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 echo "Export records with a null fmt attribute (#142)"
 create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
 $tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
-diff -w /tmp/pfx.tsv <(
+diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	POS	S:MIN_DP
 HG00280	69511	.
@@ -306,14 +306,14 @@ rm -f G{1,3}.bcf
 # Check count only
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-diff -w <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
+diff -uw <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
 
 # Check TSV output with query range columns
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v -s HG01762,HG00280 || exit 1
-diff -w pfx.tsv <(
+diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	Q:POS	Q:END
 HG00280	1	12141	12277	C	12142	15000
