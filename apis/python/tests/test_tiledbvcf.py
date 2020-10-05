@@ -413,7 +413,7 @@ def test_read_config():
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=512,
                                region_partition=(0, 3),
                                tiledb_config=['sm.tile_cache_size=0',
-                                              'sm.num_reader_threads=1'])
+                                              'sm.compute_concurrency_level=1'])
     ds = tiledbvcf.Dataset(uri, mode='r', cfg=cfg)
 
     with pytest.raises(TypeError):

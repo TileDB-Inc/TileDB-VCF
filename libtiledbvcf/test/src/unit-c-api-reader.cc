@@ -399,18 +399,18 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
 
   SECTION("- Valid options") {
     const char* config =
-        "sm.num_reader_threads=4, vfs.s3.proxy_host=abc.def.ghi";
+        "sm.sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
   }
 
   SECTION("- Invalid format") {
     const char* config =
-        "sm.num_reader_threads=4 vfs.s3.proxy_host=abc.def.ghi";
+        "sm.sm.compute_concurrency_level=4 vfs.s3.proxy_host=abc.def.ghi";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_ERR);
 
-    const char* config2 = "sm.num_reader_threads 4";
+    const char* config2 = "sm.sm.compute_concurrency_level 4";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config2) == TILEDB_VCF_ERR);
   }
