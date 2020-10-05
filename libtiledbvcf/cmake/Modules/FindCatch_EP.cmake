@@ -32,7 +32,7 @@
 
 # Search the path set during the superbuild for the EP.
 message(STATUS "searching for catch in ${EP_SOURCE_DIR}")
-set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include)
+set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include/catch2)
 
 find_path(CATCH_INCLUDE_DIR
   NAMES catch.hpp
@@ -48,8 +48,8 @@ if (NOT CATCH_FOUND AND SUPERBUILD)
   message(STATUS "Adding Catch as an external project")
   ExternalProject_Add(ep_catch
     PREFIX "externals"
-    URL "https://github.com/catchorg/Catch2/archive/v2.2.1.zip"
-    URL_HASH SHA1=578908c96d67e681a13ea903188a107076a6d1ee
+    URL "https://github.com/catchorg/Catch2/archive/v2.13.1.zip"
+    URL_HASH SHA1=7efd0a2ac05b61649153c6279bfc9554b2c02195
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

@@ -104,7 +104,7 @@ void check_result(
   for (unsigned i = 0; i < nrec; i++)
     actual.push_back(*(buffer.data<T>() + i));
 
-  REQUIRE(actual == expected);
+  REQUIRE_THAT(expected, Catch::Matchers::UnorderedEquals(actual));
 }
 
 template <typename T>
@@ -136,8 +136,7 @@ void check_var_result(
     }
   }
 
-  for (unsigned i = 0; i < actual.size(); i++)
-    REQUIRE(actual[i] == expected[i]);
+  REQUIRE_THAT(expected, Catch::Matchers::UnorderedEquals(actual));
 }
 
 void check_string_result(
@@ -156,7 +155,7 @@ void check_string_result(
     std::string s(buffer.data<char>() + buffer.offsets()[i], len);
     actual.push_back(s);
   }
-  REQUIRE(actual == expected);
+  REQUIRE_THAT(expected, Catch::Matchers::UnorderedEquals(actual));
 }
 }  // namespace
 
@@ -277,8 +276,8 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     check_var_result<int32_t>(
         reader, "fmt_PL", pl, {0,   0, 0, 0,  0, 0, 0,  66, 990, 0, 24,
                                360, 0, 6, 90, 0, 3, 32, 0,  0,   0});
-    check_var_result<int32_t>(reader, "fmt_DP", dp, {0, 0, 64, 15, 6, 2, 0});
-    check_var_result<int32_t>(
+    check_result<int32_t>(reader, "fmt_DP", dp, {0, 0, 64, 15, 6, 2, 0});
+    check_result<int32_t>(
         reader, "fmt_MIN_DP", min_dp, {0, 0, 30, 14, 3, 1, 0});
   }
 
@@ -1528,7 +1527,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     check_var_result<float>(
         reader, "info_BaseQRankSum", baseq, {-0.787f, 1.97f});
     check_var_result<int32_t>(reader, "info_DP", info_dp, {89, 24});
-    check_var_result<int32_t>(
+    check_result<int32_t>(
         reader,
         "fmt_DP",
         fmt_dp,
