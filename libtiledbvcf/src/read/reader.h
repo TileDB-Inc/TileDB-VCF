@@ -364,9 +364,6 @@ class Reader {
      */
     size_t last_intersecting_region_idx_;
 
-    /** Map of current relative sample ID -> last real_end reported. */
-    std::vector<uint32_t> last_reported_end;
-
     /**
      * Current index into the `regions` vector, used for finding intersecting
      * regions efficiently.
