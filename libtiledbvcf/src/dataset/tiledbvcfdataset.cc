@@ -343,14 +343,15 @@ void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
     return;
 
   std::string first_sample_name = metadata_.sample_names.at(0);
-  SampleAndId first_sample = {
-      first_sample_name, metadata_.sample_ids.at(first_sample_name)};
+  uint32_t first_sample_id = metadata_.sample_ids.at(first_sample_name);
+  SampleAndId first_sample = {first_sample_name, first_sample_id};
   auto hdrs = fetch_vcf_headers(ctx, {first_sample});
   if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
 
-  bcf_hdr_t* hdr = hdrs[0].get();
+  const auto& hdr_ptr = hdrs.at(first_sample_id);
+  bcf_hdr_t* hdr = hdr_ptr.get();
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -470,9 +471,9 @@ std::string TileDBVCFDataset::data_uri() const {
   return data_array_uri(root_uri_);
 }
 
-std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
+std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     const tiledb::Context& ctx, const std::vector<SampleAndId>& samples) const {
-  std::vector<SafeBCFHdr> result;
+  std::unordered_map<uint32_t, SafeBCFHdr> result;
   std::unique_ptr<Array> array;
   try {
     // First let's try to open the metadata using proper cloud detection
@@ -576,7 +577,8 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
           throw std::runtime_error(
               "Error in bcftools: failed to update VCF header.");
 
-        result.emplace_back(hdr, bcf_hdr_destroy);
+        result.emplace(
+            std::make_pair(sample, SafeBCFHdr(hdr, bcf_hdr_destroy)));
       }
     }
   } while (status == Query::Status::INCOMPLETE);

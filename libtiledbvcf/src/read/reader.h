@@ -356,7 +356,7 @@ class Reader {
     std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
-    std::vector<SafeBCFHdr> current_hdrs;
+    std::unordered_map<uint32_t, SafeBCFHdr> current_hdrs;
 
     /**
      * Stores the index to a region that was unsuccessfully reported

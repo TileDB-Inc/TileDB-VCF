@@ -550,8 +550,7 @@ bool Reader::read_current_batch() {
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-      SafeBCFHdr& hdr =
-          read_state_.current_hdrs[s.sample_id - read_state_.sample_min];
+      SafeBCFHdr& hdr = read_state_.current_hdrs.at(s.sample_id);
       exporter_->finalize_export(s, hdr.get());
     }
   }
@@ -986,7 +985,7 @@ bool Reader::report_cell(
   }
 
   const auto& sample = read_state_.current_samples[samp_idx];
-  const auto& hdr = read_state_.current_hdrs[samp_idx];
+  const auto& hdr = read_state_.current_hdrs.at(samp_idx);
 
   if (!exporter_->export_record(
           sample, hdr.get(), region, contig_offset, results, cell_idx))
