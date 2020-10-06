@@ -152,9 +152,10 @@ TEST_CASE("C API: Writer register and store", "[capi][writer]") {
 
   tiledb::vcf::TileDBVCFDataset ds;
   REQUIRE_NOTHROW(ds.open(dataset_uri));
-  REQUIRE(
-      ds.metadata().sample_names ==
-      std::vector<std::string>{"HG01762", "HG00280"});
+  REQUIRE_THAT(
+      ds.metadata().sample_names,
+      Catch::Matchers::UnorderedEquals(
+          std::vector<std::string>{"HG01762", "HG00280"}));
 
   tiledb_vcf_writer_free(&writer);
   if (vfs.is_dir(dataset_uri))
