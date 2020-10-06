@@ -337,12 +337,20 @@ void set_htslib_tiledb_config(const std::vector<std::string>& tiledb_config);
  *
  * @param cfg TileDB config to use for context creation
  */
-void set_htslib_tiledb_context(tiledb_config_t* cfg);
+void set_htslib_tiledb_context(const tiledb::Config& cfg);
 
 /**
  * Help function to initialize the htslib plugin
  */
 void init_htslib();
+
+/**
+ * compares two config
+ * @param rhs
+ * @param lhs
+ * @return true is identical, false otherwise
+ */
+bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs);
 
 }  // namespace utils
 }  // namespace vcf

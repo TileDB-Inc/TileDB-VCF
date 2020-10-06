@@ -58,7 +58,7 @@ void Writer::init(
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_config(params.tiledb_config);
-  utils::set_htslib_tiledb_context(tiledb_config_->ptr().get());
+  utils::set_htslib_tiledb_context(*tiledb_config_);
 
   vfs_.reset(new VFS(*ctx_, *tiledb_config_));
   array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));

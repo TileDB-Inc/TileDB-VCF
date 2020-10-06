@@ -42,7 +42,7 @@
   tiledb::Context ctx(cfg);                            \
                                                        \
   utils::set_htslib_tiledb_config(args.tiledb_config); \
-  utils::set_htslib_tiledb_context(cfg.ptr().get());
+  utils::set_htslib_tiledb_context(cfg);
 
 using namespace tiledb::vcf;
 

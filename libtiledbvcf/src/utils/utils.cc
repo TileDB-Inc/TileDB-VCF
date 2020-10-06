@@ -311,20 +311,40 @@ uint64_t ceil(uint64_t x, uint64_t y) {
   return x / y + (x % y != 0);
 }
 
+// Mutexs to make htslib plugin initialization thread-safe
 std::mutex cfg_mutex;
 std::mutex ctx_mutex;
 std::mutex init_mutex;
+
+// Store config and context in unique_ptr so we don't leak
+std::unique_ptr<tiledb::Config> hfile_tiledb_vfs_config_ptr = nullptr;
+std::unique_ptr<tiledb::Context> hfile_tiledb_vfs_ctx_ptr = nullptr;
 void set_htslib_tiledb_config(const std::vector<std::string>& tiledb_config) {
   const std::lock_guard<std::mutex> lock(cfg_mutex);
-  tiledb_error_t* err;
-  tiledb_config_alloc(&hfile_tiledb_vfs_config, &err);
-  tiledb::impl::check_config_error(err);
-  set_tiledb_config(tiledb_config, hfile_tiledb_vfs_config);
+  tiledb::Config cfg;
+  set_tiledb_config(tiledb_config, &cfg);
+  // Only set hts lib plugin config if not already initialized or update the
+  // config if it is different
+  if (hfile_tiledb_vfs_config_ptr == nullptr ||
+      !compare_configs(*hfile_tiledb_vfs_config_ptr, cfg)) {
+    hfile_tiledb_vfs_config_ptr =
+        std::unique_ptr<tiledb::Config>(new tiledb::Config(cfg));
+    // hfile_tiledb_vfs_config is an extern from the htslib plugin
+    hfile_tiledb_vfs_config = hfile_tiledb_vfs_config_ptr->ptr().get();
+  }
 }
 
-void set_htslib_tiledb_context(tiledb_config_t* config) {
+void set_htslib_tiledb_context(const tiledb::Config& config) {
   const std::lock_guard<std::mutex> lock(ctx_mutex);
-  tiledb_ctx_alloc(config, &hfile_tiledb_vfs_ctx);
+  // Only set hts lib plugin config if not already initialized and the config is
+  // different
+  if (hfile_tiledb_vfs_ctx_ptr == nullptr ||
+      !compare_configs(hfile_tiledb_vfs_ctx_ptr->config(), config)) {
+    hfile_tiledb_vfs_ctx_ptr =
+        std::unique_ptr<tiledb::Context>(new tiledb::Context(config));
+    // hfile_tiledb_vfs_ctx is an extern from the htslib plugin
+    hfile_tiledb_vfs_ctx = hfile_tiledb_vfs_ctx_ptr->ptr().get();
+  }
 }
 
 void init_htslib() {
@@ -335,6 +355,32 @@ void init_htslib() {
   // This might need a mutex for thread safety? Is there a better place to init
   // this?
   hfile_add_scheme_handler(HFILE_TILEDB_VFS_SCHEME, &tiledb_vfs_handler);
+}
+
+bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs) {
+  // Check every parameter to see if they are the same or different
+  for (const auto& it : const_cast<tiledb::Config&>(rhs)) {
+    try {
+      if (lhs.get(it.first) != it.second) {
+        return false;
+      }
+    } catch (tiledb::TileDBError& e) {
+      return false;
+    }
+  }
+
+  // Now check that lhs is in rhs
+  for (const auto& it : const_cast<tiledb::Config&>(lhs)) {
+    try {
+      if (rhs.get(it.first) != it.second) {
+        return false;
+      }
+    } catch (tiledb::TileDBError& e) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 }  // namespace utils
