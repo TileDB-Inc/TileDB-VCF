@@ -132,9 +132,10 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
   {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    REQUIRE(
-        ds.metadata().all_samples ==
-        std::vector<std::string>{"HG01762", "HG00280"});
+    REQUIRE_THAT(
+        ds.metadata().all_samples,
+        Catch::Matchers::UnorderedEquals(
+            std::vector<std::string>{"HG01762", "HG00280"}));
     REQUIRE(ds.metadata().free_sample_id == 2);
     REQUIRE(ds.metadata().sample_ids.at("HG01762") == 0);
     REQUIRE(ds.metadata().sample_ids.at("HG00280") == 1);
@@ -243,7 +244,9 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
     REQUIRE(ds.metadata().all_samples.size() == 100);
-    REQUIRE(ds.metadata().all_samples[42] == "G43");
+    REQUIRE_THAT(
+        ds.metadata().all_samples,
+        Catch::Matchers::VectorContains(std::string("G43")));
     REQUIRE(ds.metadata().free_sample_id == 100);
     REQUIRE(ds.metadata().sample_ids.at("G17") == 16);
     REQUIRE(ds.metadata().sample_names.at(16) == "G17");
