@@ -82,6 +82,27 @@ target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
 )
 
 ############################################################
+# Compile options/definitions
+############################################################
+
+if (SANITIZER)
+  string( TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER )
+  if (NOT CMAKE_BUILD_TYPE_LOWER MATCHES "debug")
+    message(FATAL_ERROR "Sanitizers only enabled for Debug build")
+  endif()
+  string(TOLOWER ${SANITIZER} SANITIZER)
+  if (NOT SANITIZER MATCHES "^(address|memory|leak|thread|undefined)$")
+    message(FATAL_ERROR "Unknown clang sanitizer: ${SANITIZER})")
+  else()
+    message(STATUS "The TileDB-VCF library is compiled with sanitizer ${SANITIZER} enabled")
+  endif()
+  target_compile_options(TILEDB_VCF_OBJECTS
+          PRIVATE
+          -g -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=${SANITIZER}
+          )
+endif()
+
+############################################################
 # tiledbvcf library target
 ############################################################
 
@@ -94,6 +115,14 @@ target_link_libraries(tiledbvcf
     HTSlib::HTSlib
     TileDB::tiledb_shared
 )
+
+# Sanitizer linker flags
+if (SANITIZER)
+  target_link_libraries(tiledbvcf
+          INTERFACE
+          -fsanitize=${SANITIZER}
+          )
+endif()
 
 # List of API headers (to be installed)
 set(TILEDB_VCF_PUBLIC_HEADERS
@@ -124,6 +153,14 @@ target_link_libraries(tiledbvcf-bin
     HTSlib::HTSlib
     TileDB::tiledb_shared
 )
+
+# Sanitizer linker flags
+if (SANITIZER)
+  target_link_libraries(tiledbvcf-bin
+          INTERFACE
+          -fsanitize=${SANITIZER}
+          )
+endif()
 
 if (NOT APPLE)
   target_link_libraries(tiledbvcf-bin PRIVATE pthread)
