@@ -128,9 +128,6 @@ class SampleUtils {
    * Helper method that downloads the header for each sample and performs a
    * 'process' callback on each header instance, returning the results.
    *
-   * @note This function isn't threadsafe, as it uses a fixed filename for
-   * temporary downloads.
-   *
    * @tparam T Return type of process function
    * @param vfs TileDB VFS instance to use
    * @param samples List of samples to fetch headers for
@@ -151,8 +148,7 @@ class SampleUtils {
     // Set up some local scratch space
     const auto download_dest_dir =
         utils::uri_join(scratch_space.path, "sample-hdr-dl");
-    const auto download_dest_file =
-        utils::uri_join(download_dest_dir, "partial.bcf");
+
     bool cleanup_dir = false;
     if (scratch_space.size_mb > 0 && !vfs.is_dir(download_dest_dir)) {
       vfs.create_dir(download_dest_dir);
@@ -171,6 +167,11 @@ class SampleUtils {
       // Repeatedly download more and more of the file until the header can be
       // successfully parsed. Start by downloading 32KB.
       uint64_t dl_num_bytes = std::min<uint64_t>(32 * 1024, file_size);
+
+      // Sample-specific temporary file to download to
+      std::string download_dest_file = utils::uri_join(
+          download_dest_dir, utils::split(s.sample_uri, '/').back());
+
       while (true) {
         if (vfs.is_file(download_dest_file))
           vfs.remove_file(download_dest_file);
