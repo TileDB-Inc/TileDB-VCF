@@ -342,13 +342,16 @@ void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
   if (metadata_.sample_ids.empty())
     return;
 
-  auto first_sample = metadata_.sample_ids.at(metadata_.sample_names.at(0));
-  auto hdrs = fetch_vcf_headers(ctx, first_sample, first_sample);
+  std::string first_sample_name = metadata_.sample_names.at(0);
+  uint32_t first_sample_id = metadata_.sample_ids.at(first_sample_name);
+  SampleAndId first_sample = {first_sample_name, first_sample_id};
+  auto hdrs = fetch_vcf_headers(ctx, {first_sample});
   if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
 
-  bcf_hdr_t* hdr = hdrs[0].get();
+  const auto& hdr_ptr = hdrs.at(first_sample_id);
+  bcf_hdr_t* hdr = hdr_ptr.get();
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -468,11 +471,9 @@ std::string TileDBVCFDataset::data_uri() const {
   return data_array_uri(root_uri_);
 }
 
-std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
-    const tiledb::Context& ctx,
-    uint32_t sample_id_min,
-    uint32_t sample_id_max) const {
-  std::vector<SafeBCFHdr> result;
+std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
+    const tiledb::Context& ctx, const std::vector<SampleAndId>& samples) const {
+  std::unordered_map<uint32_t, SafeBCFHdr> result;
   std::unique_ptr<Array> array;
   try {
     // First let's try to open the metadata using proper cloud detection
@@ -498,25 +499,31 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
   Query query(ctx, *array);
 
-  std::vector<uint32_t> subarray = {sample_id_min, sample_id_max};
-  query.set_layout(TILEDB_ROW_MAJOR).set_subarray(subarray);
+  std::unordered_map<uint32_t, std::string> sample_name_mapping;
+  for (const auto& sample : samples) {
+    sample_name_mapping[sample.sample_id] = sample.sample_name;
+    query.add_range(0, sample.sample_id, sample.sample_id);
+  }
+  query.set_layout(TILEDB_ROW_MAJOR);
 
   std::pair<uint64_t, uint64_t> est_size = query.est_result_size_var("header");
   std::vector<uint64_t> offsets(est_size.first);
   std::vector<char> data(est_size.second);
+  uint64_t sample_est_size = query.est_result_size("sample");
+  std::vector<uint32_t> sample_data(sample_est_size);
 
   Query::Status status;
-  uint32_t sample_idx = sample_id_min;
 
   query.set_buffer("header", offsets, data);
+  query.set_buffer("sample", sample_data);
 
   do {
     status = query.submit();
 
-    std::pair<uint64_t, uint64_t> result_el =
-        query.result_buffer_elements()["header"];
-    uint64_t num_offsets = result_el.first;
-    uint64_t num_chars = result_el.second;
+    auto result_el = query.result_buffer_elements();
+    uint64_t num_offsets = result_el["header"].first;
+    uint64_t num_chars = result_el["header"].second;
+    uint64_t num_samples = result_el["samples"].second;
 
     bool has_results = num_chars != 0;
 
@@ -530,34 +537,39 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
       if (num_offsets == 0)
         offsets.resize(offsets.size() * 2);
 
+      if (num_samples == 0)
+        sample_data.resize(sample_data.size() * 2);
+
       query.set_buffer("header", offsets, data);
+      query.set_buffer("sample", sample_data);
     } else if (has_results) {
       // Parse the samples.
 
       for (size_t offset_idx = 0; offset_idx < num_offsets; ++offset_idx) {
+        // Get sample
+        uint32_t sample = sample_data[offset_idx];
+
         char* beg_hdr = data.data() + offsets[offset_idx];
         uint64_t hdr_size =
             offset_idx == num_offsets - 1 ? num_chars : offsets[offset_idx + 1];
         hdr_size = hdr_size - offsets[offset_idx];
-        std::string hdr_str(beg_hdr, hdr_size);
+        char* hdr_str =
+            static_cast<char*>(std::malloc(sizeof(char) * (hdr_size + 1)));
+        memcpy(hdr_str, beg_hdr, hdr_size);
+        hdr_str[hdr_size] = '\0';
 
         bcf_hdr_t* hdr = bcf_hdr_init("r");
         if (!hdr)
           throw std::runtime_error(
               "Error fetching VCF header data; error allocating VCF header.");
 
-        char* hdr_raw_str = strndup(hdr_str.c_str(), hdr_size);
-        if (NULL == hdr_raw_str) {
-          throw std::runtime_error(
-              "Error allocating space for the char* header string.");
-        }
-        if (0 != bcf_hdr_parse(hdr, hdr_raw_str)) {
+        if (0 != bcf_hdr_parse(hdr, hdr_str)) {
           throw std::runtime_error("Error parsing the BCF header.");
         }
-        free(hdr_raw_str);
+        std::free(hdr_str);
 
-        if (0 != bcf_hdr_add_sample(
-                     hdr, metadata_.sample_names[sample_idx++].c_str())) {
+        if (0 !=
+            bcf_hdr_add_sample(hdr, metadata_.sample_names[sample].c_str())) {
           throw std::runtime_error("Error adding the sample.");
         }
 
@@ -565,7 +577,8 @@ std::vector<SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
           throw std::runtime_error(
               "Error in bcftools: failed to update VCF header.");
 
-        result.emplace_back(hdr, bcf_hdr_destroy);
+        result.emplace(
+            std::make_pair(sample, SafeBCFHdr(hdr, bcf_hdr_destroy)));
       }
     }
   } while (status == Query::Status::INCOMPLETE);

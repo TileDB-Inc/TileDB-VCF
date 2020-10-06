@@ -356,7 +356,7 @@ class Reader {
     std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
-    std::vector<SafeBCFHdr> current_hdrs;
+    std::unordered_map<uint32_t, SafeBCFHdr> current_hdrs;
 
     /**
      * Stores the index to a region that was unsuccessfully reported
@@ -384,6 +384,9 @@ class Reader {
 
     /** The samples being exported, batched by space tile. */
     std::vector<std::vector<SampleAndId>> sample_batches;
+
+    /** current sample batch list */
+    std::vector<SampleAndId> current_sample_batches;
 
     /** Total number of records exported across all incomplete reads. */
     uint64_t total_num_records_exported = 0;

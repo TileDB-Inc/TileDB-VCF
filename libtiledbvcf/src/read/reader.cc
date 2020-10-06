@@ -372,12 +372,13 @@ bool Reader::next_read_batch() {
   }
 
   // Sample row range
-  const auto& samples = read_state_.sample_batches[read_state_.batch_idx];
+  read_state_.current_sample_batches =
+      read_state_.sample_batches[read_state_.batch_idx];
   read_state_.sample_min = std::numeric_limits<uint32_t>::max();
   read_state_.sample_max = std::numeric_limits<uint32_t>::min();
-  for (const auto& s : samples) {
+  for (const auto& s : read_state_.current_sample_batches) {
     read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
-    read_state_.sample_max = std::max(read_state_.sample_min, s.sample_id);
+    read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
   }
 
   // User query regions
@@ -385,13 +386,13 @@ bool Reader::next_read_batch() {
 
   // Headers
   read_state_.current_hdrs.clear();
-  read_state_.current_hdrs = dataset_->fetch_vcf_headers(
-      *ctx_, read_state_.sample_min, read_state_.sample_max);
+  read_state_.current_hdrs =
+      dataset_->fetch_vcf_headers(*ctx_, read_state_.current_sample_batches);
 
   // Sample handles
   read_state_.current_samples.clear();
-  for (const auto& s : samples) {
-    read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
+  for (const auto& s : read_state_.current_sample_batches) {
+    read_state_.current_samples[s.sample_id] = s;
   }
 
   // Reopen the array so that irrelevant fragment metadata is unloaded.
@@ -400,8 +401,11 @@ bool Reader::next_read_batch() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
-  read_state_.query->add_range(
-      0, read_state_.sample_min, read_state_.sample_max);
+
+  // Set ranges
+  for (const auto& sample : read_state_.current_sample_batches)
+    read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
+  // Set regions
   for (const auto& query_region : read_state_.query_regions)
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
   read_state_.query->set_layout(TILEDB_UNORDERED);
@@ -539,8 +543,7 @@ bool Reader::read_current_batch() {
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-      SafeBCFHdr& hdr =
-          read_state_.current_hdrs[s.sample_id - read_state_.sample_min];
+      SafeBCFHdr& hdr = read_state_.current_hdrs.at(s.sample_id);
       exporter_->finalize_export(s, hdr.get());
     }
   }
@@ -773,8 +776,7 @@ bool Reader::report_cell(
   }
 
   const auto& results = read_state_.query_results;
-  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx) -
-                      read_state_.sample_min;
+  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
 
   // Skip this cell if we are not reporting its sample.
   if (read_state_.current_samples.count(samp_idx) == 0) {
@@ -782,7 +784,7 @@ bool Reader::report_cell(
   }
 
   const auto& sample = read_state_.current_samples[samp_idx];
-  const auto& hdr = read_state_.current_hdrs[samp_idx];
+  const auto& hdr = read_state_.current_hdrs.at(samp_idx);
 
   if (!exporter_->export_record(
           sample, hdr.get(), region, contig_offset, results, cell_idx))
