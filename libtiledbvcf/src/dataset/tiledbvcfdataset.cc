@@ -184,13 +184,6 @@ void TileDBVCFDataset::create_empty_data_array(
   {
     const auto dom_min = 0;
     const auto dom_max = std::numeric_limits<uint32_t>::max() - 1;
-    //    const auto sample_dom_max =
-    //        dom_max - static_cast<uint32_ft>(metadata.row_tile_extent);
-    //    auto sample = Dimension::create<uint32_t>(
-    //        ctx,
-    //        DimensionNames::V4::sample,
-    //        {{dom_min, sample_dom_max}},
-    //        metadata.row_tile_extent);
     auto sample = Dimension::create(
         ctx, DimensionNames::V4::sample, TILEDB_STRING_ASCII, nullptr, nullptr);
     auto contig = Dimension::create(

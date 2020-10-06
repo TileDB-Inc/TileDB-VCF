@@ -1143,19 +1143,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
+    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
+    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
@@ -1206,19 +1206,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
+    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
+    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
