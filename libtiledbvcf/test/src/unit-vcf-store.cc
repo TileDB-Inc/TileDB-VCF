@@ -250,7 +250,7 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     auto hdrs =
         ds.fetch_vcf_headers(ctx, {{"G10", 9}, {"G11", 10}, {"G12", 11}});
     REQUIRE(hdrs.size() == 3);
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
+    REQUIRE(bcf_hdr_nsamples(hdrs.at(9)) == 1);
     std::vector<std::string> samples = {
         hdrs.at(9)->samples[0],
         hdrs.at(10)->samples[0],

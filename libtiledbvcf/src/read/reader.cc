@@ -399,7 +399,7 @@ bool Reader::next_read_batch() {
   // Sample handles
   read_state_.current_samples.clear();
   for (const auto& s : read_state_.current_sample_batches) {
-    read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
+    read_state_.current_samples[s.sample_id] = s;
   }
 
   // Reopen the array so that irrelevant fragment metadata is unloaded.
@@ -976,8 +976,7 @@ bool Reader::report_cell(
   }
 
   const auto& results = read_state_.query_results;
-  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx) -
-                      read_state_.sample_min;
+  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
 
   // Skip this cell if we are not reporting its sample.
   if (read_state_.current_samples.count(samp_idx) == 0) {
