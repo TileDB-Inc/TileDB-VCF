@@ -383,13 +383,13 @@ def test_read_null_attrs(tmp_path):
                  regions=['1:12700-13400', '1:69500-69800'])
     expected_df = pd.DataFrame(
         {'sample_name': pd.Series(
-            ['HG00280', 'HG01762', 'HG00280', 'HG01762', 'HG00280', 'HG00280',
+            ['HG00280', 'HG00280', 'HG00280', 'HG00280', 'HG01762', 'HG01762',
              'HG00280', 'HG00280', 'HG00280', 'HG00280', 'HG00280', 'HG00280']),
             'pos_start': pd.Series(
-                [12546, 12546, 13354, 13354, 13375, 13396, 69371, 69511, 69512,
+                [12546, 13354, 13375, 13396, 12546, 13354, 69371, 69511, 69512,
                  69761, 69762, 69771], dtype=np.int32),
             'pos_end': pd.Series(
-                [12771, 12771, 13374, 13389, 13395, 13413, 69510, 69511, 69760,
+                [12771, 13374, 13395, 13413, 12771, 13389, 69510, 69511, 69760,
                  69761, 69770, 69834], dtype=np.int32),
             'info_BaseQRankSum': pd.Series(
                 [None, None, None, None, None, None, None,
@@ -398,9 +398,9 @@ def test_read_null_attrs(tmp_path):
             'info_DP': pd.Series([None, None, None, None, None, None, None,
                                   np.array([89], dtype=np.int32), None,
                                   np.array([24], dtype=np.int32), None, None]),
-            'fmt_DP': pd.Series([0, 0, 15, 64, 6, 2, 180,
+            'fmt_DP': pd.Series([0, 15, 6, 2, 0, 64, 180,
                                      88, 97, 24, 23, 21], dtype=np.int32),
-            'fmt_MIN_DP': pd.Series([0, 0, 14, 30, 3, 1, 20,
+            'fmt_MIN_DP': pd.Series([0, 14, 3, 1, 0, 30, 20,
                                      None, 24, None, 23, 19])})
     _check_dfs(expected_df, df)
 
