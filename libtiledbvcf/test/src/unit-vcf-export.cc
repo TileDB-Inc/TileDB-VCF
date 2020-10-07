@@ -885,7 +885,7 @@ TEST_CASE(
     reader->open_dataset(dataset_uri);
     reader->read();
     REQUIRE(reader->read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader->num_records_exported() == 3);
+    REQUIRE(reader->num_records_exported() == 11);
 
     reader.reset(new Reader);
     params.sample_partitioning.partition_index = 1;
@@ -894,7 +894,7 @@ TEST_CASE(
     reader->open_dataset(dataset_uri);
     reader->read();
     REQUIRE(reader->read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader->num_records_exported() == 11);
+    REQUIRE(reader->num_records_exported() == 3);
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -974,7 +974,8 @@ TEST_CASE(
 
     // Test adding sample partitioning as well.
     reader.reset(new Reader);
-    params.sample_partitioning.partition_index = 1;
+    // Use sample partition 0 which will be small2.bcf
+    params.sample_partitioning.partition_index = 0;
     params.sample_partitioning.num_partitions = 2;
     params.region_partitioning.partition_index = 0;
     params.region_partitioning.num_partitions = 2;
@@ -985,7 +986,8 @@ TEST_CASE(
     REQUIRE(reader->num_records_exported() == 7);
 
     reader.reset(new Reader);
-    params.sample_partitioning.partition_index = 1;
+    // Use sample partition 0 which will be small2.bcf
+    params.sample_partitioning.partition_index = 0;
     params.sample_partitioning.num_partitions = 2;
     params.region_partitioning.partition_index = 1;
     params.region_partitioning.num_partitions = 2;
