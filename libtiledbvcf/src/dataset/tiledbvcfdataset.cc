@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <algorithm>
 #include <future>
 #include <map>
 #include <string>
@@ -588,10 +589,14 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   query.set_layout(TILEDB_ROW_MAJOR);
 
   std::pair<uint64_t, uint64_t> est_size = query.est_result_size_var("header");
+  est_size.first = std::max(est_size.first, static_cast<uint64_t>(1));
+  est_size.second = std::max(est_size.second, static_cast<uint64_t>(1));
   std::vector<uint64_t> offsets(est_size.first);
   std::vector<char> data(est_size.second);
   std::pair<uint64_t, uint64_t> sample_est_size =
       query.est_result_size_var("sample");
+  sample_est_size.first = std::max(est_size.first, static_cast<uint64_t>(1));
+  sample_est_size.second = std::max(est_size.second, static_cast<uint64_t>(1));
   std::vector<uint64_t> sample_offsets(sample_est_size.first);
   std::vector<char> sample_data(sample_est_size.second);
 
@@ -711,6 +716,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   query.set_layout(TILEDB_ROW_MAJOR);
 
   std::pair<uint64_t, uint64_t> est_size = query.est_result_size_var("header");
+  est_size.first = std::max(est_size.first, static_cast<uint64_t>(1));
+  est_size.second = std::max(est_size.second, static_cast<uint64_t>(1));
   std::vector<uint64_t> offsets(est_size.first);
   std::vector<char> data(est_size.second);
   uint64_t sample_est_size = query.est_result_size("sample");
@@ -1545,6 +1552,8 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
   query.set_layout(TILEDB_ROW_MAJOR);
 
   std::pair<uint64_t, uint64_t> est_size = query.est_result_size_var("sample");
+  est_size.first = std::max(est_size.first, static_cast<uint64_t>(1));
+  est_size.second = std::max(est_size.second, static_cast<uint64_t>(1));
   std::vector<uint64_t> sample_offsets(est_size.first);
   std::vector<char> sample_data(est_size.second);
 
