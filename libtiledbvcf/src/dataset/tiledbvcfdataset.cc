@@ -596,7 +596,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   std::vector<char> sample_data(sample_est_size.second);
 
   Query::Status status;
-  //  uint32_t sample_idx = sample_id_min;
+  uint32_t sample_idx = 0;
 
   query.set_buffer("header", offsets, data);
   query.set_buffer("sample", sample_offsets, sample_data);
@@ -663,9 +663,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
               "Error in bcftools: failed to update VCF header.");
 
         result.emplace(
-            std::make_pair(offset_idx, SafeBCFHdr(hdr, bcf_hdr_destroy)));
+            std::make_pair(sample_idx, SafeBCFHdr(hdr, bcf_hdr_destroy)));
         if (lookup_map != nullptr)
-          (*lookup_map)[sample] = offset_idx;
+          (*lookup_map)[sample] = sample_idx;
+
+        ++sample_idx;
       }
     }
   } while (status == Query::Status::INCOMPLETE);

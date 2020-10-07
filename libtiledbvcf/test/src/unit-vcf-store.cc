@@ -64,7 +64,6 @@ TEST_CASE("TileDB-VCF: Test create", "[tiledbvcf][ingest]") {
   TileDBVCFDataset ds;
   ds.open(dataset_uri);
   REQUIRE(ds.metadata().tile_capacity == 123);
-  REQUIRE(ds.metadata().free_sample_id == 0);
   REQUIRE(ds.metadata().anchor_gap == 1000);
   REQUIRE(ds.metadata().row_tile_extent == 10);
   REQUIRE(
@@ -103,9 +102,10 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
     REQUIRE(ds.metadata().all_samples == std::vector<std::string>{"HG01762"});
-    REQUIRE(ds.metadata().free_sample_id == 1);
-    REQUIRE(ds.metadata().sample_ids.at("HG01762") == 0);
-    REQUIRE(ds.metadata().sample_names.at(0) == "HG01762");
+    REQUIRE(ds.metadata().sample_ids.count("HG01762") == 1);
+    REQUIRE_THAT(
+        ds.metadata().sample_names,
+        Catch::Matchers::VectorContains(std::string("HG01762")));
     REQUIRE(ds.metadata().contig_offsets.at("1") == 0);
     REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
     REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
@@ -136,11 +136,11 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
         ds.metadata().all_samples,
         Catch::Matchers::UnorderedEquals(
             std::vector<std::string>{"HG01762", "HG00280"}));
-    REQUIRE(ds.metadata().free_sample_id == 2);
-    REQUIRE(ds.metadata().sample_ids.at("HG01762") == 0);
-    REQUIRE(ds.metadata().sample_ids.at("HG00280") == 1);
-    REQUIRE(ds.metadata().sample_names.at(0) == "HG01762");
-    REQUIRE(ds.metadata().sample_names.at(1) == "HG00280");
+    REQUIRE(ds.metadata().sample_ids.count("HG01762") == 1);
+    REQUIRE(ds.metadata().sample_ids.count("HG00280") == 1);
+    std::vector<std::string> samples = {"HG01762", "HG00280"};
+    REQUIRE_THAT(
+        ds.metadata().sample_names, Catch::Matchers::Contains(samples));
     REQUIRE(ds.metadata().contig_offsets.at("1") == 0);
     REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
     REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
@@ -148,10 +148,11 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     auto hdrs =
         ds.fetch_vcf_headers_v4(ctx, {{"HG01762", 0}, {"HG00280", 1}}, nullptr);
     REQUIRE(hdrs.size() == 2);
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
-    REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(1)) == 1);
-    REQUIRE(hdrs.at(1)->samples[0] == std::string("HG00280"));
+    std::vector<std::string> expected_samples = {"HG01762", "HG00280"};
+    std::vector<std::string> result_samples = {
+        hdrs.at(1)->samples[0], hdrs.at(0)->samples[0]};
+    REQUIRE_THAT(
+        expected_samples, Catch::Matchers::UnorderedEquals(result_samples));
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -247,18 +248,17 @@ TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
     REQUIRE_THAT(
         ds.metadata().all_samples,
         Catch::Matchers::VectorContains(std::string("G43")));
-    REQUIRE(ds.metadata().free_sample_id == 100);
-    REQUIRE(ds.metadata().sample_ids.at("G17") == 16);
-    REQUIRE(ds.metadata().sample_names.at(16) == "G17");
+    REQUIRE(ds.metadata().sample_ids.count("G17") == 1);
+    REQUIRE_THAT(
+        ds.metadata().sample_names,
+        Catch::Matchers::VectorContains(std::string("G17")));
 
     auto hdrs = ds.fetch_vcf_headers_v4(
         ctx, {{"G10", 9}, {"G11", 10}, {"G12", 11}}, nullptr);
     REQUIRE(hdrs.size() == 3);
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(9)) == 1);
+    REQUIRE(bcf_hdr_nsamples(hdrs.at(2)) == 1);
     std::vector<std::string> samples = {
-        hdrs.at(9)->samples[0],
-        hdrs.at(10)->samples[0],
-        hdrs.at(11)->samples[0]};
+        hdrs.at(0)->samples[0], hdrs.at(1)->samples[0], hdrs.at(2)->samples[0]};
     std::vector<std::string> expected_samples = {"G10", "G11", "G12"};
     REQUIRE_THAT(expected_samples, Catch::Matchers::UnorderedEquals(samples));
   }
