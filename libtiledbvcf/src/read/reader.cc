@@ -1272,8 +1272,7 @@ bool Reader::report_cell(
   const auto& results = read_state_.query_results;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx) -
-                        read_state_.sample_min;
+    uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
 
     // Skip this cell if we are not reporting its sample.
     if (read_state_.current_samples.count(samp_idx) == 0) {
