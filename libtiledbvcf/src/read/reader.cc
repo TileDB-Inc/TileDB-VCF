@@ -595,9 +595,9 @@ bool Reader::process_query_results_v3() {
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
     // If we've passed into a new contig, get the new info for it.
-    if (end >= contig_info.first + contig_info.second)
+    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info))
       contig_info = dataset_->contig_from_column(end);
-    const uint32_t contig_offset = contig_info.first;
+    const uint32_t contig_offset = std::get<0>(contig_info);
 
     // Perform a binary search to find first region we can intersection
     // This is an optimization to avoid a linear scan over all regions for
@@ -624,6 +624,11 @@ bool Reader::process_query_results_v3() {
                    read_state_.region_idx;
     for (; j < read_state_.regions.size(); j++) {
       const auto& reg = read_state_.regions[j];
+
+      // If the region does not match the contig skip
+      if (reg.seq_name != std::get<2>(contig_info))
+        continue;
+
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
 
@@ -693,9 +698,9 @@ bool Reader::process_query_results_v2() {
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
     // If we've passed into a new contig, get the new info for it.
-    if (end >= contig_info.first + contig_info.second)
+    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info))
       contig_info = dataset_->contig_from_column(end);
-    const uint32_t contig_offset = contig_info.first;
+    const uint32_t contig_offset = std::get<0>(contig_info);
 
     // Perform a binary search to find first region we can intersection
     // This is an optimization to avoid a linear scan over all regions for
