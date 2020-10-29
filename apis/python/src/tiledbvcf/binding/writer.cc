@@ -114,6 +114,22 @@ void Writer::set_verbose(bool verbose) {
   check_error(writer, tiledb_vcf_writer_set_verbose(writer, verbose));
 }
 
+void Writer::set_duplicate_sample_handling(const std::string& duplicate_sample_handling_string) {
+  auto writer = ptr.get();
+
+  tiledb_vcf_duplicate_sample_handling_t duplicate_sample_handling = TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_ERROR;
+  if (duplicate_sample_handling_string == "error")
+    duplicate_sample_handling = TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_ERROR;
+  else if (duplicate_sample_handling_string == "skip")
+    duplicate_sample_handling = TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_SKIP;
+  else if (duplicate_sample_handling_string == "store")
+    duplicate_sample_handling = TILEDB_VCF_DUPLICATE_SAMPLE_HANDLING_ACCEPT;
+  else
+    throw std::runtime_error("Invalid duplicate sample handling string " + duplicate_sample_handling_string + ", only 'error', 'skip' or 'store' accepted");
+
+  check_error(writer, tiledb_vcf_writer_set_duplicate_sample_handling(writer, duplicate_sample_handling));
+}
+
 void Writer::create_dataset() {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_create_dataset(writer));

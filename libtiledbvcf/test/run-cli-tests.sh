@@ -54,6 +54,7 @@ create_register_ingest ingested_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz
 
 $tilevcf create -u ingested_3_attrs -a fmt_DP,info_MLEAC,info_MLEAF,info_MQ,fmt_AD,info_GQ || exit 1
 $tilevcf register -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
+$tilevcf register --duplicate-sample 'skip' -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
 $tilevcf store -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
 $tilevcf create -u ingested_append -a fmt_DP,fmt_AD,info_GQ || exit 1
 $tilevcf register -u ingested_append ${input_dir}/small.bcf ${input_dir}/small2.bcf || exit 1

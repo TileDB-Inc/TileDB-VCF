@@ -172,7 +172,7 @@ class Dataset(object):
 
         return self.reader.result_num_records()
 
-    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True, scratch_space_path=None, scratch_space_size=None):
+    def ingest_samples(self, sample_uris=None, extra_attrs=None, checksum_type=None, allow_duplicates=True, scratch_space_path=None, scratch_space_size=None, duplicate_sample_handling='error'):
         """Ingest samples
 
         :param list of str samples: CSV list of sample names to include in
@@ -185,6 +185,7 @@ class Dataset(object):
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
             for downloading remote samples (MB).
+        :param str duplicate_sample_handling: Toggle behavior of already registered samples, 'error', 'skip', 'store'
         """
 
         if self.mode != 'w':
@@ -208,6 +209,9 @@ class Dataset(object):
 
         extra_attrs = '' if extra_attrs is None else extra_attrs
         self.writer.set_extra_attributes(','.join(extra_attrs))
+
+        if duplicate_sample_handling is not None:
+            self.writer.set_duplicate_sample_handling(duplicate_sample_handling.lower())
 
         # Create is a no-op if the dataset already exists.
         self.writer.create_dataset()

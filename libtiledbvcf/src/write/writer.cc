@@ -102,6 +102,12 @@ void Writer::set_allow_duplicates(const bool& allow_duplicates) {
   creation_params_.allow_duplicates = allow_duplicates;
 }
 
+void Writer::set_duplicate_sample_handling(
+    const DuplicateSampleHandling& duplicate_sample_handling) {
+  registration_params_.duplicate_sample_handling = duplicate_sample_handling;
+  ingestion_params_.duplicate_sample_handling = duplicate_sample_handling;
+}
+
 void Writer::create_dataset() {
   TileDBVCFDataset::create(creation_params_);
 }
@@ -360,7 +366,13 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
   // Set sample id for later use
   for (const auto& pair : sorted) {
     auto s = pair.first;
-    s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    try {
+      s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    } catch (std::out_of_range& e) {
+      throw std::invalid_argument(
+          "Sample " + pair.second +
+          " is not registered, please register it before trying to store it");
+    }
     result.push_back(s);
   }
 
