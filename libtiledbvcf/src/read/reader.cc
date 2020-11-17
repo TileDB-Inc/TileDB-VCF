@@ -436,6 +436,7 @@ bool Reader::next_read_batch() {
     // Set ranges
     for (const auto& sample : read_state_.current_sample_batches)
       read_state_.query->add_range(0, sample.sample_name, sample.sample_name);
+
     std::vector<std::string> contigs;
     for (const auto& query_region : read_state_.query_regions) {
       read_state_.query->add_range(
@@ -684,6 +685,8 @@ bool Reader::process_query_results_v4() {
 
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
+  std::vector<size_t> regions;
+  std::string last_contig;
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
@@ -699,25 +702,30 @@ bool Reader::process_query_results_v4() {
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
-    // Lookup region indexes for contig only
+    // Lookup region indexes for contig only if we have a new contig
     // This lets us limit the scope of intersections to only regions for this
     // cell's contig
-    const auto regions_indexes =
-        read_state_.regions_index_per_contig.find(contig);
-    // If we have a contig which isn't asked for error out
-    if (regions_indexes == read_state_.regions_index_per_contig.end())
-      throw std::runtime_error(
-          "Error in query result processing; range unexpectedly does not "
-          "intersect cell (" +
-          contig + "-" + std::to_string(real_start) + "-" +
-          std::to_string(end) + ").");
+    if (contig != last_contig) {
+      const auto regions_indexes =
+          read_state_.regions_index_per_contig.find(contig);
+      // If we have a contig which isn't asked for error out
+      if (regions_indexes == read_state_.regions_index_per_contig.end())
+        throw std::runtime_error(
+            "Error in query result processing; range unexpectedly does not "
+            "intersect cell (" +
+            contig + "-" + std::to_string(real_start) + "-" +
+            std::to_string(end) + ").");
 
-    // Report all intersections. If the previous read returned before
-    // reporting all intersecting regions, 'last_intersecting_region_idx_'
-    // will be non-zero. All regions with an index less-than
-    // 'last_intersecting_region_idx_' have already been reported, so we
-    // must avoid reporting them multiple times.
-    const auto& regions = regions_indexes->second;
+      // Report all intersections. If the previous read returned before
+      // reporting all intersecting regions, 'last_intersecting_region_idx_'
+      // will be non-zero. All regions with an index less-than
+      // 'last_intersecting_region_idx_' have already been reported, so we
+      // must avoid reporting them multiple times.
+      regions = regions_indexes->second;
+
+      // Set last_contig
+      last_contig = contig;
+    }
 
     // Perform a binary search to find first region we can intersection
     // This is an optimization to avoid a linear scan over all regions for
@@ -739,9 +747,6 @@ bool Reader::process_query_results_v4() {
          j < regions.size();
          j++) {
       const auto& reg = read_state_.regions[regions[j]];
-
-      if (reg.seq_name != contig)
-        continue;
 
       const uint32_t reg_min = reg.min;
       const uint32_t reg_max = reg.max;
