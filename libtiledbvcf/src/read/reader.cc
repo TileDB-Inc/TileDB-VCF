@@ -350,7 +350,7 @@ void Reader::init_for_reads() {
     prepare_regions_v4(
         &read_state_.regions,
         &read_state_.regions_index_per_contig,
-        &read_state_.query_regions);
+        &read_state_.query_regions_v4);
   } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
   } else {
@@ -368,14 +368,26 @@ bool Reader::next_read_batch() {
     return false;
 
   // Handle edge case of an empty region partition
-  if (read_state_.query_regions.empty())
+  if (read_state_.query_regions.empty() && read_state_.query_regions_v4.empty())
     return false;
 
   // Start the first batch, or advance to the next one if possible.
   if (read_state_.status == ReadStatus::UNINITIALIZED) {
     read_state_.batch_idx = 0;
-  } else if (read_state_.batch_idx + 1 < read_state_.sample_batches.size()) {
-    read_state_.batch_idx++;
+    read_state_.query_contig_batch_idx = 0;
+  } else if (
+      read_state_.batch_idx + 1 < read_state_.sample_batches.size() ||
+      read_state_.query_contig_batch_idx + 1 <
+          read_state_.query_regions_v4.size()) {
+    // If we have query contig batches left for this sample batch only increment
+    // the contig batch
+    if (read_state_.query_contig_batch_idx + 1 <
+        read_state_.query_regions_v4.size()) {
+      read_state_.query_contig_batch_idx++;
+    } else {
+      read_state_.query_contig_batch_idx = 0;
+      read_state_.batch_idx++;
+    }
   } else {
     return false;
   }
@@ -437,25 +449,18 @@ bool Reader::next_read_batch() {
     for (const auto& sample : read_state_.current_sample_batches)
       read_state_.query->add_range(0, sample.sample_name, sample.sample_name);
 
-    std::vector<std::string> contigs;
-    for (const auto& query_region : read_state_.query_regions) {
+    //    std::vector<std::string> contigs;
+    for (const auto& query_region :
+         read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+             .second) {
       read_state_.query->add_range(
           2, query_region.col_min, query_region.col_max);
-      for (const auto& contig : query_region.contigs) {
-        bool found = false;
-        for (const auto& contig_recorded : contigs) {
-          if (contig_recorded == contig) {
-            found = true;
-            break;
-          }
-        }
-        if (!found)
-          contigs.emplace_back(contig);
-      }
     }
 
-    for (const auto& contig : contigs)
-      read_state_.query->add_range(1, contig, contig);
+    read_state_.query->add_range(
+        1,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
   } else {
     // Set ranges
     for (const auto& sample : read_state_.current_sample_batches)
@@ -465,11 +470,26 @@ bool Reader::next_read_batch() {
           1, query_region.col_min, query_region.col_max);
   }
   read_state_.query->set_layout(TILEDB_UNORDERED);
-  //  read_state_.query->set_layout(TILEDB_COL_MAJOR);
-  if (params_.verbose)
-    std::cout << "Initialized TileDB query with "
-              << read_state_.query_regions.size() << " column ranges."
-              << std::endl;
+  if (params_.verbose) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      std::cout << "Initialized TileDB query with "
+                << read_state_
+                       .query_regions_v4[read_state_.query_contig_batch_idx]
+                       .second.size()
+                << " column ranges "
+                << " for contig "
+                << read_state_
+                       .query_regions_v4[read_state_.query_contig_batch_idx]
+                       .first
+                << " (contig batch " << read_state_.query_contig_batch_idx + 1
+                << "/" << read_state_.query_regions_v4.size() << ")."
+                << std::endl;
+    } else {
+      std::cout << "Initialized TileDB query with "
+                << read_state_.query_regions.size() << " column ranges."
+                << std::endl;
+    }
+  }
 
   return true;
 }
@@ -1499,7 +1519,8 @@ void Reader::prepare_regions_v4(
     std::vector<Region>* regions,
     std::unordered_map<std::string, std::vector<size_t>>*
         regions_index_per_contig,
-    std::vector<QueryRegion>* query_regions) const {
+    std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
+        query_regions) const {
   const uint32_t g = dataset_->metadata().anchor_gap;
   // Use a linked list for pre-partition regions to allow for parallel parsing
   // of BED file
@@ -1633,22 +1654,35 @@ void Reader::prepare_regions_v4(
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
 
     bool new_region = true;
-    for (auto& query_region : *query_regions) {
-      if (widened_reg_min <= query_region.col_max &&
-          reg_max >= query_region.col_min) {
-        query_region.col_max = std::max(query_region.col_max, reg_max);
-        query_region.col_min = std::min(
-            static_cast<uint64_t>(query_region.col_min), widened_reg_min);
-        query_region.contigs.emplace_back(r.seq_name);
-        new_region = false;
+    std::vector<QueryRegion>* query_region_contig = nullptr;
+    for (auto& query_region_pair : *query_regions) {
+      // Only coalesce regions of same contig
+      if (query_region_pair.first != r.seq_name)
+        continue;
+
+      query_region_contig = &query_region_pair.second;
+
+      for (auto& query_region : query_region_pair.second) {
+        if (widened_reg_min <= query_region.col_max &&
+            reg_max >= query_region.col_min) {
+          query_region.col_max = std::max(query_region.col_max, reg_max);
+          query_region.col_min = std::min(
+              static_cast<uint64_t>(query_region.col_min), widened_reg_min);
+          query_region.contig = r.seq_name;
+          new_region = false;
+        }
       }
     }
     if (new_region) {
+      if (query_region_contig == nullptr) {
+        query_regions->emplace_back(r.seq_name, std::vector<QueryRegion>());
+        query_region_contig = &query_regions->back().second;
+      }
       // Start a new query region.
-      query_regions->push_back({});
-      query_regions->back().col_min = widened_reg_min;
-      query_regions->back().col_max = reg_max;
-      query_regions->back().contigs.emplace_back(r.seq_name);
+      query_region_contig->push_back({});
+      query_region_contig->back().col_min = widened_reg_min;
+      query_region_contig->back().col_max = reg_max;
+      query_region_contig->back().contig = r.seq_name;
     }
   }
 
@@ -1656,25 +1690,25 @@ void Reader::prepare_regions_v4(
   // final ranges. While we are looping through originally we might miss
   // coalescing ranges as we don't consider the n+1 range that hasn't been
   // created yet
-  size_t query_regions_size = query_regions->size();
-  for (size_t i = 0; i < query_regions_size; i++) {
-    auto& query_region = (*query_regions)[i];
-    for (size_t j = i + 1; j < query_regions->size(); j++) {
-      auto& query_region_to_check = (*query_regions)[j];
-      if (query_region.col_min <= query_region_to_check.col_max &&
-          query_region.col_max >= query_region_to_check.col_min) {
-        query_region.col_max =
-            std::max(query_region.col_max, query_region_to_check.col_max);
-        query_region.col_min =
-            std::min(query_region.col_min, query_region_to_check.col_min);
-        for (const auto& contig : query_region_to_check.contigs)
-          query_region.contigs.emplace_back(contig);
-        // If we merge the ranges, let's remove it from the query regions and
-        // reset to previous to re-evaluate
-        --query_regions_size;
-        query_regions->erase(query_regions->begin() + j);
-        --i;
-        break;
+  for (auto& query_region_pair : *query_regions) {
+    size_t query_regions_size = query_region_pair.second.size();
+    for (size_t i = 0; i < query_regions_size; i++) {
+      auto& query_region = query_region_pair.second[i];
+      for (size_t j = i + 1; j < query_regions->size(); j++) {
+        auto& query_region_to_check = query_region_pair.second[j];
+        if (query_region.col_min <= query_region_to_check.col_max &&
+            query_region.col_max >= query_region_to_check.col_min) {
+          query_region.col_max =
+              std::max(query_region.col_max, query_region_to_check.col_max);
+          query_region.col_min =
+              std::min(query_region.col_min, query_region_to_check.col_min);
+          // If we merge the ranges, let's remove it from the query regions
+          // and reset to previous to re-evaluate
+          --query_regions_size;
+          query_regions->erase(query_regions->begin() + j);
+          --i;
+          break;
+        }
       }
     }
   }
