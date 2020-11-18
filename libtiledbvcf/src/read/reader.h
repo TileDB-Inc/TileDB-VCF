@@ -335,7 +335,7 @@ class Reader {
   struct QueryRegion {
     uint32_t col_min;
     uint32_t col_max;
-    std::vector<std::string> contigs;
+    std::string contig;
   };
 
   /**
@@ -386,9 +386,14 @@ class Reader {
      * column ranges in the TileDB query.
      */
     std::vector<QueryRegion> query_regions;
+    std::vector<std::pair<std::string, std::vector<QueryRegion>>>
+        query_regions_v4;
 
     /** The index of the current batch of samples being exported. */
     size_t batch_idx = 0;
+
+    /** The index of the current batch of samples being exported. */
+    size_t query_contig_batch_idx = 0;
 
     /** The samples being exported, batched by space tile. */
     std::vector<std::vector<SampleAndId>> sample_batches;
@@ -505,7 +510,8 @@ class Reader {
       std::vector<Region>* regions,
       std::unordered_map<std::string, std::vector<size_t>>*
           regions_index_per_contig,
-      std::vector<QueryRegion>* query_regions) const;
+      std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
+          query_regions) const;
 
   /**
    * Prepares the regions to be queried and exported. This merges the list of
