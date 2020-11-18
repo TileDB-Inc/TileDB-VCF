@@ -449,16 +449,14 @@ bool Reader::next_read_batch() {
     for (const auto& sample : read_state_.current_sample_batches)
       read_state_.query->add_range(0, sample.sample_name, sample.sample_name);
 
-    //    std::vector<std::string> contigs;
     for (const auto& query_region :
          read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
-             .second) {
+             .second)
       read_state_.query->add_range(
-          2, query_region.col_min, query_region.col_max);
-    }
+          1, query_region.col_min, query_region.col_max);
 
     read_state_.query->add_range(
-        1,
+        2,
         read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
         read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
   } else {
@@ -1548,7 +1546,7 @@ void Reader::prepare_regions_v4(
   //  std::pair<std::string, std::string> contigNonEmptyDomain =
   //  array.non_empty_domain_var(1);
   std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
-      array.non_empty_domain<uint32_t>(2);
+      array.non_empty_domain<uint32_t>(1);
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
   // inside the nonEmptyDomain This will balance the partitioning better my
