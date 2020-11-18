@@ -194,7 +194,7 @@ void TileDBVCFDataset::create_empty_data_array(
         DimensionNames::V4::start_pos,
         {{dom_min, dom_max}},
         dom_max - dom_min + 1);
-    domain.add_dimensions(sample, contig, start_pos);
+    domain.add_dimensions(sample, start_pos, contig);
   }
   schema.set_domain(domain);
   auto offsets_filter_list = default_offsets_filter_list(ctx);
