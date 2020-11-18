@@ -1634,7 +1634,6 @@ void Reader::prepare_regions_v4(
 
     bool new_region = true;
     for (auto& query_region : *query_regions) {
-      //      if (query_region.col_max + 1 >= widened_reg_min)
       if (widened_reg_min <= query_region.col_max &&
           reg_max >= query_region.col_min) {
         query_region.col_max = std::max(query_region.col_max, reg_max);
@@ -1642,7 +1641,6 @@ void Reader::prepare_regions_v4(
             static_cast<uint64_t>(query_region.col_min), widened_reg_min);
         query_region.contigs.emplace_back(r.seq_name);
         new_region = false;
-        break;
       }
     }
     if (new_region) {
@@ -1651,6 +1649,33 @@ void Reader::prepare_regions_v4(
       query_regions->back().col_min = widened_reg_min;
       query_regions->back().col_max = reg_max;
       query_regions->back().contigs.emplace_back(r.seq_name);
+    }
+  }
+
+  // After we built the ranges we need to loop one more time to coalescing any
+  // final ranges. While we are looping through originally we might miss
+  // coalescing ranges as we don't consider the n+1 range that hasn't been
+  // created yet
+  size_t query_regions_size = query_regions->size();
+  for (size_t i = 0; i < query_regions_size; i++) {
+    auto& query_region = (*query_regions)[i];
+    for (size_t j = i + 1; j < query_regions->size(); j++) {
+      auto& query_region_to_check = (*query_regions)[j];
+      if (query_region.col_min <= query_region_to_check.col_max &&
+          query_region.col_max >= query_region_to_check.col_min) {
+        query_region.col_max =
+            std::max(query_region.col_max, query_region_to_check.col_max);
+        query_region.col_min =
+            std::min(query_region.col_min, query_region_to_check.col_min);
+        for (const auto& contig : query_region_to_check.contigs)
+          query_region.contigs.emplace_back(contig);
+        // If we merge the ranges, let's remove it from the query regions and
+        // reset to previous to re-evaluate
+        --query_regions_size;
+        query_regions->erase(query_regions->begin() + j);
+        --i;
+        break;
+      }
     }
   }
 }  // namespace vcf
