@@ -73,10 +73,7 @@ void WriterWorkerV4::insert_record(
   if (local_end_pos > region_.max)
     return;
 
-  // TODO: Remove END
   const uint32_t end_pos = local_end_pos;
-  // record->pos is 0 indexed by vcf is 1 indexed so store with a +1
-  // TODO: Figure this out
   const uint32_t start_pos = record->pos;
   record_heap_.insert(
       vcf,
