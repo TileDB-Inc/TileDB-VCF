@@ -91,12 +91,17 @@ class WriterWorkerV4 : public WriterWorker {
 
   /** Return a handle to the attribute buffers */
   const AttributeBufferSet& buffers() const;
+  AttributeBufferSet& buffers();
 
   /** Returns the number of records buffered by the last parse operation. */
   uint64_t records_buffered() const;
 
   /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
+
+  Region region() const override {
+    return region_;
+  }
 
  private:
   /** Attribute buffers holding parsed data. */

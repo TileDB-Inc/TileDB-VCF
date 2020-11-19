@@ -54,6 +54,10 @@ const AttributeBufferSet& WriterWorkerV3::buffers() const {
   return buffers_;
 }
 
+AttributeBufferSet& WriterWorkerV3::buffers() {
+  return buffers_;
+}
+
 uint64_t WriterWorkerV3::records_buffered() const {
   return records_buffered_;
 }

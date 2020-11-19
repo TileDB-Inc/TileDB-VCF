@@ -88,12 +88,15 @@ class WriterWorker {
 
   /** Return a handle to the attribute buffers */
   virtual const AttributeBufferSet& buffers() const = 0;
+  virtual AttributeBufferSet& buffers() = 0;
 
   /** Returns the number of records buffered by the last parse operation. */
   virtual uint64_t records_buffered() const = 0;
 
   /** Returns the number of anchors buffered by the last parse operation. */
   virtual uint64_t anchors_buffered() const = 0;
+
+  virtual Region region() const = 0;
 };
 
 }  // namespace vcf

@@ -54,6 +54,10 @@ const AttributeBufferSet& WriterWorkerV4::buffers() const {
   return buffers_;
 }
 
+AttributeBufferSet& WriterWorkerV4::buffers() {
+  return buffers_;
+}
+
 uint64_t WriterWorkerV4::records_buffered() const {
   return records_buffered_;
 }
@@ -92,6 +96,8 @@ bool WriterWorkerV4::parse(const Region& region) {
 
   region_ = region;
 
+  std::cout << "Parsing region " << region.seq_name << ":" << region.min << "-" << region.max << std::endl;
+
   // Initialize the record heap with the first record from each sample.
   for (auto& vcf : vcfs_) {
     vcf->seek(region.seq_name, region.min);
@@ -112,7 +118,7 @@ bool WriterWorkerV4::parse(const Region& region) {
 }
 
 bool WriterWorkerV4::resume() {
-  buffers_.clear();
+//  buffers_.clear();
   records_buffered_ = 0;
   anchors_buffered_ = 0;
 
@@ -316,7 +322,8 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
 
   // TODO: make this max buffer size check a parameter.
   const uint64_t buffer_size = buffers_.total_size();
-  if (buffer_size > ((uint64_t)1 * 1024 * 1024 * 1024)) {
+  if (buffer_size > ((uint64_t)10 * 1024 * 1024 * 1024)) {
+    std::cout << "This will loop forever :'(" << std::endl;
     return false;
   }
 
