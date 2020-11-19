@@ -115,6 +115,16 @@ void Writer::register_samples() {
 void Writer::ingest_samples() {
   auto start_all = std::chrono::steady_clock::now();
 
+  // If the user requests stats, enable them on read
+  // Multiple calls to enable stats has no effect
+  if (this->ingestion_params_.tiledb_stats_enabled) {
+    tiledb::Stats::enable();
+  } else {
+    // Else we will make sure they are disable and reset
+    tiledb::Stats::disable();
+    tiledb::Stats::reset();
+  }
+
   TileDBVCFDataset dataset;
   dataset.open(ingestion_params_.uri, ingestion_params_.tiledb_config);
   init(dataset, ingestion_params_);
@@ -396,6 +406,20 @@ void Writer::set_scratch_space(const std::string path, uint64_t size) {
 
 void Writer::set_verbose(const bool& verbose) {
   ingestion_params_.verbose = verbose;
+}
+
+void Writer::set_tiledb_stats_enabled(bool stats_enabled) {
+  this->ingestion_params_.tiledb_stats_enabled = stats_enabled;
+}
+
+void Writer::tiledb_stats_enabled(bool* enabled) {
+  *enabled = this->ingestion_params_.tiledb_stats_enabled;
+}
+
+void Writer::tiledb_stats(char** stats) {
+  auto rc = tiledb_stats_dump_str(stats);
+  if (rc != TILEDB_OK)
+    throw std::runtime_error("Error dumping tiledb statistics");
 }
 
 }  // namespace vcf

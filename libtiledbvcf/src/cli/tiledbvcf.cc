@@ -188,6 +188,13 @@ void do_store(const IngestionParams& args) {
   Writer writer;
   writer.set_all_params(args);
   writer.ingest_samples();
+
+  if (args.tiledb_stats_enabled) {
+    char* stats;
+    writer.tiledb_stats(&stats);
+    std::cout << "TileDB Internal Statistics:" << std::endl;
+    std::cout << stats << std::endl;
+  }
 }
 
 /** Export. */
@@ -352,7 +359,9 @@ int main(int argc, char** argv) {
             "'<vcf-uri><TAB><index-uri>'" &
         value("path", store_args.samples_file_uri)) |
            (values("paths", store_args.sample_uris) %
-            "Argument list of VCF files to ingest"));
+            "Argument list of VCF files to ingest"),
+       option("--stats").set(store_args.tiledb_stats_enabled) %
+           "Enable TileDB stats");
 
   ExportParams export_args;
   export_args.export_to_disk = true;

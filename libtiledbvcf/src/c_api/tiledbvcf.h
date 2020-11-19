@@ -982,10 +982,42 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_scratch_space(
 /**
  * Sets verbose mode on or off
  * @param reader VCF writter object
+ * @param writer VCF writer object
  * @param verbose setting
  */
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_writer_set_verbose(tiledb_vcf_writer_t* writer, bool verbose);
+
+/**
+ * Sets whether TileDB internal statistics should be enabled or not.
+ *
+ * @param writer VCF writer object
+ * @param tiledb_stats_enabled whether to enable stats or not, default is false
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_stats_enabled(
+    tiledb_vcf_writer_t* writer, const bool stats_enabled);
+
+/**
+ * Gets whether TileDB internal statistics should be enabled or not.
+ *
+ * @param writer VCF writer object
+ * @param tiledb_stats_enabled whether to enable stats or not
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_tiledb_stats_enabled(
+    tiledb_vcf_writer_t* writer, bool* stats_enabled);
+
+/**
+ * Gets TileDB internal statistics as a string
+ *
+ * @param reader VCF  object
+ * @param writer VCF writer object
+ * @param stats a char** were the stats will be returned
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_get_tiledb_stats(tiledb_vcf_writer_t* writer, char** stats);
 
 /* ********************************* */
 /*               ERROR               */
