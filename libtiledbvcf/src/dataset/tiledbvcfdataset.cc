@@ -178,7 +178,7 @@ void TileDBVCFDataset::create_empty_data_array(
     const bool allow_duplicates) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
-  schema.set_order({{TILEDB_COL_MAJOR, TILEDB_COL_MAJOR}});
+  schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
   schema.set_allows_dups(allow_duplicates);
 
   Domain domain(ctx);
@@ -194,7 +194,7 @@ void TileDBVCFDataset::create_empty_data_array(
         DimensionNames::V4::start_pos,
         {{dom_min, dom_max}},
         dom_max - dom_min + 1);
-    domain.add_dimensions(sample, start_pos, contig);
+    domain.add_dimensions(contig, start_pos, sample);
   }
   schema.set_domain(domain);
   auto offsets_filter_list = default_offsets_filter_list(ctx);
