@@ -317,7 +317,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       while (!task_complete) {
         task_complete = tasks[i].get();
 
-/*        // Write worker buffers, if any data.
+        // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
           worker->buffers().set_buffers(
               query_.get(), dataset.metadata().version);
@@ -327,7 +327,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
 
-          worker->buffers().clear();
+          //worker->buffers().clear();
 
           if (params.verbose)
             std::cout << "Wrote " << worker->records_buffered() << " records for contig " << worker->region().seq_name << std::endl;
@@ -337,7 +337,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
           query_->set_layout(TILEDB_UNORDERED);
         }
         records_ingested += worker->records_buffered();
-        anchors_ingested += worker->anchors_buffered();*/
+        anchors_ingested += worker->anchors_buffered();
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
@@ -359,37 +359,37 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       }
     }
 
-    // Only flush buffers when we have finished parsing all regions
+    /*// Only flush buffers when we have finished parsing all regions
     if (finished) {
       for (unsigned i = 0; i < tasks.size(); i++) {
         if (!tasks[i].valid())
           continue;
 
-        WriterWorker* worker = workers[i].get();
-      // Write worker buffers, if any data.
-      if (worker->records_buffered() > 0) {
-        worker->buffers().set_buffers(
-            query_.get(), dataset.metadata().version);
-        auto st = query_->submit();
-        if (st != Query::Status::COMPLETE)
-          throw std::runtime_error(
-              "Error submitting TileDB write query; unexpected query "
-              "status.");
+        WriterWorker *worker = workers[i].get();
+        // Write worker buffers, if any data.
+        if (worker->records_buffered() > 0) {
+          worker->buffers().set_buffers(
+              query_.get(), dataset.metadata().version);
+          auto st = query_->submit();
+          if (st != Query::Status::COMPLETE)
+            throw std::runtime_error(
+                "Error submitting TileDB write query; unexpected query "
+                "status.");
 
-        worker->buffers().clear();
+          worker->buffers().clear();
 
-        if (params.verbose)
-          std::cout << "Wrote " << worker->records_buffered() << " records for contig " << worker->region().seq_name
-                    << std::endl;
+          if (params.verbose)
+            std::cout << "Wrote " << worker->records_buffered() << " records for contig " << worker->region().seq_name
+                      << std::endl;
 
-        // reset query object for unordered test
-        query_.reset(new Query(*ctx_, *array_));
-        query_->set_layout(TILEDB_UNORDERED);
+          // reset query object for unordered test
+          query_.reset(new Query(*ctx_, *array_));
+          query_->set_layout(TILEDB_UNORDERED);
+        }
+        records_ingested += worker->records_buffered();
+        anchors_ingested += worker->anchors_buffered();
       }
-      records_ingested += worker->records_buffered();
-      anchors_ingested += worker->anchors_buffered();
-    }
-    }
+    }*/
   }
 
   return {records_ingested, anchors_ingested};

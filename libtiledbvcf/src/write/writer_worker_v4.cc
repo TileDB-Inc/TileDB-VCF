@@ -118,7 +118,7 @@ bool WriterWorkerV4::parse(const Region& region) {
 }
 
 bool WriterWorkerV4::resume() {
-//  buffers_.clear();
+  buffers_.clear();
   records_buffered_ = 0;
   anchors_buffered_ = 0;
 
