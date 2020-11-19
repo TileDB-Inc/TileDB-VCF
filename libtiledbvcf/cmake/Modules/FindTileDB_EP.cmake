@@ -47,8 +47,8 @@ else()
 
     ExternalProject_Add(ep_tiledb
       PREFIX "externals"
-      URL "https://github.com/TileDB-Inc/TileDB/archive/2.1.2.zip"
-      URL_HASH SHA1=aac518f6cba04797fc362e5d588d8e2114dc2ab0
+      URL "https://github.com/TileDB-Inc/TileDB/archive/2.1.3.zip"
+      URL_HASH SHA1=4872d0d8090c52dbd6313d6e2c86c23a0f9bd092
       DOWNLOAD_NAME "tiledb.zip"
       CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
