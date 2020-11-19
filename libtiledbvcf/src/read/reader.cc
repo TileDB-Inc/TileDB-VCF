@@ -447,7 +447,7 @@ bool Reader::next_read_batch() {
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
     // Set ranges
     for (const auto& sample : read_state_.current_sample_batches)
-      read_state_.query->add_range(0, sample.sample_name, sample.sample_name);
+      read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
 
     for (const auto& query_region :
          read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
@@ -456,7 +456,7 @@ bool Reader::next_read_batch() {
           1, query_region.col_min, query_region.col_max);
 
     read_state_.query->add_range(
-        2,
+        0,
         read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
         read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
   } else {
@@ -1550,8 +1550,6 @@ void Reader::prepare_regions_v4(
     pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
-  //  std::pair<std::string, std::string> contigNonEmptyDomain =
-  //  array.non_empty_domain_var(1);
   std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
       array.non_empty_domain<uint32_t>(1);
   std::vector<Region> filtered_regions;
