@@ -218,7 +218,8 @@ class TileDBVCFDataset {
    * Returns a pair of (offset, length) for the contig containing the given
    * global column coordinate value.
    */
-  std::pair<uint32_t, uint32_t> contig_from_column(uint32_t col) const;
+  std::tuple<uint32_t, uint32_t, std::string> contig_from_column(
+      uint32_t col) const;
 
   /**
    * Splits an attribute name like 'info_X' or 'fmt_Y' into a pair ('info', 'X')

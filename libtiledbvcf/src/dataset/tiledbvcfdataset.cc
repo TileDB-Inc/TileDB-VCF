@@ -656,10 +656,11 @@ std::list<Region> TileDBVCFDataset::all_contigs_list() const {
   return result;
 }
 
-std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
-    uint32_t col) const {
+std::tuple<uint32_t, uint32_t, std::string>
+TileDBVCFDataset::contig_from_column(uint32_t col) const {
   bool found = false;
   uint32_t contig_offset = 0, contig_length = 0;
+  std::string contig;
   for (const auto& it : metadata_.contig_offsets) {
     uint32_t offset = it.second;
     if (col >= offset) {
@@ -667,6 +668,7 @@ std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
       if (col < offset + length) {
         contig_offset = offset;
         contig_length = length;
+        contig = it.first;
         found = true;
         break;
       }
@@ -677,7 +679,7 @@ std::pair<uint32_t, uint32_t> TileDBVCFDataset::contig_from_column(
     throw std::runtime_error(
         "Error finding contig containing column " + std::to_string(col));
 
-  return {contig_offset, contig_length};
+  return {contig_offset, contig_length, contig};
 }
 
 TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
