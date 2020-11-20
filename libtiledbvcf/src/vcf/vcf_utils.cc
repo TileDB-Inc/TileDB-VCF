@@ -133,6 +133,41 @@ std::map<std::string, uint32_t> VCFUtils::hdr_get_contig_offsets(
   return offsets;
 }
 
+std::vector<Region> VCFUtils::hdr_get_contigs_regions(bcf_hdr_t* hdr) {
+  std::vector<Region> contigs;
+  if (!hdr)
+    throw std::invalid_argument(
+        "Cannot get contig offsets from header; bad VCF header.");
+  int nseq;
+  const char** seqnames = bcf_hdr_seqnames(hdr, &nseq);
+  for (int i = 0; i < nseq; ++i) {
+    std::string seqname(seqnames[i]);
+
+    bcf_hrec_t* hrec =
+        bcf_hdr_get_hrec(hdr, BCF_HL_CTG, "ID", seqname.c_str(), 0);
+    if (!hrec)
+      throw std::invalid_argument(
+          "Cannot get contig offsets from header; error reading contig header "
+          "line " +
+          std::to_string(i));
+    int j = bcf_hrec_find_key(hrec, "length");
+    if (j < 0)
+      throw std::invalid_argument(
+          "Cannot get contig offsets from header; contig def does not have "
+          "length");
+    auto length = strtol(hrec->vals[j], nullptr, 10);
+
+    Region region;
+    region.seq_name = seqname;
+    region.min = 0;
+    region.max = length;
+
+    contigs.push_back(region);
+  }
+  free(seqnames);
+  return contigs;
+}
+
 bool VCFUtils::normalize_sample_name(
     const std::string& sample, std::string* normalized) {
   if (sample.empty())

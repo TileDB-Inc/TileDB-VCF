@@ -176,7 +176,9 @@ void do_register(const RegistrationParams& args) {
     dataset.register_samples(args);
   else {
     assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
-    dataset.register_samples_v4(args);
+    throw std::runtime_error(
+        "Only v2 and v3 datasets require registration. V4 and newer are "
+        "capable of ingestion without registration.");
   }
 }
 

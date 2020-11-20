@@ -200,12 +200,29 @@ class Writer {
       const TileDBVCFDataset& dataset, const IngestionParams& params) const;
 
   /**
+   * Prepares the samples list to be ingested. This combines the sample URI list
+   * and file, sorts the samples by ID (row coord) and returns the resulting
+   * list.
+   */
+  std::vector<SampleAndIndex> prepare_sample_list_v4(
+      const TileDBVCFDataset& dataset, const IngestionParams& params) const;
+
+  /**
    * Prepares a list of disjoint genomic regions that cover the whole genome.
    * This is used to split up work across the ingestion threads, and so the
    * returned list depends on the thread task size parameter.
    */
   std::vector<Region> prepare_region_list(
       const TileDBVCFDataset& dataset, const IngestionParams& params) const;
+
+  /**
+   * Prepares a list of disjoint genomic regions that cover the whole genome.
+   * This is used to split up work across the ingestion threads, and so the
+   * returned list depends on the thread task size parameter.
+   */
+  std::vector<Region> prepare_region_list(
+      const std::vector<Region> all_contigs,
+      const IngestionParams& params) const;
 
   /**
    * Ingests a batch of samples.
@@ -220,7 +237,7 @@ class Writer {
       const TileDBVCFDataset& dataset,
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
-      const std::vector<Region>& regions);
+      std::vector<Region>& regions);
 };
 
 }  // namespace vcf

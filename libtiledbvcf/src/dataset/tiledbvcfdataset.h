@@ -205,8 +205,6 @@ class TileDBVCFDataset {
 
   void register_samples(const RegistrationParams& params);
 
-  void register_samples_v4(const RegistrationParams& params);
-
   void print_samples_list();
 
   void print_dataset_stats();
@@ -215,16 +213,23 @@ class TileDBVCFDataset {
 
   std::string data_uri() const;
 
+  std::string root_uri() const;
+
   std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers(
       const tiledb::Context& ctx,
       const std::vector<SampleAndId>& samples) const;
 
+  /**
+   * Fetch VCF headers
+   * @param ctx TileDB context
+   * @param samples List of samples, if list is empty then we'll fetch just one
+   * @param lookup_map
+   * @return
+   */
   std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers_v4(
       const tiledb::Context& ctx,
       const std::vector<SampleAndId>& samples,
       std::unordered_map<std::string, size_t>* lookup_map) const;
-
-  std::string first_contig() const;
 
   /**
    * Returns a list of regions, one per contig (spanning the entire contig),
@@ -235,8 +240,29 @@ class TileDBVCFDataset {
   /**
    * Returns a list of regions, one per contig (spanning the entire contig),
    * sorted on global contig offset.
+   *
+   * Note: This works by using the first VCF header. If different VCF headers
+   * exist in the array this will not correctly return all contig regions
+   *
+   * @param Context contex
+   * @return List of all regions and contigs
+   */
+  std::vector<Region> all_contigs_v4(const tiledb::Context& ctx) const;
+
+  /**
+   * Returns a list of regions, one per contig (spanning the entire contig),
+   * sorted on global contig offset.
    */
   std::list<Region> all_contigs_list() const;
+
+  /**
+   * Returns a list of regions, one per contig (spanning the entire contig),
+   * sorted on global contig offset.
+   *
+   * @param Context contex
+   * @return List of all regions and contigs
+   */
+  std::list<Region> all_contigs_list_v4(const tiledb::Context& ctx) const;
 
   /**
    * Returns a pair of (offset, length) for the contig containing the given
@@ -299,6 +325,26 @@ class TileDBVCFDataset {
    * @return
    */
   const char* sample_name(int32_t index) const;
+
+  /**
+   * Writes the given sample header data to the separate sample header array in
+   * the dataset.
+   *
+   * @param ctx TileDB context
+   * @param vcf_headers Map of sample name -> header string to write.
+   */
+  void write_vcf_headers_v4(
+      const Context& ctx,
+      const std::map<std::string, std::string>& vcf_headers) const;
+
+  /**
+   * Fetch all sample ids from the vcf header array
+   *
+   * @param ctx contex
+   * @return vector of all sample names
+   */
+  static std::vector<std::string> get_all_samples_from_vcf_headers(
+      const Context& ctx, const std::string& root_uri);
 
  private:
   /* ********************************* */
@@ -460,21 +506,6 @@ class TileDBVCFDataset {
    * @param sample_set Set of sample names to be updated
    * @param sample_headers Map of sample ID -> header string to be updated
    */
-  static void register_samples_helper_v4(
-      const std::vector<SafeBCFHdr>& headers,
-      Metadata* metadata,
-      std::set<std::string>* sample_set,
-      std::map<std::string, std::string>* sample_headers);
-
-  /**
-   * Registers a set of samples. Registration updates the given metadata
-   * instance and several other output parameters.
-   *
-   * @param headers Samples to be registered
-   * @param metadata Metadata to be updated
-   * @param sample_set Set of sample names to be updated
-   * @param sample_headers Map of sample ID -> header string to be updated
-   */
   static void register_samples_helper(
       const std::vector<SafeBCFHdr>& headers,
       Metadata* metadata,
@@ -502,13 +533,9 @@ class TileDBVCFDataset {
   void load_field_type_maps(const tiledb::Context& ctx);
 
   /**
-   * Fetch all sample ids from the vcf header array
-   *
-   * @param ctx contex
-   * @return vector of all sample names
+   * Populate the metadata maps of info/fmt field name -> htslib types.
    */
-  static std::vector<std::string> get_all_samples_from_vcf_headers(
-      const Context& ctx, const std::string& root_uri);
+  void load_field_type_maps_v4(const tiledb::Context& ctx);
 };
 
 }  // namespace vcf

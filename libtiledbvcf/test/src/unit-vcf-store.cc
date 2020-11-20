@@ -87,14 +87,14 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
 
-  // Register a sample
+  // Ingest the samples
   {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    REQUIRE_THROWS(ds.register_samples_v4({}));
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf"};
-    ds.register_samples_v4(args);
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/small.bcf"};
+    writer.set_all_params(params);
+    writer.ingest_samples();
   }
 
   // Reopen the dataset and check the metadata.
@@ -106,9 +106,6 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE_THAT(
         ds.metadata().sample_names,
         Catch::Matchers::VectorContains(std::string("HG01762")));
-    REQUIRE(ds.metadata().contig_offsets.at("1") == 0);
-    REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
-    REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
 
     auto hdrs = ds.fetch_vcf_headers_v4(ctx, {{"HG01762", 0}}, nullptr);
     REQUIRE(hdrs.size() == 1);
@@ -119,13 +116,14 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE(ds.info_field_type("BaseQRankSum") == BCF_HT_REAL);
   }
 
-  // Register a second sample
+  // Ingest the samples
   {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/small2.bcf"};
+    writer.set_all_params(params);
+    writer.ingest_samples();
   }
 
   // Check updated metadata
@@ -141,9 +139,6 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     std::vector<std::string> samples = {"HG01762", "HG00280"};
     REQUIRE_THAT(
         ds.metadata().sample_names, Catch::Matchers::Contains(samples));
-    REQUIRE(ds.metadata().contig_offsets.at("1") == 0);
-    REQUIRE(ds.metadata().contig_offsets.at("2") == 249250621);
-    REQUIRE(ds.metadata().contig_offsets.at("3") == 249250621 + 243199373);
 
     auto hdrs =
         ds.fetch_vcf_headers_v4(ctx, {{"HG01762", 0}, {"HG00280", 1}}, nullptr);
@@ -153,114 +148,6 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
         hdrs.at(1)->samples[0], hdrs.at(0)->samples[0]};
     REQUIRE_THAT(
         expected_samples, Catch::Matchers::UnorderedEquals(result_samples));
-  }
-
-  if (vfs.is_dir(dataset_uri))
-    vfs.remove_dir(dataset_uri);
-}
-
-TEST_CASE("TileDB-VCF: Test register 100", "[tiledbvcf][ingest]") {
-  tiledb::Context ctx;
-  tiledb::VFS vfs(ctx);
-
-  std::string dataset_uri = "test_dataset";
-  if (vfs.is_dir(dataset_uri))
-    vfs.remove_dir(dataset_uri);
-
-  CreationParams create_args;
-  create_args.uri = dataset_uri;
-  create_args.tile_capacity = 10000;
-  TileDBVCFDataset::create(create_args);
-
-  SECTION("- List all") {
-    // Register the samples
-    RegistrationParams args;
-    for (unsigned i = 1; i <= 100; i++) {
-      std::string uri =
-          input_dir + "/random_synthetic/G" + std::to_string(i) + ".bcf";
-      args.sample_uris.push_back(uri);
-    }
-
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
-  }
-
-  SECTION("- Sample list file") {
-    std::string samples_file = "dataset-samples.txt";
-    std::ofstream os(samples_file.c_str(), std::ios::out | std::ios::trunc);
-    for (unsigned i = 1; i <= 100; i++) {
-      std::string uri =
-          input_dir + "/random_synthetic/G" + std::to_string(i) + ".bcf";
-      os << uri << "\n";
-    }
-    os.flush();
-    os.close();
-
-    // Register the samples
-    RegistrationParams args;
-    args.sample_uris_file = samples_file;
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
-  }
-
-  SECTION("- Sample list file with explicit indices") {
-    std::string samples_file = "dataset-samples.txt";
-    std::ofstream os(samples_file.c_str(), std::ios::out | std::ios::trunc);
-    for (unsigned i = 1; i <= 100; i++) {
-      std::string uri =
-          input_dir + "/random_synthetic/G" + std::to_string(i) + ".bcf";
-      os << uri << "\t" << (uri + ".csi") << "\n";
-    }
-    os.flush();
-    os.close();
-
-    // Register the samples
-    RegistrationParams args;
-    args.sample_uris_file = samples_file;
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
-  }
-
-  SECTION("- Incremental") {
-    for (unsigned i = 0; i < 10; i++) {
-      RegistrationParams args;
-      for (unsigned j = 1; j <= 10; j++) {
-        unsigned idx = i * 10 + j;
-        std::string uri =
-            input_dir + "/random_synthetic/G" + std::to_string(idx) + ".bcf";
-        args.sample_uris.push_back(uri);
-      }
-
-      TileDBVCFDataset ds;
-      ds.open(dataset_uri);
-      ds.register_samples_v4(args);
-    }
-  }
-
-  // Reopen the dataset and check some of the metadata.
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    REQUIRE(ds.metadata().all_samples.size() == 100);
-    REQUIRE_THAT(
-        ds.metadata().all_samples,
-        Catch::Matchers::VectorContains(std::string("G43")));
-    REQUIRE(ds.metadata().sample_ids.count("G17") == 1);
-    REQUIRE_THAT(
-        ds.metadata().sample_names,
-        Catch::Matchers::VectorContains(std::string("G17")));
-
-    auto hdrs = ds.fetch_vcf_headers_v4(
-        ctx, {{"G10", 9}, {"G11", 10}, {"G12", 11}}, nullptr);
-    REQUIRE(hdrs.size() == 3);
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(2)) == 1);
-    std::vector<std::string> samples = {
-        hdrs.at(0)->samples[0], hdrs.at(1)->samples[0], hdrs.at(2)->samples[0]};
-    std::vector<std::string> expected_samples = {"G10", "G11", "G12"};
-    REQUIRE_THAT(expected_samples, Catch::Matchers::UnorderedEquals(samples));
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -279,15 +166,6 @@ TEST_CASE("TileDB-VCF: Test ingest", "[tiledbvcf][ingest]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -316,15 +194,6 @@ TEST_CASE("TileDB-VCF: Test ingest larger", "[tiledbvcf][ingest]") {
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
 
-  // Register
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small3.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest
   {
     Writer writer;
@@ -351,15 +220,6 @@ TEST_CASE("TileDB-VCF: Test ingest .vcf.gz", "[tiledbvcf][ingest]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.vcf.gz"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest
   {
@@ -392,15 +252,6 @@ TEST_CASE("TileDB-VCF: Test ingest with attributes", "[tiledbvcf][ingest]") {
       "fmt_DP", "info_MLEAC", "info_MLEAF", "info_MQ", "fmt_AD", "info_GQ"};
   TileDBVCFDataset::create(create_args);
 
-  // Register
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small3.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest
   {
     Writer writer;
@@ -431,18 +282,12 @@ TEST_CASE("TileDB-VCF: Test ingest 100", "[tiledbvcf][ingest]") {
   // Register the samples in batches
   std::vector<std::string> all_samples;
   for (unsigned i = 0; i < 10; i++) {
-    RegistrationParams args;
     for (unsigned j = 1; j <= 10; j++) {
       unsigned idx = i * 10 + j;
       std::string uri =
           input_dir + "/random_synthetic/G" + std::to_string(idx) + ".bcf";
-      args.sample_uris.push_back(uri);
       all_samples.push_back(uri);
     }
-
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
   }
 
   // Ingest
