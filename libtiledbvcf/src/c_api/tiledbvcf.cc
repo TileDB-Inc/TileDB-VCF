@@ -861,6 +861,40 @@ int32_t tiledb_vcf_writer_set_verbose(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_tiledb_stats_enabled(
+    tiledb_vcf_writer_t* writer, const bool stats_enabled) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_tiledb_stats_enabled(stats_enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_get_tiledb_stats_enabled(
+    tiledb_vcf_writer_t* writer, bool* enabled) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->tiledb_stats_enabled(enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_get_tiledb_stats(
+    tiledb_vcf_writer_t* writer, char** stats) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->tiledb_stats(stats)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

@@ -59,6 +59,7 @@ struct IngestionParams {
   bool remove_samples_file = false;
   uint64_t max_record_buffer_size = 50000;
   std::vector<std::string> tiledb_config;
+  bool tiledb_stats_enabled = false;
 
   /**
    * Max length (# columns) of an ingestion "task". This value is derived
@@ -152,6 +153,15 @@ class Writer {
    * @param verbose setting
    */
   void set_verbose(const bool& verbose);
+
+  /** Enable tiledb stats */
+  void set_tiledb_stats_enabled(bool stats_enabled);
+
+  /** Returns if tiledb stats are enabled */
+  void tiledb_stats_enabled(bool* enabled);
+
+  /** Fetches tiledb stats as a string */
+  void tiledb_stats(char** stats);
 
  private:
   /* ********************************* */
