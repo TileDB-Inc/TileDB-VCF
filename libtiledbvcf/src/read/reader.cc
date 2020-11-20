@@ -594,8 +594,9 @@ bool Reader::process_query_results_v3() {
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
-    // If we've passed into a new contig, get the new info for it.
-    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info))
+    // If the end position is before or after the config find the proper contig
+    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info) ||
+        end < std::get<0>(contig_info))
       contig_info = dataset_->contig_from_column(end);
     const uint32_t contig_offset = std::get<0>(contig_info);
 
@@ -697,8 +698,9 @@ bool Reader::process_query_results_v2() {
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
-    // If we've passed into a new contig, get the new info for it.
-    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info))
+    // If the end position is before or after the config find the proper contig
+    if (end >= std::get<0>(contig_info) + std::get<1>(contig_info) ||
+        end < std::get<0>(contig_info))
       contig_info = dataset_->contig_from_column(end);
     const uint32_t contig_offset = std::get<0>(contig_info);
 
