@@ -261,11 +261,6 @@ void TileDBVCFDataset::create_sample_header_array(
 
   // Set domain
   Domain domain(ctx);
-  //  const uint32_t dom_min = 0;
-  //  const uint32_t dom_max = std::numeric_limits<uint32_t>::max() - 1;
-  //  const uint32_t tile_ext = 10;
-  //  auto sample = Dimension::create<uint32_t>(
-  //      ctx, "sample", {{dom_min, dom_max - tile_ext}}, tile_ext);
   auto sample =
       Dimension::create(ctx, "sample", TILEDB_STRING_ASCII, nullptr, nullptr);
   sample.set_filter_list(default_attribute_filter_list(ctx));
