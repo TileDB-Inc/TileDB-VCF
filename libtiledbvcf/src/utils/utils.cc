@@ -313,37 +313,44 @@ uint64_t ceil(uint64_t x, uint64_t y) {
 
 // Mutexs to make htslib plugin initialization thread-safe
 std::mutex cfg_mutex;
-std::mutex ctx_mutex;
 std::mutex init_mutex;
 
 // Store config and context in unique_ptr so we don't leak
-std::unique_ptr<tiledb::Config> hfile_tiledb_vfs_config_ptr = nullptr;
-std::unique_ptr<tiledb::Context> hfile_tiledb_vfs_ctx_ptr = nullptr;
-void set_htslib_tiledb_config(const std::vector<std::string>& tiledb_config) {
+std::vector<std::string> last_set_config;
+void set_htslib_tiledb_context(const std::vector<std::string>& tiledb_config) {
   const std::lock_guard<std::mutex> lock(cfg_mutex);
-  tiledb::Config cfg;
+  tiledb::Config cfg, existing_config;
   set_tiledb_config(tiledb_config, &cfg);
+  if (!last_set_config.empty())
+    set_tiledb_config(last_set_config, &existing_config);
   // Only set hts lib plugin config if not already initialized or update the
   // config if it is different
-  if (hfile_tiledb_vfs_config_ptr == nullptr ||
-      !compare_configs(*hfile_tiledb_vfs_config_ptr, cfg)) {
-    hfile_tiledb_vfs_config_ptr =
-        std::unique_ptr<tiledb::Config>(new tiledb::Config(cfg));
-    // hfile_tiledb_vfs_config is an extern from the htslib plugin
-    hfile_tiledb_vfs_config = hfile_tiledb_vfs_config_ptr->ptr().get();
-  }
-}
+  if (hfile_tiledb_vfs_config == nullptr || last_set_config.empty() ||
+      !compare_configs(existing_config, cfg)) {
+    if (hfile_tiledb_vfs_config != nullptr)
+      tiledb_config_free(&hfile_tiledb_vfs_config);
 
-void set_htslib_tiledb_context(const tiledb::Config& config) {
-  const std::lock_guard<std::mutex> lock(ctx_mutex);
-  // Only set hts lib plugin config if not already initialized and the config is
-  // different
-  if (hfile_tiledb_vfs_ctx_ptr == nullptr ||
-      !compare_configs(hfile_tiledb_vfs_ctx_ptr->config(), config)) {
-    hfile_tiledb_vfs_ctx_ptr =
-        std::unique_ptr<tiledb::Context>(new tiledb::Context(config));
-    // hfile_tiledb_vfs_ctx is an extern from the htslib plugin
-    hfile_tiledb_vfs_ctx = hfile_tiledb_vfs_ctx_ptr->ptr().get();
+    tiledb_error_t* error;
+    int32_t rc = tiledb_config_alloc(&hfile_tiledb_vfs_config, &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    set_tiledb_config(tiledb_config, hfile_tiledb_vfs_config);
+
+    if (hfile_tiledb_vfs_ctx != nullptr)
+      tiledb_ctx_free(&hfile_tiledb_vfs_ctx);
+
+    rc = tiledb_ctx_alloc(hfile_tiledb_vfs_config, &hfile_tiledb_vfs_ctx);
+    if (rc != TILEDB_OK) {
+      throw std::runtime_error("Error creating context for htslib plugin");
+    }
+
+    // Store the last config so it's easy to create c++ tiledb::Config object
+    // for comparison
+    last_set_config = tiledb_config;
   }
 }
 
