@@ -211,7 +211,9 @@ class Dataset(object):
 
         # Create is a no-op if the dataset already exists.
         self.writer.create_dataset()
-        self.writer.register_samples()
+        # Only v2 and v3 datasets need registration
+        if self.schema_version() < 4:
+            self.writer.register_samples()
         self.writer.ingest_samples()
 
     def tiledb_stats(self):
@@ -227,7 +229,7 @@ class Dataset(object):
         """Retrieve the VCF dataset's schema version
         """
         if self.mode != 'r':
-            raise Exception('Schema version can only be called for reader')
+            return self.writer.get_schema_version()
         return self.reader.get_schema_version()
 
     def sample_count(self):
