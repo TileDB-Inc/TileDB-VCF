@@ -79,6 +79,9 @@ class Writer {
 
   void ingest_samples();
 
+    /** Returns schema version number of the TileDB VCF dataset */
+  int32_t get_schema_version();
+
   /**
    * Set writer verbose output mode
    *

@@ -895,6 +895,17 @@ int32_t tiledb_vcf_writer_get_tiledb_stats(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_get_dataset_version(
+    tiledb_vcf_writer_t* writer, int32_t* version) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR || version == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->dataset_version(version)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

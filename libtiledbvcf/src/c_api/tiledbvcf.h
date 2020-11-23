@@ -1019,6 +1019,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_tiledb_stats_enabled(
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_writer_get_tiledb_stats(tiledb_vcf_writer_t* writer, char** stats);
 
+/**
+ * Returns the version number of the TileDB VCF dataset.
+ *
+ * @param writer VCF writer object
+ * @param version Set to the version number
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_dataset_version(
+    tiledb_vcf_writer_t* writer, int32_t* version);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

@@ -133,4 +133,11 @@ void Writer::deleter(tiledb_vcf_writer_t* w) {
   tiledb_vcf_writer_free(&w);
 }
 
+int32_t Writer::get_schema_version() {
+  auto writer = ptr.get();
+  int32_t version;
+  check_error(writer, tiledb_vcf_writer_get_dataset_version(writer, &version));
+  return version;
+}
+
 }  // namespace tiledbvcfpy
