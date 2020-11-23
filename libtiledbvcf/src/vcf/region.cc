@@ -39,14 +39,14 @@ namespace vcf {
 Region::Region()
     : min(0)
     , max(0)
-    , seq_offset(std::numeric_limits<uint32_t>::max()) {
+    , seq_offset(std::numeric_limits<uint32_t>::max() - 1) {
 }
 
 Region::Region(const std::string& seq, unsigned min, unsigned max)
     : seq_name(seq)
     , min(min)
     , max(max)
-    , seq_offset(std::numeric_limits<uint32_t>::max()) {
+    , seq_offset(std::numeric_limits<uint32_t>::max() - 1) {
 }
 
 Region::Region(const std::string& str, Type parse_from) {
@@ -54,7 +54,7 @@ Region::Region(const std::string& str, Type parse_from) {
   seq_name = r.seq_name;
   min = r.min;
   max = r.max;
-  seq_offset = std::numeric_limits<uint32_t>::max();
+  seq_offset = std::numeric_limits<uint32_t>::max() - 1;
 }
 
 std::string Region::to_str(Type type) const {

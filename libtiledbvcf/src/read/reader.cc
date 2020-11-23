@@ -401,7 +401,7 @@ bool Reader::next_read_batch() {
   // Setup v2/v3 read details
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    read_state_.sample_min = std::numeric_limits<uint32_t>::max();
+    read_state_.sample_min = std::numeric_limits<uint32_t>::max() - 1;
     read_state_.sample_max = std::numeric_limits<uint32_t>::min();
     for (const auto& s : read_state_.current_sample_batches) {
       read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
@@ -1625,7 +1625,7 @@ void Reader::prepare_regions_v2(
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_max = reg_max + g;
     widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
+        widened_reg_max, std::numeric_limits<uint32_t>::max() - 1);
     if (reg_min <= regionNonEmptyDomain.second &&
         widened_reg_max >= regionNonEmptyDomain.first) {
       filtered_regions.emplace_back(std::move(r));
@@ -1690,7 +1690,7 @@ void Reader::prepare_regions_v2(
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_max = reg_max + g;
     widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
+        widened_reg_max, std::numeric_limits<uint32_t>::max() - 1);
 
     if (prev_reg_max + 1 >= reg_min && !query_regions->empty()) {
       // Previous widened region overlaps this one; merge.

@@ -183,8 +183,9 @@ void TileDBVCFDataset::create_empty_data_array(
 
   Domain domain(ctx);
   {
-    const auto dom_min = 0;
-    const auto dom_max = std::numeric_limits<uint32_t>::max() - 1;
+    const uint32_t start_pos_min = 0;
+    const uint32_t start_pos_max = std::numeric_limits<uint32_t>::max() - 1;
+    const uint32_t start_pos_extent = start_pos_max - start_pos_min + 1;
     auto sample = Dimension::create(
         ctx, DimensionNames::V4::sample, TILEDB_STRING_ASCII, nullptr, nullptr);
     auto contig = Dimension::create(
@@ -192,8 +193,8 @@ void TileDBVCFDataset::create_empty_data_array(
     auto start_pos = Dimension::create<uint32_t>(
         ctx,
         DimensionNames::V4::start_pos,
-        {{dom_min, dom_max}},
-        dom_max - dom_min + 1);
+        {{start_pos_min, start_pos_max}},
+        start_pos_extent);
     domain.add_dimensions(contig, start_pos, sample);
   }
   schema.set_domain(domain);
