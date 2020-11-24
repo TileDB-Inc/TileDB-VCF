@@ -1301,8 +1301,8 @@ void Reader::prepare_regions_v4(
 
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
-    if (widened_reg_min <= regionNonEmptyDomain.second &&
-        reg_max >= regionNonEmptyDomain.first) {
+    if (widened_reg_min <= region_non_empty_domain.second &&
+        reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
@@ -1313,6 +1313,8 @@ void Reader::prepare_regions_v4(
     auto start_region_sort = std::chrono::steady_clock::now();
     std::sort(
         regions->begin(), regions->end(), [](const Region& a, const Region& b) {
+          if (a.seq_name == b.seq_name)
+            return a.min < b.min;
           return a.seq_name < b.seq_name;
         });
 
@@ -1489,8 +1491,8 @@ void Reader::prepare_regions_v3(
 
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
-    if (widened_reg_min <= regionNonEmptyDomain.second &&
-        reg_max >= regionNonEmptyDomain.first) {
+    if (widened_reg_min <= region_non_empty_domain.second &&
+        reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
@@ -1626,8 +1628,8 @@ void Reader::prepare_regions_v2(
     uint64_t widened_reg_max = reg_max + g;
     widened_reg_max = std::min<uint64_t>(
         widened_reg_max, std::numeric_limits<uint32_t>::max() - 1);
-    if (reg_min <= regionNonEmptyDomain.second &&
-        widened_reg_max >= regionNonEmptyDomain.first) {
+    if (reg_min <= region_non_empty_domain.second &&
+        widened_reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
