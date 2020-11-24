@@ -1231,8 +1231,7 @@ void Reader::init_tiledb() {
 
   // Set htslib global config and context based on user passed TileDB config
   // options
-  utils::set_htslib_tiledb_config(params_.tiledb_config);
-  utils::set_htslib_tiledb_context(cfg.ptr().get());
+  utils::set_htslib_tiledb_context(params_.tiledb_config);
 }
 
 void Reader::check_partitioning(

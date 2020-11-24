@@ -60,6 +60,14 @@ target_link_libraries(tiledb_vcf_unit
     Catch::Catch
 )
 
+# Sanitizer linker flags
+if (SANITIZER)
+    target_link_libraries(tiledb_vcf_unit
+            INTERFACE
+            -fsanitize=${SANITIZER}
+            )
+endif()
+
 add_test(
   NAME "tiledb_vcf_unit"
   COMMAND $<TARGET_FILE:tiledb_vcf_unit> --durations=yes

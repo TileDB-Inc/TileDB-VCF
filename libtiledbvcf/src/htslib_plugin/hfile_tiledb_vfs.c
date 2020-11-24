@@ -211,10 +211,7 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
       tiledb_config_free(&config);
 
     if (rc != TILEDB_OK) {
-      tiledb_ctx_get_last_error(fp->ctx, &error);
-      const char* msg;
-      tiledb_error_message(error, &msg);
-      hts_log_error("uri: %s, error: %s\n", uri, msg);
+      hts_log_error("Error : creating tiledb for hopen context\n");
 
       if (fp != NULL)
         free(fp);
