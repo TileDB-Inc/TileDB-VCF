@@ -340,8 +340,10 @@ void Reader::init_for_reads() {
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)
     read_state_.sample_batches = prepare_sample_batches();
-  else
+  else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     read_state_.sample_batches = prepare_sample_batches_v4();
+  }
   read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
@@ -573,7 +575,6 @@ bool Reader::read_current_batch() {
     auto query_status = read_state_.async_query.get();
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
 
-    // TODO: We should update all sizes here
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
       buffers_a->contig().effective_size(
           read_state_.query_results.contig_size().second * sizeof(char));
@@ -680,6 +681,7 @@ struct RegionComparatorV4 {
   explicit RegionComparatorV4(std::vector<Region>* regions) {
     regions_ = regions;
   }
+
   /**
    * Compare for less than
    * @param left region index
@@ -1304,7 +1306,7 @@ void Reader::prepare_regions_v4(
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
     if (widened_reg_min <= regionNonEmptyDomain.second &&
         reg_max >= regionNonEmptyDomain.first) {
-      filtered_regions.emplace_back(r);
+      filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;
@@ -1497,7 +1499,7 @@ void Reader::prepare_regions_v3(
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
     if (widened_reg_min <= regionNonEmptyDomain.second &&
         reg_max >= regionNonEmptyDomain.first) {
-      filtered_regions.emplace_back(r);
+      filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;
@@ -1634,7 +1636,7 @@ void Reader::prepare_regions_v2(
         widened_reg_max, std::numeric_limits<uint32_t>::max());
     if (reg_min <= regionNonEmptyDomain.second &&
         widened_reg_max >= regionNonEmptyDomain.first) {
-      filtered_regions.emplace_back(r);
+      filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;

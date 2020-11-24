@@ -31,8 +31,6 @@ namespace vcf {
 
 VCFV4::VCFV4()
     : open_(false)
-    , path_("")
-    , index_path_("")
     , max_record_buffer_size_(10000)
     , hdr_(nullptr)
     , index_tbx_(nullptr)
@@ -299,6 +297,7 @@ void VCFV4::swap(VCFV4& other) {
 
 VCFV4::Iter::Iter()
     : fh_(nullptr, hts_close)
+    , hdr_(nullptr)
     , hts_iter_(nullptr)
     , tbx_(nullptr) {
 }

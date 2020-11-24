@@ -35,7 +35,9 @@ Buffer::Buffer()
     : expecting_(false)
     , data_(nullptr)
     , data_alloced_size_(0)
-    , data_size_(0) {
+    , data_size_(0)
+    , data_effective_size_(0)
+    , offset_nelts_(0) {
 }
 
 Buffer::~Buffer() {

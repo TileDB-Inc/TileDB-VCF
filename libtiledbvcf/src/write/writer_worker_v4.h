@@ -48,7 +48,7 @@ namespace tiledb {
 namespace vcf {
 
 /**
- * A WriterWorkerV3 is responsible for parsing a particular genomic region from
+ * A WriterWorkerV4 is responsible for parsing a particular genomic region from
  * a set of VCFs, into a set of attribute buffers that will be used to submit a
  * TileDB query.
  *

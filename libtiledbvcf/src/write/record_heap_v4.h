@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2020 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,6 @@ class RecordHeapV4 {
         : vcf(nullptr)
         , type(NodeType::Record)
         , record(nullptr)
-        , contig()
         , start_pos(std::numeric_limits<uint32_t>::max())
         , end_pos(std::numeric_limits<uint32_t>::max())
         , sample_name() {

@@ -31,7 +31,9 @@ namespace vcf {
 
 ReadQueryResults::ReadQueryResults()
     : buffers_(nullptr)
-    , num_cells_(0) {
+    , num_cells_(0)
+    , sample_size_(0, 0)
+    , contig_size_(0, 0) {
 }
 
 void ReadQueryResults::set_results(

@@ -121,7 +121,7 @@ std::vector<std::vector<T>> batch_elements(
     std::vector<T>& batch = result.back();
     for (unsigned j = 0; j < batch_size && vec_idx < vec.size();
          j++, vec_idx++) {
-      batch.push_back(vec[vec_idx]);
+      batch.emplace_back(vec[vec_idx]);
     }
   }
   return result;

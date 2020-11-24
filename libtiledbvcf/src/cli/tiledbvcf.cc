@@ -174,8 +174,10 @@ void do_register(const RegistrationParams& args) {
   if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset.metadata().version == TileDBVCFDataset::Version::V3)
     dataset.register_samples(args);
-  else
+  else {
+    assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
     dataset.register_samples_v4(args);
+  }
 }
 
 /** Store/ingest. */

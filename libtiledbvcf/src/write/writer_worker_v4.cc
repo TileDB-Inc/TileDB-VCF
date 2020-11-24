@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2020 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,9 @@ namespace tiledb {
 namespace vcf {
 
 WriterWorkerV4::WriterWorkerV4()
-    : dataset_(nullptr) {
+    : dataset_(nullptr)
+    , records_buffered_(0)
+    , anchors_buffered_(0) {
 }
 
 void WriterWorkerV4::init(

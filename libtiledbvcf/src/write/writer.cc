@@ -112,8 +112,10 @@ void Writer::register_samples() {
   if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset.metadata().version == TileDBVCFDataset::Version::V3)
     dataset.register_samples(registration_params_);
-  else
+  else {
+    assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
     dataset.register_samples_v4(registration_params_);
+  }
 }
 
 void Writer::ingest_samples() {

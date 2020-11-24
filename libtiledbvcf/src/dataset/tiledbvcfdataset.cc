@@ -558,7 +558,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = vcf_headers_uri(root_uri_, true);
     // Set up and submit query
-    array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+    array.reset(new Array(ctx, array_uri, TILEDB_READ));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -970,14 +970,11 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata_v4(
   get_md_value("tile_capacity", TILEDB_UINT64, &metadata.tile_capacity);
   get_md_value("row_tile_extent", TILEDB_UINT32, &metadata.row_tile_extent);
   get_md_value("anchor_gap", TILEDB_UINT32, &metadata.anchor_gap);
-  //  get_md_value("free_sample_id", TILEDB_UINT32, &metadata.free_sample_id);
   get_md_value(
       "total_contig_length", TILEDB_UINT32, &metadata.total_contig_length);
 
   get_csv_md_value("extra_attributes", &metadata.extra_attributes);
-  //  get_csv_md_value("all_samples", &metadata.all_samples);
 
-  //  get_csv_pairs_md_value("sample_ids", &metadata.sample_ids);
   get_csv_pairs_md_value("contig_offsets", &metadata.contig_offsets);
   get_csv_pairs_md_value("contig_lengths", &metadata.contig_lengths);
 
@@ -1109,12 +1106,13 @@ void TileDBVCFDataset::write_metadata(
   const auto put_csv_metadata = [&data_array](
                                     const std::string& name,
                                     const std::vector<std::string>& values) {
-    std::string val_str;
+    std::stringstream val_strstr;
     for (unsigned i = 0; i < values.size(); i++) {
-      val_str += values[i];
+      val_strstr << values[i];
       if (i < values.size() - 1)
-        val_str.push_back(',');
+        val_strstr << ',';
     }
+    std::string val_str = val_strstr.str();
     std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
     data_array.put_metadata(name, TILEDB_CHAR, b64_str.size(), b64_str.data());
   };
@@ -1127,13 +1125,14 @@ void TileDBVCFDataset::write_metadata(
       [&data_array](
           const std::string& name,
           const std::map<std::string, uint32_t>& values) {
-        std::string val_str;
+        std::stringstream val_strstr;
         for (const auto& s : values) {
-          val_str += s.first;
-          val_str.push_back('\t');
-          val_str += std::to_string(s.second);
-          val_str.push_back(',');
+          val_strstr << s.first;
+          val_strstr << '\t';
+          val_strstr << std::to_string(s.second);
+          val_strstr << ',';
         }
+        std::string val_str = val_strstr.str();
         if (!val_str.empty())
           val_str.pop_back();
         std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
@@ -1174,12 +1173,13 @@ void TileDBVCFDataset::write_metadata_v4(
   const auto put_csv_metadata = [&data_array](
                                     const std::string& name,
                                     const std::vector<std::string>& values) {
-    std::string val_str;
+    std::stringstream val_strstr;
     for (unsigned i = 0; i < values.size(); i++) {
-      val_str += values[i];
+      val_strstr << values[i];
       if (i < values.size() - 1)
-        val_str.push_back(',');
+        val_strstr << ',';
     }
+    std::string val_str = val_strstr.str();
     std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
     data_array.put_metadata(name, TILEDB_CHAR, b64_str.size(), b64_str.data());
   };
@@ -1192,15 +1192,17 @@ void TileDBVCFDataset::write_metadata_v4(
       [&data_array](
           const std::string& name,
           const std::map<std::string, uint32_t>& values) {
-        std::string val_str;
+        std::stringstream val_strstr;
         for (const auto& s : values) {
-          val_str += s.first;
-          val_str.push_back('\t');
-          val_str += std::to_string(s.second);
-          val_str.push_back(',');
+          val_strstr << s.first;
+          val_strstr << '\t';
+          val_strstr << std::to_string(s.second);
+          val_strstr << ',';
         }
+        std::string val_str = val_strstr.str();
         if (!val_str.empty())
           val_str.pop_back();
+        ;
         std::string b64_str = base64_encode(val_str.c_str(), val_str.size());
         data_array.put_metadata(
             name, TILEDB_CHAR, b64_str.size(), b64_str.data());
@@ -1213,17 +1215,13 @@ void TileDBVCFDataset::write_metadata_v4(
   data_array.put_metadata(
       "row_tile_extent", TILEDB_UINT32, 1, &metadata.row_tile_extent);
   data_array.put_metadata("anchor_gap", TILEDB_UINT32, 1, &metadata.anchor_gap);
-  //      data_array.put_metadata(
-  //          "free_sample_id", TILEDB_UINT32, 1, &metadata.free_sample_id);
   data_array.put_metadata(
       "total_contig_length", TILEDB_UINT32, 1, &metadata.total_contig_length);
 
   // Base64 encoded CSV strings
   put_csv_metadata("extra_attributes", metadata.extra_attributes);
-  //      put_csv_metadata("all_samples", metadata.all_samples);
 
   // Base64 encoded TSV+CSV strings
-  //      put_csv_pairs_metadata("sample_ids", metadata.sample_ids);
   put_csv_pairs_metadata("contig_offsets", metadata.contig_offsets);
   put_csv_pairs_metadata("contig_lengths", metadata.contig_lengths);
 }
@@ -1307,10 +1305,10 @@ void TileDBVCFDataset::register_samples_helper_v4(
     if (sample_set->count(s))
       throw std::invalid_argument(
           "Error registering samples; sample " + s + " already exists.");
-    sample_set->insert(s);
+    sample_set->emplace(s);
 
     (*sample_headers)[s] = VCFUtils::hdr_to_string(hdr.get());
-    metadata->all_samples.push_back(s);
+    metadata->all_samples.emplace_back(s);
     metadata->sample_ids[s] = metadata->free_sample_id++;
     if (metadata->contig_offsets.empty()) {
       metadata->contig_offsets = VCFUtils::hdr_get_contig_offsets(
@@ -1340,11 +1338,11 @@ void TileDBVCFDataset::register_samples_helper(
     if (sample_set->count(s))
       throw std::invalid_argument(
           "Error registering samples; sample " + s + " already exists.");
-    sample_set->insert(s);
+    sample_set->emplace(s);
 
     (*sample_headers)[metadata->free_sample_id] =
         VCFUtils::hdr_to_string(hdr.get());
-    metadata->all_samples.push_back(s);
+    metadata->all_samples.emplace_back(s);
     metadata->sample_ids[s] = metadata->free_sample_id++;
     if (metadata->contig_offsets.empty()) {
       metadata->contig_offsets = VCFUtils::hdr_get_contig_offsets(
@@ -1522,7 +1520,7 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = vcf_headers_uri(root_uri, true);
     // Set up and submit query
-    array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+    array.reset(new Array(ctx, array_uri, TILEDB_READ));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -1531,7 +1529,7 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
       std::string array_uri = vcf_headers_uri(root_uri, false);
 
       // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+      array.reset(new Array(ctx, array_uri, TILEDB_READ));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri +

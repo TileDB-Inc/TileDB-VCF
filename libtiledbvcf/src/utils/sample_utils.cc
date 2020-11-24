@@ -161,11 +161,11 @@ std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile(
       result.emplace_back(batch);
       batch = std::vector<SampleAndIndex>();
     }
-    batch.push_back(vec[vec_idx]);
+    batch.emplace_back(vec[vec_idx]);
   }
   // Add last batch if it exists
   if (!batch.empty())
-    result.push_back(batch);
+    result.emplace_back(batch);
 
   return result;
 }
@@ -185,12 +185,12 @@ std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile_v4(
       result.emplace_back(batch);
       batch = std::vector<SampleAndIndex>();
     }
-    batch.push_back(vec[vec_idx]);
+    batch.emplace_back(vec[vec_idx]);
     ++count;
   }
   // Add last batch if it exists
   if (!batch.empty())
-    result.push_back(batch);
+    result.emplace_back(batch);
 
   return result;
 }

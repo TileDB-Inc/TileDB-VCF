@@ -59,7 +59,6 @@ struct SampleAndIndex {
   std::string sample_uri;
   std::string index_uri;
   uint32_t sample_id;
-  //  std::string sample_name;
 };
 
 /** Pair of sample name and ID (row coord). */
@@ -242,7 +241,7 @@ std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile(
 /**
  * Batches the given vector into a vector of vectors based on the tile_size.
  * Ideally the vectors will be fixed (even) sized. If there is not an evenly
- * divisible number of samples the last batch will be smaller
+ * divisible number of samples the last batch will be smaller.
  *
  * @param vec Vector to batch
  * @param batch_size Number of elements per tile extent
