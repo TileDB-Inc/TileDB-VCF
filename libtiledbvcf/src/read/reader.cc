@@ -47,6 +47,8 @@ Reader::~Reader() {
     ctx_->cancel_tasks();
     read_state_.async_query.wait();
   }
+
+  utils::free_htslib_tiledb_context();
 }
 
 void Reader::open_dataset(const std::string& dataset_uri) {
@@ -1399,7 +1401,7 @@ void Reader::prepare_regions_v4(
         query_region_contig = &query_regions->back().second;
       }
       // Start a new query region.
-      query_region_contig->push_back({});
+      query_region_contig->emplace_back();
       query_region_contig->back().col_min = widened_reg_min;
       query_region_contig->back().col_max = reg_max;
       query_region_contig->back().contig = r.seq_name;
@@ -1414,7 +1416,7 @@ void Reader::prepare_regions_v4(
     size_t query_regions_size = query_region_pair.second.size();
     for (size_t i = 0; i < query_regions_size; i++) {
       auto& query_region = query_region_pair.second[i];
-      for (size_t j = i + 1; j < query_regions->size(); j++) {
+      for (size_t j = i + 1; j < query_region_pair.second.size(); j++) {
         auto& query_region_to_check = query_region_pair.second[j];
         if (query_region.col_min <= query_region_to_check.col_max &&
             query_region.col_max >= query_region_to_check.col_min) {

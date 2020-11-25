@@ -41,6 +41,10 @@ namespace vcf {
 Writer::Writer() {
 }
 
+Writer::~Writer() {
+  utils::free_htslib_tiledb_context();
+}
+
 void Writer::init(const std::string& uri, const std::string& config_str) {
   if (!config_str.empty())
     set_tiledb_config(config_str);

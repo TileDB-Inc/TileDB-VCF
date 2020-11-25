@@ -99,6 +99,8 @@ class Writer {
   /** Constructor. */
   Writer();
 
+  ~Writer();
+
   /**
    * Initializes the writer for storing to the given dataset. Opens the array,
    * creates the TileDB query, etc.
