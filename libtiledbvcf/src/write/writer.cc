@@ -41,6 +41,34 @@ namespace vcf {
 Writer::Writer() {
 }
 
+void Writer::init(const std::string& uri, const std::string& config_str) {
+  if (!config_str.empty())
+    set_tiledb_config(config_str);
+
+  set_dataset_uri(uri);
+
+  // Clean up old query and array objects first, if any.
+  query_.reset(nullptr);
+  array_.reset(nullptr);
+
+  dataset_.reset(new TileDBVCFDataset);
+
+  std::vector<std::string> tiledb_config;
+  if (!ingestion_params_.tiledb_config.empty())
+    tiledb_config = ingestion_params_.tiledb_config;
+  else if (!creation_params_.tiledb_config.empty())
+    tiledb_config = creation_params_.tiledb_config;
+  else if (!registration_params_.tiledb_config.empty())
+    tiledb_config = registration_params_.tiledb_config;
+
+  try {
+    dataset_->open(uri, ingestion_params_.tiledb_config);
+  } catch (std::exception& e) {
+    // If the dataset doesn't exist lets not error out, the user might be
+    // creating a new dataset
+  }
+}
+
 void Writer::init(const IngestionParams& params) {
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
@@ -69,6 +97,17 @@ void Writer::init(const IngestionParams& params) {
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
+}
+
+void Writer::set_tiledb_config(const std::string& config_str) {
+  creation_params_.tiledb_config = utils::split(config_str, ',');
+  registration_params_.tiledb_config = utils::split(config_str, ',');
+  ingestion_params_.tiledb_config = utils::split(config_str, ',');
+  // Attempt to set config to check validity
+  // cfg object will be discarded as a later call to tiledb_init will properly
+  // create config/context
+  tiledb::Config cfg;
+  utils::set_tiledb_config(ingestion_params_.tiledb_config, &cfg);
 }
 
 void Writer::set_all_params(const IngestionParams& params) {

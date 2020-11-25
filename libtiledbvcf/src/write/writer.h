@@ -99,6 +99,23 @@ class Writer {
   /** Constructor. */
   Writer();
 
+  /**
+   * Initializes the writer for storing to the given dataset. Opens the array,
+   * creates the TileDB query, etc.
+   *
+   * @param dataset Dataset where samples will be stored
+   * @param params uri URI of array
+   */
+  void init(const std::string& uri, const std::string& config_str = "");
+
+  /**
+   * Set writer tiledb config parameters, these can also be passed directly on
+   * the ingestion params
+   * @param config_str csv string of tiledb options in key2=value1,key2=value2
+   * form
+   */
+  void set_tiledb_config(const std::string& config_str);
+
   /** Convenience function to set all parameters from the given struct. */
   void set_all_params(const IngestionParams& params);
 

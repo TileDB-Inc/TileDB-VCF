@@ -140,4 +140,10 @@ int32_t Writer::get_schema_version() {
   return version;
 }
 
+void Writer::set_tiledb_config(const std::string& config_str) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_writer_set_tiledb_config(reader, config_str.c_str()));
+}
+
 }  // namespace tiledbvcfpy

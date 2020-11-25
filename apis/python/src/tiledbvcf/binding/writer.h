@@ -89,6 +89,9 @@ class Writer {
    */
   void set_verbose(bool verbose);
 
+/** Sets CSV TileDB config parameters. */
+  void set_tiledb_config(const std::string& config_str);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

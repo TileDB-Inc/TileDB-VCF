@@ -46,10 +46,9 @@ class Dataset(object):
             self.reader.set_verbose(verbose)
         elif self.mode == 'w':
             self.writer = libtiledbvcf.Writer()
+            self._set_write_cfg(cfg)
             self.writer.init(uri)
             self.writer.set_verbose(verbose)
-            if cfg is not None:
-                raise Exception('Config not supported in write mode')
         else:
             raise Exception('Unsupported dataset mode {}'.format(mode))
 
@@ -85,6 +84,30 @@ class Dataset(object):
                 except ImportError:
                     pass
             self.reader.set_tiledb_config(','.join(tiledb_config_list))
+
+    def _set_write_cfg(self, cfg):
+        if cfg is None:
+            return
+        if cfg.tiledb_config is not None:
+            tiledb_config_list = list()
+            if  isinstance(cfg.tiledb_config, list):
+                tiledb_config_list = cfg.tiledb_config
+            # Support dictionaries and tiledb.Config objects also
+            elif isinstance(cfg.tiledb_config, dict):
+                for key in cfg.tiledb_config:
+                    if cfg.tiledb_config[key] != "":
+                        tiledb_config_list.append("{}={}".format(key, cfg.tiledb_config[key]))
+            else:
+                try:
+                    import tiledb
+                    if isinstance(cfg.tiledb_config, tiledb.Config):
+                        for key in cfg.tiledb_config:
+                            if cfg.tiledb_config[key] != "":
+                                tiledb_config_list.append("{}={}".format(key, cfg.tiledb_config[key]))
+                except ImportError:
+                    pass
+            self.writer.set_tiledb_config(','.join(tiledb_config_list))
+
 
     def read(self, attrs, samples=None, regions=None, samples_file=None,
              bed_file=None):

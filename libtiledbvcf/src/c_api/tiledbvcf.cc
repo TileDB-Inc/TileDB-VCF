@@ -742,7 +742,7 @@ int32_t tiledb_vcf_writer_init(
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_dataset_uri(dataset_uri)))
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->init(dataset_uri)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
@@ -901,6 +901,17 @@ int32_t tiledb_vcf_writer_get_dataset_version(
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(writer, writer->writer_->dataset_version(version)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_tiledb_config(
+    tiledb_vcf_writer_t* writer, const char* config) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_tiledb_config(config)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
