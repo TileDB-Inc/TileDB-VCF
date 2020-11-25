@@ -41,11 +41,45 @@ namespace vcf {
 Writer::Writer() {
 }
 
-void Writer::init(
-    const TileDBVCFDataset& dataset, const IngestionParams& params) {
+Writer::~Writer() {
+  utils::free_htslib_tiledb_context();
+}
+
+void Writer::init(const std::string& uri, const std::string& config_str) {
+  if (!config_str.empty())
+    set_tiledb_config(config_str);
+
+  set_dataset_uri(uri);
+
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
   array_.reset(nullptr);
+
+  dataset_.reset(new TileDBVCFDataset);
+
+  std::vector<std::string> tiledb_config;
+  if (!ingestion_params_.tiledb_config.empty())
+    tiledb_config = ingestion_params_.tiledb_config;
+  else if (!creation_params_.tiledb_config.empty())
+    tiledb_config = creation_params_.tiledb_config;
+  else if (!registration_params_.tiledb_config.empty())
+    tiledb_config = registration_params_.tiledb_config;
+
+  try {
+    dataset_->open(uri, ingestion_params_.tiledb_config);
+  } catch (std::exception& e) {
+    // If the dataset doesn't exist lets not error out, the user might be
+    // creating a new dataset
+  }
+}
+
+void Writer::init(const IngestionParams& params) {
+  // Clean up old query and array objects first, if any.
+  query_.reset(nullptr);
+  array_.reset(nullptr);
+
+  dataset_.reset(new TileDBVCFDataset);
+  dataset_->open(ingestion_params_.uri, ingestion_params_.tiledb_config);
 
   tiledb_config_.reset(new Config);
   (*tiledb_config_)["vfs.s3.multipart_part_size"] =
@@ -61,12 +95,23 @@ void Writer::init(
   utils::set_htslib_tiledb_context(params.tiledb_config);
 
   vfs_.reset(new VFS(*ctx_, *tiledb_config_));
-  array_.reset(new Array(*ctx_, dataset.data_uri(), TILEDB_WRITE));
+  array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
+}
+
+void Writer::set_tiledb_config(const std::string& config_str) {
+  creation_params_.tiledb_config = utils::split(config_str, ',');
+  registration_params_.tiledb_config = utils::split(config_str, ',');
+  ingestion_params_.tiledb_config = utils::split(config_str, ',');
+  // Attempt to set config to check validity
+  // cfg object will be discarded as a later call to tiledb_init will properly
+  // create config/context
+  tiledb::Config cfg;
+  utils::set_tiledb_config(ingestion_params_.tiledb_config, &cfg);
 }
 
 void Writer::set_all_params(const IngestionParams& params) {
@@ -107,14 +152,16 @@ void Writer::create_dataset() {
 }
 
 void Writer::register_samples() {
-  TileDBVCFDataset dataset;
-  dataset.open(registration_params_.uri, ingestion_params_.tiledb_config);
-  if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
-      dataset.metadata().version == TileDBVCFDataset::Version::V3)
-    dataset.register_samples(registration_params_);
+  dataset_.reset(new TileDBVCFDataset);
+  dataset_->open(registration_params_.uri, ingestion_params_.tiledb_config);
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    dataset_->register_samples(registration_params_);
   else {
-    assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
-    dataset.register_samples_v4(registration_params_);
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    throw std::runtime_error(
+        "Only v2 and v3 datasets require registration. V4 and newer are "
+        "capable of ingestion without registration.");
   }
 }
 
@@ -131,26 +178,29 @@ void Writer::ingest_samples() {
     tiledb::Stats::reset();
   }
 
-  TileDBVCFDataset dataset;
-  dataset.open(ingestion_params_.uri, ingestion_params_.tiledb_config);
-  init(dataset, ingestion_params_);
+  init(ingestion_params_);
 
-  // Get the list of samples to ingest, sorted on ID
-  auto samples = prepare_sample_list(dataset, ingestion_params_);
+  // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
+  std::vector<SampleAndIndex> samples;
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    samples = prepare_sample_list(ingestion_params_);
+  else
+    samples = prepare_sample_list_v4(ingestion_params_);
 
   // Get a list of regions to ingest, covering the whole genome. The list of
   // disjoint region is used to divvy up work across ingestion threads.
-  auto regions = prepare_region_list(dataset, ingestion_params_);
+  auto regions = prepare_region_list(ingestion_params_);
 
   // Batch the list of samples per space tile.
   std::vector<std::vector<SampleAndIndex>> batches;
-  if (dataset.metadata().version == TileDBVCFDataset::V2 ||
-      dataset.metadata().version == TileDBVCFDataset::Version::V3)
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
     batches =
-        batch_elements_by_tile(samples, dataset.metadata().row_tile_extent);
+        batch_elements_by_tile(samples, dataset_->metadata().row_tile_extent);
   else
-    batches =
-        batch_elements_by_tile_v4(samples, dataset.metadata().row_tile_extent);
+    batches = batch_elements_by_tile_v4(
+        samples, dataset_->metadata().row_tile_extent);
 
   // Set up parameters for two scratch spaces.
   const auto scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
@@ -192,8 +242,7 @@ void Writer::ingest_samples() {
 
     // Ingest the batch.
     auto start_batch = std::chrono::steady_clock::now();
-    auto result =
-        ingest_samples(dataset, ingestion_params_, local_samples, regions);
+    auto result = ingest_samples(ingestion_params_, local_samples, regions);
     records_ingested += result.first;
     anchors_ingested += result.second;
     samples_ingested += local_samples.size();
@@ -215,8 +264,7 @@ void Writer::ingest_samples() {
 
   // Ingest the last batch
   auto local_samples = future_paths.get();
-  auto result =
-      ingest_samples(dataset, ingestion_params_, local_samples, regions);
+  auto result = ingest_samples(ingestion_params_, local_samples, regions);
   records_ingested += result.first;
   anchors_ingested += result.second;
 
@@ -244,43 +292,47 @@ void Writer::ingest_samples() {
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
-    const TileDBVCFDataset& dataset,
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples,
-    const std::vector<Region>& regions) {
+    std::vector<Region>& regions) {
   uint64_t records_ingested = 0, anchors_ingested = 0;
-  if (samples.empty() || regions.empty())
+  if (samples.empty() ||
+      (regions.empty() &&
+       (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V2)))
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
-    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
     } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
     }
 
-    workers[i]->init(dataset, params, samples);
+    workers[i]->init(*dataset_, params, samples);
   }
 
   // First compose the set of contigs that are nonempty.
   // This can significantly speed things up in the common case that the sample
   // headers list many contigs that do not actually have any records.
-  const auto& metadata = dataset.metadata();
+  const auto& metadata = dataset_->metadata();
   std::set<std::string> nonempty_contigs;
+  std::map<std::string, std::string> sample_headers;
+  std::vector<Region> regions_v4;
   for (const auto& s : samples) {
-    if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       VCFV2 vcf;
       vcf.open(s.sample_uri, s.index_uri);
       for (const auto& p : metadata.contig_offsets) {
         if (vcf.contig_has_records(p.first))
           nonempty_contigs.insert(p.first);
       }
-    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       VCFV3 vcf;
       vcf.open(s.sample_uri, s.index_uri);
       for (const auto& p : metadata.contig_offsets) {
@@ -288,14 +340,55 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
           nonempty_contigs.insert(p.first);
       }
     } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
       VCFV4 vcf;
       vcf.open(s.sample_uri, s.index_uri);
-      for (const auto& p : metadata.contig_offsets) {
-        if (vcf.contig_has_records(p.first))
-          nonempty_contigs.insert(p.first);
+      // For V4 we also need to check the header, collect and write them
+
+      // Allocate a header struct and try to parse from the local file.
+      SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
+
+      std::vector<std::string> hdr_samples =
+          VCFUtils::hdr_get_samples(hdr.get());
+      if (hdr_samples.size() > 1)
+        throw std::invalid_argument(
+            "Error registering samples; a file has more than 1 sample. "
+            "Ingestion "
+            "from cVCF is not supported.");
+
+      const auto& sample_name = hdr_samples[0];
+      sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
+
+      // Loop over all contigs in the header, store the nonempty and also the
+      // regions
+      for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+        nonempty_contigs.emplace(contig_region.seq_name);
+
+        // regions
+        bool region_found = false;
+        for (auto& region : regions_v4) {
+          if (region.seq_name == contig_region.seq_name) {
+            region.max = std::max(region.max, contig_region.max);
+            region_found = true;
+            break;
+          }
+        }
+
+        if (!region_found)
+          regions_v4.emplace_back(contig_region);
       }
     }
+  }
+
+  // For V4 lets write the headers for this batch and also prepare the region
+  // list specific to this batch
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    // If there were no regions in the VCF files return early
+    if (regions_v4.empty())
+      return {0, 0};
+
+    dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
+    regions = prepare_region_list(regions_v4, ingestion_params_);
   }
 
   const size_t nregions = regions.size();
@@ -330,7 +423,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
           worker->buffers().set_buffers(
-              query_.get(), dataset.metadata().version);
+              query_.get(), dataset_->metadata().version);
           auto st = query_->submit();
           if (st != Query::Status::COMPLETE)
             throw std::runtime_error(
@@ -365,7 +458,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 }
 
 std::vector<SampleAndIndex> Writer::prepare_sample_list(
-    const TileDBVCFDataset& dataset, const IngestionParams& params) const {
+    const IngestionParams& params) const {
   auto samples = SampleUtils::build_samples_uri_list(
       *vfs_, params.samples_file_uri, params.sample_uris);
 
@@ -377,23 +470,59 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
   std::vector<std::pair<SampleAndIndex, std::string>> sorted;
   for (size_t i = 0; i < samples.size(); i++)
     sorted.emplace_back(samples[i], sample_names[i]);
+
+  TileDBVCFDataset* dataset = dataset_.get();
   std::sort(
       sorted.begin(),
       sorted.end(),
-      [&dataset](
+      [dataset](
           const std::pair<SampleAndIndex, std::string>& a,
           const std::pair<SampleAndIndex, std::string>& b) {
-        return dataset.metadata().sample_ids.at(a.second) <
-               dataset.metadata().sample_ids.at(b.second);
+        return dataset->metadata().sample_ids.at(a.second) <
+               dataset->metadata().sample_ids.at(b.second);
       });
 
   std::vector<SampleAndIndex> result;
   // Set sample id for later use
   for (const auto& pair : sorted) {
     auto s = pair.first;
-    if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
-        dataset.metadata().version == TileDBVCFDataset::Version::V3)
-      s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+      s.sample_id = dataset_->metadata().sample_ids.at(pair.second);
+    result.push_back(s);
+  }
+
+  return result;
+}
+
+std::vector<SampleAndIndex> Writer::prepare_sample_list_v4(
+    const IngestionParams& params) const {
+  auto samples = SampleUtils::build_samples_uri_list(
+      *vfs_, params.samples_file_uri, params.sample_uris);
+
+  // Get sample names
+  auto sample_names =
+      SampleUtils::download_sample_names(*vfs_, samples, params.scratch_space);
+
+  // Sort by sample ID
+  std::vector<std::pair<SampleAndIndex, std::string>> sorted(samples.size());
+  for (size_t i = 0; i < samples.size(); i++)
+    sorted[i] = std::make_pair(samples[i], sample_names[i]);
+  std::sort(
+      sorted.begin(),
+      sorted.end(),
+      [](const std::pair<SampleAndIndex, std::string>& a,
+         const std::pair<SampleAndIndex, std::string>& b) {
+        return a.second < b.second;
+      });
+
+  std::vector<SampleAndIndex> result;
+  // Set sample id for later use
+  for (const auto& pair : sorted) {
+    auto s = pair.first;
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+      s.sample_id = 0;
     result.push_back(s);
   }
 
@@ -401,8 +530,8 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
 }
 
 std::vector<Region> Writer::prepare_region_list(
-    const TileDBVCFDataset& dataset, const IngestionParams& params) const {
-  std::vector<Region> all_contigs = dataset.all_contigs();
+    const IngestionParams& params) const {
+  std::vector<Region> all_contigs = dataset_->all_contigs();
   std::vector<Region> result;
 
   for (const auto& r : all_contigs) {
@@ -419,7 +548,26 @@ std::vector<Region> Writer::prepare_region_list(
   return result;
 }
 
-void Writer::set_scratch_space(const std::string path, uint64_t size) {
+std::vector<Region> Writer::prepare_region_list(
+    const std::vector<Region>& all_contigs,
+    const IngestionParams& params) const {
+  std::vector<Region> result;
+
+  for (const auto& r : all_contigs) {
+    const uint32_t contig_len = r.max - r.min + 1;
+    const uint32_t ntasks = utils::ceil(contig_len, params.thread_task_size);
+    for (uint32_t i = 0; i < ntasks; i++) {
+      uint32_t task_min = r.min + i * params.thread_task_size;
+      uint32_t task_max =
+          std::min(task_min + params.thread_task_size - 1, r.max);
+      result.emplace_back(r.seq_name, task_min, task_max);
+    }
+  }
+
+  return result;
+}
+
+void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   ScratchSpaceInfo scratchSpaceInfo;
   scratchSpaceInfo.path = path;
   scratchSpaceInfo.size_mb = size;
@@ -443,6 +591,12 @@ void Writer::tiledb_stats(char** stats) {
   auto rc = tiledb_stats_dump_str(stats);
   if (rc != TILEDB_OK)
     throw std::runtime_error("Error dumping tiledb statistics");
+}
+
+void Writer::dataset_version(int32_t* version) const {
+  if (dataset_ == nullptr)
+    throw std::runtime_error("Error getting dataset version");
+  *version = dataset_->metadata().version;
 }
 
 }  // namespace vcf

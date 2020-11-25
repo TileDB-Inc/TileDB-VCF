@@ -99,6 +99,25 @@ class Writer {
   /** Constructor. */
   Writer();
 
+  ~Writer();
+
+  /**
+   * Initializes the writer for storing to the given dataset. Opens the array,
+   * creates the TileDB query, etc.
+   *
+   * @param dataset Dataset where samples will be stored
+   * @param params uri URI of array
+   */
+  void init(const std::string& uri, const std::string& config_str = "");
+
+  /**
+   * Set writer tiledb config parameters, these can also be passed directly on
+   * the ingestion params
+   * @param config_str csv string of tiledb options in key2=value1,key2=value2
+   * form
+   */
+  void set_tiledb_config(const std::string& config_str);
+
   /** Convenience function to set all parameters from the given struct. */
   void set_all_params(const IngestionParams& params);
 
@@ -146,7 +165,7 @@ class Writer {
   void ingest_samples();
 
   /** Set ingestion scatch space for ingestion or registration */
-  void set_scratch_space(const std::string path, uint64_t size);
+  void set_scratch_space(const std::string& path, uint64_t size);
 
   /**
    * Sets verbose mode on or off
@@ -163,6 +182,9 @@ class Writer {
   /** Fetches tiledb stats as a string */
   void tiledb_stats(char** stats);
 
+  /** Gets the version number of the open dataset. */
+  void dataset_version(int32_t* version) const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -173,6 +195,8 @@ class Writer {
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;
+  /** Handle on the dataset being written to. */
+  std::unique_ptr<TileDBVCFDataset> dataset_;
 
   CreationParams creation_params_;
   RegistrationParams registration_params_;
@@ -189,7 +213,7 @@ class Writer {
    * @param dataset Dataset where samples will be stored
    * @param params Ingestion parameter
    */
-  void init(const TileDBVCFDataset& dataset, const IngestionParams& params);
+  void init(const IngestionParams& params);
 
   /**
    * Prepares the samples list to be ingested. This combines the sample URI list
@@ -197,7 +221,22 @@ class Writer {
    * list.
    */
   std::vector<SampleAndIndex> prepare_sample_list(
-      const TileDBVCFDataset& dataset, const IngestionParams& params) const;
+      const IngestionParams& params) const;
+
+  /**
+   * Prepares the samples list to be ingested. This combines the sample URI list
+   * and file, sorts the samples by ID (row coord) and returns the resulting
+   * list.
+   */
+  std::vector<SampleAndIndex> prepare_sample_list_v4(
+      const IngestionParams& params) const;
+
+  /**
+   * Prepares a list of disjoint genomic regions that cover the whole genome.
+   * This is used to split up work across the ingestion threads, and so the
+   * returned list depends on the thread task size parameter.
+   */
+  std::vector<Region> prepare_region_list(const IngestionParams& params) const;
 
   /**
    * Prepares a list of disjoint genomic regions that cover the whole genome.
@@ -205,22 +244,21 @@ class Writer {
    * returned list depends on the thread task size parameter.
    */
   std::vector<Region> prepare_region_list(
-      const TileDBVCFDataset& dataset, const IngestionParams& params) const;
+      const std::vector<Region>& all_contigs,
+      const IngestionParams& params) const;
 
   /**
    * Ingests a batch of samples.
    *
-   * @param dataset Destination dataset
    * @param params Ingestion parameters
    * @param samples List of samples to ingest with this call
    * @param regions List of regions covering the whole genome
    * @return A pair (num_records_ingested, num_anchors_ingested)
    */
   std::pair<uint64_t, uint64_t> ingest_samples(
-      const TileDBVCFDataset& dataset,
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
-      const std::vector<Region>& regions);
+      std::vector<Region>& regions);
 };
 
 }  // namespace vcf

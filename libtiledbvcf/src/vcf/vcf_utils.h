@@ -37,6 +37,7 @@
 #include <htslib/vcfutils.h>
 #include <map>
 
+#include "region.h"
 #include "vcf/htslib_value.h"
 
 namespace tiledb {
@@ -57,6 +58,9 @@ typedef std::unique_ptr<htsFile, decltype(&hts_close)> SafeBCFFh;
 /** Alias for unique_ptr to bcf_sr_regions_t. */
 typedef std::unique_ptr<bcf_sr_regions_t, decltype(&bcf_sr_regions_destroy)>
     SafeRegionFh;
+
+// Forward declare region
+struct Region;
 
 /** HTSFile index type. */
 enum class Idx { HTS, TBX };
@@ -112,6 +116,14 @@ class VCFUtils {
    */
   static std::map<std::string, uint32_t> hdr_get_contig_offsets(
       bcf_hdr_t* hdr, std::map<std::string, uint32_t>* contig_lengths);
+
+  /**
+   * Helper function to get a set of contigs from a header
+   * @param hdr Header instance
+   * @return Vector of contig regions
+   */
+  static std::vector<tiledb::vcf::Region> hdr_get_contigs_regions(
+      bcf_hdr_t* hdr);
 
   /**
    * Helper function that normalizes a sample name:

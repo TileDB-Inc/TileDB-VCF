@@ -36,6 +36,10 @@
 namespace tiledb {
 namespace vcf {
 
+// Forward declare SafeRegionFh
+typedef std::unique_ptr<bcf_sr_regions_t, decltype(&bcf_sr_regions_destroy)>
+    SafeRegionFh;
+
 /**
  * Struct representing a parsed region string.
  *

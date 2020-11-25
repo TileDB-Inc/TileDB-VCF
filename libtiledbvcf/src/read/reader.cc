@@ -47,6 +47,8 @@ Reader::~Reader() {
     ctx_->cancel_tasks();
     read_state_.async_query.wait();
   }
+
+  utils::free_htslib_tiledb_context();
 }
 
 void Reader::open_dataset(const std::string& dataset_uri) {
@@ -401,7 +403,7 @@ bool Reader::next_read_batch() {
   // Setup v2/v3 read details
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    read_state_.sample_min = std::numeric_limits<uint32_t>::max();
+    read_state_.sample_min = std::numeric_limits<uint32_t>::max() - 1;
     read_state_.sample_max = std::numeric_limits<uint32_t>::min();
     for (const auto& s : read_state_.current_sample_batches) {
       read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
@@ -1231,14 +1233,10 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
 
   // No specified samples means all samples.
   if (result.empty()) {
-    const auto& md = dataset_->metadata();
-    for (const auto& s : md.sample_names) {
-      auto it = md.sample_ids.find(s);
-      if (it == md.sample_ids.end())
-        throw std::runtime_error(
-            "Error preparing sample list for export; sample '" + s +
-            "' has not been registered.");
-      result.push_back({.sample_name = s, .sample_id = it->second});
+    const auto& samples = TileDBVCFDataset::get_all_samples_from_vcf_headers(
+        *ctx_, dataset_->root_uri());
+    for (const auto& s : samples) {
+      result.push_back({.sample_name = s, .sample_id = 0});
     }
   }
 
@@ -1277,44 +1275,51 @@ void Reader::prepare_regions_v4(
     }
   }
 
-  // No specified regions means all regions.
-  if (pre_partition_regions_list.empty())
-    pre_partition_regions_list = dataset_->all_contigs_list();
-
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
-  std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
-      array.non_empty_domain<uint32_t>(1);
+  std::pair<uint32_t, uint32_t> region_non_empty_domain =
+      array.non_empty_domain<uint32_t>("start_pos");
+
+  std::pair<std::string, std::string> contig_non_empty_domain =
+      array.non_empty_domain_var("contig");
+
+  // No specified regions means all regions.
+  if (pre_partition_regions_list.empty()) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+      pre_partition_regions_list = dataset_->all_contigs_list();
+    else {
+      pre_partition_regions_list = dataset_->all_contigs_list_v4(*ctx_);
+    }
+  }
+
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
   // inside the nonEmptyDomain This will balance the partitioning better my
   // removing empty regions
   for (auto& r : pre_partition_regions_list) {
-    uint32_t contig_offset;
-    try {
-      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
-    } catch (const std::out_of_range&) {
-      throw std::runtime_error(
-          "Error preparing regions for export; no contig named '" + r.seq_name +
-          "' in dataset.");
-    }
-
-    r.seq_offset = contig_offset;
+    r.seq_offset = 0;
     const uint32_t reg_min = r.min;
     const uint32_t reg_max = r.max;
 
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
-    if (widened_reg_min <= regionNonEmptyDomain.second &&
-        reg_max >= regionNonEmptyDomain.first) {
+    if (widened_reg_min <= region_non_empty_domain.second &&
+        reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;
 
-  // Sort all by global column coord.
+  // Sort all by contig.
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
-    Region::sort(dataset_->metadata().contig_offsets, regions);
+    std::sort(
+        regions->begin(), regions->end(), [](const Region& a, const Region& b) {
+          if (a.seq_name == b.seq_name)
+            return a.min < b.min;
+          return a.seq_name < b.seq_name;
+        });
+
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
       utils::enable_pretty_print_numbers(std::cout);
@@ -1352,15 +1357,6 @@ void Reader::prepare_regions_v4(
   // Expand individual regions to a minimum width of the anchor gap.
   size_t region_index = 0;
   for (auto& r : *regions) {
-    uint32_t contig_offset;
-    try {
-      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
-    } catch (const std::out_of_range&) {
-      throw std::runtime_error(
-          "Error preparing regions for export; no contig named '" + r.seq_name +
-          "' in dataset.");
-    }
-
     // Save mapping of contig to region indexing
     // Used in read to limit region intersection checking to only regions of
     // same contig
@@ -1372,7 +1368,7 @@ void Reader::prepare_regions_v4(
         ->second.emplace_back(region_index);
     ++region_index;
 
-    r.seq_offset = contig_offset;
+    r.seq_offset = 0;
     const uint32_t reg_min = r.min;
     const uint32_t reg_max = r.max;
 
@@ -1405,7 +1401,7 @@ void Reader::prepare_regions_v4(
         query_region_contig = &query_regions->back().second;
       }
       // Start a new query region.
-      query_region_contig->push_back({});
+      query_region_contig->emplace_back();
       query_region_contig->back().col_min = widened_reg_min;
       query_region_contig->back().col_max = reg_max;
       query_region_contig->back().contig = r.seq_name;
@@ -1420,7 +1416,7 @@ void Reader::prepare_regions_v4(
     size_t query_regions_size = query_region_pair.second.size();
     for (size_t i = 0; i < query_regions_size; i++) {
       auto& query_region = query_region_pair.second[i];
-      for (size_t j = i + 1; j < query_regions->size(); j++) {
+      for (size_t j = i + 1; j < query_region_pair.second.size(); j++) {
         auto& query_region_to_check = query_region_pair.second[j];
         if (query_region.col_min <= query_region_to_check.col_max &&
             query_region.col_max >= query_region_to_check.col_min) {
@@ -1474,9 +1470,9 @@ void Reader::prepare_regions_v3(
     pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
-  std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
+  std::pair<uint32_t, uint32_t> region_non_empty_domain;
   const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
-  regionNonEmptyDomain = nonEmptyDomain[1].second;
+  region_non_empty_domain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
   // inside the nonEmptyDomain This will balance the partitioning better my
@@ -1497,8 +1493,8 @@ void Reader::prepare_regions_v3(
 
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
-    if (widened_reg_min <= regionNonEmptyDomain.second &&
-        reg_max >= regionNonEmptyDomain.first) {
+    if (widened_reg_min <= region_non_empty_domain.second &&
+        reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
@@ -1609,9 +1605,9 @@ void Reader::prepare_regions_v2(
     pre_partition_regions_list = dataset_->all_contigs_list();
 
   Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
-  std::pair<uint32_t, uint32_t> regionNonEmptyDomain;
+  std::pair<uint32_t, uint32_t> region_non_empty_domain;
   const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
-  regionNonEmptyDomain = nonEmptyDomain[1].second;
+  region_non_empty_domain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
   // inside the nonEmptyDomain This will balance the partitioning better my
@@ -1633,9 +1629,9 @@ void Reader::prepare_regions_v2(
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_max = reg_max + g;
     widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
-    if (reg_min <= regionNonEmptyDomain.second &&
-        widened_reg_max >= regionNonEmptyDomain.first) {
+        widened_reg_max, std::numeric_limits<uint32_t>::max() - 1);
+    if (reg_min <= region_non_empty_domain.second &&
+        widened_reg_max >= region_non_empty_domain.first) {
       filtered_regions.emplace_back(std::move(r));
     }
   }
@@ -1698,7 +1694,7 @@ void Reader::prepare_regions_v2(
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_max = reg_max + g;
     widened_reg_max = std::min<uint64_t>(
-        widened_reg_max, std::numeric_limits<uint32_t>::max());
+        widened_reg_max, std::numeric_limits<uint32_t>::max() - 1);
 
     if (prev_reg_max + 1 >= reg_min && !query_regions->empty()) {
       // Previous widened region overlaps this one; merge.

@@ -33,7 +33,6 @@ function create_register_ingest {
     local uri=$1
     shift
     $tilevcf create -u $uri || exit 1
-    $tilevcf register -u $uri $@ || exit 1
     $tilevcf store -u $uri $@ || exit 1
 }
 
@@ -53,31 +52,24 @@ create_register_ingest ingested_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
 create_register_ingest ingested_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz
 
 $tilevcf create -u ingested_3_attrs -a fmt_DP,info_MLEAC,info_MLEAF,info_MQ,fmt_AD,info_GQ || exit 1
-$tilevcf register -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
 $tilevcf store -u ingested_3_attrs ${input_dir}/small3.bcf || exit 1
 $tilevcf create -u ingested_append -a fmt_DP,fmt_AD,info_GQ || exit 1
-$tilevcf register -u ingested_append ${input_dir}/small.bcf ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_append ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_append ${input_dir}/small.bcf || exit 1
 echo -e "${input_dir}/small.bcf\n${input_dir}/small2.bcf" > samples.txt
 $tilevcf create -u ingested_from_file -a fmt_DP,fmt_AD,info_GQ || exit 1
-$tilevcf register -u ingested_from_file -f samples.txt || exit 1
 $tilevcf store -u ingested_from_file --remove-sample-file -f samples.txt || exit 1
 test -e samples.txt && exit 1
 $tilevcf create -u ingested_diff_order || exit 1
-$tilevcf register -u ingested_diff_order ${input_dir}/small.bcf ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_diff_order ${input_dir}/small2.bcf ${input_dir}/small.bcf || exit 1
 $tilevcf create -u ingested_buffered || exit 1
-$tilevcf register -u ingested_buffered ${input_dir}/small.bcf ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_buffered -n 1 ${input_dir}/small2.bcf ${input_dir}/small.bcf || exit 1
 $tilevcf create -u ingested_capacity -c 1 || exit 1
-$tilevcf register -u ingested_capacity ${input_dir}/small.bcf ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_capacity ${input_dir}/small2.bcf ${input_dir}/small.bcf || exit 1
 rm -f samples.txt
 echo -e "${input_dir}/separate_indexes/small.bcf\t${input_dir}/separate_indexes/idx/small_index.csi" >> samples.txt
 echo -e "${input_dir}/separate_indexes/small2.bcf\t${input_dir}/separate_indexes/idx/small2_index.csi" >> samples.txt
 $tilevcf create -u ingested_sep_indexes -a fmt_DP,fmt_AD,info_GQ || exit 1
-$tilevcf register -u ingested_sep_indexes -f samples.txt || exit 1
 $tilevcf store -u ingested_sep_indexes --remove-sample-file -f samples.txt || exit 1
 test -e samples.txt && exit 1
 
@@ -336,9 +328,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 # Check multiple register/store stages
 rm -rf ingested_1_2 HG00280.vcf HG01762.vcf
 $tilevcf create -u ingested_1_2 || exit 1
-$tilevcf register -u ingested_1_2 ${input_dir}/small2.bcf || exit 1
 $tilevcf store -u ingested_1_2 ${input_dir}/small2.bcf || exit 1
-$tilevcf register -u ingested_1_2 ${input_dir}/small.bcf || exit 1
 $tilevcf store -u ingested_1_2 ${input_dir}/small.bcf || exit 1
 $tilevcf export -u ingested_1_2 -s HG01762,HG00280 -O v
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
@@ -374,7 +364,6 @@ EOF
 echo ""
 echo "** Expected failure error messages follow:"
 $tilevcf create -u ingested_comb || exit 1
-$tilevcf register -u ingested_comb ${input_dir}/small_combined.bcf && exit 1
 rm -f HG00280.vcf HG01762.vcf
 $tilevcf export -u ingested_1_2 -s HG01762,HG00280 -O v || exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG00280.vcf && exit 1
@@ -388,7 +377,6 @@ $tilevcf create -u ingested_bad -a GT && exit 1
 
 echo "Expecture failure with duplicate start pos"
 $tilevcf create -u errored_dupe_start_pos --no-duplicates || exit 1
-$tilevcf register -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz || exit 1
 $tilevcf store -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz && exit 1
 echo "** End expected error messages."
 

@@ -79,12 +79,18 @@ class Writer {
 
   void ingest_samples();
 
+    /** Returns schema version number of the TileDB VCF dataset */
+  int32_t get_schema_version();
+
   /**
    * Set writer verbose output mode
    *
    * @param verbose mode
    */
   void set_verbose(bool verbose);
+
+/** Sets CSV TileDB config parameters. */
+  void set_tiledb_config(const std::string& config_str);
 
  private:
   /** Helper function to free a C writer instance */

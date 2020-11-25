@@ -177,15 +177,6 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
   create_args.extra_attributes = {"fmt_GT", "fmt_PL", "fmt_MIN_DP"};
   TileDBVCFDataset::create(create_args);
 
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest the samples
   {
     Writer writer;
@@ -447,15 +438,6 @@ TEST_CASE(
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
 
-  // Register
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest
   {
     Writer writer;
@@ -501,15 +483,6 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -594,15 +567,6 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -726,15 +690,6 @@ TEST_CASE("TileDB-VCF: Test export to BCF", "[tiledbvcf][export]") {
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
 
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest the samples
   {
     Writer writer;
@@ -784,15 +739,6 @@ TEST_CASE("TileDB-VCF: Test export to TSV", "[tiledbvcf][export]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -845,15 +791,6 @@ TEST_CASE(
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -920,15 +857,6 @@ TEST_CASE(
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -1021,15 +949,6 @@ TEST_CASE("TileDB-VCF: Test export limit records", "[tiledbvcf][export]") {
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
 
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
-
   // Ingest the samples
   {
     Writer writer;
@@ -1086,15 +1005,6 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {
@@ -1255,18 +1165,12 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   // Register the samples in batches
   std::vector<std::string> all_samples;
   for (unsigned i = 0; i < 10; i++) {
-    RegistrationParams args;
     for (unsigned j = 1; j <= 10; j++) {
       unsigned idx = i * 10 + j;
       std::string uri =
           input_dir + "/random_synthetic/G" + std::to_string(idx) + ".bcf";
-      args.sample_uris.push_back(uri);
       all_samples.push_back(uri);
     }
-
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1332,18 +1236,12 @@ TEST_CASE("TileDB-VCF: Test export 100 using BED", "[tiledbvcf][export]") {
   // Register the samples in batches
   std::vector<std::string> all_samples;
   for (unsigned i = 0; i < 10; i++) {
-    RegistrationParams args;
     for (unsigned j = 1; j <= 10; j++) {
       unsigned idx = i * 10 + j;
       std::string uri =
           input_dir + "/random_synthetic/G" + std::to_string(idx) + ".bcf";
-      args.sample_uris.push_back(uri);
       all_samples.push_back(uri);
     }
-
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1397,15 +1295,6 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
   create_args.tile_capacity = 10000;
   create_args.extra_attributes = {"info_BaseQRankSum", "info_DP", "fmt_DP"};
   TileDBVCFDataset::create(create_args);
-
-  // Register two samples
-  {
-    TileDBVCFDataset ds;
-    ds.open(dataset_uri);
-    RegistrationParams args;
-    args.sample_uris = {input_dir + "/small3.bcf", input_dir + "/small.bcf"};
-    ds.register_samples_v4(args);
-  }
 
   // Ingest the samples
   {

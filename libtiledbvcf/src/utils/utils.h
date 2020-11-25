@@ -332,6 +332,13 @@ void set_tiledb_config(
 void set_htslib_tiledb_context(const std::vector<std::string>& tiledb_config);
 
 /**
+ * Free the htslib plugin context
+ * a thread-safe implementation
+ *
+ */
+void free_htslib_tiledb_context();
+
+/**
  * Help function to initialize the htslib plugin
  */
 void init_htslib();

@@ -354,6 +354,15 @@ void set_htslib_tiledb_context(const std::vector<std::string>& tiledb_config) {
   }
 }
 
+void free_htslib_tiledb_context() {
+  const std::lock_guard<std::mutex> lock(cfg_mutex);
+  last_set_config.clear();
+  if (hfile_tiledb_vfs_ctx != nullptr)
+    tiledb_ctx_free(&hfile_tiledb_vfs_ctx);
+  if (hfile_tiledb_vfs_config != nullptr)
+    tiledb_config_free(&hfile_tiledb_vfs_config);
+}
+
 void init_htslib() {
   const std::lock_guard<std::mutex> lock(init_mutex);
   // trick to init some of htslib's internal data structures for plugins

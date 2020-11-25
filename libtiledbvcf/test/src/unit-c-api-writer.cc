@@ -117,7 +117,7 @@ TEST_CASE("C API: Writer create no checksum", "[capi][writer]") {
     vfs.remove_dir(dataset_uri);
 }
 
-TEST_CASE("C API: Writer register and store", "[capi][writer]") {
+TEST_CASE("C API: Writer store", "[capi][writer]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
@@ -134,19 +134,6 @@ TEST_CASE("C API: Writer register and store", "[capi][writer]") {
       INPUT_DIR + "small.bcf" + "," + INPUT_DIR + "small2.bcf";
   REQUIRE(
       tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
-  REQUIRE(tiledb_vcf_writer_register(writer) == TILEDB_VCF_OK);
-
-  // Error on duplicate registration
-  REQUIRE(tiledb_vcf_writer_register(writer) == TILEDB_VCF_ERR);
-  tiledb_vcf_error_t* err;
-  const char* errmsg;
-  REQUIRE(tiledb_vcf_writer_get_last_error(writer, &err) == TILEDB_VCF_OK);
-  REQUIRE(tiledb_vcf_error_get_message(err, &errmsg) == TILEDB_VCF_OK);
-  REQUIRE(
-      std::string(errmsg) ==
-      "TileDB-VCF exception: Error registering samples; sample HG01762 already "
-      "exists.");
-  tiledb_vcf_error_free(&err);
 
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
@@ -182,7 +169,6 @@ TEST_CASE("C API: Writer with extra attributes", "[capi][writer]") {
       INPUT_DIR + "small.bcf" + "," + INPUT_DIR + "small2.bcf";
   REQUIRE(
       tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
-  REQUIRE(tiledb_vcf_writer_register(writer) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
   tiledb::vcf::TileDBVCFDataset ds;
@@ -197,7 +183,7 @@ TEST_CASE("C API: Writer with extra attributes", "[capi][writer]") {
 }
 
 TEST_CASE(
-    "C API: Writer register and store with overlapping records",
+    "C API: Writer store with overlapping records",
     "[capi][writer][overlapping]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
@@ -214,7 +200,6 @@ TEST_CASE(
   std::string samples = INPUT_DIR + "overlapping.bcf";
   REQUIRE(
       tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
-  REQUIRE(tiledb_vcf_writer_register(writer) == TILEDB_VCF_OK);
 
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
