@@ -183,7 +183,7 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -453,7 +453,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -508,7 +508,7 @@ TEST_CASE("TileDB-VCF: Test export all regions", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -601,7 +601,7 @@ TEST_CASE("TileDB-VCF: Test export multiple times", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -732,7 +732,7 @@ TEST_CASE("TileDB-VCF: Test export to BCF", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -791,7 +791,7 @@ TEST_CASE("TileDB-VCF: Test export to TSV", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -852,7 +852,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -885,7 +885,7 @@ TEST_CASE(
     reader->open_dataset(dataset_uri);
     reader->read();
     REQUIRE(reader->read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader->num_records_exported() == 3);
+    REQUIRE(reader->num_records_exported() == 11);
 
     reader.reset(new Reader);
     params.sample_partitioning.partition_index = 1;
@@ -894,7 +894,7 @@ TEST_CASE(
     reader->open_dataset(dataset_uri);
     reader->read();
     REQUIRE(reader->read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader->num_records_exported() == 11);
+    REQUIRE(reader->num_records_exported() == 3);
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -927,7 +927,7 @@ TEST_CASE(
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -974,7 +974,8 @@ TEST_CASE(
 
     // Test adding sample partitioning as well.
     reader.reset(new Reader);
-    params.sample_partitioning.partition_index = 1;
+    // Use sample partition 0 which will be small2.bcf
+    params.sample_partitioning.partition_index = 0;
     params.sample_partitioning.num_partitions = 2;
     params.region_partitioning.partition_index = 0;
     params.region_partitioning.num_partitions = 2;
@@ -985,7 +986,8 @@ TEST_CASE(
     REQUIRE(reader->num_records_exported() == 7);
 
     reader.reset(new Reader);
-    params.sample_partitioning.partition_index = 1;
+    // Use sample partition 0 which will be small2.bcf
+    params.sample_partitioning.partition_index = 0;
     params.sample_partitioning.num_partitions = 2;
     params.region_partitioning.partition_index = 1;
     params.region_partitioning.num_partitions = 2;
@@ -1025,7 +1027,7 @@ TEST_CASE("TileDB-VCF: Test export limit records", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -1091,7 +1093,7 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples
@@ -1143,19 +1145,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
+    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
+    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
@@ -1206,19 +1208,19 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG01762", "HG00280", "HG01762"});
+        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 12771, 13389});
+    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
+    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
     REQUIRE(reader.num_records_exported() == 3);
     check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
+        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
     check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13354, 13375, 13396});
-    check_result<uint32_t>(reader, "pos_end", end, {13374, 13395, 13413});
+    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
+    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
@@ -1264,7 +1266,7 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1341,7 +1343,7 @@ TEST_CASE("TileDB-VCF: Test export 100 using BED", "[tiledbvcf][export]") {
 
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest
@@ -1402,7 +1404,7 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
     ds.open(dataset_uri);
     RegistrationParams args;
     args.sample_uris = {input_dir + "/small3.bcf", input_dir + "/small.bcf"};
-    ds.register_samples(args);
+    ds.register_samples_v4(args);
   }
 
   // Ingest the samples

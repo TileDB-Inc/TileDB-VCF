@@ -221,21 +221,21 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -b 512 || exit 1
-diff -w pfx.tsv <(
+diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
-HG01762	1	12141	12277	C	<NON_REF>
 HG00280	1	12546	12771	G	<NON_REF>
-HG01762	1	12546	12771	G	<NON_REF>
 HG00280	1	13354	13374	T	<NON_REF>	LowQual
-HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	13375	13395	G	<NON_REF>
 HG00280	1	13396	13413	T	<NON_REF>
 HG00280	1	13414	13451	C	<NON_REF>
 HG00280	1	13452	13519	G	<NON_REF>
 HG00280	1	13520	13544	G	<NON_REF>
 HG00280	1	13545	13689	G	<NON_REF>
+HG01762	1	12141	12277	C	<NON_REF>
+HG01762	1	12546	12771	G	<NON_REF>
+HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	17480	17486	A	<NON_REF>
 EOF
 ) || exit 1
@@ -243,21 +243,21 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
-diff -w /tmp/pfx.tsv <(
+diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
-HG01762	1	12141	12277	C	<NON_REF>
 HG00280	1	12546	12771	G	<NON_REF>
-HG01762	1	12546	12771	G	<NON_REF>
 HG00280	1	13354	13374	T	<NON_REF>	LowQual
-HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	13375	13395	G	<NON_REF>
 HG00280	1	13396	13413	T	<NON_REF>
 HG00280	1	13414	13451	C	<NON_REF>
 HG00280	1	13452	13519	G	<NON_REF>
 HG00280	1	13520	13544	G	<NON_REF>
 HG00280	1	13545	13689	G	<NON_REF>
+HG01762	1	12141	12277	C	<NON_REF>
+HG01762	1	12546	12771	G	<NON_REF>
+HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	17480	17486	A	<NON_REF>
 EOF
 ) || exit 1
@@ -266,21 +266,21 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
-diff -w $upload_dir/pfx.tsv <(
+diff -uw $upload_dir/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
-HG01762	1	12141	12277	C	<NON_REF>
 HG00280	1	12546	12771	G	<NON_REF>
-HG01762	1	12546	12771	G	<NON_REF>
 HG00280	1	13354	13374	T	<NON_REF>	LowQual
-HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	13375	13395	G	<NON_REF>
 HG00280	1	13396	13413	T	<NON_REF>
 HG00280	1	13414	13451	C	<NON_REF>
 HG00280	1	13452	13519	G	<NON_REF>
 HG00280	1	13520	13544	G	<NON_REF>
 HG00280	1	13545	13689	G	<NON_REF>
+HG01762	1	12141	12277	C	<NON_REF>
+HG01762	1	12546	12771	G	<NON_REF>
+HG01762	1	13354	13389	T	<NON_REF>
 HG00280	1	17480	17486	A	<NON_REF>
 EOF
 ) || exit 1
@@ -290,7 +290,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 echo "Export records with a null fmt attribute (#142)"
 create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
 $tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
-diff -w /tmp/pfx.tsv <(
+diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	POS	S:MIN_DP
 HG00280	69511	.
@@ -306,28 +306,28 @@ rm -f G{1,3}.bcf
 # Check count only
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-diff -w <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
+diff -uw <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,HG00280) || exit 1
 
 # Check TSV output with query range columns
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v -s HG01762,HG00280 || exit 1
-diff -w pfx.tsv <(
+diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	Q:POS	Q:END
 HG00280	1	12141	12277	C	12142	15000
-HG01762	1	12141	12277	C	12142	15000
 HG00280	1	12546	12771	G	12142	15000
-HG01762	1	12546	12771	G	12142	15000
 HG00280	1	13354	13374	T	12142	15000
-HG01762	1	13354	13389	T	12142	15000
 HG00280	1	13375	13395	G	12142	15000
 HG00280	1	13396	13413	T	12142	15000
 HG00280	1	13414	13451	C	12142	15000
 HG00280	1	13452	13519	G	12142	15000
 HG00280	1	13520	13544	G	12142	15000
 HG00280	1	13545	13689	G	12142	15000
+HG01762	1	12141	12277	C	12142	15000
+HG01762	1	12546	12771	G	12142	15000
+HG01762	1	13354	13389	T	12142	15000
 HG00280	1	17480	17486	A	17485	18000
 EOF
 ) || exit 1
@@ -361,7 +361,7 @@ EOF
 diff -u <($tilevcf stat -u ingested_1_2) <(
 cat <<EOF
 Statistics for dataset 'ingested_1_2':
-- Version: 3
+- Version: 4
 - Row tile extent: 10
 - Tile capacity: 10,000
 - Anchor gap: 1,000

@@ -238,6 +238,18 @@ class SampleUtils {
 std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile(
     const std::vector<SampleAndIndex>& vec, uint64_t tile_size);
 
+/**
+ * Batches the given vector into a vector of vectors based on the tile_size.
+ * Ideally the vectors will be fixed (even) sized. If there is not an evenly
+ * divisible number of samples the last batch will be smaller.
+ *
+ * @param vec Vector to batch
+ * @param batch_size Number of elements per tile extent
+ * @return Batched result
+ */
+std::vector<std::vector<SampleAndIndex>> batch_elements_by_tile_v4(
+    const std::vector<SampleAndIndex>& vec, uint64_t tile_size);
+
 }  // namespace vcf
 }  // namespace tiledb
 

@@ -126,7 +126,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
   for (const auto& it : user_buffers_) {
     switch (it.second.attr) {
       case ExportableAttribute::SampleName:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::DimensionNames::V4::sample);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::DimensionNames::V3::sample);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -134,7 +136,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::PosStart:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::DimensionNames::V4::start_pos);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::DimensionNames::V3::start_pos);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -142,7 +146,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::PosEnd:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::end_pos);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::end_pos);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -150,7 +156,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Alleles:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::alleles);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::alleles);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -158,7 +166,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Id:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::id);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::id);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -166,7 +176,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Filters:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::filter_ids);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::filter_ids);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -174,7 +186,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Qual:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::qual);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::qual);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -182,7 +196,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Fmt:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::fmt);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::fmt);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -190,7 +206,9 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Info:
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::AttrNames::V4::info);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           result.insert(TileDBVCFDataset::AttrNames::V3::info);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
@@ -203,14 +221,18 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         } else {
           auto p = TileDBVCFDataset::split_info_fmt_attr_name(it.first);
           if (p.first == "info") {
-            if (version == TileDBVCFDataset::Version::V3) {
+            if (version == TileDBVCFDataset::Version::V4) {
+              result.insert(TileDBVCFDataset::AttrNames::V4::info);
+            } else if (version == TileDBVCFDataset::Version::V3) {
               result.insert(TileDBVCFDataset::AttrNames::V3::info);
             } else {
               assert(version == TileDBVCFDataset::Version::V2);
               result.insert(TileDBVCFDataset::AttrNames::V2::info);
             }
           } else {
-            if (version == TileDBVCFDataset::Version::V3) {
+            if (version == TileDBVCFDataset::Version::V4) {
+              result.insert(TileDBVCFDataset::AttrNames::V4::fmt);
+            } else if (version == TileDBVCFDataset::Version::V3) {
               result.insert(TileDBVCFDataset::AttrNames::V3::fmt);
             } else {
               assert(version == TileDBVCFDataset::Version::V2);
@@ -220,6 +242,10 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
         break;
       case ExportableAttribute::Contig:
+        if (version == TileDBVCFDataset::Version::V4) {
+          result.insert(TileDBVCFDataset::DimensionNames::V4::contig);
+          break;
+        }
       case ExportableAttribute::QueryBedStart:
       case ExportableAttribute::QueryBedEnd:
         // No attribute required
@@ -348,9 +374,7 @@ bool InMemoryExporter::export_record(
     UserBuffer& user_buff = it.second;
     switch (user_buff.attr) {
       case ExportableAttribute::SampleName: {
-        const uint32_t sample_id = buffers->sample().value<uint32_t>(cell_idx);
-        const std::string& sample_name =
-            dataset_->metadata().sample_names[sample_id];
+        const std::string& sample_name = sample.sample_name;
         overflow = !copy_cell(
             &user_buff,
             sample_name.c_str(),
@@ -359,15 +383,27 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::Contig: {
-        overflow = !copy_cell(
-            &user_buff,
-            query_region.seq_name.c_str(),
-            query_region.seq_name.size(),
-            query_region.seq_name.size());
+        if (version == TileDBVCFDataset::Version::V4) {
+          uint64_t size = 0;
+          const char* contig = buffers->contig().value<char>(cell_idx, &size);
+          overflow = !copy_cell(&user_buff, contig, size, size);
+        } else {
+          overflow = !copy_cell(
+              &user_buff,
+              query_region.seq_name.c_str(),
+              query_region.seq_name.size(),
+              query_region.seq_name.size());
+        }
         break;
       }
       case ExportableAttribute::PosStart: {
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          const uint32_t real_start_pos =
+              buffers->real_start_pos().value<uint32_t>(cell_idx) + 1;
+          overflow = !copy_cell(
+              &user_buff, &real_start_pos, sizeof(real_start_pos), 1);
+
+        } else if (version == TileDBVCFDataset::Version::V3) {
           const uint32_t real_start_pos =
               (buffers->real_start_pos().value<uint32_t>(cell_idx) -
                contig_offset) +
@@ -383,7 +419,11 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::PosEnd: {
-        if (version == TileDBVCFDataset::Version::V3) {
+        if (version == TileDBVCFDataset::Version::V4) {
+          const uint32_t end_pos =
+              buffers->end_pos().value<uint32_t>(cell_idx) + 1;
+          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1);
+        } else if (version == TileDBVCFDataset::Version::V3) {
           const uint32_t end_pos =
               (buffers->end_pos().value<uint32_t>(cell_idx) - contig_offset) +
               1;

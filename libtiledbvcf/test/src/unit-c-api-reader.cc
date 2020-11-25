@@ -34,6 +34,8 @@
 #include <cstring>
 #include <iostream>
 
+static std::string INPUT_ARRAYS_DIR_V4 =
+    TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v4");
 static std::string INPUT_ARRAYS_DIR_V3 =
     TILEDB_VCF_TEST_INPUT_DIR + std::string("/arrays/v3");
 static std::string INPUT_ARRAYS_DIR_V2 =
@@ -301,6 +303,8 @@ std::vector<record> build_records(
       uint8_t bitmap_val = filters_bitmap[bitmap_index];
       uint8_t bit_position = i % 8;
       filter_valid_val = (bitmap_val >> bit_position) & 1;
+      if (!filter_valid_val)
+        filters_val.clear();
     }
 
     std::string info_val;
@@ -380,6 +384,10 @@ TEST_CASE("C API: Reader initialization", "[capi][reader]") {
       dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
     }
 
+    SECTION("- V4") {
+      dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+    }
+
     REQUIRE(
         tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
   }
@@ -450,6 +458,10 @@ TEST_CASE("C API: Reader get attributes", "[capi][reader]") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
 
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  }
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   int32_t count = 0;
@@ -513,6 +525,10 @@ TEST_CASE("C API: Reader set regions", "[capi][reader]") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
 
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  }
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Empty string is ok
@@ -539,6 +555,10 @@ TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
 
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  }
+
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   REQUIRE(
@@ -563,6 +583,10 @@ TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
   }
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
@@ -614,9 +638,15 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
     version = 3;
   }
 
-  std::string dataset_uri = version == 2 ?
-                                INPUT_ARRAYS_DIR_V2 + "/ingested_2samples" :
-                                INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  SECTION("- V4") {
+    version = 4;
+  }
+
+  std::string dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  if (version == 2)
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  else if (version == 3)
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -703,7 +733,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           13360,
           "1",
           {"C", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -728,7 +758,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           13360,
           "1",
           {"C", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -753,7 +783,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           13360,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -778,7 +808,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           13360,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -828,7 +858,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           13360,
           "1",
           {"T", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -853,7 +883,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -878,7 +908,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -903,7 +933,7 @@ TEST_CASE("C API: Reader submit (default attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\005', '\000', '\000', '\000', 'G',    'T',    '\000', '\001',
@@ -987,10 +1017,15 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
   SECTION("- V3") {
     version = 3;
   }
+  SECTION("- V4") {
+    version = 4;
+  }
 
-  std::string dataset_uri =
-      version == 2 ? INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL" :
-                     INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  std::string dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  if (version == 2)
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  else if (version == 3)
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -1049,7 +1084,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           13360,
           "1",
           {"C", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1068,7 +1103,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           13360,
           "1",
           {"C", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1087,7 +1122,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           13360,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1106,7 +1141,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           13360,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1144,7 +1179,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           13360,
           "1",
           {"T", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1163,7 +1198,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1182,7 +1217,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1201,7 +1236,7 @@ TEST_CASE("C API: Reader submit (optional attributes)", "[capi][reader]") {
           17350,
           "1",
           {"G", "<NON_REF>"},
-          {std::string("")},
+          {},
           false,
           {'\000', '\000', '\000', '\0'},
           {'\002', '\000', '\000', '\000', 'G',    'Q',    '\000', '\001',
@@ -1275,6 +1310,10 @@ TEST_CASE("C API: Reader submit (subselect attributes)", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
 
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
@@ -1512,6 +1551,10 @@ TEST_CASE("C API: Reader submit (all samples)", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
   }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up ranges (defaulting to all samples)
@@ -1654,6 +1697,10 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -1888,6 +1935,10 @@ TEST_CASE("C API: Reader submit (samples file)", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   auto sample_uri =
       TILEDB_VCF_TEST_INPUT_DIR + std::string("/sample_names.txt");
@@ -2128,6 +2179,10 @@ TEST_CASE("C API: Reader submit (empty result set)", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
   }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -2171,6 +2226,10 @@ TEST_CASE(
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -2645,6 +2704,10 @@ TEST_CASE(
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -3149,6 +3212,10 @@ TEST_CASE("C API: Reader get error message", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
   }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_reader_get_last_error(reader, &error) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_error_get_message(error, &msg) == TILEDB_VCF_OK);
@@ -3168,6 +3235,10 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
@@ -3237,6 +3308,36 @@ TEST_CASE("C API: Reader submit (max num records)", "[capi][reader]") {
           {},
           {},
           0,
+          {}),
+      record(
+          "HG01762",
+          13354,
+          13389,
+          12099,
+          13360,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          64,
+          {}),
+      record(
+          "HG00280",
+          13354,
+          13374,
+          12099,
+          13360,
+          "",
+          {"T", "<NON_REF>"},
+          {},
+          false,
+          {},
+          {},
+          {},
+          15,
           {})};
 
   uint64_t tot_num_records = 0;
@@ -3405,6 +3506,10 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
   }
   REQUIRE(
       tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
@@ -3606,6 +3711,10 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
   }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(
       tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
   REQUIRE(
@@ -3805,6 +3914,10 @@ TEST_CASE("C API: Reader submit (ranges will overlap)", "[capi][reader]") {
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
   }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 
   // Set up samples and ranges
@@ -3964,6 +4077,10 @@ TEST_CASE(
 
   SECTION("- V3") {
     dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
   }
   REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
 

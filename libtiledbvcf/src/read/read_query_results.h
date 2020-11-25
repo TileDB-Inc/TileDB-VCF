@@ -61,6 +61,12 @@ struct ReadQueryResults {
   /** Returns the query status. */
   tiledb::Query::Status query_status() const;
 
+  /** Returns the size of the sample dimension results. */
+  const std::pair<uint64_t, uint64_t>& sample_size() const;
+
+  /** Returns the size of the contig dimension results. */
+  const std::pair<uint64_t, uint64_t>& contig_size() const;
+
   /** Returns the size of the alleles attribute results. */
   const std::pair<uint64_t, uint64_t>& alleles_size() const;
 
@@ -90,6 +96,8 @@ struct ReadQueryResults {
   /** Number of cells in the query results */
   uint64_t num_cells_;
 
+  std::pair<uint64_t, uint64_t> sample_size_;
+  std::pair<uint64_t, uint64_t> contig_size_;
   std::pair<uint64_t, uint64_t> alleles_size_;
   std::pair<uint64_t, uint64_t> id_size_;
   std::pair<uint64_t, uint64_t> filter_ids_size_;

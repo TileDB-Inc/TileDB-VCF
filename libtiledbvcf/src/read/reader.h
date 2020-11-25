@@ -32,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -334,6 +335,7 @@ class Reader {
   struct QueryRegion {
     uint32_t col_min;
     uint32_t col_max;
+    std::string contig;
   };
 
   /**
@@ -352,17 +354,19 @@ class Reader {
     /** Upper sample ID of the sample (row) range currently being queried. */
     uint32_t sample_max = 0;
 
-    /** Map of current relative sample ID -> sample name. */
+    /** Map of current relative sample ID -> sample name. Only used for v2/v3 */
     std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
     std::unordered_map<uint32_t, SafeBCFHdr> current_hdrs;
 
+    std::unordered_map<std::string, size_t> current_hdrs_lookup;
+
     /**
      * Stores the index to a region that was unsuccessfully reported
      * in the last read.
      */
-    size_t last_intersecting_region_idx_;
+    size_t last_intersecting_region_idx_ = 0;
 
     /**
      * Current index into the `regions` vector, used for finding intersecting
@@ -373,14 +377,23 @@ class Reader {
     /** The original genomic regions specified by the user to export. */
     std::vector<Region> regions;
 
+    /** Store index positions to only compare again regions for a contig */
+    std::unordered_map<std::string, std::vector<size_t>>
+        regions_index_per_contig;
+
     /**
      * The corresponding widened and merged regions that will be used as the
      * column ranges in the TileDB query.
      */
     std::vector<QueryRegion> query_regions;
+    std::vector<std::pair<std::string, std::vector<QueryRegion>>>
+        query_regions_v4;
 
     /** The index of the current batch of samples being exported. */
     size_t batch_idx = 0;
+
+    /** The index of the current batch of samples being exported. */
+    size_t query_contig_batch_idx = 0;
 
     /** The samples being exported, batched by space tile. */
     std::vector<std::vector<SampleAndId>> sample_batches;
@@ -475,8 +488,30 @@ class Reader {
    */
   std::vector<std::vector<SampleAndId>> prepare_sample_batches() const;
 
+  /**
+   * Prepares sample batches for export
+   * @return
+   */
+  std::vector<std::vector<SampleAndId>> prepare_sample_batches_v4() const;
+
   /** Merges the list of sample names with the contents of the samples file. */
   std::vector<SampleAndId> prepare_sample_names() const;
+
+  /** Merges the list of sample names with the contents of the samples file for
+   * v4 arrays. */
+  std::vector<SampleAndId> prepare_sample_names_v4() const;
+
+  /**
+   * Prepares the regions to be queried and exported. This merges the list of
+   * regions with the contents of the regions file, sorts, and performs the
+   * anchor gap widening and merging process.
+   */
+  void prepare_regions_v4(
+      std::vector<Region>* regions,
+      std::unordered_map<std::string, std::vector<size_t>>*
+          regions_index_per_contig,
+      std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
+          query_regions) const;
 
   /**
    * Prepares the regions to be queried and exported. This merges the list of
@@ -504,6 +539,13 @@ class Reader {
    * during in-memory export, a user buffer filled up (which means it was an
    * incomplete read operation). Else, returns true.
    */
+  bool process_query_results_v4();
+
+  /**
+   * Processes the result cells from the last TileDB query. Returns false if,
+   * during in-memory export, a user buffer filled up (which means it was an
+   * incomplete read operation). Else, returns true.
+   */
   bool process_query_results_v3();
 
   /**
@@ -524,56 +566,6 @@ class Reader {
 
   /** Initializes the TileDB context and VFS instances. */
   void init_tiledb();
-
-  /**
-   * Finds the interval of indexes in the sorted regions vector that intersect
-   * a record with the given start/end/real_start coordinates.
-   *
-   * This performs a linear search starting at the given index to find the first
-   * intersecting index, and then iterates forward to find the last index.
-   *
-   * @param regions Sorted regions vector to search
-   * @param region_idx Index to start iteration
-   * @param real_start Real start pos of record to check for intersection
-   * @param start Start pos of record to check for intersection
-   * @param end End pos of record to check for intersection
-   * @param new_region_idx Will be set to the upper bound index (i.e. the second
-   *    element in the return value).
-   * @return A pair (lower, upper) of the interval of intersecting regions. If
-   *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
-   */
-  static std::pair<size_t, size_t> get_intersecting_regions_v3(
-      const std::vector<Region>& regions,
-      size_t region_idx,
-      uint32_t real_start,
-      uint32_t start,
-      uint32_t end,
-      size_t* new_region_idx);
-
-  /**
-   * Finds the interval of indexes in the sorted regions vector that intersect
-   * a record with the given start/end/real_end coordinates.
-   *
-   * This performs a linear search starting at the given index to find the first
-   * intersecting index, and then iterates forward to find the last index.
-   *
-   * @param regions Sorted regions vector to search
-   * @param region_idx Index to start iteration
-   * @param start Start pos of record to check for intersection
-   * @param end End pos of record to check for intersection
-   * @param real_end Real end pos of record to check for intersection
-   * @param new_region_idx Will be set to the upper bound index (i.e. the second
-   *    element in the return value).
-   * @return A pair (lower, upper) of the interval of intersecting regions. If
-   *    no regions intersect the record, returns (UINT32_MAX, UINT32_MAX).
-   */
-  static std::pair<size_t, size_t> get_intersecting_regions_v2(
-      const std::vector<Region>& regions,
-      size_t region_idx,
-      uint32_t start,
-      uint32_t end,
-      uint32_t real_end,
-      size_t* new_region_idx);
 
   /** Checks that the partitioning values are valid. */
   static void check_partitioning(

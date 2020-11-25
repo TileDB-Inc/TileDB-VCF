@@ -171,7 +171,13 @@ void do_register(const RegistrationParams& args) {
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
-  dataset.register_samples(args);
+  if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset.metadata().version == TileDBVCFDataset::Version::V3)
+    dataset.register_samples(args);
+  else {
+    assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+    dataset.register_samples_v4(args);
+  }
 }
 
 /** Store/ingest. */

@@ -52,10 +52,12 @@ class AttributeBufferSet {
    *
    * @param extra List of attributes to allocate buffers for.
    * @param mem_budget_mb Memory budget (MB) of sum of allocations.
+   * @param version dataset version
    */
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
-      unsigned mem_budget_mb);
+      unsigned mem_budget_mb,
+      unsigned version);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size
@@ -70,10 +72,22 @@ class AttributeBufferSet {
   void clear();
 
   /** sample buffer. */
+  const Buffer& sample_name() const;
+
+  /** sample buffer. */
+  Buffer& sample_name();
+
+  /** sample buffer. */
   const Buffer& sample() const;
 
   /** sample buffer. */
   Buffer& sample();
+
+  /** contig buffer. */
+  const Buffer& contig() const;
+
+  /** contig buffer. */
+  Buffer& contig();
 
   /** start_pos buffer. */
   const Buffer& start_pos() const;
@@ -160,8 +174,14 @@ class AttributeBufferSet {
   bool extra_attr(const std::string& name, Buffer** buffer);
 
  private:
+  /** sample_name v4 dimension (string) */
+  Buffer sample_name_;
+
   /** sample v3/v2 dimension (uint32_t) */
   Buffer sample_;
+
+  /** contig v4 dimension (string) */
+  Buffer contig_;
 
   /** start_pos v3 dimension (uint32_t) */
   Buffer start_pos_;
@@ -172,7 +192,7 @@ class AttributeBufferSet {
   /** real_end v2 attribute (uint32_t) */
   Buffer real_end_;
 
-  /** real_start_pos v3 attribute (uint32_t) */
+  /** real_start_pos v4/v3 attribute (uint32_t) */
   Buffer real_start_pos_;
 
   /** end_pos v3 attribute, v2 dimension (uint32_t) */

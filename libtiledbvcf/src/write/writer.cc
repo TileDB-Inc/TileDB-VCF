@@ -33,6 +33,7 @@
 #include "write/writer_worker.h"
 #include "write/writer_worker_v2.h"
 #include "write/writer_worker_v3.h"
+#include "write/writer_worker_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -108,7 +109,13 @@ void Writer::create_dataset() {
 void Writer::register_samples() {
   TileDBVCFDataset dataset;
   dataset.open(registration_params_.uri, ingestion_params_.tiledb_config);
-  dataset.register_samples(registration_params_);
+  if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset.metadata().version == TileDBVCFDataset::Version::V3)
+    dataset.register_samples(registration_params_);
+  else {
+    assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+    dataset.register_samples_v4(registration_params_);
+  }
 }
 
 void Writer::ingest_samples() {
@@ -136,8 +143,14 @@ void Writer::ingest_samples() {
   auto regions = prepare_region_list(dataset, ingestion_params_);
 
   // Batch the list of samples per space tile.
-  auto batches =
-      batch_elements_by_tile(samples, dataset.metadata().row_tile_extent);
+  std::vector<std::vector<SampleAndIndex>> batches;
+  if (dataset.metadata().version == TileDBVCFDataset::V2 ||
+      dataset.metadata().version == TileDBVCFDataset::Version::V3)
+    batches =
+        batch_elements_by_tile(samples, dataset.metadata().row_tile_extent);
+  else
+    batches =
+        batch_elements_by_tile_v4(samples, dataset.metadata().row_tile_extent);
 
   // Set up parameters for two scratch spaces.
   const auto scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
@@ -244,9 +257,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   for (size_t i = 0; i < workers.size(); ++i) {
     if (dataset.metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
-    } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
     }
 
     workers[i]->init(dataset, params, samples);
@@ -265,9 +280,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (vcf.contig_has_records(p.first))
           nonempty_contigs.insert(p.first);
       }
-    } else {
-      assert(dataset.metadata().version == TileDBVCFDataset::Version::V3);
+    } else if (dataset.metadata().version == TileDBVCFDataset::Version::V3) {
       VCFV3 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& p : metadata.contig_offsets) {
+        if (vcf.contig_has_records(p.first))
+          nonempty_contigs.insert(p.first);
+      }
+    } else {
+      assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
+      VCFV4 vcf;
       vcf.open(s.sample_uri, s.index_uri);
       for (const auto& p : metadata.contig_offsets) {
         if (vcf.contig_has_records(p.first))
@@ -369,7 +391,9 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
   // Set sample id for later use
   for (const auto& pair : sorted) {
     auto s = pair.first;
-    s.sample_id = dataset.metadata().sample_ids.at(pair.second);
+    if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
+        dataset.metadata().version == TileDBVCFDataset::Version::V3)
+      s.sample_id = dataset.metadata().sample_ids.at(pair.second);
     result.push_back(s);
   }
 

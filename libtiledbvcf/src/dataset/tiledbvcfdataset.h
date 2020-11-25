@@ -96,6 +96,12 @@ class TileDBVCFDataset {
   /* ********************************* */
 
   struct DimensionNames {
+    struct V4 {
+      static const std::string sample;
+      static const std::string contig;
+      static const std::string start_pos;
+    };
+
     struct V3 {
       static const std::string sample;
       static const std::string start_pos;
@@ -108,6 +114,17 @@ class TileDBVCFDataset {
   };
 
   struct AttrNames {
+    struct V4 {
+      static const std::string real_start_pos;
+      static const std::string end_pos;
+      static const std::string qual;
+      static const std::string alleles;
+      static const std::string id;
+      static const std::string filter_ids;
+      static const std::string info;
+      static const std::string fmt;
+    };
+
     struct V3 {
       static const std::string real_start_pos;
       static const std::string end_pos;
@@ -138,13 +155,13 @@ class TileDBVCFDataset {
   /**
    * The format version.
    */
-  enum Version { V2 = 2, V3 };
+  enum Version { V2 = 2, V3, V4 };
 
   /**
    * General metadata for a dataset. This should be kept relatively small.
    */
   struct Metadata {
-    unsigned version = Version::V3;
+    unsigned version = Version::V4;
     uint64_t tile_capacity;
     uint32_t row_tile_extent;
     uint32_t anchor_gap;
@@ -188,6 +205,8 @@ class TileDBVCFDataset {
 
   void register_samples(const RegistrationParams& params);
 
+  void register_samples_v4(const RegistrationParams& params);
+
   void print_samples_list();
 
   void print_dataset_stats();
@@ -199,6 +218,11 @@ class TileDBVCFDataset {
   std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers(
       const tiledb::Context& ctx,
       const std::vector<SampleAndId>& samples) const;
+
+  std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers_v4(
+      const tiledb::Context& ctx,
+      const std::vector<SampleAndId>& samples,
+      std::unordered_map<std::string, size_t>* lookup_map) const;
 
   std::string first_contig() const;
 
@@ -228,10 +252,13 @@ class TileDBVCFDataset {
   static std::pair<std::string, std::string> split_info_fmt_attr_name(
       const std::string& attr_name);
 
+  /** Return a set of the v4 attribute names for the "builtin" attributes. */
+  static std::set<std::string> builtin_attributes_v4();
+
   /** Return a set of the v3 attribute names for the "builtin" attributes. */
   static std::set<std::string> builtin_attributes_v3();
 
-  /** Return a set of the v3 attribute names for the "builtin" attributes. */
+  /** Return a set of the v2 attribute names for the "builtin" attributes. */
   static std::set<std::string> builtin_attributes_v2();
 
   /** Returns true if the builtin attribute is fixed-len in the schema. */
@@ -367,6 +394,18 @@ class TileDBVCFDataset {
       const Metadata& metadata);
 
   /**
+   * Write the given Metadata instance into the dataset.
+   *
+   * @param ctx TileDB context
+   * @param root_uri Root URI of the dataset
+   * @param metadata Metadata instance to write
+   */
+  static void write_metadata_v4(
+      const Context& ctx,
+      const std::string& root_uri,
+      const Metadata& metadata);
+
+  /**
    * Reads the Metadata from a given dataset.
    *
    * @param ctx TileDB context
@@ -377,6 +416,16 @@ class TileDBVCFDataset {
       const Context& ctx, const std::string& root_uri);
 
   /**
+   * Reads the Metadata from a given dataset.
+   *
+   * @param ctx TileDB context
+   * @param root_uri Root URI of the dataset
+   * @return The dataset's Metadata.
+   */
+  static Metadata read_metadata_v4(
+      const Context& ctx, const std::string& root_uri);
+
+  /**
    * Writes the given sample header data to the separate sample header array in
    * the dataset.
    *
@@ -384,10 +433,38 @@ class TileDBVCFDataset {
    * @param root_uri Root URI of the dataset
    * @param vcf_headers Map of sample name -> header string to write.
    */
-  static void write_vcf_headers(
+  static void write_vcf_headers_v4(
+      const Context& ctx,
+      const std::string& root_uri,
+      const std::map<std::string, std::string>& vcf_headers);
+
+  /**
+   * Writes the given sample header data to the separate sample header array in
+   * the dataset.
+   *
+   * @param ctx TileDB context
+   * @param root_uri Root URI of the dataset
+   * @param vcf_headers Map of sample name -> header string to write.
+   */
+  static void write_vcf_headers_v2(
       const Context& ctx,
       const std::string& root_uri,
       const std::map<uint32_t, std::string>& vcf_headers);
+
+  /**
+   * Registers a set of samples. Registration updates the given metadata
+   * instance and several other output parameters.
+   *
+   * @param headers Samples to be registered
+   * @param metadata Metadata to be updated
+   * @param sample_set Set of sample names to be updated
+   * @param sample_headers Map of sample ID -> header string to be updated
+   */
+  static void register_samples_helper_v4(
+      const std::vector<SafeBCFHdr>& headers,
+      Metadata* metadata,
+      std::set<std::string>* sample_set,
+      std::map<std::string, std::string>* sample_headers);
 
   /**
    * Registers a set of samples. Registration updates the given metadata
@@ -423,6 +500,15 @@ class TileDBVCFDataset {
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
   void load_field_type_maps(const tiledb::Context& ctx);
+
+  /**
+   * Fetch all sample ids from the vcf header array
+   *
+   * @param ctx contex
+   * @return vector of all sample names
+   */
+  static std::vector<std::string> get_all_samples_from_vcf_headers(
+      const Context& ctx, const std::string& root_uri);
 };
 
 }  // namespace vcf

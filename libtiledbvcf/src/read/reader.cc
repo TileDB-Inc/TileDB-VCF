@@ -337,12 +337,23 @@ void Reader::read() {
 
 void Reader::init_for_reads() {
   read_state_.batch_idx = 0;
-  read_state_.sample_batches = prepare_sample_batches();
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    read_state_.sample_batches = prepare_sample_batches();
+  else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    read_state_.sample_batches = prepare_sample_batches_v4();
+  }
   read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
 
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    prepare_regions_v4(
+        &read_state_.regions,
+        &read_state_.regions_index_per_contig,
+        &read_state_.query_regions_v4);
+  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
@@ -359,14 +370,26 @@ bool Reader::next_read_batch() {
     return false;
 
   // Handle edge case of an empty region partition
-  if (read_state_.query_regions.empty())
+  if (read_state_.query_regions.empty() && read_state_.query_regions_v4.empty())
     return false;
 
   // Start the first batch, or advance to the next one if possible.
   if (read_state_.status == ReadStatus::UNINITIALIZED) {
     read_state_.batch_idx = 0;
-  } else if (read_state_.batch_idx + 1 < read_state_.sample_batches.size()) {
-    read_state_.batch_idx++;
+    read_state_.query_contig_batch_idx = 0;
+  } else if (
+      read_state_.batch_idx + 1 < read_state_.sample_batches.size() ||
+      read_state_.query_contig_batch_idx + 1 <
+          read_state_.query_regions_v4.size()) {
+    // If we have query contig batches left for this sample batch only increment
+    // the contig batch
+    if (read_state_.query_contig_batch_idx + 1 <
+        read_state_.query_regions_v4.size()) {
+      read_state_.query_contig_batch_idx++;
+    } else {
+      read_state_.query_contig_batch_idx = 0;
+      read_state_.batch_idx++;
+    }
   } else {
     return false;
   }
@@ -374,11 +397,22 @@ bool Reader::next_read_batch() {
   // Sample row range
   read_state_.current_sample_batches =
       read_state_.sample_batches[read_state_.batch_idx];
-  read_state_.sample_min = std::numeric_limits<uint32_t>::max();
-  read_state_.sample_max = std::numeric_limits<uint32_t>::min();
-  for (const auto& s : read_state_.current_sample_batches) {
-    read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
-    read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
+
+  // Setup v2/v3 read details
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    read_state_.sample_min = std::numeric_limits<uint32_t>::max();
+    read_state_.sample_max = std::numeric_limits<uint32_t>::min();
+    for (const auto& s : read_state_.current_sample_batches) {
+      read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
+      read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
+    }
+
+    // Sample handles
+    read_state_.current_samples.clear();
+    for (const auto& s : read_state_.current_sample_batches) {
+      read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
+    }
   }
 
   // User query regions
@@ -386,13 +420,23 @@ bool Reader::next_read_batch() {
 
   // Headers
   read_state_.current_hdrs.clear();
-  read_state_.current_hdrs =
-      dataset_->fetch_vcf_headers(*ctx_, read_state_.current_sample_batches);
 
   // Sample handles
   read_state_.current_samples.clear();
   for (const auto& s : read_state_.current_sample_batches) {
     read_state_.current_samples[s.sample_id] = s;
+  }
+
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    read_state_.current_hdrs =
+        dataset_->fetch_vcf_headers(*ctx_, read_state_.current_sample_batches);
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+        *ctx_,
+        read_state_.current_sample_batches,
+        &read_state_.current_hdrs_lookup);
   }
 
   // Reopen the array so that irrelevant fragment metadata is unloaded.
@@ -402,17 +446,50 @@ bool Reader::next_read_batch() {
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
 
-  // Set ranges
-  for (const auto& sample : read_state_.current_sample_batches)
-    read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-  // Set regions
-  for (const auto& query_region : read_state_.query_regions)
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    // Set ranges
+    for (const auto& sample : read_state_.current_sample_batches)
+      read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+
+    for (const auto& query_region :
+         read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+             .second)
+      read_state_.query->add_range(
+          1, query_region.col_min, query_region.col_max);
+
+    read_state_.query->add_range(
+        0,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
+  } else {
+    // Set ranges
+    for (const auto& sample : read_state_.current_sample_batches)
+      read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
+    for (const auto& query_region : read_state_.query_regions)
+      read_state_.query->add_range(
+          1, query_region.col_min, query_region.col_max);
+  }
   read_state_.query->set_layout(TILEDB_UNORDERED);
-  if (params_.verbose)
-    std::cout << "Initialized TileDB query with "
-              << read_state_.query_regions.size() << " column ranges."
-              << std::endl;
+  if (params_.verbose) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      std::cout << "Initialized TileDB query with "
+                << read_state_
+                       .query_regions_v4[read_state_.query_contig_batch_idx]
+                       .second.size()
+                << " column ranges "
+                << " for contig "
+                << read_state_
+                       .query_regions_v4[read_state_.query_contig_batch_idx]
+                       .first
+                << " (contig batch " << read_state_.query_contig_batch_idx + 1
+                << "/" << read_state_.query_regions_v4.size() << ")."
+                << std::endl;
+    } else {
+      std::cout << "Initialized TileDB query with "
+                << read_state_.query_regions.size() << " column ranges."
+                << std::endl;
+    }
+  }
 
   return true;
 }
@@ -438,9 +515,9 @@ void Reader::init_exporter() {
     exporter_->set_output_dir(params_.output_dir);
   }
 
-  // Note that exporter may be null if the user has specified no export to disk
-  // but did not set any buffers for in-memory export. This reduces to a count
-  // operation, and is supported.
+  // Note that exporter may be null if the user has specified no export to
+  // disk but did not set any buffers for in-memory export. This reduces to a
+  // count operation, and is supported.
   if (exporter_ != nullptr)
     exporter_->set_dataset(dataset_.get());
 }
@@ -455,9 +532,12 @@ bool Reader::read_current_batch() {
           "Error reading batch; incomplete query without user buffer "
           "exporter should not be possible.");
 
-    // If the read status was incomplete, pick up processing the previous TileDB
-    // query results.
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    // If the read status was incomplete, pick up processing the previous
+    // TileDB query results.
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      if (!process_query_results_v4())
+        return false;  // Still incomplete.
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       if (!process_query_results_v3())
         return false;  // Still incomplete.
     } else {
@@ -468,8 +548,9 @@ bool Reader::read_current_batch() {
 
     // If we finished processing previous results and the TileDB query is now
     // complete, we are done. We check both the query_results and the query
-    // itself to capture the case of a new underlying tiledb query for the next
-    // range/sample partitioning since we partition samples on tile_extent
+    // itself to capture the case of a new underlying tiledb query for the
+    // next range/sample partitioning since we partition samples on
+    // tile_extent
     if (read_state_.query_results.query_status() !=
             tiledb::Query::Status::INCOMPLETE &&
         read_state_.query->query_status() !=
@@ -478,8 +559,9 @@ bool Reader::read_current_batch() {
     }
   }
 
-  // If a past TileDB query was in-flight (from incomplete reads), it was using
-  // the B buffers, so start off with that. Otherwise, submit a new async query.
+  // If a past TileDB query was in-flight (from incomplete reads), it was
+  // using the B buffers, so start off with that. Otherwise, submit a new
+  // async query.
   if (read_state_.async_query.valid()) {
     std::swap(buffers_a, buffers_b);
   } else {
@@ -492,6 +574,18 @@ bool Reader::read_current_batch() {
     // Block on query completion.
     auto query_status = read_state_.async_query.get();
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
+
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      buffers_a->contig().effective_size(
+          read_state_.query_results.contig_size().second * sizeof(char));
+      buffers_a->contig().offset_nelts(
+          read_state_.query_results.contig_size().first);
+      buffers_a->sample_name().effective_size(
+          read_state_.query_results.sample_size().second * sizeof(char));
+      buffers_a->sample_name().offset_nelts(
+          read_state_.query_results.sample_size().first);
+    }
+
     read_state_.cell_idx = 0;
 
     if (read_state_.query_results.num_cells() == 0 &&
@@ -516,7 +610,9 @@ bool Reader::read_current_batch() {
     auto t0 = std::chrono::steady_clock::now();
 
     bool complete;
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+      complete = process_query_results_v4();
+    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
       complete = process_query_results_v3();
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
@@ -543,8 +639,17 @@ bool Reader::read_current_batch() {
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-      SafeBCFHdr& hdr = read_state_.current_hdrs.at(s.sample_id);
-      exporter_->finalize_export(s, hdr.get());
+      bcf_hdr_t* hdr;
+      if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+          dataset_->metadata().version == TileDBVCFDataset::Version::V2)
+        hdr = read_state_.current_hdrs.at(s.sample_id).get();
+      else {
+        assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+        hdr = read_state_.current_hdrs
+                  .at(read_state_.current_hdrs_lookup[s.sample_name])
+                  .get();
+      }
+      exporter_->finalize_export(s, hdr);
     }
   }
 
@@ -555,8 +660,8 @@ bool Reader::read_current_batch() {
  * Comparator used to binary search across regions to find the first index to
  * start checking for intersections
  *
- * We know that any region whose end is before the real_start of a region can't
- * possibly intersect
+ * We know that any region whose end is before the real_start of a region
+ * can't possibly intersect
  */
 struct RegionComparator {
   /**
@@ -569,6 +674,148 @@ struct RegionComparator {
     return left.max + left.seq_offset < right;
   }
 } RegionComparator;
+
+struct RegionComparatorV4 {
+  std::vector<Region>* regions_;
+
+  explicit RegionComparatorV4(std::vector<Region>* regions) {
+    regions_ = regions;
+  }
+
+  /**
+   * Compare for less than
+   * @param left region index
+   * @param right real_start
+   * @return
+   */
+  bool operator()(const size_t& left, uint32_t right) {
+    return (*regions_)[left].max < right;
+  }
+};
+
+bool Reader::process_query_results_v4() {
+  if (read_state_.regions.empty())
+    throw std::runtime_error(
+        "Error processing query results; empty regions list.");
+
+  const auto& results = read_state_.query_results;
+  const uint64_t num_cells = results.num_cells();
+  if (num_cells == 0 || read_state_.cell_idx >= num_cells)
+    return true;
+
+  const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
+
+  std::vector<size_t> regions;
+  std::string last_contig;
+  for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
+    // For easy reference
+    const uint64_t i = read_state_.cell_idx;
+    const uint32_t start = results.buffers()->start_pos().value<uint32_t>(i);
+    const uint32_t real_start =
+        results.buffers()->real_start_pos().value<uint32_t>(i);
+
+    // Get the contig
+    uint64_t contig_size = 0;
+    const char* contig_buff =
+        results.buffers()->contig().value<char>(i, &contig_size);
+    std::string contig(contig_buff, contig_size);
+
+    const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
+
+    // Lookup region indexes for contig only if we have a new contig
+    // This lets us limit the scope of intersections to only regions for this
+    // cell's contig
+    if (contig != last_contig) {
+      const auto regions_indexes =
+          read_state_.regions_index_per_contig.find(contig);
+      // If we have a contig which isn't asked for error out
+      if (regions_indexes == read_state_.regions_index_per_contig.end())
+        throw std::runtime_error(
+            "Error in query result processing; range unexpectedly does not "
+            "intersect cell (" +
+            contig + "-" + std::to_string(real_start) + "-" +
+            std::to_string(end) + ").");
+
+      // Report all intersections. If the previous read returned before
+      // reporting all intersecting regions, 'last_intersecting_region_idx_'
+      // will be non-zero. All regions with an index less-than
+      // 'last_intersecting_region_idx_' have already been reported, so we
+      // must avoid reporting them multiple times.
+      regions = regions_indexes->second;
+
+      // Set last_contig
+      last_contig = contig;
+    }
+
+    // Perform a binary search to find first region we can intersection
+    // This is an optimization to avoid a linear scan over all regions for
+    // intersection This replaces the previous, incorrect, optimization of
+    // trying to keep a minimum region as we iterate
+    auto it = std::lower_bound(
+        regions.begin(),
+        regions.end(),
+        real_start,
+        RegionComparatorV4(&read_state_.regions));
+    if (it == regions.end()) {
+      continue;
+    } else {
+      read_state_.last_intersecting_region_idx_ =
+          std::distance(regions.begin(), it);
+    }
+
+    for (size_t j = read_state_.last_intersecting_region_idx_;
+         j < regions.size();
+         j++) {
+      const auto& reg = read_state_.regions[regions[j]];
+
+      const uint32_t reg_min = reg.min;
+      const uint32_t reg_max = reg.max;
+
+      // If the vcf record is not contained in the region skip it
+      if (real_start > reg_max)
+        continue;
+
+      // Exit early, in this case all regions are now passed this record
+      if (end < reg_min)
+        break;
+
+      // Unless start is the real start (aka first record) then if we skip for
+      // any record greater than the region min the goal is to only capture
+      // starts which are within 1 anchor gap of the region start on the lower
+      // side of the region start
+      if (start != real_start && start >= reg_min)
+        continue;
+
+      // First lets make sure the anchor gap is smaller than the region
+      // minimum, this avoid overflow in the next check.. second if the start
+      // is further away from the region_start than the anchor gap discard
+      if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
+
+      // If we overflow when reporting this cell, save the index of the
+      // current region so that we restart from the same position on the
+      // next read. Otherwise, we will re-report the cells in regions with
+      // an index below 'j'.
+      if (!report_cell(reg, reg.seq_offset, i)) {
+        read_state_.last_intersecting_region_idx_ = j;
+        return false;
+      }
+
+      // Return early if we've hit the record limit.
+      if (read_state_.total_num_records_exported >= params_.max_num_records) {
+        return true;
+      }
+    }
+
+    // Clear 'last_intersecting_region_idx_' after successfully reporting
+    // all cells in intersecting regions.
+    read_state_.last_intersecting_region_idx_ = 0;
+
+    read_state_.region_idx = 0;
+  }
+
+  return true;
+}
 
 bool Reader::process_query_results_v3() {
   if (read_state_.regions.empty())
@@ -643,9 +890,9 @@ bool Reader::process_query_results_v3() {
       // side of the region start
       if (start != real_start && start >= reg_min)
         continue;
-      // First lets make sure the anchor gap is smaller than the region minimum,
-      // this avoid overflow in the next check. second if the start is further
-      // away from the region_start than the anchor gap discard
+      // First lets make sure the anchor gap is smaller than the region
+      // minimum, this avoid overflow in the next check. second if the start
+      // is further away from the region_start than the anchor gap discard
       if (anchor_gap < reg_min && start < reg_min - anchor_gap)
         continue;
 
@@ -742,9 +989,9 @@ bool Reader::process_query_results_v2() {
       // side of the region start
       if (end != real_end && start >= reg_min)
         continue;
-      // First lets make sure the anchor gap is smaller than the region minimum,
-      // this avoid overflow in the next check. second if the start is further
-      // away from the region_start than the anchor gap discard
+      // First lets make sure the anchor gap is smaller than the region
+      // minimum, this avoid overflow in the next check. second if the start
+      // is further away from the region_start than the anchor gap discard
       if (anchor_gap < reg_min && start < reg_min - anchor_gap)
         continue;
 
@@ -782,17 +1029,29 @@ bool Reader::report_cell(
     return true;
   }
 
+  SampleAndId sample;
+  uint64_t hdr_index = 0;
   const auto& results = read_state_.query_results;
-  uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
 
-  // Skip this cell if we are not reporting its sample.
-  if (read_state_.current_samples.count(samp_idx) == 0) {
-    return true;
+    // Skip this cell if we are not reporting its sample.
+    if (read_state_.current_samples.count(samp_idx) == 0) {
+      return true;
+    }
+    sample = read_state_.current_samples[samp_idx];
+    hdr_index = samp_idx;
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    uint64_t size = 0;
+    const char* sample_name =
+        results.buffers()->sample_name().value<char>(cell_idx, &size);
+    sample = SampleAndId{std::string(sample_name, size)};
+    hdr_index = read_state_.current_hdrs_lookup[sample.sample_name];
   }
 
-  const auto& sample = read_state_.current_samples[samp_idx];
-  const auto& hdr = read_state_.current_hdrs.at(samp_idx);
-
+  const auto& hdr = read_state_.current_hdrs.at(hdr_index);
   if (!exporter_->export_record(
           sample, hdr.get(), region, contig_offset, results, cell_idx))
     return false;
@@ -832,6 +1091,41 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() const {
       curr_space_tile = space_tile;
     }
     result.back().push_back(s);
+  }
+
+  return result;
+}
+
+std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4()
+    const {
+  // Get the list of all sample names and ID
+  auto samples = prepare_sample_names_v4();
+
+  // Sort by sample ID
+  std::sort(
+      samples.begin(),
+      samples.end(),
+      [](const SampleAndId& a, const SampleAndId& b) {
+        return a.sample_name < b.sample_name;
+      });
+
+  // Apply sample partitioning
+  utils::partition_vector(
+      params_.sample_partitioning.partition_index,
+      params_.sample_partitioning.num_partitions,
+      &samples);
+
+  // Group partition into space tile batches.
+  const uint32_t space_tile_extent = dataset_->metadata().row_tile_extent;
+  std::vector<std::vector<SampleAndId>> result(1);
+  uint64_t count = 0;
+  for (const auto& s : samples) {
+    if (count >= space_tile_extent) {
+      count = 0;
+      result.emplace_back();
+    }
+    result.back().push_back(s);
+    ++count;
   }
 
   return result;
@@ -894,6 +1188,258 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
   return result;
 }
 
+std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
+  std::vector<SampleAndId> result;
+
+  for (const std::string& s : params_.sample_names) {
+    std::string name;
+    if (!VCFUtils::normalize_sample_name(s, &name))
+      throw std::runtime_error(
+          "Error preparing sample list for export; sample name '" + s +
+          "' is invalid.");
+
+    const auto& sample_ids = dataset_->metadata().sample_ids;
+    auto it = sample_ids.find(name);
+    if (it == sample_ids.end())
+      throw std::runtime_error(
+          "Error preparing sample list for export; sample '" + s +
+          "' has not been registered.");
+
+    result.push_back({.sample_name = name, .sample_id = it->second});
+  }
+
+  if (!params_.samples_file_uri.empty()) {
+    const auto& metadata = dataset_->metadata();
+    auto per_line = [&metadata, &result](std::string* line) {
+      std::string name;
+      if (!VCFUtils::normalize_sample_name(*line, &name))
+        throw std::runtime_error(
+            "Error preparing sample list for export; sample name '" + *line +
+            "' is invalid.");
+
+      const auto& sample_ids = metadata.sample_ids;
+      auto it = sample_ids.find(name);
+      if (it == sample_ids.end())
+        throw std::runtime_error(
+            "Error preparing sample list for export; sample '" + *line +
+            "' has not been registered.");
+
+      result.push_back({.sample_name = name, .sample_id = it->second});
+    };
+    utils::read_file_lines(*vfs_, params_.samples_file_uri, per_line);
+  }
+
+  // No specified samples means all samples.
+  if (result.empty()) {
+    const auto& md = dataset_->metadata();
+    for (const auto& s : md.sample_names) {
+      auto it = md.sample_ids.find(s);
+      if (it == md.sample_ids.end())
+        throw std::runtime_error(
+            "Error preparing sample list for export; sample '" + s +
+            "' has not been registered.");
+      result.push_back({.sample_name = s, .sample_id = it->second});
+    }
+  }
+
+  return result;
+}
+
+void Reader::prepare_regions_v4(
+    std::vector<Region>* regions,
+    std::unordered_map<std::string, std::vector<size_t>>*
+        regions_index_per_contig,
+    std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
+        query_regions) const {
+  const uint32_t g = dataset_->metadata().anchor_gap;
+  // Use a linked list for pre-partition regions to allow for parallel parsing
+  // of BED file
+  std::list<Region> pre_partition_regions_list;
+
+  // Manually-specified regions (-r) are 1-indexed and inclusive
+  for (const std::string& r : params_.regions)
+    pre_partition_regions_list.emplace_back(
+        r, Region::Type::OneIndexedInclusive);
+
+  // Add BED file regions, if specified.
+  if (!params_.regions_file_uri.empty()) {
+    auto start_bed_file_parse = std::chrono::steady_clock::now();
+    Region::parse_bed_file_htslib(
+        params_.regions_file_uri, &pre_partition_regions_list);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
+                << " regions in "
+                << utils::chrono_duration(start_bed_file_parse) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
+
+  // No specified regions means all regions.
+  if (pre_partition_regions_list.empty())
+    pre_partition_regions_list = dataset_->all_contigs_list();
+
+  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
+  std::pair<uint32_t, uint32_t> regionNonEmptyDomain =
+      array.non_empty_domain<uint32_t>(1);
+  std::vector<Region> filtered_regions;
+  // Loop through all contigs to query and pre-filter to ones which fall
+  // inside the nonEmptyDomain This will balance the partitioning better my
+  // removing empty regions
+  for (auto& r : pre_partition_regions_list) {
+    uint32_t contig_offset;
+    try {
+      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(
+          "Error preparing regions for export; no contig named '" + r.seq_name +
+          "' in dataset.");
+    }
+
+    r.seq_offset = contig_offset;
+    const uint32_t reg_min = r.min;
+    const uint32_t reg_max = r.max;
+
+    // Widen the query region by the anchor gap value, avoiding overflow.
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+    if (widened_reg_min <= regionNonEmptyDomain.second &&
+        reg_max >= regionNonEmptyDomain.first) {
+      filtered_regions.emplace_back(std::move(r));
+    }
+  }
+  *regions = filtered_regions;
+
+  // Sort all by global column coord.
+  if (params_.sort_regions) {
+    auto start_region_sort = std::chrono::steady_clock::now();
+    Region::sort(dataset_->metadata().contig_offsets, regions);
+    if (params_.verbose) {
+      auto old_locale = std::cout.getloc();
+      utils::enable_pretty_print_numbers(std::cout);
+      std::cout << "Sorted " << regions->size() << " regions in "
+                << utils::chrono_duration(start_region_sort) << " seconds."
+                << std::endl;
+      std::cout.imbue(old_locale);
+    }
+  }
+
+  // Apply region partitioning before expanding.
+  // If we have less regions than requested partitions, handle that by
+  // allowing empty partitions
+  if (regions->size() < params_.region_partitioning.num_partitions) {
+    // Make sure that we are not trying to fetch a partition that is out of
+    // bounds
+    if (params_.region_partitioning.partition_index >=
+        params_.region_partitioning.num_partitions)
+      throw std::runtime_error(
+          "Error partitioning vector; partition index " +
+          std::to_string(params_.region_partitioning.partition_index) +
+          " >= num partitions " +
+          std::to_string(params_.region_partitioning.num_partitions) + ".");
+    std::vector<Region> tmp;
+    if (params_.region_partitioning.partition_index < regions->size())
+      tmp.emplace_back((*regions)[params_.region_partitioning.partition_index]);
+    *regions = tmp;
+  } else {
+    utils::partition_vector(
+        params_.region_partitioning.partition_index,
+        params_.region_partitioning.num_partitions,
+        regions);
+  }
+
+  // Expand individual regions to a minimum width of the anchor gap.
+  size_t region_index = 0;
+  for (auto& r : *regions) {
+    uint32_t contig_offset;
+    try {
+      contig_offset = dataset_->metadata().contig_offsets.at(r.seq_name);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(
+          "Error preparing regions for export; no contig named '" + r.seq_name +
+          "' in dataset.");
+    }
+
+    // Save mapping of contig to region indexing
+    // Used in read to limit region intersection checking to only regions of
+    // same contig
+    auto regions_index = regions_index_per_contig->find(r.seq_name);
+    if (regions_index == regions_index_per_contig->end())
+      regions_index_per_contig->emplace(r.seq_name, std::vector<size_t>());
+
+    regions_index_per_contig->find(r.seq_name)
+        ->second.emplace_back(region_index);
+    ++region_index;
+
+    r.seq_offset = contig_offset;
+    const uint32_t reg_min = r.min;
+    const uint32_t reg_max = r.max;
+
+    // Widen the query region by the anchor gap value, avoiding overflow.
+    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+
+    bool new_region = true;
+    std::vector<QueryRegion>* query_region_contig = nullptr;
+    for (auto& query_region_pair : *query_regions) {
+      // Only coalesce regions of same contig
+      if (query_region_pair.first != r.seq_name)
+        continue;
+
+      query_region_contig = &query_region_pair.second;
+
+      for (auto& query_region : query_region_pair.second) {
+        if (widened_reg_min <= query_region.col_max &&
+            reg_max >= query_region.col_min) {
+          query_region.col_max = std::max(query_region.col_max, reg_max);
+          query_region.col_min = std::min(
+              static_cast<uint64_t>(query_region.col_min), widened_reg_min);
+          query_region.contig = r.seq_name;
+          new_region = false;
+        }
+      }
+    }
+    if (new_region) {
+      if (query_region_contig == nullptr) {
+        query_regions->emplace_back(r.seq_name, std::vector<QueryRegion>());
+        query_region_contig = &query_regions->back().second;
+      }
+      // Start a new query region.
+      query_region_contig->push_back({});
+      query_region_contig->back().col_min = widened_reg_min;
+      query_region_contig->back().col_max = reg_max;
+      query_region_contig->back().contig = r.seq_name;
+    }
+  }
+
+  // After we built the ranges we need to loop one more time to coalescing any
+  // final ranges. While we are looping through originally we might miss
+  // coalescing ranges as we don't consider the n+1 range that hasn't been
+  // created yet
+  for (auto& query_region_pair : *query_regions) {
+    size_t query_regions_size = query_region_pair.second.size();
+    for (size_t i = 0; i < query_regions_size; i++) {
+      auto& query_region = query_region_pair.second[i];
+      for (size_t j = i + 1; j < query_regions->size(); j++) {
+        auto& query_region_to_check = query_region_pair.second[j];
+        if (query_region.col_min <= query_region_to_check.col_max &&
+            query_region.col_max >= query_region_to_check.col_min) {
+          query_region.col_max =
+              std::max(query_region.col_max, query_region_to_check.col_max);
+          query_region.col_min =
+              std::min(query_region.col_min, query_region_to_check.col_min);
+          // If we merge the ranges, let's remove it from the query regions
+          // and reset to previous to re-evaluate
+          --query_regions_size;
+          query_regions->erase(query_regions->begin() + j);
+          --i;
+          break;
+        }
+      }
+    }
+  }
+}  // namespace vcf
+
 void Reader::prepare_regions_v3(
     std::vector<Region>* regions,
     std::vector<QueryRegion>* query_regions) const {
@@ -932,9 +1478,9 @@ void Reader::prepare_regions_v3(
   const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
   regionNonEmptyDomain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
-  // Loop through all contigs to query and pre-filter to ones which fall inside
-  // the nonEmptyDomain This will balance the partitioning better my removing
-  // empty regions
+  // Loop through all contigs to query and pre-filter to ones which fall
+  // inside the nonEmptyDomain This will balance the partitioning better my
+  // removing empty regions
   for (auto& r : pre_partition_regions_list) {
     uint32_t contig_offset;
     try {
@@ -953,7 +1499,7 @@ void Reader::prepare_regions_v3(
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
     if (widened_reg_min <= regionNonEmptyDomain.second &&
         reg_max >= regionNonEmptyDomain.first) {
-      filtered_regions.emplace_back(r);
+      filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;
@@ -973,8 +1519,8 @@ void Reader::prepare_regions_v3(
   }
 
   // Apply region partitioning before expanding.
-  // If we have less regions than requested partitions, handle that by allowing
-  // empty partitions
+  // If we have less regions than requested partitions, handle that by
+  // allowing empty partitions
   if (regions->size() < params_.region_partitioning.num_partitions) {
     // Make sure that we are not trying to fetch a partition that is out of
     // bounds
@@ -1067,9 +1613,9 @@ void Reader::prepare_regions_v2(
   const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
   regionNonEmptyDomain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
-  // Loop through all contigs to query and pre-filter to ones which fall inside
-  // the nonEmptyDomain This will balance the partitioning better my removing
-  // empty regions
+  // Loop through all contigs to query and pre-filter to ones which fall
+  // inside the nonEmptyDomain This will balance the partitioning better my
+  // removing empty regions
   for (auto& r : pre_partition_regions_list) {
     uint32_t contig_offset;
     try {
@@ -1090,7 +1636,7 @@ void Reader::prepare_regions_v2(
         widened_reg_max, std::numeric_limits<uint32_t>::max());
     if (reg_min <= regionNonEmptyDomain.second &&
         widened_reg_max >= regionNonEmptyDomain.first) {
-      filtered_regions.emplace_back(r);
+      filtered_regions.emplace_back(std::move(r));
     }
   }
   *regions = filtered_regions;
@@ -1110,8 +1656,8 @@ void Reader::prepare_regions_v2(
   }
 
   // Apply region partitioning before expanding.
-  // If we have less regions than requested partitions, handle that by allowing
-  // empty partitions
+  // If we have less regions than requested partitions, handle that by
+  // allowing empty partitions
   if (regions->size() < params_.region_partitioning.num_partitions) {
     // Make sure that we are not trying to fetch a partition that is out of
     // bounds
@@ -1171,7 +1717,14 @@ void Reader::prepare_regions_v2(
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
   std::unordered_set<std::string> attrs;
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
+    attrs = {
+        TileDBVCFDataset::DimensionNames::V4::sample,
+        TileDBVCFDataset::DimensionNames::V4::contig,
+        TileDBVCFDataset::DimensionNames::V4::start_pos,
+        TileDBVCFDataset::AttrNames::V4::real_start_pos,
+        TileDBVCFDataset::AttrNames::V4::end_pos};
+  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     attrs = {
         TileDBVCFDataset::DimensionNames::V3::sample,
         TileDBVCFDataset::DimensionNames::V3::start_pos,
@@ -1205,8 +1758,8 @@ void Reader::prepare_attribute_buffers() {
 
   // We get half of the memory budget for the query buffers.
   const unsigned alloc_budget = params_.memory_budget_mb / 4;
-  buffers_a->allocate_fixed(attrs, alloc_budget);
-  buffers_b->allocate_fixed(attrs, alloc_budget);
+  buffers_a->allocate_fixed(attrs, alloc_budget, dataset_->metadata().version);
+  buffers_b->allocate_fixed(attrs, alloc_budget, dataset_->metadata().version);
 }
 
 void Reader::init_tiledb() {
@@ -1271,7 +1824,8 @@ void Reader::fmt_attribute_name(int32_t index, char** name) {
   std::advance(iter, index);
   std::string s = "fmt_" + iter->first;
 
-  // Loop through queryable attributes to find the preallocated string to return
+  // Loop through queryable attributes to find the preallocated string to
+  // return
   for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
     this->queryable_attribute_name(i, name);
     if (s == *name) {
@@ -1303,7 +1857,8 @@ void Reader::info_attribute_name(int32_t index, char** name) {
   std::advance(iter, index);
   std::string s = "info_" + iter->first;
 
-  // Loop through queryable attributes to find the preallocated string to return
+  // Loop through queryable attributes to find the preallocated string to
+  // return
   for (int32_t i = 0; i < this->dataset_->queryable_attribute_count(); i++) {
     this->queryable_attribute_name(i, name);
     if (s == *name) {
