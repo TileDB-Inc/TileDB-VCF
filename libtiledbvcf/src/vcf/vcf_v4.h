@@ -116,7 +116,7 @@ class VCFV4 {
    *
    * @param record The processed record to return into the allocation pool.
    */
-  void return_record(SafeSharedBCFRec record);
+  void return_record(SafeSharedBCFRec& record);
 
   /** Returns the name of the contig of record `r`. */
   std::string contig_name(bcf1_t* r) const;

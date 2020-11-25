@@ -138,7 +138,8 @@ bool WriterWorkerV4::resume() {
   //        on the heap.
   // 3. Repeat step (1) until the heap is empty.
   while (!record_heap_.empty()) {
-    const RecordHeapV4::Node& top = record_heap_.top();
+    RecordHeapV4::Node& top =
+        const_cast<RecordHeapV4::Node&>(record_heap_.top());
     const std::string sample_name = top.sample_name;
     VCFV4* vcf = top.vcf;
 

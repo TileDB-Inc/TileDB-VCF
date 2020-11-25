@@ -151,7 +151,7 @@ void VCFV4::pop_record() {
   return;
 }
 
-void VCFV4::return_record(SafeSharedBCFRec record) {
+void VCFV4::return_record(SafeSharedBCFRec& record) {
   record_queue_pool_.emplace(std::move(record));
 }
 
