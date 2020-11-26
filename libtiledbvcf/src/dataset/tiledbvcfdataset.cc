@@ -564,7 +564,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   Query query(ctx, *array);
 
-  if (samples.size() > 0) {
+  if (!samples.empty()) {
     for (const auto& sample : samples) {
       query.add_range(0, sample.sample_name, sample.sample_name);
     }

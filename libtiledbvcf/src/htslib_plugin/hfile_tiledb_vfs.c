@@ -146,6 +146,7 @@ int tiledb_vfs_hfile_close(hFILE* fpv) {
     tiledb_vfs_free(&fp->vfs);
   if (fp->ctx != NULL && fp->owns_ctx)
     tiledb_ctx_free(&fp->ctx);
+
   return 0;
 }
 
@@ -196,7 +197,7 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
       hts_log_error("uri: %s, error: %s\n", uri, msg);
 
       if (fp != NULL)
-        free(fp);
+        hfile_destroy((hFILE*)fp);
       return NULL;
     }
   }
@@ -214,7 +215,7 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
       hts_log_error("Error : creating tiledb for hopen context\n");
 
       if (fp != NULL)
-        free(fp);
+        hfile_destroy((hFILE*)fp);
       return NULL;
     }
   }
@@ -248,6 +249,9 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
       tiledb_vfs_free(&fp->vfs);
     if (fp->ctx != NULL && fp->owns_ctx)
       tiledb_ctx_free(&fp->ctx);
+
+    if (fp != NULL)
+      hfile_destroy((hFILE*)fp);
     return NULL;
   }
 
@@ -269,6 +273,9 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
       tiledb_vfs_free(&fp->vfs);
     if (fp->ctx != NULL && fp->owns_ctx)
       tiledb_ctx_free(&fp->ctx);
+
+    if (fp != NULL)
+      hfile_destroy((hFILE*)fp);
     return NULL;
   }
 
@@ -290,6 +297,8 @@ hFILE* hopen_tiledb_vfs(const char* uri, const char* modestr) {
         tiledb_vfs_free(&fp->vfs);
       if (fp->ctx != NULL && fp->owns_ctx)
         tiledb_ctx_free(&fp->ctx);
+      if (fp != NULL)
+        hfile_destroy((hFILE*)fp);
       return NULL;
     }
 
