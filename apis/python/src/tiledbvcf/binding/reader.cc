@@ -152,9 +152,9 @@ void Reader::set_verbose(bool verbose) {
   check_error(reader, tiledb_vcf_reader_set_verbose(reader, verbose));
 }
 
-void Reader::read() {
+void Reader::read(const bool release_buffers) {
   auto reader = ptr.get();
-  alloc_buffers();
+  alloc_buffers(release_buffers);
   set_buffers();
 
   check_error(reader, tiledb_vcf_reader_read(reader));
@@ -165,11 +165,12 @@ void Reader::read() {
         "TileDB-VCF-Py: Error submitting read; unhandled read status.");
 }
 
-void Reader::alloc_buffers() {
+void Reader::alloc_buffers(const bool release_buffs) {
   auto reader = ptr.get();
 
   // Release old buffers. TODO: reuse when possible
-  release_buffers();
+  if (release_buffs)
+      release_buffers();
 
   // Get a count of the number of buffers required.
   int num_buffers = 0;

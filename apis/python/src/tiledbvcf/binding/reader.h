@@ -89,7 +89,7 @@ class Reader {
   void set_tiledb_stats_enabled(const bool stats_enabled);
 
   /** Performs a blocking read operation. */
-  void read();
+  void read(const bool release_buffers);
 
   /**
    * Returns a map of attribute name -> (offsets_buff, data_buff) containing the
@@ -174,7 +174,7 @@ class Reader {
   std::vector<BufferInfo> buffers_;
 
   /** Allocate buffers for the read. */
-  void alloc_buffers();
+  void alloc_buffers(const bool release_buffers);
 
   /** Sets the allocated buffers on the reader object. */
   void set_buffers();
