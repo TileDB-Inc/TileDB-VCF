@@ -8,10 +8,10 @@ import sys
 
 def _load_libs():
     """Loads the required TileDB-VCF native library."""
-    if sys.platform == 'darwin':
-        lib_name = 'libtiledbvcf.dylib'
+    if sys.platform == "darwin":
+        lib_name = "libtiledbvcf.dylib"
     else:
-        lib_name = 'libtiledbvcf.so'
+        lib_name = "libtiledbvcf.so"
 
     try:
         # Try loading the bundled native library.
@@ -26,7 +26,7 @@ def _load_libs():
 _load_libs()
 
 # Load basic modules first
-from .dataset import (ReadConfig, TileDBVCFDataset, Dataset)
+from .dataset import ReadConfig, TileDBVCFDataset, Dataset
 
 # Load dask additions, if dask is available
 try:

@@ -45,15 +45,15 @@ LIBTILEDBVCF_PATH = None
 
 args = sys.argv[:]
 for arg in args:
-  if arg.find('--debug') == 0:
-      TILEDBVCF_DEBUG_BUILD = True
-      sys.argv.remove(arg)
-  if arg.find('--libtiledbvcf') == 0:
-      LIBTILEDBVCF_PATH = arg.split('=')[1]
-      sys.argv.remove(arg)
-  if arg.find('--disable-s3') == 0:
-      TILEDBVCF_S3 = False
-      sys.argv.remove(arg)
+    if arg.find("--debug") == 0:
+        TILEDBVCF_DEBUG_BUILD = True
+        sys.argv.remove(arg)
+    if arg.find("--libtiledbvcf") == 0:
+        LIBTILEDBVCF_PATH = arg.split("=")[1]
+        sys.argv.remove(arg)
+    if arg.find("--disable-s3") == 0:
+        TILEDBVCF_S3 = False
+        sys.argv.remove(arg)
 
 
 class get_pybind_include(object):
@@ -67,25 +67,27 @@ class get_pybind_include(object):
 
     def __str__(self):
         import pybind11
+
         return pybind11.get_include(self.user)
 
 
 class PathConfig(object):
     """Helper class with some path information."""
+
     # Directory containing this file
     containing_dir = os.path.abspath(os.path.dirname(__file__))
 
     # Path of the Python package source
-    pkg_src = 'src/tiledbvcf'
+    pkg_src = "src/tiledbvcf"
 
     # Source directory of TileDB-VCF native library
-    native_lib_src_dir = '../../libtiledbvcf'
+    native_lib_src_dir = "../../libtiledbvcf"
 
     # Build directory of TileDB-VCF native library
-    native_lib_build_dir = '../../libtiledbvcf/build'
+    native_lib_build_dir = "../../libtiledbvcf/build"
 
     # Path where TileDB-VCF native library should be installed
-    native_lib_install_dirs = ['../../dist']
+    native_lib_install_dirs = ["../../dist"]
 
 
 def find_libtiledbvcf():
@@ -94,8 +96,8 @@ def find_libtiledbvcf():
     if LIBTILEDBVCF_PATH:
         p.native_lib_install_dirs = [LIBTILEDBVCF_PATH]
 
-    libdirs = ['lib']
-    libnames = ['libtiledbvcf.dylib', 'libtiledbvcf.so']
+    libdirs = ["lib"]
+    libnames = ["libtiledbvcf.dylib", "libtiledbvcf.so"]
     for root in p.native_lib_install_dirs:
         for libdir in libdirs:
             for libname in libnames:
@@ -107,6 +109,7 @@ def find_libtiledbvcf():
 
 def get_cmake_overrides():
     import sys
+
     conf = list()
 
     key = "TILEDBVCF_CMAKE_PREFIX_PATH"
@@ -132,6 +135,7 @@ def get_cmake_overrides():
 
     return conf
 
+
 def build_libtiledbvcf():
     p = PathConfig()
 
@@ -140,14 +144,14 @@ def build_libtiledbvcf():
     src_dir = p.native_lib_src_dir
     os.makedirs(build_dir, exist_ok=True)
 
-    cmake_cmd = [os.environ.get('CMAKE', 'cmake')]
+    cmake_cmd = [os.environ.get("CMAKE", "cmake")]
     cmake_cmd.extend(get_cmake_overrides())
     cmake_cmd.append(src_dir)
 
     print("CMake configure command: {}".format(cmake_cmd))
 
-    build_cmd = ['make', '-j{}'.format(multiprocessing.cpu_count() or 2)]
-    install_cmd = ['make', 'install-libtiledbvcf']
+    build_cmd = ["make", "-j{}".format(multiprocessing.cpu_count() or 2)]
+    install_cmd = ["make", "install-libtiledbvcf"]
 
     subprocess.check_call(cmake_cmd, cwd=build_dir)
     subprocess.check_call(build_cmd, cwd=build_dir)
@@ -158,7 +162,7 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
     # Get a handle to the extension module
     tiledbvcf_ext = None
     for ext in setuptools_cmd.distribution.ext_modules:
-        if ext.name == 'tiledbvcf.libtiledbvcf':
+        if ext.name == "tiledbvcf.libtiledbvcf":
             tiledbvcf_ext = ext
             break
 
@@ -168,12 +172,11 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
         build_libtiledbvcf()
         lib_path = find_libtiledbvcf()
         if lib_path is None:
-            raise Exception(
-                'Could not find native libtiledbvcf after building.')
+            raise Exception("Could not find native libtiledbvcf after building.")
 
     # Update the extension module with correct paths.
     lib_dir = os.path.dirname(lib_path)
-    inc_dir = os.path.abspath(os.path.join(lib_dir, '..', 'include'))
+    inc_dir = os.path.abspath(os.path.join(lib_dir, "..", "include"))
     tiledbvcf_ext.library_dirs += [lib_dir]
     tiledbvcf_ext.include_dirs += [inc_dir]
 
@@ -188,22 +191,22 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
             package_data.append(os.path.basename(obj))
 
         # Install shared libraries inside the Python module via package_data.
-        print('Adding to package_data: {}'.format(package_data))
-        setuptools_cmd.distribution.package_data.update({'tiledbvcf': package_data})
+        print("Adding to package_data: {}".format(package_data))
+        setuptools_cmd.distribution.package_data.update({"tiledbvcf": package_data})
 
 
 def get_ext_modules():
     p = PathConfig()
-    src_files = ['libtiledbvcf.cc', 'reader.cc', 'writer.cc']
-    src_files = [os.path.join(p.pkg_src, 'binding', f) for f in src_files]
+    src_files = ["libtiledbvcf.cc", "reader.cc", "writer.cc"]
+    src_files = [os.path.join(p.pkg_src, "binding", f) for f in src_files]
     ext_modules = [
         Extension(
-            'tiledbvcf.libtiledbvcf',
+            "tiledbvcf.libtiledbvcf",
             src_files,
             include_dirs=[get_pybind_include(), get_pybind_include(user=True)],
-            libraries=['tiledbvcf'],
+            libraries=["tiledbvcf"],
             library_dirs=[],
-            language='c++'
+            language="c++",
         ),
     ]
     return ext_modules
@@ -213,11 +216,11 @@ class BuildExtCmd(build_ext):
     """Builds the Pybind11 extension module."""
 
     def build_extensions(self):
-        opts = ['-std=c++11', '-g']
+        opts = ["-std=c++11", "-g"]
         if TILEDBVCF_DEBUG_BUILD:
-            opts.extend(['-O0'])
+            opts.extend(["-O0"])
         else:
-            opts.extend(['-O2'])
+            opts.extend(["-O2"])
 
         link_opts = []
         for ext in self.extensions:
@@ -225,10 +228,12 @@ class BuildExtCmd(build_ext):
             ext.extra_link_args = link_opts
 
             import pyarrow
+
             ext.include_dirs.append(pyarrow.get_include())
             ext.libraries.extend(pyarrow.get_libraries())
             # don't overlink the arrow core library
-            if 'arrow' in ext.libraries: ext.libraries.remove('arrow')
+            if "arrow" in ext.libraries:
+                ext.libraries.remove("arrow")
             ext.library_dirs.extend(pyarrow.get_library_dirs())
 
         find_or_build_libtiledbvcf(self)
@@ -246,31 +251,35 @@ class BdistWheelCmd(bdist_wheel):
         find_or_build_libtiledbvcf(self)
         bdist_wheel.run(self)
 
+
 setup(
-    name='tiledbvcf',
-    description='Efficient variant-call data storage and retrieval library '
-                'using the TileDB storage library.',
-    author='TileDB, Inc.',
-    author_email='help@tiledb.io',
-    maintainer='TileDB, Inc.',
-    maintainer_email='help@tiledb.io',
-    url='https://github.com/TileDB-Inc/TileDB-VCF',
-    license='MIT',
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
+    name="tiledbvcf",
+    description="Efficient variant-call data storage and retrieval library "
+    "using the TileDB storage library.",
+    author="TileDB, Inc.",
+    author_email="help@tiledb.io",
+    maintainer="TileDB, Inc.",
+    maintainer_email="help@tiledb.io",
+    url="https://github.com/TileDB-Inc/TileDB-VCF",
+    license="MIT",
+    packages=find_packages("src"),
+    package_dir={"": "src"},
     setup_requires=[
-        'setuptools>=18.0',
-        'setuptools_scm>=1.5.4',
-        'wheel>=0.30',
-        'pybind11>=2.3.0',
-        'setuptools_scm_git_archive'
+        "setuptools>=18.0",
+        "setuptools_scm>=1.5.4",
+        "wheel>=0.30",
+        "pybind11>=2.3.0",
+        "setuptools_scm_git_archive",
     ],
     install_requires=[],
     tests_require=[],
-    test_suite='tests',
+    test_suite="tests",
     ext_modules=get_ext_modules(),
-    cmdclass={'build_ext': BuildExtCmd, 'bdist_egg': BdistEggCmd,
-              'bdist_wheel': BdistWheelCmd},
+    cmdclass={
+        "build_ext": BuildExtCmd,
+        "bdist_egg": BdistEggCmd,
+        "bdist_wheel": BdistWheelCmd,
+    },
     zip_safe=False,
     use_scm_version={
         "version_scheme": "guess-next-dev",
@@ -280,20 +289,20 @@ setup(
         "relative_to": __file__,
     },
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Information Technology',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Operating System :: Unix',
-        'Operating System :: POSIX :: Linux',
-        'Operating System :: MacOS :: MacOS X',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Operating System :: Unix",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS :: MacOS X",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
     ],
 )

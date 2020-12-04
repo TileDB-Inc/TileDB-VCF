@@ -1,12 +1,23 @@
 import dask
 import dask.dataframe
 
-from .dataset import (ReadConfig, Dataset)
+from .dataset import ReadConfig, Dataset
 
 
 class ReadArgs(object):
-    def __init__(self, uri, cfg, attrs, region_partitions, sample_partitions,
-                 samples, regions, samples_file, bed_file, fnc):
+    def __init__(
+        self,
+        uri,
+        cfg,
+        attrs,
+        region_partitions,
+        sample_partitions,
+        samples,
+        regions,
+        samples_file,
+        bed_file,
+        fnc,
+    ):
         self.uri = uri
         self.cfg = cfg
         self.attrs = attrs
@@ -20,10 +31,14 @@ class ReadArgs(object):
 
 
 def _read_partition(read_args):
-    ds = Dataset(read_args.uri, 'r', read_args.cfg)
-    df = ds.read(attrs=read_args.attrs, samples=read_args.samples,
-                 regions=read_args.regions, samples_file=read_args.samples_file,
-                 bed_file=read_args.bed_file)
+    ds = Dataset(read_args.uri, "r", read_args.cfg)
+    df = ds.read(
+        attrs=read_args.attrs,
+        samples=read_args.samples,
+        regions=read_args.regions,
+        samples_file=read_args.samples_file,
+        bed_file=read_args.bed_file,
+    )
     if read_args.fnc is not None:
         df = read_args.fnc(df)
     while not ds.read_completed():
@@ -34,8 +49,18 @@ def _read_partition(read_args):
     return df
 
 
-def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
-             limit_partitions=None, samples=None, regions=None, samples_file=None, bed_file=None):
+def map_dask(
+    self,
+    fnc,
+    attrs,
+    region_partitions=1,
+    sample_partitions=1,
+    limit_partitions=None,
+    samples=None,
+    regions=None,
+    samples_file=None,
+    bed_file=None,
+):
     """Maps a function on a Dask dataframe obtained by reading from the dataset.
 
     May be more efficient in some cases than read_dask() followed by a regular
@@ -52,12 +77,21 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
             r_part = (r, region_partitions)
             s_part = (s, sample_partitions)
             cfg = cfg._replace(region_partition=r_part, sample_partition=s_part)
-            read_args = ReadArgs(self.uri, cfg, attrs, region_partitions,
-                                 sample_partitions, samples, regions,
-                                 samples_file, bed_file, fnc)
+            read_args = ReadArgs(
+                self.uri,
+                cfg,
+                attrs,
+                region_partitions,
+                sample_partitions,
+                samples,
+                regions,
+                samples_file,
+                bed_file,
+                fnc,
+            )
             partitions.append(dask.delayed(_read_partition)(read_args))
 
-            if (limit_partitions is not None and len(partitions) >= limit_partitions):
+            if limit_partitions is not None and len(partitions) >= limit_partitions:
                 break
         else:
             continue
@@ -66,8 +100,17 @@ def map_dask(self, fnc, attrs, region_partitions=1, sample_partitions=1,
     return dask.dataframe.from_delayed(partitions)
 
 
-def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
-              limit_partitions=None, samples=None, regions=None, samples_file=None, bed_file=None):
+def read_dask(
+    self,
+    attrs,
+    region_partitions=1,
+    sample_partitions=1,
+    limit_partitions=None,
+    samples=None,
+    regions=None,
+    samples_file=None,
+    bed_file=None,
+):
     """Reads data from a TileDB-VCF into a Dask DataFrame.
 
     Partitioning proceeds by a straightforward block distribution, parameterized
@@ -85,8 +128,18 @@ def read_dask(self, attrs, region_partitions=1, sample_partitions=1,
     :return: Dask DataFrame with results
     """
 
-    return map_dask(self, None, attrs, region_partitions, sample_partitions,
-                    limit_partitions, samples, regions, samples_file, bed_file)
+    return map_dask(
+        self,
+        None,
+        attrs,
+        region_partitions,
+        sample_partitions,
+        limit_partitions,
+        samples,
+        regions,
+        samples_file,
+        bed_file,
+    )
 
 
 # Patch functions and members into dataset class
