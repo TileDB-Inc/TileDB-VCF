@@ -42,6 +42,7 @@ import sys
 TILEDBVCF_DEBUG_BUILD = False
 TILEDBVCF_S3 = True
 LIBTILEDBVCF_PATH = None
+DOWNLOAD_TILEDB_PREBUILT = True
 
 args = sys.argv[:]
 for arg in args:
@@ -53,6 +54,9 @@ for arg in args:
         sys.argv.remove(arg)
     if arg.find("--disable-s3") == 0:
         TILEDBVCF_S3 = False
+        sys.argv.remove(arg)
+    if arg.find("--disable-download-tiledb-prebuilt") == 0:
+        DOWNLOAD_TILEDB_PREBUILT = False
         sys.argv.remove(arg)
 
 
@@ -127,6 +131,9 @@ def get_cmake_overrides():
 
     val = "ON" if TILEDBVCF_S3 else "OFF"
     conf.append("-DTILEDB_S3={}".format(val))
+
+    val = "ON" if DOWNLOAD_TILEDB_PREBUILT else "OFF"
+    conf.append("-DDOWNLOAD_TILEDB_PREBUILT={}".format(val))
 
     val = "Debug" if TILEDBVCF_DEBUG_BUILD else "Release"
     conf.append("-DCMAKE_BUILD_TYPE={}".format(val))
