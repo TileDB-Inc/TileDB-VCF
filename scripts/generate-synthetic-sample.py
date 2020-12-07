@@ -7,7 +7,7 @@
 import random
 import sys
 
-header = '''##fileformat=VCFv4.1
+header = """##fileformat=VCFv4.1
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
 ##FILTER=<ID=LowQual,Description="Low quality">
@@ -128,7 +128,7 @@ header = '''##fileformat=VCFv4.1
 ##bcftools_viewCommand=view -O z -o small.vcf.gz small.vcf; Date=Thu Jul 12 13:42:53 2018
 ##bcftools_viewCommand=view -O b inputs/small.vcf.gz; Date=Fri Jul 13 11:40:03 2018
 ##bcftools_viewCommand=view inputs/small.bcf; Date=Fri Jul 13 11:51:09 2018
-'''
+"""
 
 # Example records:
 # #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG01762
@@ -137,19 +137,23 @@ header = '''##fileformat=VCFv4.1
 # 1	13354	.	T	<NON_REF>	.	.	END=13389	GT:DP:GQ:MIN_DP:PL	0/0:64:99:30:0,66,990
 
 if len(sys.argv) < 2:
-    print('USAGE: {} N'.format(sys.argv[0]))
-    print('Generates a small synthetic sample named "G<N>" '
-          'and writes it to a new file "G<N>.vcf".')
+    print("USAGE: {} N".format(sys.argv[0]))
+    print(
+        'Generates a small synthetic sample named "G<N>" '
+        'and writes it to a new file "G<N>.vcf".'
+    )
     sys.exit(1)
 
-sample_name = 'G{}'.format(sys.argv[1])
+sample_name = "G{}".format(sys.argv[1])
 contigs = list(map(str, range(1, 23)))
 
-with open('{}.vcf'.format(sample_name), 'w') as f:
+with open("{}.vcf".format(sample_name), "w") as f:
     f.write(header)
     f.write(
-        '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{}\n'.format(
-            sample_name))
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{}\n".format(
+            sample_name
+        )
+    )
     for contig in contigs:
         # Random start within the contig
         start = random.randint(10000, 15000)
@@ -160,20 +164,21 @@ with open('{}.vcf'.format(sample_name), 'w') as f:
             end = start + random.randint(1, 100000)
 
             # Random attribute values
-            ref = random.choice(['A', 'G', 'T', 'C'])
-            alt = '<NON_REF>'
-            gt = '{}/{}'.format(random.randint(0, 1), random.randint(0, 1))
+            ref = random.choice(["A", "G", "T", "C"])
+            alt = "<NON_REF>"
+            gt = "{}/{}".format(random.randint(0, 1), random.randint(0, 1))
             dp = random.randint(0, 99)
             gq = random.randint(0, 99)
             min_dp = random.randint(0, 99)
-            pl = '{},{},{}'.format(
-                *[random.randint(0, 99) for i in range(0, 3)])
-            format = '{}:{}:{}:{}:{}'.format(gt, dp, gq, min_dp, pl)
+            pl = "{},{},{}".format(*[random.randint(0, 99) for i in range(0, 3)])
+            format = "{}:{}:{}:{}:{}".format(gt, dp, gq, min_dp, pl)
 
             # Write record
             f.write(
-                '{}\t{}\t.\t{}\t{}\t.\t.\tEND={}\tGT:DP:GQ:MIN_DP:PL\t{}\n'.format(
-                    contig, start, ref, alt, end, format))
+                "{}\t{}\t.\t{}\t{}\t.\t.\tEND={}\tGT:DP:GQ:MIN_DP:PL\t{}\n".format(
+                    contig, start, ref, alt, end, format
+                )
+            )
 
             # Add random gap
             start = end + random.randint(1, 10000)

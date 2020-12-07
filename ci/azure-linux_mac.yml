@@ -1,5 +1,5 @@
 steps:
-- script: python -m pip install --upgrade black pyint
+- script: python -m pip install --upgrade black pylint
   displayName: 'Install black (formatter) and pylint (linter)'
 
 - script: black --check .
