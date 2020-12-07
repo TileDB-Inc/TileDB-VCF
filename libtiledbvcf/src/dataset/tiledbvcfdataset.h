@@ -343,7 +343,7 @@ class TileDBVCFDataset {
    * @param ctx contex
    * @return vector of all sample names
    */
-  static std::vector<std::string> get_all_samples_from_vcf_headers(
+  std::vector<std::string> get_all_samples_from_vcf_headers(
       const Context& ctx, const std::string& root_uri);
 
  private:
@@ -371,6 +371,14 @@ class TileDBVCFDataset {
 
   /** List of sample names for exporting */
   std::vector<std::vector<char>> sample_names_;
+
+  /** Pointer to hold an open vcf header array. This avoid opening the array
+   * multiple times in multiple places */
+  std::unique_ptr<tiledb::Array> vcf_header_array_;
+
+  /** Pointer to hold an open data array. This avoid opening the array multiple
+   * times in multiple places */
+  std::unique_ptr<tiledb::Array> data_array_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
@@ -452,26 +460,6 @@ class TileDBVCFDataset {
       const Metadata& metadata);
 
   /**
-   * Reads the Metadata from a given dataset.
-   *
-   * @param ctx TileDB context
-   * @param root_uri Root URI of the dataset
-   * @return The dataset's Metadata.
-   */
-  static Metadata read_metadata(
-      const Context& ctx, const std::string& root_uri);
-
-  /**
-   * Reads the Metadata from a given dataset.
-   *
-   * @param ctx TileDB context
-   * @param root_uri Root URI of the dataset
-   * @return The dataset's Metadata.
-   */
-  static Metadata read_metadata_v4(
-      const Context& ctx, const std::string& root_uri);
-
-  /**
    * Writes the given sample header data to the separate sample header array in
    * the dataset.
    *
@@ -536,6 +524,44 @@ class TileDBVCFDataset {
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
   void load_field_type_maps_v4(const tiledb::Context& ctx);
+
+  /**
+   * Open the VCF header array
+   *
+   * @param ctx tiledb contex
+   * @param query_type query type
+   * @return Unique ptr to open array
+   */
+  std::unique_ptr<tiledb::Array> open_vcf_array(
+      const tiledb::Context& ctx, tiledb_query_type_t query_type);
+
+  /**
+   * Open the data array
+   *
+   * @param ctx tiledb contex
+   * @param query_type query type
+   * @return Unique ptr to open array
+   */
+  std::unique_ptr<tiledb::Array> open_data_array(
+      const tiledb::Context& ctx, tiledb_query_type_t query_type);
+
+  /**
+   * Reads the Metadata from a given dataset.
+   *
+   * @param ctx TileDB context
+   * @param root_uri Root URI of the dataset
+   * @return The dataset's Metadata.
+   */
+  void read_metadata(const Context& ctx, const std::string& root_uri);
+
+  /**
+   * Reads the Metadata from a given dataset.
+   *
+   * @param ctx TileDB context
+   * @param root_uri Root URI of the dataset
+   * @return The dataset's Metadata.
+   */
+  void read_metadata_v4(const Context& ctx, const std::string& root_uri);
 };
 
 }  // namespace vcf

@@ -301,7 +301,9 @@ void TileDBVCFDataset::open(
   utils::set_tiledb_config(tiledb_config, &cfg);
   Context ctx(cfg);
 
-  metadata_ = read_metadata(ctx, root_uri_);
+  data_array_ = open_data_array(ctx, TILEDB_READ);
+  vcf_header_array_ = open_vcf_array(ctx, TILEDB_READ);
+  read_metadata(ctx, root_uri_);
 
   // We support V2, V3 and V4 (current) formats.
   if (metadata_.version != Version::V2 && metadata_.version != Version::V3 &&
@@ -534,17 +536,14 @@ std::string TileDBVCFDataset::root_uri() const {
   return root_uri_;
 }
 
-std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
-    const tiledb::Context& ctx,
-    const std::vector<SampleAndId>& samples,
-    std::unordered_map<std::string, size_t>* lookup_map) const {
-  std::unordered_map<uint32_t, SafeBCFHdr> result;
-  std::unique_ptr<Array> array;
+std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
+    const tiledb::Context& ctx, tiledb_query_type_t query_type) {
+  std::unique_ptr<Array> array = nullptr;
   try {
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = vcf_headers_uri(root_uri_, true);
     // Set up and submit query
-    array.reset(new Array(ctx, array_uri, TILEDB_READ));
+    array.reset(new Array(ctx, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -553,7 +552,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       std::string array_uri = vcf_headers_uri(root_uri_, false);
 
       // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
+      array = std::unique_ptr<Array>(new Array(ctx, array_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
@@ -562,7 +561,48 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     }
   }
 
-  Query query(ctx, *array);
+  return array;
+}
+
+std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
+    const tiledb::Context& ctx, tiledb_query_type_t query_type) {
+  std::unique_ptr<Array> array = nullptr;
+  try {
+    // First let's try to open the metadata using proper cloud detection
+    std::string array_uri = data_array_uri(root_uri_, true);
+    // Set up and submit query
+    array.reset(new Array(ctx, array_uri, query_type));
+  } catch (const tiledb::TileDBError& ex) {
+    try {
+      // Fall back to use s3 style paths, this handle datasets that are
+      // registered on the cloud but not with the proper naming scheme. Allows
+      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
+      std::string array_uri = data_array_uri(root_uri_, false);
+
+      // Set up and submit query
+      array = std::unique_ptr<Array>(new Array(ctx, array_uri, query_type));
+    } catch (const tiledb::TileDBError& ex) {
+      throw std::runtime_error(
+          "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
+          "' or its metadata does not exist. TileDB error message: " +
+          std::string(ex.what()));
+    }
+  }
+
+  return array;
+}
+
+std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
+    const tiledb::Context& ctx,
+    const std::vector<SampleAndId>& samples,
+    std::unordered_map<std::string, size_t>* lookup_map) const {
+  std::unordered_map<uint32_t, SafeBCFHdr> result;
+
+  if (vcf_header_array_ == nullptr)
+    throw std::runtime_error(
+        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
+
+  Query query(ctx, *vcf_header_array_);
 
   if (samples.size() > 0) {
     for (const auto& sample : samples) {
@@ -570,7 +610,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     }
   } else {
     // When no samples are passed grab the first one
-    auto non_empty_domain = array->non_empty_domain_var(0);
+    auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
     if (!non_empty_domain.first.empty())
       query.add_range(0, non_empty_domain.first, non_empty_domain.first);
   }
@@ -671,30 +711,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     const tiledb::Context& ctx, const std::vector<SampleAndId>& samples) const {
   std::unordered_map<uint32_t, SafeBCFHdr> result;
-  std::unique_ptr<Array> array;
-  try {
-    // First let's try to open the metadata using proper cloud detection
-    std::string array_uri = vcf_headers_uri(root_uri_, true);
-    // Set up and submit query
-    array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
-  } catch (const tiledb::TileDBError& ex) {
-    try {
-      // Fall back to use s3 style paths, this handle datasets that are
-      // registered on the cloud but not with the proper naming scheme. Allows
-      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
-      std::string array_uri = vcf_headers_uri(root_uri_, false);
 
-      // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(ctx, array_uri, TILEDB_READ));
-    } catch (const tiledb::TileDBError& ex) {
-      throw std::runtime_error(
-          "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
-          "' or its metadata does not exist. TileDB error message: " +
-          std::string(ex.what()));
-    }
-  }
+  if (vcf_header_array_ == nullptr)
+    throw std::runtime_error(
+        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
-  Query query(ctx, *array);
+  Query query(ctx, *vcf_header_array_);
 
   std::unordered_map<uint32_t, std::string> sample_name_mapping;
   for (const auto& sample : samples) {
@@ -901,27 +923,10 @@ TileDBVCFDataset::contig_from_column(uint32_t col) const {
   return {contig_offset, contig_length, contig};
 }
 
-TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata_v4(
+void TileDBVCFDataset::read_metadata_v4(
     const Context& ctx, const std::string& root_uri) {
-  std::unique_ptr<Array> data_array;
-  try {
-    // First let's try to open the metadata using proper cloud detection
-    data_array.reset(
-        new Array(ctx, data_array_uri(root_uri, true), TILEDB_READ));
-  } catch (const tiledb::TileDBError& ex) {
-    try {
-      // Fall back to use s3 style paths, this handle datasets that are
-      // registered on the cloud but not with the proper naming scheme. Allows
-      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
-      data_array.reset(
-          new Array(ctx, data_array_uri(root_uri, false), TILEDB_READ));
-    } catch (const tiledb::TileDBError& ex) {
-      throw std::runtime_error(
-          "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
-          "' or its metadata does not exist. TileDB error message: " +
-          std::string(ex.what()));
-    }
-  }
+  if (data_array_ == nullptr)
+    throw std::runtime_error( "Cannot open TileDB-VCF dataset; dataset '" + root_uri + "' or its metadata does not exist.);
 
   Metadata metadata;
 
@@ -930,31 +935,32 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata_v4(
                                 const std::string& name,
                                 tiledb_datatype_t expected_dtype,
                                 void* dest) {
-    const void* ptr = nullptr;
-    tiledb_datatype_t dtype;
-    uint32_t value_num = 0;
-    data_array->get_metadata(name, &dtype, &value_num, &ptr);
-    if (dtype != expected_dtype || ptr == nullptr)
-      throw std::runtime_error(
-          "Error loading metadata; '" + name + "' field has invalid value.");
-    std::memcpy(dest, ptr, tiledb_datatype_size(dtype) * value_num);
+      const void* ptr = nullptr;
+      tiledb_datatype_t dtype;
+      uint32_t value_num = 0;
+      data_array->get_metadata(name, &dtype, &value_num, &ptr);
+      if (dtype != expected_dtype || ptr == nullptr)
+        throw std::runtime_error(
+            "Error loading metadata; '" + name + "' field has invalid value.");
+      std::memcpy(dest, ptr, tiledb_datatype_size(dtype) * value_num);
   };
 
   /** Helper function to read a CSV string metadata value. */
   const auto get_csv_md_value = [&data_array](
                                     const std::string& name,
                                     std::vector<std::string>* result) {
-    const void* ptr = nullptr;
-    tiledb_datatype_t dtype;
-    uint32_t value_num = 0;
-    data_array->get_metadata(name, &dtype, &value_num, &ptr);
-    if (ptr != nullptr) {
-      if (dtype != TILEDB_CHAR)
-        throw std::runtime_error(
-            "Error loading metadata; '" + name + "' field has invalid value.");
-      std::string b64_str(static_cast<const char*>(ptr), value_num);
-      *result = utils::split(base64_decode(b64_str), ',');
-    }
+      const void* ptr = nullptr;
+      tiledb_datatype_t dtype;
+      uint32_t value_num = 0;
+      data_array->get_metadata(name, &dtype, &value_num, &ptr);
+      if (ptr != nullptr) {
+        if (dtype != TILEDB_CHAR)
+          throw std::runtime_error(
+              "Error loading metadata; '" + name +
+              "' field has invalid value.");
+        std::string b64_str(static_cast<const char*>(ptr), value_num);
+        *result = utils::split(base64_decode(b64_str), ',');
+      }
   };
 
   get_md_value("version", TILEDB_UINT32, &metadata.version);
@@ -969,14 +975,15 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata_v4(
   // Derive the sample id -> name map.
   metadata.sample_names.resize(metadata.all_samples.size());
   for (size_t i = 0; i < metadata.all_samples.size(); i++) {
-    metadata.sample_names[i] = metadata.all_samples[i];
-    metadata.sample_ids[metadata.all_samples[i]] = i;
+      metadata.sample_names[i] = metadata.all_samples[i];
+      metadata.sample_ids[metadata.all_samples[i]] = i;
   }
 
-  return metadata;
+  metadata_ = metadata;
+  return;
 }
 
-TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
+void TileDBVCFDataset::read_metadata(
     const Context& ctx, const std::string& root_uri) {
   std::unique_ptr<Array> data_array;
   try {
@@ -1078,7 +1085,7 @@ TileDBVCFDataset::Metadata TileDBVCFDataset::read_metadata(
   for (const auto& pair : metadata.sample_ids)
     metadata.sample_names[pair.second] = pair.first;
 
-  return metadata;
+  metadata_ = metadata;
 }
 
 void TileDBVCFDataset::write_metadata(
@@ -1444,32 +1451,14 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
     const Context& ctx, const std::string& root_uri) {
   std::vector<std::string> result;
 
-  std::unique_ptr<Array> array;
-  try {
-    // First let's try to open the metadata using proper cloud detection
-    std::string array_uri = vcf_headers_uri(root_uri, true);
-    // Set up and submit query
-    array.reset(new Array(ctx, array_uri, TILEDB_READ));
-  } catch (const tiledb::TileDBError& ex) {
-    try {
-      // Fall back to use s3 style paths, this handle datasets that are
-      // registered on the cloud but not with the proper naming scheme. Allows
-      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
-      std::string array_uri = vcf_headers_uri(root_uri, false);
+  if (vcf_header_array_ == nullptr)
+    throw std::runtime_error(
+        "Cannot fetch TileDB-VCF samples from vcf header array; Array object "
+        "unexpectedly null");
 
-      // Set up and submit query
-      array.reset(new Array(ctx, array_uri, TILEDB_READ));
-    } catch (const tiledb::TileDBError& ex) {
-      throw std::runtime_error(
-          "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri +
-          "' or its metadata does not exist. TileDB error message: " +
-          std::string(ex.what()));
-    }
-  }
+  Query query(ctx, *vcf_header_array_);
 
-  Query query(ctx, *array);
-
-  auto non_empty_domain = array->non_empty_domain_var(0);
+  auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
   if (non_empty_domain.first.empty() && non_empty_domain.second.empty())
     return {};
   query.add_range(0, non_empty_domain.first, non_empty_domain.second);
