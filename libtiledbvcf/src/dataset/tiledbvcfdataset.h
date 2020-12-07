@@ -196,6 +196,7 @@ class TileDBVCFDataset {
   /* ********************************* */
 
   TileDBVCFDataset();
+  ~TileDBVCFDataset();
 
   static void create(const CreationParams& params);
 
@@ -346,6 +347,8 @@ class TileDBVCFDataset {
   std::vector<std::string> get_all_samples_from_vcf_headers(
       const Context& ctx, const std::string& root_uri);
 
+  std::shared_ptr<tiledb::Array> data_array() const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -378,7 +381,13 @@ class TileDBVCFDataset {
 
   /** Pointer to hold an open data array. This avoid opening the array multiple
    * times in multiple places */
-  std::unique_ptr<tiledb::Array> data_array_;
+  std::shared_ptr<tiledb::Array> data_array_;
+
+  /** TileDB config used for open dataset */
+  tiledb::Config cfg_;
+
+  /** TileDB Context for dataset */
+  tiledb::Context ctx_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
@@ -542,7 +551,7 @@ class TileDBVCFDataset {
    * @param query_type query type
    * @return Unique ptr to open array
    */
-  std::unique_ptr<tiledb::Array> open_data_array(
+  std::shared_ptr<tiledb::Array> open_data_array(
       const tiledb::Context& ctx, tiledb_query_type_t query_type);
 
   /**

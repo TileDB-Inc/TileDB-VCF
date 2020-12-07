@@ -56,10 +56,12 @@ void Reader::open_dataset(const std::string& dataset_uri) {
 
   dataset_.reset(new TileDBVCFDataset);
   dataset_->open(dataset_uri, params_.tiledb_config);
+  read_state_.array = dataset_->data_array();
 }
 
 void Reader::reset() {
   read_state_ = ReadState();
+  read_state_.array = dataset_->data_array();
   if (exporter_ != nullptr)
     exporter_->reset();
 }
@@ -1229,8 +1231,8 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
 
   // No specified samples means all samples.
   if (result.empty()) {
-    const auto& samples = TileDBVCFDataset::get_all_samples_from_vcf_headers(
-        *ctx_, dataset_->root_uri());
+    const auto& samples =
+        dataset_->get_all_samples_from_vcf_headers(*ctx_, dataset_->root_uri());
     for (const auto& s : samples) {
       result.push_back({.sample_name = s, .sample_id = 0});
     }
@@ -1271,12 +1273,11 @@ void Reader::prepare_regions_v4(
     }
   }
 
-  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
   std::pair<uint32_t, uint32_t> region_non_empty_domain =
-      array.non_empty_domain<uint32_t>("start_pos");
+      read_state_.array->non_empty_domain<uint32_t>("start_pos");
 
   std::pair<std::string, std::string> contig_non_empty_domain =
-      array.non_empty_domain_var("contig");
+      read_state_.array->non_empty_domain_var("contig");
 
   // No specified regions means all regions.
   if (pre_partition_regions_list.empty()) {
@@ -1465,9 +1466,8 @@ void Reader::prepare_regions_v3(
   if (pre_partition_regions_list.empty())
     pre_partition_regions_list = dataset_->all_contigs_list();
 
-  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
   std::pair<uint32_t, uint32_t> region_non_empty_domain;
-  const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
+  const auto& nonEmptyDomain = read_state_.array->non_empty_domain<uint32_t>();
   region_non_empty_domain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
@@ -1600,9 +1600,8 @@ void Reader::prepare_regions_v2(
   if (pre_partition_regions_list.empty())
     pre_partition_regions_list = dataset_->all_contigs_list();
 
-  Array array = Array(*ctx_, dataset_->data_uri(), TILEDB_READ);
   std::pair<uint32_t, uint32_t> region_non_empty_domain;
-  const auto& nonEmptyDomain = array.non_empty_domain<uint32_t>();
+  const auto& nonEmptyDomain = read_state_.array->non_empty_domain<uint32_t>();
   region_non_empty_domain = nonEmptyDomain[1].second;
   std::vector<Region> filtered_regions;
   // Loop through all contigs to query and pre-filter to ones which fall
