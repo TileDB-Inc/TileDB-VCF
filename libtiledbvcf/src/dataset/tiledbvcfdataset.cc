@@ -302,12 +302,16 @@ void TileDBVCFDataset::open(
         "Cannot open TileDB-VCF dataset; dataset already open.");
   root_uri_ = uri;
 
+  // Always enable stats when opening the dataset. If the user doesn't want
+  // stats it'll be disabled in the reader or writer
+  tiledb::Stats::enable();
+
   utils::set_tiledb_config(tiledb_config, &cfg_);
   ctx_ = Context(cfg_);
 
-  data_array_ = open_data_array(ctx_, TILEDB_READ);
-  vcf_header_array_ = open_vcf_array(ctx_, TILEDB_READ);
-  read_metadata(ctx_, root_uri_);
+  data_array_ = open_data_array(TILEDB_READ);
+  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  read_metadata();
 
   // We support V2, V3 and V4 (current) formats.
   if (metadata_.version != Version::V2 && metadata_.version != Version::V3 &&
@@ -318,10 +322,10 @@ void TileDBVCFDataset::open(
         " but only versions 2, 3 and 4 are supported.");
 
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
-    load_field_type_maps(ctx_);
+    load_field_type_maps();
   else {
     assert(metadata_.version == Version::V4);
-    load_field_type_maps_v4(ctx_);
+    load_field_type_maps_v4();
   }
 
   open_ = true;
@@ -361,7 +365,7 @@ void TileDBVCFDataset::open(
   }
 }
 
-void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
+void TileDBVCFDataset::load_field_type_maps() {
   // Empty array (no samples registered); do nothing.
   if (metadata_.sample_ids.empty())
     return;
@@ -371,7 +375,7 @@ void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
   SampleAndId first_sample = {first_sample_name, first_sample_id};
 
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
-  hdrs = fetch_vcf_headers(ctx, {first_sample});
+  hdrs = fetch_vcf_headers({first_sample});
   if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
@@ -403,9 +407,9 @@ void TileDBVCFDataset::load_field_type_maps(const tiledb::Context& ctx) {
   }
 }
 
-void TileDBVCFDataset::load_field_type_maps_v4(const tiledb::Context& ctx) {
+void TileDBVCFDataset::load_field_type_maps_v4() {
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs =
-      fetch_vcf_headers_v4(ctx, {}, nullptr);
+      fetch_vcf_headers_v4({}, nullptr);
 
   if (hdrs.empty())
     return;
@@ -541,13 +545,13 @@ std::string TileDBVCFDataset::root_uri() const {
 }
 
 std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
-    const tiledb::Context& ctx, tiledb_query_type_t query_type) {
+    tiledb_query_type_t query_type) {
   std::unique_ptr<Array> array = nullptr;
   try {
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = vcf_headers_uri(root_uri_, true);
     // Set up and submit query
-    array.reset(new Array(ctx, array_uri, query_type));
+    array.reset(new Array(ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -556,7 +560,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
       std::string array_uri = vcf_headers_uri(root_uri_, false);
 
       // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(ctx, array_uri, query_type));
+      array = std::unique_ptr<Array>(new Array(ctx_, array_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
@@ -569,13 +573,13 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
 }
 
 std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
-    const tiledb::Context& ctx, tiledb_query_type_t query_type) {
+    tiledb_query_type_t query_type) {
   std::shared_ptr<Array> array = nullptr;
   try {
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = data_array_uri(root_uri_, true);
     // Set up and submit query
-    array.reset(new Array(ctx, array_uri, query_type));
+    array.reset(new Array(ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -584,7 +588,7 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
       std::string array_uri = data_array_uri(root_uri_, false);
 
       // Set up and submit query
-      array.reset(new Array(ctx, array_uri, query_type));
+      array.reset(new Array(ctx_, array_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
@@ -597,7 +601,6 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
 }
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
-    const tiledb::Context& ctx,
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map) const {
   std::unordered_map<uint32_t, SafeBCFHdr> result;
@@ -606,7 +609,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     throw std::runtime_error(
         "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
-  Query query(ctx, *vcf_header_array_);
+  Query query(ctx_, *vcf_header_array_);
 
   if (samples.size() > 0) {
     for (const auto& sample : samples) {
@@ -713,7 +716,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 }  // namespace vcf
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
-    const tiledb::Context& ctx, const std::vector<SampleAndId>& samples) const {
+    const std::vector<SampleAndId>& samples) const {
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
   if (vcf_header_array_ == nullptr)
@@ -871,10 +874,9 @@ std::list<Region> TileDBVCFDataset::all_contigs_list() const {
   return result;
 }
 
-std::vector<Region> TileDBVCFDataset::all_contigs_v4(
-    const tiledb::Context& ctx) const {
+std::vector<Region> TileDBVCFDataset::all_contigs_v4() const {
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs =
-      fetch_vcf_headers_v4(ctx, {}, nullptr);
+      fetch_vcf_headers_v4({}, nullptr);
 
   if (hdrs.empty())
     return {};
@@ -887,10 +889,9 @@ std::vector<Region> TileDBVCFDataset::all_contigs_v4(
   return VCFUtils::hdr_get_contigs_regions(hdr.get());
 }
 
-std::list<Region> TileDBVCFDataset::all_contigs_list_v4(
-    const tiledb::Context& ctx) const {
+std::list<Region> TileDBVCFDataset::all_contigs_list_v4() const {
   std::list<Region> result;
-  for (const auto& region : all_contigs_v4(ctx))
+  for (const auto& region : all_contigs_v4())
     result.emplace_back(region);
 
   return result;
@@ -927,11 +928,10 @@ TileDBVCFDataset::contig_from_column(uint32_t col) const {
   return {contig_offset, contig_length, contig};
 }
 
-void TileDBVCFDataset::read_metadata_v4(
-    const Context& ctx, const std::string& root_uri) {
+void TileDBVCFDataset::read_metadata_v4() {
   if (data_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
+        "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
 
   Metadata metadata;
@@ -976,7 +976,7 @@ void TileDBVCFDataset::read_metadata_v4(
 
   get_csv_md_value("extra_attributes", &metadata.extra_attributes);
 
-  metadata.all_samples = get_all_samples_from_vcf_headers(ctx, root_uri);
+  metadata.all_samples = get_all_samples_from_vcf_headers();
 
   // Derive the sample id -> name map.
   metadata.sample_names.resize(metadata.all_samples.size());
@@ -988,11 +988,10 @@ void TileDBVCFDataset::read_metadata_v4(
   metadata_ = metadata;
 }
 
-void TileDBVCFDataset::read_metadata(
-    const Context& ctx, const std::string& root_uri) {
+void TileDBVCFDataset::read_metadata() {
   if (data_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset '" + root_uri +
+        "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
 
   Metadata metadata;
@@ -1055,7 +1054,7 @@ void TileDBVCFDataset::read_metadata(
   get_md_value("version", TILEDB_UINT32, &metadata.version);
   // If v4 stop and fetch for v4
   if (metadata.version == TileDBVCFDataset::Version::V4)
-    return read_metadata_v4(ctx, root_uri);
+    return read_metadata_v4();
 
   get_md_value("tile_capacity", TILEDB_UINT64, &metadata.tile_capacity);
   get_md_value("row_tile_extent", TILEDB_UINT32, &metadata.row_tile_extent);
@@ -1438,8 +1437,7 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
   return fmt_field_types_;
 }
 
-std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
-    const Context& ctx, const std::string& root_uri) {
+std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers() {
   std::vector<std::string> result;
 
   if (vcf_header_array_ == nullptr)

@@ -434,13 +434,11 @@ bool Reader::next_read_batch() {
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     read_state_.current_hdrs =
-        dataset_->fetch_vcf_headers(*ctx_, read_state_.current_sample_batches);
+        dataset_->fetch_vcf_headers(read_state_.current_sample_batches);
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-        *ctx_,
-        read_state_.current_sample_batches,
-        &read_state_.current_hdrs_lookup);
+        read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
   }
 
   // Set up the TileDB query
@@ -1231,8 +1229,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
 
   // No specified samples means all samples.
   if (result.empty()) {
-    const auto& samples =
-        dataset_->get_all_samples_from_vcf_headers(*ctx_, dataset_->root_uri());
+    const auto& samples = dataset_->get_all_samples_from_vcf_headers();
     for (const auto& s : samples) {
       result.push_back({.sample_name = s, .sample_id = 0});
     }
@@ -1285,7 +1282,7 @@ void Reader::prepare_regions_v4(
         dataset_->metadata().version == TileDBVCFDataset::Version::V3)
       pre_partition_regions_list = dataset_->all_contigs_list();
     else {
-      pre_partition_regions_list = dataset_->all_contigs_list_v4(*ctx_);
+      pre_partition_regions_list = dataset_->all_contigs_list_v4();
     }
   }
 
