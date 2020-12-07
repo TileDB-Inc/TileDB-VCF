@@ -441,10 +441,6 @@ bool Reader::next_read_batch() {
         &read_state_.current_hdrs_lookup);
   }
 
-  // Reopen the array so that irrelevant fragment metadata is unloaded.
-  read_state_.array.reset(nullptr);
-  read_state_.array.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_READ));
-
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
 
