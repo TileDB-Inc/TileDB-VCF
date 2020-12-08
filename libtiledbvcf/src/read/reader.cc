@@ -626,16 +626,17 @@ bool Reader::process_query_results_v3() {
     for (; j < read_state_.regions.size(); j++) {
       const auto& reg = read_state_.regions[j];
 
-      // If the region does not match the contig skip
-      if (reg.seq_name != std::get<2>(contig_info))
-        continue;
-
       const uint32_t reg_min = reg.seq_offset + reg.min;
       const uint32_t reg_max = reg.seq_offset + reg.max;
 
       // If the vcf record is not contained in the region skip it
-      if (end < reg_min || real_start > reg_max)
+      if (real_start > reg_max)
         continue;
+
+      // If the regions (sorted) are starting past the end of the record we can
+      // safely exit out, as we will not intersect this record anymore
+      if (end < reg_min)
+        break;
 
       // Unless start is the real start (aka first record) then if we skip for
       // any record greater than the region min the goal is to only capture
@@ -647,6 +648,10 @@ bool Reader::process_query_results_v3() {
       // this avoid overflow in the next check. second if the start is further
       // away from the region_start than the anchor gap discard
       if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
+
+      // If the region does not match the contig skip
+      if (reg.seq_name != std::get<2>(contig_info))
         continue;
 
       // If we overflow when reporting this cell, save the index of the
@@ -733,8 +738,13 @@ bool Reader::process_query_results_v2() {
       const uint32_t reg_max = reg.seq_offset + reg.max;
 
       // If the vcf record is not contained in the region skip it
-      if (real_end < reg_min || start > reg_max)
+      if (start > reg_max)
         continue;
+
+      // If the regions (sorted) are starting past the end of the record we can
+      // safely exit out, as we will not intersect this record anymore
+      if (real_end < reg_min)
+        break;
 
       // Unless start is the real start (aka first record) then if we skip for
       // any record greater than the region min the goal is to only capture
@@ -746,6 +756,10 @@ bool Reader::process_query_results_v2() {
       // this avoid overflow in the next check. second if the start is further
       // away from the region_start than the anchor gap discard
       if (anchor_gap < reg_min && start < reg_min - anchor_gap)
+        continue;
+
+      // If the region does not match the contig skip
+      if (reg.seq_name != std::get<2>(contig_info))
         continue;
 
       // If we overflow when reporting this cell, save the index of the
