@@ -60,7 +60,7 @@ steps:
     # Configure and build TileDB-VCF
     mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
     cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist ..
+    cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
 
     make -j4
     make -j4 -C libtiledbvcf tiledb_vcf_unit
@@ -73,14 +73,17 @@ steps:
 
 - bash: |
     set -e pipefail
-    pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
 
-    ./gradlew checkFormat
-    ./gradlew assemble
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
 
-    export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
-      
-    ./gradlew test
+      ./gradlew checkFormat
+      ./gradlew assemble
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
+
+      ./gradlew test
+    fi
 
   displayName: 'Build and test TileDB-VCF Java API'
 

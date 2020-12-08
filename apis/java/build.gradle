@@ -109,6 +109,9 @@ task cmakeNativeLibTask(type: Exec) {
     if (project.hasProperty("FORCE_EXTERNAL_TILEDB")) {
         buildArgs.add("-DFORCE_EXTERNAL_TILEDB=${project.property('FORCE_EXTERNAL_TILEDB')}")
     }
+    if (project.hasProperty("DOWNLOAD_TILEDB_PREBUILT")) {
+        buildArgs.add("-DDOWNLOAD_TILEDB_PREBUILT=${project.property('DOWNLOAD_TILEDB_PREBUILT')}")
+    }
     buildArgs.add("..")
 
     args buildArgs

@@ -22,12 +22,21 @@ stages:
             CXX: g++
             BUILD_PYTHON_API: ON
             BUILD_SPARK_API: ON
+            DOWNLOAD_TILEDB_PREBUILT: ON
+          linux_tiledb_source_build:
+            imageName: 'ubuntu-18.04'
+            python.version: '3.x'
+            CXX: g++
+            BUILD_PYTHON_API: OFF
+            BUILD_SPARK_API: OFF
+            DOWNLOAD_TILEDB_PREBUILT: OFF
           mac:
             imageName: 'macOS-10.14'
             python.version: '3.7'
             CXX: clang++
             BUILD_PYTHON_API: ON
             BUILD_SPARK_API: ON
+            DOWNLOAD_TILEDB_PREBUILT: ON
             SDKROOT: '/Applications/Xcode_10.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk'
 
       pool:
