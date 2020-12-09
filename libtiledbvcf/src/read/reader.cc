@@ -340,34 +340,140 @@ void Reader::read() {
 }
 
 void Reader::init_for_reads() {
-  read_state_.batch_idx = 0;
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-    read_state_.sample_batches = prepare_sample_batches();
-  else {
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    return init_for_reads_v2();
+  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    return init_for_reads_v3();
+  } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    read_state_.sample_batches = prepare_sample_batches_v4();
+    return init_for_reads_v4();
   }
+}
+
+void Reader::init_for_reads_v2() {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
+  read_state_.batch_idx = 0;
+  read_state_.sample_batches = prepare_sample_batches();
   read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
 
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    prepare_regions_v4(
-        &read_state_.regions,
-        &read_state_.regions_index_per_contig,
-        &read_state_.query_regions_v4);
-  } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
-  } else {
-    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
-    prepare_regions_v2(&read_state_.regions, &read_state_.query_regions);
-  }
+  prepare_regions_v2(&read_state_.regions, &read_state_.query_regions);
 
   prepare_attribute_buffers();
 }
 
+void Reader::init_for_reads_v3() {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V3);
+  read_state_.batch_idx = 0;
+  read_state_.sample_batches = prepare_sample_batches();
+  read_state_.last_intersecting_region_idx_ = 0;
+
+  init_exporter();
+
+  prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
+
+  prepare_attribute_buffers();
+}
+
+void Reader::init_for_reads_v4() {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+  read_state_.batch_idx = 0;
+  read_state_.sample_batches = prepare_sample_batches_v4();
+  read_state_.last_intersecting_region_idx_ = 0;
+
+  init_exporter();
+
+  prepare_regions_v4(
+      &read_state_.regions,
+      &read_state_.regions_index_per_contig,
+      &read_state_.query_regions_v4);
+  prepare_attribute_buffers();
+}
+
 bool Reader::next_read_batch() {
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    return next_read_batch_v2_v3();
+
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+  return next_read_batch_v4();
+}
+
+bool Reader::next_read_batch_v2_v3() {
+  // Check if we're done.
+  if (read_state_.batch_idx >= read_state_.sample_batches.size() ||
+      read_state_.total_num_records_exported >= params_.max_num_records)
+    return false;
+
+  // Handle edge case of an empty region partition
+  if (read_state_.query_regions.empty() && read_state_.query_regions_v4.empty())
+    return false;
+
+  // Start the first batch, or advance to the next one if possible.
+  if (read_state_.status == ReadStatus::UNINITIALIZED) {
+    read_state_.batch_idx = 0;
+    read_state_.query_contig_batch_idx = 0;
+  } else if (read_state_.batch_idx + 1 < read_state_.sample_batches.size()) {
+    read_state_.query_contig_batch_idx = 0;
+    read_state_.batch_idx++;
+  } else {
+    return false;
+  }
+
+  // Sample row range
+  read_state_.current_sample_batches =
+      read_state_.sample_batches[read_state_.batch_idx];
+
+  // Setup v2/v3 read details
+  read_state_.sample_min = std::numeric_limits<uint32_t>::max() - 1;
+  read_state_.sample_max = std::numeric_limits<uint32_t>::min();
+  for (const auto& s : read_state_.current_sample_batches) {
+    read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
+    read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
+  }
+
+  // Sample handles
+  read_state_.current_samples.clear();
+  for (const auto& s : read_state_.current_sample_batches) {
+    read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
+  }
+
+  // User query regions
+  read_state_.region_idx = 0;
+
+  // Headers
+  read_state_.current_hdrs.clear();
+
+  // Sample handles
+  read_state_.current_samples.clear();
+  for (const auto& s : read_state_.current_sample_batches) {
+    read_state_.current_samples[s.sample_id] = s;
+  }
+
+  read_state_.current_hdrs =
+      dataset_->fetch_vcf_headers(read_state_.current_sample_batches);
+
+  // Set up the TileDB query
+  read_state_.query.reset(new Query(*ctx_, *read_state_.array));
+
+  // Set ranges
+  for (const auto& sample : read_state_.current_sample_batches)
+    read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
+  for (const auto& query_region : read_state_.query_regions)
+    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  read_state_.query->set_layout(TILEDB_UNORDERED);
+  if (params_.verbose) {
+    std::cout << "Initialized TileDB query with "
+              << read_state_.query_regions.size() << " column ranges."
+              << std::endl;
+  }
+
+  return true;
+}
+
+bool Reader::next_read_batch_v4() {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   // Check if we're done.
   if (read_state_.batch_idx >= read_state_.sample_batches.size() ||
       read_state_.total_num_records_exported >= params_.max_num_records)
@@ -402,23 +508,6 @@ bool Reader::next_read_batch() {
   read_state_.current_sample_batches =
       read_state_.sample_batches[read_state_.batch_idx];
 
-  // Setup v2/v3 read details
-  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    read_state_.sample_min = std::numeric_limits<uint32_t>::max() - 1;
-    read_state_.sample_max = std::numeric_limits<uint32_t>::min();
-    for (const auto& s : read_state_.current_sample_batches) {
-      read_state_.sample_min = std::min(read_state_.sample_min, s.sample_id);
-      read_state_.sample_max = std::max(read_state_.sample_max, s.sample_id);
-    }
-
-    // Sample handles
-    read_state_.current_samples.clear();
-    for (const auto& s : read_state_.current_sample_batches) {
-      read_state_.current_samples[s.sample_id - read_state_.sample_min] = s;
-    }
-  }
-
   // User query regions
   read_state_.region_idx = 0;
 
@@ -431,62 +520,39 @@ bool Reader::next_read_batch() {
     read_state_.current_samples[s.sample_id] = s;
   }
 
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    read_state_.current_hdrs =
-        dataset_->fetch_vcf_headers(read_state_.current_sample_batches);
-  } else {
-    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-        read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
-  }
+  read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+      read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
 
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    // Set ranges
-    for (const auto& sample : read_state_.current_sample_batches)
-      read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+  // Set ranges
+  for (const auto& sample : read_state_.current_sample_batches)
+    read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
 
-    for (const auto& query_region :
-         read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
-             .second)
-      read_state_.query->add_range(
-          1, query_region.col_min, query_region.col_max);
+  for (const auto& query_region :
+       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second)
+    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
 
-    read_state_.query->add_range(
-        0,
-        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
-        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
-  } else {
-    // Set ranges
-    for (const auto& sample : read_state_.current_sample_batches)
-      read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-    for (const auto& query_region : read_state_.query_regions)
-      read_state_.query->add_range(
-          1, query_region.col_min, query_region.col_max);
-  }
+  read_state_.query->add_range(
+      0,
+      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
+      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
+
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-      std::cout << "Initialized TileDB query with "
-                << read_state_
-                       .query_regions_v4[read_state_.query_contig_batch_idx]
-                       .second.size()
-                << " column ranges "
-                << " for contig "
-                << read_state_
-                       .query_regions_v4[read_state_.query_contig_batch_idx]
-                       .first
-                << " (contig batch " << read_state_.query_contig_batch_idx + 1
-                << "/" << read_state_.query_regions_v4.size() << ")."
-                << std::endl;
-    } else {
-      std::cout << "Initialized TileDB query with "
-                << read_state_.query_regions.size() << " column ranges."
-                << std::endl;
-    }
+    std::cout << "Initialized TileDB query with "
+              << read_state_
+                     .query_regions_v4[read_state_.query_contig_batch_idx]
+                     .second.size()
+              << " column ranges "
+              << " for contig "
+              << read_state_
+                     .query_regions_v4[read_state_.query_contig_batch_idx]
+                     .first
+              << " (contig batch " << read_state_.query_contig_batch_idx + 1
+              << "/" << read_state_.query_regions_v4.size() << ")."
+              << std::endl;
   }
 
   return true;
