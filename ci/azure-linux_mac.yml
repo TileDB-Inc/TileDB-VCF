@@ -1,4 +1,13 @@
 steps:
+- script: python -m pip install --upgrade black pylint
+  displayName: 'Install black (formatter) and pylint (linter)'
+
+- script: black --check .
+  displayName: 'Test Formatting'
+
+- script: pylint --disable=all --enable=E1101 $BUILD_REPOSITORY_LOCALPATH/apis/python
+  displayName: 'Check function name/signature mismatches'
+
 - bash: |
     set -ex
     brew uninstall openssl@1.0.2t
