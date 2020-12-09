@@ -484,6 +484,7 @@ bool Reader::next_read_batch_v4() {
     return false;
 
   // Start the first batch, or advance to the next one if possible.
+  bool new_samples = true;
   if (read_state_.status == ReadStatus::UNINITIALIZED) {
     read_state_.batch_idx = 0;
     read_state_.query_contig_batch_idx = 0;
@@ -496,6 +497,7 @@ bool Reader::next_read_batch_v4() {
     if (read_state_.query_contig_batch_idx + 1 <
         read_state_.query_regions_v4.size()) {
       read_state_.query_contig_batch_idx++;
+      new_samples = false;
     } else {
       read_state_.query_contig_batch_idx = 0;
       read_state_.batch_idx++;
@@ -504,24 +506,26 @@ bool Reader::next_read_batch_v4() {
     return false;
   }
 
-  // Sample row range
-  read_state_.current_sample_batches =
-      read_state_.sample_batches[read_state_.batch_idx];
-
   // User query regions
   read_state_.region_idx = 0;
 
   // Headers
-  read_state_.current_hdrs.clear();
+  if (new_samples) {
+    // Sample row range
+    read_state_.current_sample_batches =
+        read_state_.sample_batches[read_state_.batch_idx];
 
-  // Sample handles
-  read_state_.current_samples.clear();
-  for (const auto& s : read_state_.current_sample_batches) {
-    read_state_.current_samples[s.sample_id] = s;
+    // Sample handles
+    read_state_.current_samples.clear();
+    for (const auto& s : read_state_.current_sample_batches) {
+      read_state_.current_samples[s.sample_id] = s;
+    }
+
+    // Fetch new headers for new sample batch
+    read_state_.current_hdrs.clear();
+    read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+        read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
   }
-
-  read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-      read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
