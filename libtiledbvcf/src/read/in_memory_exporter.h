@@ -185,9 +185,7 @@ class InMemoryExporter : public Exporter {
   struct UserBuffer {
     UserBuffer()
         : attr(ExportableAttribute::InfoOrFmt)
-        , attr_name("")
         , is_info(false)
-        , info_fmt_field_name("")
         , data(nullptr)
         , max_data_bytes(0)
         , offsets(nullptr)
