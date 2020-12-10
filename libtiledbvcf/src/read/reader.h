@@ -408,7 +408,7 @@ class Reader {
     uint64_t last_num_records_exported = 0;
 
     /** Underlying TileDB array. */
-    std::unique_ptr<Array> array;
+    std::shared_ptr<Array> array;
 
     /** TileDB query object. */
     std::unique_ptr<Query> query;
