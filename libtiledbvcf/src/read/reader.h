@@ -467,6 +467,8 @@ class Reader {
    * more batches.
    */
   bool next_read_batch();
+  bool next_read_batch_v2_v3();
+  bool next_read_batch_v4();
 
   /**
    * Runs the TileDB-VCF read algorithm for the current batch. Returns false if,
@@ -477,6 +479,9 @@ class Reader {
 
   /** Initializes the batches and exporter before the first read. */
   void init_for_reads();
+  void init_for_reads_v2();
+  void init_for_reads_v3();
+  void init_for_reads_v4();
 
   /** Initializes the exporter before the first read. */
   void init_exporter();
