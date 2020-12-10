@@ -62,6 +62,17 @@ struct Region {
   std::string to_str(Type type = Type::ZeroIndexedInclusive) const;
 
   /**
+   * Comparator used in sorting by contig name
+   * @param other
+   * @return
+   */
+  bool operator<(const Region& other) const {
+    if (seq_name == other.seq_name)
+      return min < other.min;
+    return seq_name < other.seq_name;
+  }
+
+  /**
    * Parse a region in the format: SEQ_NAME:MIN_POS-MAX_POS
    *
    * Commas are stripped.

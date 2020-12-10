@@ -564,6 +564,8 @@ std::vector<Region> Writer::prepare_region_list(
     }
   }
 
+  std::sort(result.begin(), result.end());
+
   return result;
 }
 

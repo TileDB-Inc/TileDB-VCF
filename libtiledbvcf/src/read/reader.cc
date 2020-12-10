@@ -1391,12 +1391,7 @@ void Reader::prepare_regions_v4(
   // Sort all by contig.
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
-    std::sort(
-        regions->begin(), regions->end(), [](const Region& a, const Region& b) {
-          if (a.seq_name == b.seq_name)
-            return a.min < b.min;
-          return a.seq_name < b.seq_name;
-        });
+    std::sort(regions->begin(), regions->end());
 
     if (params_.verbose) {
       auto old_locale = std::cout.getloc();
