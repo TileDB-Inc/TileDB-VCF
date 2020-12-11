@@ -121,8 +121,15 @@ class Dataset(object):
                     pass
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
 
-    def read(self, attrs, samples=None, regions=None, samples_file=None,
-             bed_file=None, return_type="pandas"):
+    def read(
+        self,
+        attrs,
+        samples=None,
+        regions=None,
+        samples_file=None,
+        bed_file=None,
+        return_type="pandas",
+    ):
 
         """Reads data from a TileDB-VCF dataset.
 
@@ -174,8 +181,8 @@ class Dataset(object):
         :param return_type: Type to return, 'pandas' for pandas dataframe or 'arrow' for raw arrow table
         :return: pandas dataframe or pyarrow array
         """
-        if self.mode != 'r':
-            raise Exception('Dataset not open in read mode')
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
 
         self.reader.read()
         table = self.reader.get_results_arrow()

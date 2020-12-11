@@ -53,7 +53,7 @@ def _read_partition(read_args):
         table_buffers.append(ds.reader.get_buffers())
 
     table = pa.concat_tables(table_fragments, promote=False)
-    
+
     df = table.to_pandas()
     df.attrs["_vcf_buffers"] = table_buffers
 
