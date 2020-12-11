@@ -121,8 +121,7 @@ class Dataset(object):
                     pass
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
 
-    def read(self, attrs, samples=None, regions=None, samples_file=None,
-             bed_file=None, return_type="pandas"):
+    def read(self, attrs, samples=None, regions=None, samples_file=None, bed_file=None):
 
         """Reads data from a TileDB-VCF dataset.
 
@@ -139,8 +138,7 @@ class Dataset(object):
         :param str samples_file: URI of file containing sample names to be read,
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
-        :param return_type: Type to return, 'pandas' for pandas dataframe or 'arrow' for raw arrow table
-        :return: Pandas DataFrame or PyArrow Array containing results.
+        :return: Pandas DataFrame containing results.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -155,7 +153,7 @@ class Dataset(object):
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
 
-        return self.continue_read(return_type=return_type)
+        return self.continue_read()
 
     def read_iter(
         self, attrs, samples=None, regions=None, samples_file=None, bed_file=None
@@ -168,19 +166,12 @@ class Dataset(object):
         while not self.read_completed():
             yield self.continue_read()
 
-    def continue_read(self, return_type="pandas"):
-        """
-        Continue an incomplete read
-        :param return_type: Type to return, 'pandas' for pandas dataframe or 'arrow' for raw arrow table
-        :return: pandas dataframe or pyarrow array
-        """
-        if self.mode != 'r':
-            raise Exception('Dataset not open in read mode')
+    def continue_read(self):
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
 
         self.reader.read()
         table = self.reader.get_results_arrow()
-        if return_type == "arrow":
-            return table
         return table.to_pandas()
 
     def read_completed(self):

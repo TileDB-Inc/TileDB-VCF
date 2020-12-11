@@ -1,8 +1,6 @@
 import dask
 import dask.dataframe
 
-import pyarrow as pa
-
 from .dataset import ReadConfig, Dataset
 
 
@@ -33,33 +31,21 @@ class ReadArgs(object):
 
 
 def _read_partition(read_args):
-    table_fragments = []
-    table_buffers = []
-
     ds = Dataset(read_args.uri, "r", read_args.cfg)
-    pyar = ds.read(
+    df = ds.read(
         attrs=read_args.attrs,
         samples=read_args.samples,
         regions=read_args.regions,
         samples_file=read_args.samples_file,
         bed_file=read_args.bed_file,
-        return_type="arrow",
     )
-    table_fragments.append(pyar)
-    table_buffers.append(ds.reader.get_buffers())
-
-    while not ds.read_completed():
-        table_fragments.append(ds.continue_read(return_type="arrow"))
-        table_buffers.append(ds.reader.get_buffers())
-
-    table = pa.concat_tables(table_fragments, promote=False)
-    
-    df = table.to_pandas()
-    df.attrs["_vcf_buffers"] = table_buffers
-
     if read_args.fnc is not None:
         df = read_args.fnc(df)
-
+    while not ds.read_completed():
+        new_df = ds.continue_read()
+        if read_args.fnc is not None:
+            new_df = read_args.fnc(new_df)
+        df = df.append(new_df, ignore_index=True)
     return df
 
 
