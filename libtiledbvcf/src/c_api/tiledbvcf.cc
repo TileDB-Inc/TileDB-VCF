@@ -377,6 +377,33 @@ int32_t tiledb_vcf_reader_get_tiledb_stats_enabled(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_tiledb_stats_enabled_vcf_header_array(
+    tiledb_vcf_reader_t* reader, const bool stats_enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_tiledb_stats_enabled_vcf_header_array(
+              stats_enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_stats_enabled_vcf_header_array(
+    tiledb_vcf_reader_t* reader, bool* enabled) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->tiledb_stats_enabled_vcf_header_array(enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_get_tiledb_stats(
     tiledb_vcf_reader_t* reader, char** stats) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
@@ -879,6 +906,33 @@ int32_t tiledb_vcf_writer_get_tiledb_stats_enabled(
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(writer, writer->writer_->tiledb_stats_enabled(enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_tiledb_stats_enabled_vcf_header_array(
+    tiledb_vcf_writer_t* writer, const bool stats_enabled) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_tiledb_stats_enabled_vcf_header_array(
+              stats_enabled)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_get_tiledb_stats_enabled_vcf_header_array(
+    tiledb_vcf_writer_t* writer, bool* enabled) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->tiledb_stats_enabled_vcf_header_array(enabled)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;

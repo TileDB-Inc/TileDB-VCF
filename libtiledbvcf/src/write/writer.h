@@ -60,6 +60,7 @@ struct IngestionParams {
   uint64_t max_record_buffer_size = 50000;
   std::vector<std::string> tiledb_config;
   bool tiledb_stats_enabled = false;
+  bool tiledb_stats_enabled_vcf_header_array = false;
 
   /**
    * Max length (# columns) of an ingestion "task". This value is derived
@@ -177,7 +178,13 @@ class Writer {
   void set_tiledb_stats_enabled(bool stats_enabled);
 
   /** Returns if tiledb stats are enabled */
-  void tiledb_stats_enabled(bool* enabled);
+  void tiledb_stats_enabled(bool* enabled) const;
+
+  /** Enable tiledb stats for the vcf header array */
+  void set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled);
+
+  /** Returns if tiledb stats are enabled for the vcf header array */
+  void tiledb_stats_enabled_vcf_header_array(bool* enabled) const;
 
   /** Fetches tiledb stats as a string */
   void tiledb_stats(char** stats);

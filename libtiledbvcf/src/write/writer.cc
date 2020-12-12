@@ -167,10 +167,13 @@ void Writer::register_samples() {
 
 void Writer::ingest_samples() {
   auto start_all = std::chrono::steady_clock::now();
+  dataset_->set_tiledb_stats_enabled(ingestion_params_.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      ingestion_params_.tiledb_stats_enabled_vcf_header_array);
 
   // If the user requests stats, enable them on read
   // Multiple calls to enable stats has no effect
-  if (this->ingestion_params_.tiledb_stats_enabled) {
+  if (ingestion_params_.tiledb_stats_enabled) {
     tiledb::Stats::enable();
   } else {
     // Else we will make sure they are disable and reset
@@ -585,8 +588,16 @@ void Writer::set_tiledb_stats_enabled(bool stats_enabled) {
   this->ingestion_params_.tiledb_stats_enabled = stats_enabled;
 }
 
-void Writer::tiledb_stats_enabled(bool* enabled) {
+void Writer::tiledb_stats_enabled(bool* enabled) const {
   *enabled = this->ingestion_params_.tiledb_stats_enabled;
+}
+
+void Writer::set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled) {
+  this->ingestion_params_.tiledb_stats_enabled_vcf_header_array = stats_enabled;
+}
+
+void Writer::tiledb_stats_enabled_vcf_header_array(bool* enabled) const {
+  *enabled = this->ingestion_params_.tiledb_stats_enabled_vcf_header_array;
 }
 
 void Writer::tiledb_stats(char** stats) {

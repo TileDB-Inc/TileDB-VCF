@@ -81,6 +81,7 @@ struct ExportParams {
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
   bool tiledb_stats_enabled = false;
+  bool tiledb_stats_enabled_vcf_header_array = false;
 
   // Memory/performance params:
   unsigned memory_budget_mb = 2 * 1024;
@@ -202,7 +203,13 @@ class Reader {
   void set_tiledb_stats_enabled(bool stats_enabled);
 
   /** Returns if tiledb stats are enabled */
-  void tiledb_stats_enabled(bool* enabled);
+  void tiledb_stats_enabled(bool* enabled) const;
+
+  /** Enable tiledb stats for the vcf header array */
+  void set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled);
+
+  /** Returns if tiledb stats are enabled for the vcf header array */
+  void tiledb_stats_enabled_vcf_header_array(bool* enabled) const;
 
   /** Fetches tiledb stats as a string */
   void tiledb_stats(char** stats);
