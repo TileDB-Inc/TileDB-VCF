@@ -315,6 +315,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     }
 
     workers[i]->init(*dataset_, params, samples);
+    workers[i]->set_max_total_buffer_size_bytes(
+        params.max_tiledb_buffer_size_mb * 1024 * 1024);
   }
 
   // First compose the set of contigs that are nonempty.

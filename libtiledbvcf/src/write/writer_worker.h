@@ -95,12 +95,27 @@ class WriterWorker {
   /** Returns the number of anchors buffered by the last parse operation. */
   virtual uint64_t anchors_buffered() const = 0;
 
+  /**
+   * Return region set for worker
+   * @return Region
+   */
   Region region() const {
     return region_;
   }
 
   /** Region being parsed. */
   Region region_;
+
+  /** max bytes to buffer before flushing to TileDB. */
+  uint64_t max_total_buffer_size_bytes_;
+
+  /**
+   * Set the max buffer size in bytes for worker
+   * @param size
+   */
+  void set_max_total_buffer_size_bytes(uint64_t size) {
+    max_total_buffer_size_bytes_ = size;
+  }
 };
 
 }  // namespace vcf

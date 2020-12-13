@@ -341,6 +341,12 @@ int main(int argc, char** argv) {
                    "memory consumption.",
                    store_args.thread_task_size) &
            value("N", store_args.thread_task_size),
+       option("-b", "--mem-budget-mb") %
+               defaulthelp(
+                   "The total memory budget (MB) used when submitting TileDB "
+                   "queries.",
+                   store_args.max_tiledb_buffer_size_mb) &
+           value("MB", store_args.max_tiledb_buffer_size_mb),
        option("-v", "--verbose").set(store_args.verbose) %
            "Enable verbose output",
        option("--remove-sample-file").set(store_args.remove_samples_file) %
