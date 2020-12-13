@@ -116,9 +116,6 @@ class WriterWorkerV2 : public WriterWorker {
   /** Current number of anchors buffered. */
   uint64_t anchors_buffered_;
 
-  /** Region being parsed. */
-  Region region_;
-
   /** Record heap for sorting records across samples. */
   RecordHeapV2 record_heap_;
 
