@@ -218,6 +218,8 @@ bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
   if (!open_)
     return false;
 
+  seeked_contig_name_ = contig_name;
+
   SafeBCFFh fh(bcf_open(path_.c_str(), "r"), hts_close);
   if (fh == nullptr)
     throw std::runtime_error("Error seeking in VCF; bcf_open failed");
@@ -249,16 +251,13 @@ void VCFV4::read_records() {
     std::queue<SafeSharedBCFRec>().swap(record_queue_);
 
   SafeBCFRec tmp_r(bcf_init1(), bcf_destroy);
-  std::string first_contig_name;
   while (record_queue_.size() < max_record_buffer_size_) {
     if (!record_iter_.next(tmp_r.get()))
       break;
 
     // Iteration does not cross contigs.
     std::string contig_name = bcf_seqname(hdr_, tmp_r.get());
-    if (first_contig_name.empty()) {
-      first_contig_name = contig_name;
-    } else if (first_contig_name != contig_name) {
+    if (seeked_contig_name_ != contig_name) {
       break;
     }
 

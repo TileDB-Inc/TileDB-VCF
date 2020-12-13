@@ -192,6 +192,9 @@ class VCFV4 {
 
   /** Swap all fields with the given VCFV3 instance. */
   void swap(VCFV4& other);
+
+  /** name of contig last seeked to. */
+  std::string seeked_contig_name_;
 };
 
 }  // namespace vcf
