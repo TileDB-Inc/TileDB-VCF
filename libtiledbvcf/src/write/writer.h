@@ -57,6 +57,7 @@ struct IngestionParams {
   bool verbose = false;
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
+  // Max number of VCF records to read into memory
   uint64_t max_record_buffer_size = 50000;
   std::vector<std::string> tiledb_config;
   bool tiledb_stats_enabled = false;
@@ -67,6 +68,9 @@ struct IngestionParams {
    * parallelism as well as load balancing of ingestion work across threads.
    */
   unsigned thread_task_size = 5000000;
+
+  // Max size of TileDB buffers before flushing. Defaults to 1GB
+  uint64_t max_tiledb_buffer_size_mb = 1024;
 };
 
 /* ********************************* */
