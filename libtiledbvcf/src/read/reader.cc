@@ -1197,20 +1197,7 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4()
       params_.sample_partitioning.num_partitions,
       &samples);
 
-  // Group partition into space tile batches.
-  const uint32_t space_tile_extent = dataset_->metadata().row_tile_extent;
-  std::vector<std::vector<SampleAndId>> result(1);
-  uint64_t count = 0;
-  for (const auto& s : samples) {
-    if (count >= space_tile_extent) {
-      count = 0;
-      result.emplace_back();
-    }
-    result.back().push_back(s);
-    ++count;
-  }
-
-  return result;
+  return {samples};
 }
 
 std::vector<SampleAndId> Reader::prepare_sample_names() const {
