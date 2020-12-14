@@ -270,6 +270,19 @@ class Writer {
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
       std::vector<Region>& regions);
+
+  /**
+   * Ingests a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples_v4(
+      const IngestionParams& params,
+      const std::vector<SampleAndIndex>& samples,
+      std::vector<Region>& regions);
 };
 
 }  // namespace vcf

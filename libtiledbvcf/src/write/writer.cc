@@ -247,7 +247,14 @@ void Writer::ingest_samples() {
 
     // Ingest the batch.
     auto start_batch = std::chrono::steady_clock::now();
-    auto result = ingest_samples(ingestion_params_, local_samples, regions);
+    std::pair<uint64_t, uint64_t> result;
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+      result = ingest_samples(ingestion_params_, local_samples, regions);
+    } else {
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+      result = ingest_samples_v4(ingestion_params_, local_samples, regions);
+    }
     records_ingested += result.first;
     anchors_ingested += result.second;
     samples_ingested += local_samples.size();
@@ -269,7 +276,14 @@ void Writer::ingest_samples() {
 
   // Ingest the last batch
   auto local_samples = future_paths.get();
-  auto result = ingest_samples(ingestion_params_, local_samples, regions);
+  std::pair<uint64_t, uint64_t> result;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    result = ingest_samples(ingestion_params_, local_samples, regions);
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    result = ingest_samples_v4(ingestion_params_, local_samples, regions);
+  }
   records_ingested += result.first;
   anchors_ingested += result.second;
 
@@ -300,11 +314,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples,
     std::vector<Region>& regions) {
+  assert(
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V2);
   uint64_t records_ingested = 0, anchors_ingested = 0;
-  if (samples.empty() ||
-      (regions.empty() &&
-       (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
-        dataset_->metadata().version == TileDBVCFDataset::Version::V2)))
+  if (samples.empty() || regions.empty())
     return {0, 0};
 
   // TODO: workers can be reused across space tiles
@@ -312,11 +326,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   for (size_t i = 0; i < workers.size(); ++i) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV2());
-    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
     } else {
-      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V3);
+      workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV3());
     }
 
     workers[i]->init(*dataset_, params, samples);
@@ -339,63 +351,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (vcf.contig_has_records(p.first))
           nonempty_contigs.insert(p.first);
       }
-    } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
+    } else {
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V3);
       VCFV3 vcf;
       vcf.open(s.sample_uri, s.index_uri);
       for (const auto& p : metadata.contig_offsets) {
         if (vcf.contig_has_records(p.first))
           nonempty_contigs.insert(p.first);
       }
-    } else {
-      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      VCFV4 vcf;
-      vcf.open(s.sample_uri, s.index_uri);
-      // For V4 we also need to check the header, collect and write them
-
-      // Allocate a header struct and try to parse from the local file.
-      SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
-
-      std::vector<std::string> hdr_samples =
-          VCFUtils::hdr_get_samples(hdr.get());
-      if (hdr_samples.size() > 1)
-        throw std::invalid_argument(
-            "Error registering samples; a file has more than 1 sample. "
-            "Ingestion "
-            "from cVCF is not supported.");
-
-      const auto& sample_name = hdr_samples[0];
-      sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
-
-      // Loop over all contigs in the header, store the nonempty and also the
-      // regions
-      for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
-        nonempty_contigs.emplace(contig_region.seq_name);
-
-        // regions
-        bool region_found = false;
-        for (auto& region : regions_v4) {
-          if (region.seq_name == contig_region.seq_name) {
-            region.max = std::max(region.max, contig_region.max);
-            region_found = true;
-            break;
-          }
-        }
-
-        if (!region_found)
-          regions_v4.emplace_back(contig_region);
-      }
     }
-  }
-
-  // For V4 lets write the headers for this batch and also prepare the region
-  // list specific to this batch
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    // If there were no regions in the VCF files return early
-    if (regions_v4.empty())
-      return {0, 0};
-
-    dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
-    regions = prepare_region_list(regions_v4, ingestion_params_);
   }
 
   const size_t nregions = regions.size();
@@ -438,6 +402,165 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
                 "status.");
 
           if (ingestion_params_.verbose)
+            std::cout << "Writing " << worker->records_buffered()
+                      << " for contig " << worker->region().seq_name
+                      << " (task " << i << " / " << tasks.size() << ")"
+                      << std::endl;
+        }
+        records_ingested += worker->records_buffered();
+        anchors_ingested += worker->anchors_buffered();
+
+        // Repeatedly resume the same worker where it left off until it
+        // is able to complete.
+        if (!task_complete)
+          tasks[i] = std::async(
+              std::launch::async, [worker]() { return worker->resume(); });
+      }
+
+      // Start next region parsing using the same worker.
+      while (region_idx < nregions) {
+        Region reg = regions[region_idx++];
+        if (nonempty_contigs.count(reg.seq_name) > 0) {
+          tasks[i] = std::async(std::launch::async, [worker, reg]() {
+            return worker->parse(reg);
+          });
+          finished = false;
+          break;
+        }
+      }
+    }
+  }
+
+  return {records_ingested, anchors_ingested};
+}
+
+std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
+    const IngestionParams& params,
+    const std::vector<SampleAndIndex>& samples,
+    std::vector<Region>& regions) {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+
+  // TODO: workers can be reused across space tiles
+  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  for (size_t i = 0; i < workers.size(); ++i) {
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
+
+    workers[i]->init(*dataset_, params, samples);
+    workers[i]->set_max_total_buffer_size_bytes(
+        params.max_tiledb_buffer_size_mb * 1024 * 1024);
+  }
+
+  // First compose the set of contigs that are nonempty.
+  // This can significantly speed things up in the common case that the sample
+  // headers list many contigs that do not actually have any records.
+  std::set<std::string> nonempty_contigs;
+  std::map<std::string, std::string> sample_headers;
+  std::vector<Region> regions_v4;
+  for (const auto& s : samples) {
+    VCFV4 vcf;
+    vcf.open(s.sample_uri, s.index_uri);
+    // For V4 we also need to check the header, collect and write them
+
+    // Allocate a header struct and try to parse from the local file.
+    SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
+
+    std::vector<std::string> hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
+    if (hdr_samples.size() > 1)
+      throw std::invalid_argument(
+          "Error registering samples; a file has more than 1 sample. "
+          "Ingestion "
+          "from cVCF is not supported.");
+
+    const auto& sample_name = hdr_samples[0];
+    sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
+
+    // Loop over all contigs in the header, store the nonempty and also the
+    // regions
+    for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      nonempty_contigs.emplace(contig_region.seq_name);
+
+      // regions
+      bool region_found = false;
+      for (auto& region : regions_v4) {
+        if (region.seq_name == contig_region.seq_name) {
+          region.max = std::max(region.max, contig_region.max);
+          region_found = true;
+          break;
+        }
+      }
+
+      if (!region_found)
+        regions_v4.emplace_back(contig_region);
+    }
+  }
+
+  // For V4 lets write the headers for this batch and also prepare the region
+  // list specific to this batch
+  // If there were no regions in the VCF files return early
+  if (regions_v4.empty())
+    return {0, 0};
+
+  dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
+  regions = prepare_region_list(regions_v4, ingestion_params_);
+
+  const size_t nregions = regions.size();
+  size_t region_idx = 0;
+  std::vector<std::future<bool>> tasks;
+  for (unsigned i = 0; i < workers.size(); i++) {
+    WriterWorker* worker = workers[i].get();
+    while (region_idx < nregions) {
+      Region reg = regions[region_idx++];
+      if (nonempty_contigs.count(reg.seq_name) > 0) {
+        tasks.push_back(std::async(std::launch::async, [worker, reg]() {
+          return worker->parse(reg);
+        }));
+        break;
+      }
+    }
+  }
+
+  std::string last_region_contig = workers[0]->region().seq_name;
+  bool finished = tasks.empty();
+  while (!finished) {
+    finished = true;
+
+    for (unsigned i = 0; i < tasks.size(); i++) {
+      if (!tasks[i].valid())
+        continue;
+
+      WriterWorker* worker = workers[i].get();
+      bool task_complete = false;
+      while (!task_complete) {
+        task_complete = tasks[i].get();
+
+        // Write worker buffers, if any data.
+        if (worker->records_buffered() > 0) {
+          if (last_region_contig != worker->region().seq_name) {
+            if (ingestion_params_.verbose)
+              std::cout << "Finalizing contig " << last_region_contig
+                        << std::endl;
+
+            // Finalize fragment for this contig
+            query_->finalize();
+
+            // Start new query for new fragment for next contig
+            query_.reset(new Query(*ctx_, *array_));
+            query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+            // Set new contig
+            last_region_contig = worker->region().seq_name;
+          }
+
+          worker->buffers().set_buffers(
+              query_.get(), dataset_->metadata().version);
+          auto st = query_->submit();
+          if (st != Query::Status::COMPLETE)
+            throw std::runtime_error(
+                "Error submitting TileDB write query; unexpected query "
+                "status.");
+
+          if (ingestion_params_.verbose)
             std::cout << "Recorded " << worker->records_buffered()
                       << " cells for contig " << worker->region().seq_name
                       << " (task " << i + 1 << " / " << tasks.size() << ")"
@@ -466,6 +589,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       }
     }
   }
+
+  if (ingestion_params_.verbose)
+    std::cout << "Finalizing contig " << last_region_contig << std::endl;
+
+  // Finalize fragment for this contig
+  query_->finalize();
+
+  // Start new query for new fragment for next contig
+  query_.reset(new Query(*ctx_, *array_));
+  query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   return {records_ingested, anchors_ingested};
 }
