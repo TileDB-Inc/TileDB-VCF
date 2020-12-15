@@ -9,14 +9,6 @@ steps:
   displayName: 'Check function name/signature mismatches'
 
 - bash: |
-    set -ex
-    brew uninstall openssl@1.0.2t
-    rm -rf /usr/local/etc/openssl
-    rm -rf /usr/local/etc/openssl@1.1
-  condition: eq(variables['Agent.OS'], 'Darwin')
-  displayName: 'Workaround openssl homebrew issue (OSX only)'
-
-- bash: |
     set -e pipefail
     brew install clang-format
     src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
