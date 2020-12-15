@@ -424,6 +424,10 @@ class Reader {
      * resuming incomplete reads.
      */
     uint64_t cell_idx = 0;
+
+    /** indicates if the user is querying all samples in the array, this cause
+     * some special case optimizations. */
+    bool all_samples;
   };
 
   /* ********************************* */
@@ -495,16 +499,24 @@ class Reader {
 
   /**
    * Prepares sample batches for export
-   * @return
+   * @param all_samples Boolean which is set as ouput to indicated if all
+   * samples are being queried by the user or not
+   * @return vector of samples
    */
-  std::vector<std::vector<SampleAndId>> prepare_sample_batches_v4() const;
+  std::vector<std::vector<SampleAndId>> prepare_sample_batches_v4(
+      bool* all_samples) const;
 
   /** Merges the list of sample names with the contents of the samples file. */
   std::vector<SampleAndId> prepare_sample_names() const;
 
   /** Merges the list of sample names with the contents of the samples file for
-   * v4 arrays. */
-  std::vector<SampleAndId> prepare_sample_names_v4() const;
+   * v4 arrays.
+   *
+   * @param all_samples Boolean which is set as ouput to indicated if all
+   * samples are being queried by the user or not
+   * @return vector of samples
+   */
+  std::vector<SampleAndId> prepare_sample_names_v4(bool* all_samples) const;
 
   /**
    * Prepares the regions to be queried and exported. This merges the list of
