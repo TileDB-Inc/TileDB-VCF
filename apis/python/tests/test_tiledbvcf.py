@@ -174,9 +174,9 @@ def test_basic_reads(test_ds):
                 dtype=np.int32,
             ),
         }
-    )
+    ).sort_values(by=["sample_name", "pos_start"])
     df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"])
-    _check_dfs(expected_df, df)
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
     # Region intersection
     df = test_ds.read(
@@ -194,8 +194,8 @@ def test_basic_reads(test_ds):
                 [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
             ),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
     # Region and sample intersection
     df = test_ds.read(
@@ -209,8 +209,8 @@ def test_basic_reads(test_ds):
             "pos_start": pd.Series([12546, 13354], dtype=np.int32),
             "pos_end": pd.Series([12771, 13389], dtype=np.int32),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
     # Sample only
     df = test_ds.read(
@@ -222,8 +222,8 @@ def test_basic_reads(test_ds):
             "pos_start": pd.Series([12141, 12546, 13354], dtype=np.int32),
             "pos_end": pd.Series([12277, 12771, 13389], dtype=np.int32),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_multiple_counts(test_ds):
@@ -356,8 +356,8 @@ def test_read_filters(test_ds):
                 )
             ),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_read_var_length_filters(tmp_path):
@@ -406,9 +406,9 @@ def test_read_var_length_filters(tmp_path):
                 )
             ),
         }
-    )
+    ).sort_values(by=["pos_start"])
 
-    _check_dfs(expected_df, df)
+    _check_dfs(expected_df, df.sort_values(by=["pos_start"]))
 
 
 def test_read_alleles(test_ds):
@@ -458,8 +458,8 @@ def test_read_alleles(test_ds):
                 )
             ),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_read_multiple_alleles(tmp_path):
@@ -491,8 +491,8 @@ def test_read_multiple_alleles(tmp_path):
                 )
             ),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_read_var_len_attrs(test_ds):
@@ -543,9 +543,9 @@ def test_read_var_len_attrs(test_ds):
                 )
             ),
         }
-    )
+    ).sort_values(by=["sample_name", "pos_start"])
 
-    _check_dfs(expected_df, df)
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_sample_args(test_ds, tmp_path):
@@ -675,8 +675,8 @@ def test_read_null_attrs(tmp_path):
             ),
             "fmt_MIN_DP": pd.Series([0, 14, 3, 1, 0, 30, 20, None, 24, None, 23, 19]),
         }
-    )
-    _check_dfs(expected_df, df)
+    ).sort_values(by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(by=["sample_name", "pos_start"]))
 
 
 def test_read_config():
