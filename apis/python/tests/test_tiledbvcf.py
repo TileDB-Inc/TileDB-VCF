@@ -846,9 +846,36 @@ def test_sample_and_region_partitioned_read():
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
     df = ds.read(
         attrs=["sample_name", "pos_start", "pos_end"],
-        regions=["1:12000-13000", "1:17000-18000"],
+        regions=["1:12000-13000", "1:17000-18000"]
     )
     assert len(df) == 0
+
+
+def test_large_export_correctness():
+    uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4_lexical/vcf-samples-20"
+
+    ds = tiledbvcf.Dataset(uri, mode="r", verbose=True)
+    df = ds.read(
+        attrs=[
+            "sample_name",
+            "contig",
+            "pos_start",
+            "pos_end",
+            "query_bed_start",
+            "query_bed_end",
+        ],
+        samples=["v2-DjrIAzkP", "v2-YMaDHIoW", "v2-usVwJUmo", "v2-ZVudhauk"],
+        bed_file=os.path.join(
+            TESTS_INPUT_DIR, "E001_15_coreMarks_dense_filtered.bed.gz"
+        ),
+    )
+
+    # total number of exported records
+    assert df.shape[0] == 1172081
+
+    # number of unique exported records
+    record_index = ["sample_name", "contig", "pos_start"]
+    assert df[record_index].drop_duplicates() == 1168430
 
 
 def test_basic_ingest(tmp_path):
