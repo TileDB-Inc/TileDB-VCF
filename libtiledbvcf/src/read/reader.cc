@@ -185,8 +185,16 @@ void Reader::set_tiledb_stats_enabled(bool stats_enabled) {
   params_.tiledb_stats_enabled = stats_enabled;
 }
 
-void Reader::tiledb_stats_enabled(bool* enabled) {
+void Reader::tiledb_stats_enabled(bool* enabled) const {
   *enabled = params_.tiledb_stats_enabled;
+}
+
+void Reader::set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled) {
+  params_.tiledb_stats_enabled_vcf_header_array = stats_enabled;
+}
+
+void Reader::tiledb_stats_enabled_vcf_header_array(bool* enabled) const {
+  *enabled = params_.tiledb_stats_enabled_vcf_header_array;
 }
 
 void Reader::tiledb_stats(char** stats) {
@@ -270,6 +278,9 @@ void Reader::get_buffer_validity_bitmap(
 }
 
 void Reader::read() {
+  dataset_->set_tiledb_stats_enabled(params_.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      params_.tiledb_stats_enabled_vcf_header_array);
   // If the user requests stats, enable them on read
   // Multiple calls to enable stats has no effect
   if (params_.tiledb_stats_enabled) {
@@ -466,7 +477,8 @@ bool Reader::next_read_batch_v2_v3() {
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
     std::cout << "Initialized TileDB query with "
-              << read_state_.query_regions.size() << " column ranges."
+              << read_state_.query_regions.size() << " start_pos ranges, "
+              << read_state_.current_sample_batches.size() << " sample ranges."
               << std::endl;
   }
 
@@ -564,14 +576,16 @@ bool Reader::next_read_batch_v4() {
               << read_state_
                      .query_regions_v4[read_state_.query_contig_batch_idx]
                      .second.size()
-              << " column ranges"
+              << " start_pos ranges,"
+              << read_state_.current_sample_batches.size() << " samples"
               << " for contig "
               << read_state_
                      .query_regions_v4[read_state_.query_contig_batch_idx]
                      .first
               << " (contig batch " << read_state_.query_contig_batch_idx + 1
-              << "/" << read_state_.query_regions_v4.size() << ")."
-              << std::endl;
+              << "/" << read_state_.query_regions_v4.size() << ", sample batch "
+              << read_state_.batch_idx + 1 << "/"
+              << read_state_.sample_batches.size() << ")." << std::endl;
   }
 
   return true;

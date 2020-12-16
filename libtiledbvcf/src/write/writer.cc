@@ -66,7 +66,7 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     tiledb_config = registration_params_.tiledb_config;
 
   try {
-    dataset_->open(uri, ingestion_params_.tiledb_config);
+    dataset_->open(uri, tiledb_config);
   } catch (std::exception& e) {
     // If the dataset doesn't exist lets not error out, the user might be
     // creating a new dataset
@@ -79,7 +79,12 @@ void Writer::init(const IngestionParams& params) {
   array_.reset(nullptr);
 
   dataset_.reset(new TileDBVCFDataset);
-  dataset_->open(ingestion_params_.uri, ingestion_params_.tiledb_config);
+
+  dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      params.tiledb_stats_enabled_vcf_header_array);
+
+  dataset_->open(params.uri, params.tiledb_config);
 
   tiledb_config_.reset(new Config);
   (*tiledb_config_)["vfs.s3.multipart_part_size"] =
@@ -170,7 +175,7 @@ void Writer::ingest_samples() {
 
   // If the user requests stats, enable them on read
   // Multiple calls to enable stats has no effect
-  if (this->ingestion_params_.tiledb_stats_enabled) {
+  if (ingestion_params_.tiledb_stats_enabled) {
     tiledb::Stats::enable();
   } else {
     // Else we will make sure they are disable and reset
@@ -591,8 +596,16 @@ void Writer::set_tiledb_stats_enabled(bool stats_enabled) {
   this->ingestion_params_.tiledb_stats_enabled = stats_enabled;
 }
 
-void Writer::tiledb_stats_enabled(bool* enabled) {
+void Writer::tiledb_stats_enabled(bool* enabled) const {
   *enabled = this->ingestion_params_.tiledb_stats_enabled;
+}
+
+void Writer::set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled) {
+  this->ingestion_params_.tiledb_stats_enabled_vcf_header_array = stats_enabled;
+}
+
+void Writer::tiledb_stats_enabled_vcf_header_array(bool* enabled) const {
+  *enabled = this->ingestion_params_.tiledb_stats_enabled_vcf_header_array;
 }
 
 void Writer::tiledb_stats(char** stats) {

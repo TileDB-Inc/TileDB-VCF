@@ -360,7 +360,10 @@ int main(int argc, char** argv) {
            (values("paths", store_args.sample_uris) %
             "Argument list of VCF files to ingest"),
        option("--stats").set(store_args.tiledb_stats_enabled) %
-           "Enable TileDB stats");
+           "Enable TileDB stats",
+       option("--stats-vcf-header-array")
+               .set(store_args.tiledb_stats_enabled_vcf_header_array) %
+           "Enable TileDB stats for vcf header array usage");
 
   ExportParams export_args;
   export_args.export_to_disk = true;
@@ -459,7 +462,10 @@ int main(int argc, char** argv) {
            export_args.sample_names = utils::split(s, ',');
          }))),
        option("--stats").set(export_args.tiledb_stats_enabled) %
-           "Enable TileDB stats");
+           "Enable TileDB stats",
+       option("--stats-vcf-header-array")
+               .set(export_args.tiledb_stats_enabled_vcf_header_array) %
+           "Enable TileDB stats for vcf header array usage");
 
   ListParams list_args;
   auto list_mode =

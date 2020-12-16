@@ -97,7 +97,9 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 }  // namespace
 
 TileDBVCFDataset::TileDBVCFDataset()
-    : open_(false) {
+    : open_(false)
+    , tiledb_stats_enabled_(true)
+    , tiledb_stats_enabled_vcf_header_(true) {
   utils::init_htslib();
 }
 
@@ -451,6 +453,9 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
 
   assert(metadata_.version == Version::V2 || metadata_.version == Version::V3);
 
+  if (!tiledb_stats_enabled_vcf_header_)
+    tiledb::Stats::disable();
+
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
@@ -493,6 +498,9 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
   register_samples_helper(
       future_headers.get(), &metadata_, &sample_set, &sample_headers);
   write_vcf_headers_v2(ctx, root_uri_, sample_headers);
+
+  if (tiledb_stats_enabled_)
+    tiledb::Stats::enable();
 
   // Write the updated metadata.
   write_metadata(ctx, root_uri_, metadata_);
@@ -603,6 +611,9 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map) const {
+  if (!tiledb_stats_enabled_vcf_header_)
+    tiledb::Stats::disable();
+
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
   if (vcf_header_array_ == nullptr)
@@ -739,11 +750,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     }
   } while (status == Query::Status::INCOMPLETE);
 
+  if (tiledb_stats_enabled_)
+    tiledb::Stats::enable();
   return result;
 }  // namespace vcf
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     const std::vector<SampleAndId>& samples) const {
+  if (!tiledb_stats_enabled_vcf_header_)
+    tiledb::Stats::disable();
+
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
   if (vcf_header_array_ == nullptr)
@@ -853,6 +869,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     }
   } while (status == Query::Status::INCOMPLETE);
 
+  if (tiledb_stats_enabled_)
+    tiledb::Stats::enable();
   return result;
 }  // namespace vcf
 
@@ -1224,7 +1242,13 @@ void TileDBVCFDataset::write_metadata_v4(
 void TileDBVCFDataset::write_vcf_headers_v4(
     const Context& ctx,
     const std::map<std::string, std::string>& vcf_headers) const {
+  if (!tiledb_stats_enabled_vcf_header_)
+    tiledb::Stats::disable();
+
   write_vcf_headers_v4(ctx, root_uri_, vcf_headers);
+
+  if (tiledb_stats_enabled_)
+    tiledb::Stats::enable();
 }
 
 void TileDBVCFDataset::write_vcf_headers_v4(
@@ -1480,6 +1504,9 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
 }
 
 std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers() {
+  if (!tiledb_stats_enabled_vcf_header_)
+    tiledb::Stats::disable();
+
   std::vector<std::string> result;
 
   if (vcf_header_array_ == nullptr)
@@ -1558,11 +1585,29 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers() {
     }
   } while (status == Query::Status::INCOMPLETE);
 
+  if (tiledb_stats_enabled_)
+    tiledb::Stats::enable();
   return result;
 }
 
 std::shared_ptr<tiledb::Array> TileDBVCFDataset::data_array() const {
   return data_array_;
+}
+
+const bool TileDBVCFDataset::tiledb_stats_enabled() const {
+  return tiledb_stats_enabled_;
+}
+void TileDBVCFDataset::set_tiledb_stats_enabled(const bool stats_enabled) {
+  tiledb_stats_enabled_ = stats_enabled;
+}
+
+/** Should tiledb stats be collected for vcf header arrays */
+const bool TileDBVCFDataset::tiledb_stats_enabled_vcf_header() const {
+  return tiledb_stats_enabled_vcf_header_;
+}
+void TileDBVCFDataset::set_tiledb_stats_enabled_vcf_header(
+    const bool stats_enabled) {
+  tiledb_stats_enabled_vcf_header_ = stats_enabled;
 }
 
 }  // namespace vcf

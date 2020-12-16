@@ -344,6 +344,31 @@ class TileDBVCFDataset {
 
   std::shared_ptr<tiledb::Array> data_array() const;
 
+  /**
+   * Returns if the core tiledb stats are enabled or not
+   * @return tiledb stats enabled
+   */
+  const bool tiledb_stats_enabled() const;
+
+  /**
+   * Sets whether the core tiledb stats are enabled or not
+   * @param stats_enabled
+   */
+  void set_tiledb_stats_enabled(const bool stats_enabled);
+
+  /**
+   * Retuns if core tiledb stats are enabled or not for the vcf header array
+   * @return stats enabled for vcf header array
+   */
+  const bool tiledb_stats_enabled_vcf_header() const;
+
+  /**
+   * Sets whether the core tiledb stats are enabled or not for the vcf header
+   * array
+   * @param stats_enabled
+   */
+  void set_tiledb_stats_enabled_vcf_header(const bool stats_enabled);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -383,6 +408,12 @@ class TileDBVCFDataset {
 
   /** TileDB Context for dataset */
   tiledb::Context ctx_;
+
+  /** TileDB stats enablement */
+  bool tiledb_stats_enabled_;
+
+  /** TileDB stats enablement for vcf header array */
+  bool tiledb_stats_enabled_vcf_header_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
