@@ -319,7 +319,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
 
   // TODO: make this max buffer size check a parameter.
   const uint64_t buffer_size = buffers_.total_size();
-  if (buffer_size > ((uint64_t)1 * 1024 * 1024 * 1024)) {
+  if (buffer_size > max_total_buffer_size_bytes_) {
     return false;
   }
 
