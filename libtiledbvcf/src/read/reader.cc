@@ -379,7 +379,8 @@ void Reader::init_for_reads_v3() {
 void Reader::init_for_reads_v4() {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   read_state_.batch_idx = 0;
-  read_state_.sample_batches = prepare_sample_batches_v4();
+  read_state_.sample_batches =
+      prepare_sample_batches_v4(&read_state_.all_samples);
   read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
@@ -506,7 +507,7 @@ bool Reader::next_read_batch_v4() {
     return false;
   }
 
-  // User query regions
+  // User query region
   read_state_.region_idx = 0;
 
   // Headers
@@ -531,8 +532,22 @@ bool Reader::next_read_batch_v4() {
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
 
   // Set ranges
-  for (const auto& sample : read_state_.current_sample_batches)
-    read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+  // For samples we special case when we are looking at all samples. If so we
+  // just need to set one range with the start/end sample id
+  if (read_state_.all_samples) {
+    read_state_.query->add_range(
+        2,
+        read_state_.current_sample_batches[0].sample_name,
+        read_state_
+            .current_sample_batches
+                [read_state_.current_sample_batches.size() - 1]
+            .sample_name);
+  } else {
+    // If we are not exporting all samples add the current partition/batch's
+    // list
+    for (const auto& sample : read_state_.current_sample_batches)
+      read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+  }
 
   for (const auto& query_region :
        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second)
@@ -1171,10 +1186,11 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() const {
   return result;
 }
 
-std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4()
-    const {
+std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
+    bool* all_samples) const {
+  assert(all_samples);
   // Get the list of all sample names and ID
-  auto samples = prepare_sample_names_v4();
+  auto samples = prepare_sample_names_v4(all_samples);
 
   // Sort by sample ID
   std::sort(
@@ -1263,8 +1279,12 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
   return result;
 }
 
-std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
+std::vector<SampleAndId> Reader::prepare_sample_names_v4(
+    bool* all_samples) const {
+  assert(all_samples);
   std::vector<SampleAndId> result;
+  // Start assuming the user specified a list of samples
+  *all_samples = false;
 
   for (const std::string& s : params_.sample_names) {
     std::string name;
@@ -1310,6 +1330,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4() const {
     for (const auto& s : samples) {
       result.push_back({.sample_name = s, .sample_id = 0});
     }
+    *all_samples = true;
   }
 
   return result;
