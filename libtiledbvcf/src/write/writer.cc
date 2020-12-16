@@ -429,6 +429,12 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
+
+          if (ingestion_params_.verbose)
+            std::cout << "Recorded " << worker->records_buffered()
+                      << " cells for contig " << worker->region().seq_name
+                      << " (task " << i + 1 << " / " << tasks.size() << ")"
+                      << std::endl;
         }
         records_ingested += worker->records_buffered();
         anchors_ingested += worker->anchors_buffered();

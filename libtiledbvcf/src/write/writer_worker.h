@@ -94,6 +94,13 @@ class WriterWorker {
 
   /** Returns the number of anchors buffered by the last parse operation. */
   virtual uint64_t anchors_buffered() const = 0;
+
+  Region region() const {
+    return region_;
+  }
+
+  /** Region being parsed. */
+  Region region_;
 };
 
 }  // namespace vcf
