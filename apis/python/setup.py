@@ -214,7 +214,7 @@ def get_ext_modules():
             libraries=["tiledbvcf"],
             library_dirs=[],
             language="c++",
-        ),
+        )
     ]
     return ext_modules
 
