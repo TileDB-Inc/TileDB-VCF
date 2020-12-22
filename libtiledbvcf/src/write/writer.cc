@@ -280,6 +280,9 @@ void Writer::ingest_samples() {
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
     result = ingest_samples(ingestion_params_, local_samples, regions);
+
+    // Make sure to finalize for v2/v3
+    query_->finalize();
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     result = ingest_samples_v4(ingestion_params_, local_samples, regions);
@@ -287,7 +290,17 @@ void Writer::ingest_samples() {
   records_ingested += result.first;
   anchors_ingested += result.second;
 
-  query_->finalize();
+  auto t0 = std::chrono::steady_clock::now();
+  if (ingestion_params_.verbose)
+    std::cout << "Making sure all finalize tasks completed..." << std::endl;
+  for (const auto& finalize_task : finalize_tasks_) {
+    if (finalize_task.valid())
+      finalize_task.wait();
+  }
+  if (ingestion_params_.verbose)
+    std::cout << "All finalize tasks successfully completed. Waited for "
+              << utils::chrono_duration(t0) << " sec." << std::endl;
+
   array_->close();
 
   // Clean up
@@ -541,8 +554,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               std::cout << "Finalizing contig " << last_region_contig
                         << std::endl;
 
-            // Finalize fragment for this contig
-            query_->finalize();
+            // Finalize fragment for this contig async
+            // it is okay to move the query because we reset it next.
+            finalize_tasks_.emplace_back(std::async(
+                std::launch::async, finalize_query, std::move(query_)));
 
             // Start new query for new fragment for next contig
             query_.reset(new Query(*ctx_, *array_));
@@ -594,7 +609,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     std::cout << "Finalizing contig " << last_region_contig << std::endl;
 
   // Finalize fragment for this contig
-  query_->finalize();
+  finalize_tasks_.emplace_back(
+      std::async(std::launch::async, finalize_query, std::move(query_)));
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));
@@ -753,6 +769,10 @@ void Writer::dataset_version(int32_t* version) const {
   if (dataset_ == nullptr)
     throw std::runtime_error("Error getting dataset version");
   *version = dataset_->metadata().version;
+}
+
+void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
+  query->finalize();
 }
 
 }  // namespace vcf

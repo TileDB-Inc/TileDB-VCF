@@ -27,6 +27,7 @@
 #ifndef TILEDB_VCF_WRITER_H
 #define TILEDB_VCF_WRITER_H
 
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
@@ -208,6 +209,8 @@ class Writer {
   std::unique_ptr<Query> query_;
   /** Handle on the dataset being written to. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
+  /** Vector of futures from async query finalizes. */
+  std::vector<std::future<void>> finalize_tasks_;
 
   CreationParams creation_params_;
   RegistrationParams registration_params_;
@@ -283,6 +286,8 @@ class Writer {
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
       std::vector<Region>& regions);
+
+  static void finalize_query(std::unique_ptr<tiledb::Query> query);
 };
 
 }  // namespace vcf
