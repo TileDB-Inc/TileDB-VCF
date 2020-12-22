@@ -343,6 +343,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   std::set<std::string> nonempty_contigs;
   std::map<std::string, std::string> sample_headers;
   std::vector<Region> regions_v4;
+  std::vector<std::future<bool>> nonempty_contigs_tasks;
+
+  auto start_nonempty_contigs = std::chrono::steady_clock::now();
   for (const auto& s : samples) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       VCFV2 vcf;
@@ -361,6 +364,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       }
     }
   }
+  if (params.verbose)
+    std::cout << "Parsed non empty contigs from " << samples.size() << " in "
+              << utils::chrono_duration(start_nonempty_contigs) << " sec."
+              << std::endl;
 
   const size_t nregions = regions.size();
   size_t region_idx = 0;
@@ -457,6 +464,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   std::set<std::string> nonempty_contigs;
   std::map<std::string, std::string> sample_headers;
   std::vector<Region> regions_v4;
+  auto start_nonempty_contigs = std::chrono::steady_clock::now();
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -494,6 +502,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         regions_v4.emplace_back(contig_region);
     }
   }
+  std::cout << "Parsed headers and nonempty contigs from " << samples.size()
+            << " in " << utils::chrono_duration(start_nonempty_contigs)
+            << " sec." << std::endl;
 
   // For V4 lets write the headers for this batch and also prepare the region
   // list specific to this batch
