@@ -74,7 +74,9 @@ bool WriterWorkerV2::parse(const Region& region) {
   const auto& metadata = dataset_->metadata();
   const uint32_t contig_offset = metadata.contig_offsets.at(region.seq_name);
   for (auto& vcf : vcfs_) {
-    vcf->seek(region.seq_name, region.min);
+    // If seek returns false there is no records for this contig
+    if (!vcf->seek(region.seq_name, region.min))
+      continue;
 
     bcf1_t* r = vcf->curr_rec();
     if (r == nullptr) {
