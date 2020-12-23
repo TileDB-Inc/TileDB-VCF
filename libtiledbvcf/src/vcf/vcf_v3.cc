@@ -220,6 +220,10 @@ bool VCFV3::seek(const std::string& contig_name, uint32_t pos) {
   if (!open_)
     return false;
 
+  // Reset the record queue on all seeks
+  if (!record_queue_.empty())
+    std::queue<SafeSharedBCFRec>().swap(record_queue_);
+
   SafeBCFFh fh(bcf_open(path_.c_str(), "r"), hts_close);
   if (fh == nullptr)
     throw std::runtime_error("Error seeking in VCF; bcf_open failed");

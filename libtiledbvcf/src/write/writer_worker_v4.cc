@@ -96,7 +96,9 @@ bool WriterWorkerV4::parse(const Region& region) {
 
   // Initialize the record heap with the first record from each sample.
   for (auto& vcf : vcfs_) {
-    vcf->seek(region.seq_name, region.min);
+    // If seek returns false there is no records for this contig
+    if (!vcf->seek(region.seq_name, region.min))
+      continue;
 
     SafeSharedBCFRec r = vcf->front_record();
     if (r == nullptr) {
