@@ -207,40 +207,48 @@ void Writer::ingest_samples() {
     batches =
         batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
 
-  // Set up parameters for two scratch spaces.
-  const auto scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
+  std::vector<SampleAndIndex> local_samples;
   ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
-  scratch_space_a.size_mb = scratch_size_mb;
-  scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
-  if (!vfs_->is_dir(scratch_space_a.path))
-    vfs_->create_dir(scratch_space_a.path);
   ScratchSpaceInfo scratch_space_b = ingestion_params_.scratch_space;
-  scratch_space_b.size_mb = scratch_size_mb;
-  scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
-  if (!vfs_->is_dir(scratch_space_b.path))
-    vfs_->create_dir(scratch_space_b.path);
+  std::future<std::vector<tiledb::vcf::SampleAndIndex>> future_paths;
+  uint64_t scratch_size_mb = 0;
+
+  bool download_samples = !ingestion_params_.scratch_space.path.empty();
+  if (download_samples) {
+    // Set up parameters for two scratch spaces.
+    scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
+    scratch_space_a.size_mb = scratch_size_mb;
+    scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
+    if (!vfs_->is_dir(scratch_space_a.path))
+      vfs_->create_dir(scratch_space_a.path);
+    scratch_space_b.size_mb = scratch_size_mb;
+    scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
+    if (!vfs_->is_dir(scratch_space_b.path))
+      vfs_->create_dir(scratch_space_b.path);
+  }
+
+  // Start fetching first batch, either downloading of using remote vfs plugin
+  // if no scratch space.
+  future_paths = std::async(
+      std::launch::async,
+      SampleUtils::get_samples,
+      *vfs_,
+      batches[0],
+      &scratch_space_a);
 
   if (ingestion_params_.verbose)
     std::cout << "Initialization completed in "
               << utils::chrono_duration(start_all) << " sec." << std::endl;
-
-  // Start the first batch downloading.
-  auto future_paths = std::async(
-      std::launch::async,
-      SampleUtils::download_samples,
-      *vfs_,
-      batches[0],
-      &scratch_space_a);
   uint64_t records_ingested = 0, anchors_ingested = 0;
   uint64_t samples_ingested = 0;
   for (unsigned i = 1; i < batches.size(); i++) {
-    // Block until current batch downloads.
-    auto local_samples = future_paths.get();
+    // Block until current batch is fetched.
+    local_samples = future_paths.get();
 
-    // Start the next batch downloading.
+    // Start the next batch fetching.
     future_paths = std::async(
         std::launch::async,
-        SampleUtils::download_samples,
+        SampleUtils::get_samples,
         *vfs_,
         batches[i],
         &scratch_space_b);
@@ -266,16 +274,18 @@ void Writer::ingest_samples() {
                 << std::endl;
     }
 
-    // Reset current scratch space and swap.
-    if (vfs_->is_dir(scratch_space_a.path))
-      vfs_->remove_dir(scratch_space_a.path);
-    vfs_->create_dir(scratch_space_a.path);
-    scratch_space_a.size_mb = scratch_size_mb;
-    std::swap(scratch_space_a, scratch_space_b);
+    if (download_samples) {
+      // Reset current scratch space and swap.
+      if (vfs_->is_dir(scratch_space_a.path))
+        vfs_->remove_dir(scratch_space_a.path);
+      vfs_->create_dir(scratch_space_a.path);
+      scratch_space_a.size_mb = scratch_size_mb;
+      std::swap(scratch_space_a, scratch_space_b);
+    }
   }
 
   // Ingest the last batch
-  auto local_samples = future_paths.get();
+  local_samples = future_paths.get();
   std::pair<uint64_t, uint64_t> result;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
@@ -304,10 +314,12 @@ void Writer::ingest_samples() {
   array_->close();
 
   // Clean up
-  if (vfs_->is_dir(scratch_space_a.path))
-    vfs_->remove_dir(scratch_space_a.path);
-  if (vfs_->is_dir(scratch_space_b.path))
-    vfs_->remove_dir(scratch_space_b.path);
+  if (download_samples) {
+    if (vfs_->is_dir(scratch_space_a.path))
+      vfs_->remove_dir(scratch_space_a.path);
+    if (vfs_->is_dir(scratch_space_b.path))
+      vfs_->remove_dir(scratch_space_b.path);
+  }
   if (ingestion_params_.remove_samples_file &&
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
@@ -626,7 +638,7 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list(
 
   // Get sample names
   auto sample_names =
-      SampleUtils::download_sample_names(*vfs_, samples, params.scratch_space);
+      SampleUtils::get_sample_names(*vfs_, samples, params.scratch_space);
 
   // Sort by sample ID
   std::vector<std::pair<SampleAndIndex, std::string>> sorted;
@@ -664,7 +676,7 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list_v4(
 
   // Get sample names
   auto sample_names =
-      SampleUtils::download_sample_names(*vfs_, samples, params.scratch_space);
+      SampleUtils::get_sample_names(*vfs_, samples, params.scratch_space);
 
   // Sort by sample ID
   std::vector<std::pair<SampleAndIndex, std::string>> sorted(samples.size());

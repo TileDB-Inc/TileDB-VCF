@@ -399,6 +399,19 @@ bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs) {
   return true;
 }
 
+bool is_local_uri(const std::string& uri) {
+  if (starts_with(uri, "s3://"))
+    return false;
+  if (starts_with(uri, "azure://"))
+    return false;
+  if (starts_with(uri, "gcs://"))
+    return false;
+  if (starts_with(uri, "hdfs://"))
+    return false;
+
+  return true;
+}
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

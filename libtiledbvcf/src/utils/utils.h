@@ -351,6 +351,13 @@ void init_htslib();
  */
 bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs);
 
+/**
+ * Checks if a file path is local or remote
+ * @param uri to check
+ * @return true if file is local path (file:// or no prefix), else false
+ */
+bool is_local_uri(const std::string& uri);
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb
