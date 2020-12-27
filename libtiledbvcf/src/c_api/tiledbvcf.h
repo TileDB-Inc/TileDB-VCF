@@ -1091,6 +1091,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_dataset_version(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
     tiledb_vcf_writer_t* reader, const char* config);
 
+/**
+ * Set sample batch size for ingestion
+ *
+ * @param writer VCF writer object
+ * @param size number of samples to ingest per batch
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
+    tiledb_vcf_writer_t* writer, uint64_t size);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

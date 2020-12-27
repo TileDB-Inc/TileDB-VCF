@@ -215,6 +215,7 @@ class Dataset(object):
         allow_duplicates=True,
         scratch_space_path=None,
         scratch_space_size=None,
+        sample_batch_size=None,
     ):
         """Ingest samples
 
@@ -248,6 +249,9 @@ class Dataset(object):
             raise Exception(
                 "Must set both scratch_space_path and scratch_space_size to use scratch space"
             )
+
+        if sample_batch_size is not None:
+            self.writer.set_sample_batch_size(sample_batch_size)
 
         self.writer.set_samples(",".join(sample_uris))
 

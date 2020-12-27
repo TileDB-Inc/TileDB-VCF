@@ -201,11 +201,11 @@ void Writer::ingest_samples() {
   std::vector<std::vector<SampleAndIndex>> batches;
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-    batches =
-        batch_elements_by_tile(samples, dataset_->metadata().row_tile_extent);
+    batches = batch_elements_by_tile(
+        samples, dataset_->metadata().ingestion_sample_batch_size);
   else
-    batches = batch_elements_by_tile_v4(
-        samples, dataset_->metadata().row_tile_extent);
+    batches =
+        batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
 
   // Set up parameters for two scratch spaces.
   const auto scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
@@ -773,6 +773,10 @@ void Writer::dataset_version(int32_t* version) const {
 
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
   query->finalize();
+}
+
+void Writer::set_sample_batch_size(const uint64_t size) {
+  ingestion_params_.sample_batch_size = size;
 }
 
 }  // namespace vcf

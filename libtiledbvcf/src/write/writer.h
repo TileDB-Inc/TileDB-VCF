@@ -73,6 +73,9 @@ struct IngestionParams {
 
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
+
+  // Number of samples per batch for ingestion
+  uint64_t sample_batch_size = 10;
 };
 
 /* ********************************* */
@@ -196,6 +199,8 @@ class Writer {
 
   /** Gets the version number of the open dataset. */
   void dataset_version(int32_t* version) const;
+
+  void set_sample_batch_size(const uint64_t size);
 
  private:
   /* ********************************* */

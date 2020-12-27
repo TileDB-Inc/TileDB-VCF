@@ -971,6 +971,17 @@ int32_t tiledb_vcf_writer_set_tiledb_config(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_sample_batch_size(
+    tiledb_vcf_writer_t* writer, const uint64_t size) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_sample_batch_size(size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

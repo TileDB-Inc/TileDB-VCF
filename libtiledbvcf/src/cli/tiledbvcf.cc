@@ -253,11 +253,6 @@ int main(int argc, char** argv) {
                    "Tile capacity to use for the array schema",
                    create_args.tile_capacity) &
            value("N", create_args.tile_capacity),
-       option("-e", "--tile-extent") %
-               defaulthelp(
-                   "Row tile extent to use for the array schema",
-                   create_args.row_tile_extent) &
-           value("N", create_args.row_tile_extent),
        option("-g", "--anchor-gap") %
                defaulthelp("Anchor gap size to use", create_args.anchor_gap) &
            value("N", create_args.anchor_gap),
@@ -365,6 +360,11 @@ int main(int argc, char** argv) {
         value("path", store_args.samples_file_uri)) |
            (values("paths", store_args.sample_uris) %
             "Argument list of VCF files to ingest"),
+       option("-e", "--sample-batch-size") %
+               defaulthelp(
+                   "Number of samples per batch for ingestion",
+                   store_args.sample_batch_size) &
+           value("N", store_args.sample_batch_size),
        option("--stats").set(store_args.tiledb_stats_enabled) %
            "Enable TileDB stats",
        option("--stats-vcf-header-array")
