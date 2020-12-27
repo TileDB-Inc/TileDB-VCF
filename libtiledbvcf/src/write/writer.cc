@@ -93,6 +93,10 @@ void Writer::init(const IngestionParams& params) {
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
 
+  // Set readahead cache used for remote sample file reading/loading
+  (*tiledb_config_)["vfs.read_ahead_size"] = 1024UL * 1024 * 10;
+  (*tiledb_config_)["vfs.read_ahead_cache_size"] = 1024UL * 1024 * 1024 * 6;
+
   ctx_.reset(new Context(*tiledb_config_));
 
   // Set htslib global config and context based on user passed TileDB config

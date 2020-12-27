@@ -340,6 +340,57 @@ void set_htslib_tiledb_context(const std::vector<std::string>& tiledb_config) {
 
     set_tiledb_config(tiledb_config, hfile_tiledb_vfs_config);
 
+    // Set read-ahead cache used for remote sample file reading/loading
+    // read ahead 256kib
+    std::string read_ahead_size = std::to_string(1024UL * 256);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.read_ahead_size",
+        read_ahead_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    std::string read_ahead_cache_size =
+        std::to_string(1024UL * 1024 * 1024 * 6);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.read_ahead_cache_size",
+        read_ahead_cache_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    std::string min_parallel_size = std::to_string(99999999);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.min_parallel_size",
+        min_parallel_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    std::string max_parallel_ops = std::to_string(1);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.s3.max_parallel_ops",
+        max_parallel_ops.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
     if (hfile_tiledb_vfs_ctx != nullptr)
       tiledb_ctx_free(&hfile_tiledb_vfs_ctx);
 
