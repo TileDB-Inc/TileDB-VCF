@@ -65,7 +65,7 @@ TEST_CASE("TileDB-VCF: Test create", "[tiledbvcf][ingest]") {
   ds.open(dataset_uri);
   REQUIRE(ds.metadata().tile_capacity == 123);
   REQUIRE(ds.metadata().anchor_gap == 1000);
-  REQUIRE(ds.metadata().row_tile_extent == 10);
+  REQUIRE(ds.metadata().ingestion_sample_batch_size == 10);
   REQUIRE(
       ds.metadata().extra_attributes ==
       std::vector<std::string>{"info_a1", "fmt_a2"});

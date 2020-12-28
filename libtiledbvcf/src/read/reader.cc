@@ -1185,7 +1185,8 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() const {
       &samples);
 
   // Group partition into space tile batches.
-  const uint32_t space_tile_extent = dataset_->metadata().row_tile_extent;
+  const uint32_t space_tile_extent =
+      dataset_->metadata().ingestion_sample_batch_size;
   std::vector<std::vector<SampleAndId>> result;
   uint32_t curr_space_tile = std::numeric_limits<uint32_t>::max();
   for (const auto& s : samples) {

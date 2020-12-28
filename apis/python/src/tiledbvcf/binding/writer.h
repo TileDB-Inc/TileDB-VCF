@@ -89,8 +89,13 @@ class Writer {
    */
   void set_verbose(bool verbose);
 
-/** Sets CSV TileDB config parameters. */
+  /** Sets CSV TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);
+
+  /**
+    [Store only] Sets the number of samples per batch for ingestion
+  */
+  void set_sample_batch_size(const uint64_t size);
 
  private:
   /** Helper function to free a C writer instance */

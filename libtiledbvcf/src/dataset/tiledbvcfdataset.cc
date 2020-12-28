@@ -129,7 +129,6 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   create_group(ctx, params.uri);
 
   Metadata metadata;
-  metadata.row_tile_extent = params.row_tile_extent;
   metadata.tile_capacity = params.tile_capacity;
   metadata.anchor_gap = params.anchor_gap;
   metadata.extra_attributes = params.extra_attributes;
@@ -521,7 +520,8 @@ void TileDBVCFDataset::print_dataset_stats() {
   utils::enable_pretty_print_numbers(std::cout);
   std::cout << "Statistics for dataset '" << root_uri_ << "':" << std::endl;
   std::cout << "- Version: " << metadata_.version << std::endl;
-  std::cout << "- Row tile extent: " << metadata_.row_tile_extent << std::endl;
+  std::cout << "- Row tile extent: " << metadata_.ingestion_sample_batch_size
+            << std::endl;
   std::cout << "- Tile capacity: " << metadata_.tile_capacity << std::endl;
   std::cout << "- Anchor gap: " << metadata_.anchor_gap << std::endl;
   std::cout << "- Number of registered samples: "
@@ -1031,7 +1031,6 @@ void TileDBVCFDataset::read_metadata_v4() {
 
   get_md_value("version", TILEDB_UINT32, &metadata.version);
   get_md_value("tile_capacity", TILEDB_UINT64, &metadata.tile_capacity);
-  get_md_value("row_tile_extent", TILEDB_UINT32, &metadata.row_tile_extent);
   get_md_value("anchor_gap", TILEDB_UINT32, &metadata.anchor_gap);
 
   get_csv_md_value("extra_attributes", &metadata.extra_attributes);
@@ -1044,6 +1043,9 @@ void TileDBVCFDataset::read_metadata_v4() {
     metadata.sample_names[i] = metadata.all_samples[i];
     metadata.sample_ids[metadata.all_samples[i]] = i;
   }
+
+  // Set ingestion_sample_batch_size default to 10
+  metadata.ingestion_sample_batch_size = 10;
 
   metadata_ = metadata;
 }
@@ -1117,7 +1119,8 @@ void TileDBVCFDataset::read_metadata() {
     return read_metadata_v4();
 
   get_md_value("tile_capacity", TILEDB_UINT64, &metadata.tile_capacity);
-  get_md_value("row_tile_extent", TILEDB_UINT32, &metadata.row_tile_extent);
+  get_md_value(
+      "row_tile_extent", TILEDB_UINT32, &metadata.ingestion_sample_batch_size);
   get_md_value("anchor_gap", TILEDB_UINT32, &metadata.anchor_gap);
   get_md_value("free_sample_id", TILEDB_UINT32, &metadata.free_sample_id);
   get_md_value(
@@ -1188,7 +1191,10 @@ void TileDBVCFDataset::write_metadata(
   data_array.put_metadata(
       "tile_capacity", TILEDB_UINT64, 1, &metadata.tile_capacity);
   data_array.put_metadata(
-      "row_tile_extent", TILEDB_UINT32, 1, &metadata.row_tile_extent);
+      "row_tile_extent",
+      TILEDB_UINT32,
+      1,
+      &metadata.ingestion_sample_batch_size);
   data_array.put_metadata("anchor_gap", TILEDB_UINT32, 1, &metadata.anchor_gap);
   data_array.put_metadata(
       "free_sample_id", TILEDB_UINT32, 1, &metadata.free_sample_id);
@@ -1231,8 +1237,6 @@ void TileDBVCFDataset::write_metadata_v4(
   data_array.put_metadata("version", TILEDB_UINT32, 1, &metadata.version);
   data_array.put_metadata(
       "tile_capacity", TILEDB_UINT64, 1, &metadata.tile_capacity);
-  data_array.put_metadata(
-      "row_tile_extent", TILEDB_UINT32, 1, &metadata.row_tile_extent);
   data_array.put_metadata("anchor_gap", TILEDB_UINT32, 1, &metadata.anchor_gap);
 
   // Base64 encoded CSV strings

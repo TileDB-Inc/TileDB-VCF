@@ -58,5 +58,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_verbose", &Writer::set_verbose)
       .def("ingest_samples", &Writer::ingest_samples)
       .def("get_schema_version", &Writer::get_schema_version)
-      .def("set_tiledb_config", &Writer::set_tiledb_config);
+      .def("set_tiledb_config", &Writer::set_tiledb_config)
+      .def("set_sample_batch_size", &Writer::set_sample_batch_size);
 }

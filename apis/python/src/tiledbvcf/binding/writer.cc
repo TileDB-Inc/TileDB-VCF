@@ -141,9 +141,14 @@ int32_t Writer::get_schema_version() {
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
-  auto reader = ptr.get();
+  auto writer = ptr.get();
   check_error(
-      reader, tiledb_vcf_writer_set_tiledb_config(reader, config_str.c_str()));
+      writer, tiledb_vcf_writer_set_tiledb_config(writer, config_str.c_str()));
+}
+
+void Writer::set_sample_batch_size(const uint64_t size) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_sample_batch_size(writer, size));
 }
 
 }  // namespace tiledbvcfpy

@@ -52,7 +52,6 @@ struct CreationParams {
   std::string uri;
   std::vector<std::string> extra_attributes;
   uint64_t tile_capacity = 10000;
-  uint32_t row_tile_extent = 10;
   uint32_t anchor_gap = 1000;
   std::vector<std::string> tiledb_config;
   tiledb_filter_type_t checksum = TILEDB_FILTER_CHECKSUM_SHA256;
@@ -163,7 +162,7 @@ class TileDBVCFDataset {
   struct Metadata {
     unsigned version = Version::V4;
     uint64_t tile_capacity;
-    uint32_t row_tile_extent;
+    uint32_t ingestion_sample_batch_size;
     uint32_t anchor_gap;
     std::vector<std::string> extra_attributes;
 
