@@ -65,14 +65,14 @@ if (NOT HTSLIB_FOUND)
     message(STATUS "Adding HTSlib as an external project")
     # Use explicit soname to avoid having to use library symlinks (easier for embedding).
     if (APPLE)
-      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.8.dylib")
+      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.10.dylib")
     else()
-      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.8")
+      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.10")
     endif()
     ExternalProject_Add(ep_htslib
       PREFIX "externals"
-      URL "https://github.com/samtools/htslib/archive/1.8.zip"
-      URL_HASH SHA1=bfda9ba326197eba3072a959c669f024bbe5c23d
+      URL "https://github.com/samtools/htslib/archive/1.10.zip"
+      URL_HASH SHA1=3f4c5a18ac5f91e7ff69ec6d347b0b60e3621af5
       UPDATE_COMMAND ""
       CONFIGURE_COMMAND
           autoheader
