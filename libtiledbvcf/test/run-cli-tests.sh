@@ -352,10 +352,9 @@ diff -u <($tilevcf stat -u ingested_1_2) <(
 cat <<EOF
 Statistics for dataset 'ingested_1_2':
 - Version: 4
-- Row tile extent: 10
 - Tile capacity: 10,000
 - Anchor gap: 1,000
-- Number of registered samples: 2
+- Number of samples: 2
 - Extracted attributes: none
 EOF
 ) || exit 1

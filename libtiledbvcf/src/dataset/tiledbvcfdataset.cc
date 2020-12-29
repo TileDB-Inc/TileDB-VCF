@@ -520,12 +520,13 @@ void TileDBVCFDataset::print_dataset_stats() {
   utils::enable_pretty_print_numbers(std::cout);
   std::cout << "Statistics for dataset '" << root_uri_ << "':" << std::endl;
   std::cout << "- Version: " << metadata_.version << std::endl;
-  std::cout << "- Row tile extent: " << metadata_.ingestion_sample_batch_size
-            << std::endl;
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+    std::cout << "- Row tile extent: " << metadata_.ingestion_sample_batch_size
+              << std::endl;
   std::cout << "- Tile capacity: " << metadata_.tile_capacity << std::endl;
   std::cout << "- Anchor gap: " << metadata_.anchor_gap << std::endl;
-  std::cout << "- Number of registered samples: "
-            << metadata_.sample_names.size() << std::endl;
+  std::cout << "- Number of samples: " << metadata_.sample_names.size()
+            << std::endl;
 
   std::cout << "- Extracted attributes: ";
   if (metadata_.extra_attributes.empty()) {
