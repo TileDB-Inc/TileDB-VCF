@@ -15,18 +15,29 @@ find_package(TileDB_EP REQUIRED)
 find_package(Git REQUIRED)
 
 execute_process(
-  COMMAND "${GIT_EXECUTABLE}" describe --dirty=-modified --always
+  COMMAND "${GIT_EXECUTABLE}" describe --exact-match --tags HEAD
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   RESULT_VARIABLE res
   OUTPUT_VARIABLE BUILD_COMMIT_HASH
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+# If we didn't find a tag name let's grab the SHA
+if (res)
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" describe --dirty=-modified --always
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE res
+    OUTPUT_VARIABLE BUILD_COMMIT_HASH
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
 set_property(GLOBAL APPEND
   PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CMAKE_SOURCE_DIR}/.git/index")
 
-message(STATUS "Building with commit hash ${TILEDB_VCF_COMMIT_HASH}")
+message(STATUS "Building with commit hash ${BUILD_COMMIT_HASH}")
 
 ############################################################
 # Common object library
