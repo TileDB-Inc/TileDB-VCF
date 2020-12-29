@@ -1614,5 +1614,97 @@ void TileDBVCFDataset::set_tiledb_stats_enabled_vcf_header(
   tiledb_stats_enabled_vcf_header_ = stats_enabled;
 }
 
+void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "fragment_meta";
+  tiledb::Array::consolidate(ctx_, vcf_headers_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_data_array_fragment_metadata(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "fragment_meta";
+  tiledb::Array::consolidate(ctx_, data_array_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_fragment_metadata(
+    const UtilsParams& params) {
+  consolidate_data_array_fragment_metadata(params);
+  consolidate_vcf_header_array_fragment_metadata(params);
+}
+
+void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "fragments";
+  tiledb::Array::consolidate(ctx_, vcf_headers_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_data_array_fragments(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "fragments";
+  tiledb::Array::consolidate(ctx_, data_array_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_fragments(const UtilsParams& params) {
+  consolidate_data_array_fragments(params);
+  consolidate_vcf_header_array_fragments(params);
+}
+
+void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "fragment_meta";
+  vcf_header_array_->close();
+  tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  data_array_ = open_data_array(TILEDB_READ);
+  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "fragment_meta";
+  data_array_->close();
+  tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
+  data_array_ = open_data_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_fragment_metadata(const UtilsParams& params) {
+  vacuum_data_array_fragment_metadata(params);
+  vacuum_vcf_header_array_fragment_metadata(params);
+}
+
+void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "fragments";
+  vcf_header_array_->close();
+  tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "fragments";
+  data_array_->close();
+  tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
+  data_array_ = open_data_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_fragments(const UtilsParams& params) {
+  vacuum_data_array_fragments(params);
+  vacuum_vcf_header_array_fragments(params);
+}
 }  // namespace vcf
 }  // namespace tiledb
