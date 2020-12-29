@@ -39,7 +39,20 @@ using namespace tiledb::vcf;
 
 namespace {
 /** TileDBVCF operation mode */
-enum class Mode { Version, Create, Register, Store, Export, List, Stat, UNDEF };
+enum class Mode {
+  Version,
+  Create,
+  Register,
+  Store,
+  Export,
+  List,
+  Stat,
+  Utils,
+  UNDEF
+};
+/** TileDBVCF Util command operation modes */
+enum class UtilsMode { Consolidate, Vaccum, UNDEF };
+enum class UtilsConsolidateMode { FragmentMeta, Fragments, UNDEF };
 
 /** Returns a help string, displaying the given default value. */
 template <typename T>
@@ -114,6 +127,14 @@ void usage_stat(const clipp::group& stat_mode) {
       stat_mode);
 }
 
+/** Prints the 'utils' mode help message. */
+void usage_utils(const clipp::group& utils_mode) {
+  print_command_usage(
+      "tiledbvcf",
+      "Utils for working with a TileDB-VCF dataset.\"",
+      utils_mode);
+}
+
 /** Prints the default help message. */
 void usage(
     const clipp::group& cli,
@@ -122,7 +143,8 @@ void usage(
     const clipp::group& store_mode,
     const clipp::group& export_mode,
     const clipp::group& list_mode,
-    const clipp::group& stat_mode) {
+    const clipp::group& stat_mode,
+    const clipp::group& utils_mode) {
   using namespace clipp;
   std::cout
       << "TileDBVCF -- efficient variant-call data storage and retrieval.\n\n"
@@ -144,6 +166,8 @@ void usage(
   usage_list(list_mode);
   std::cout << "\n\n";
   usage_stat(stat_mode);
+  std::cout << "\n\n";
+  usage_utils(utils_mode);
   std::cout << "\n";
 }
 
@@ -231,11 +255,48 @@ void do_stat(const StatParams& args) {
   dataset.print_dataset_stats();
 }
 
+/** Utils. */
+void do_utils_consolidate(
+    const UtilsConsolidateMode consolidate_mode, const UtilsParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  TileDBVCFDataset dataset;
+  dataset.open(args.uri, args.tiledb_config);
+  if (consolidate_mode == UtilsConsolidateMode::FragmentMeta)
+    dataset.consolidate_fragment_metadata(args);
+  else if (consolidate_mode == UtilsConsolidateMode::Fragments)
+    dataset.consolidate_fragments(args);
+  else
+    throw std::runtime_error(
+        "Invalid consolidate mode, valid options are fragment_meta or "
+        "fragments");
+}
+
+void do_utils_vaccum(
+    const UtilsConsolidateMode vacuum_mode, const UtilsParams& args) {
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  TileDBVCFDataset dataset;
+  dataset.open(args.uri, args.tiledb_config);
+  if (vacuum_mode == UtilsConsolidateMode::FragmentMeta)
+    dataset.vacuum_fragment_metadata(args);
+  else if (vacuum_mode == UtilsConsolidateMode::Fragments)
+    dataset.vacuum_fragments(args);
+  else
+    throw std::runtime_error(
+        "Invalid vacuum mode, valid options are fragment_meta or "
+        "fragments");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
   using namespace clipp;
   Mode opmode = Mode::UNDEF;
+  UtilsMode opmode_utils = UtilsMode::UNDEF;
+  UtilsConsolidateMode opmode_utils_consolidate = UtilsConsolidateMode::UNDEF;
 
   CreationParams create_args;
   auto create_mode =
@@ -495,6 +556,29 @@ int main(int argc, char** argv) {
              stat_args.tiledb_config = utils::split(s, ',');
            }));
 
+  UtilsParams utils_args;
+  auto utils_mode =
+      (required("-u", "--uri") % "TileDB dataset URI" &
+           value("uri", utils_args.uri),
+       option("--tiledb-config") %
+               "CSV string of the format 'param1=val1,param2=val2...' "
+               "specifying optional TileDB configuration parameter settings." &
+           value("params").call([&utils_args](const std::string& s) {
+             utils_args.tiledb_config = utils::split(s, ',');
+           }));
+
+  auto utils =
+      (command("utils").set(opmode, Mode::Utils),
+       (command("consolidate").set(opmode_utils, UtilsMode::Consolidate) |
+        command("vaccum").set(opmode_utils, UtilsMode::Vaccum)),
+       command("fragment_meta")
+               .set(
+                   opmode_utils_consolidate,
+                   UtilsConsolidateMode::FragmentMeta) |
+           command("fragments")
+               .set(opmode_utils_consolidate, UtilsConsolidateMode::Fragments),
+       utils_mode);
+
   auto cli =
       (command("--version", "-v", "version").set(opmode, Mode::Version) %
            "Prints the version and exits." |
@@ -503,7 +587,7 @@ int main(int argc, char** argv) {
        (command("store").set(opmode, Mode::Store), store_mode) |
        (command("export").set(opmode, Mode::Export), export_mode) |
        (command("list").set(opmode, Mode::List), list_mode) |
-       (command("stat").set(opmode, Mode::Stat), stat_mode));
+       (command("stat").set(opmode, Mode::Stat), stat_mode) | utils);
 
   if (!parse(argc, argv, cli)) {
     if (argc > 1) {
@@ -520,6 +604,8 @@ int main(int argc, char** argv) {
         usage_list(list_mode);
       } else if (std::string(argv[1]) == "stat") {
         usage_stat(stat_mode);
+      } else if (std::string(argv[1]) == "utils") {
+        usage_utils(utils);
       } else {
         usage(
             cli,
@@ -528,7 +614,8 @@ int main(int argc, char** argv) {
             store_mode,
             export_mode,
             list_mode,
-            stat_mode);
+            stat_mode,
+            utils);
       }
     } else {
       usage(
@@ -538,7 +625,8 @@ int main(int argc, char** argv) {
           store_mode,
           export_mode,
           list_mode,
-          stat_mode);
+          stat_mode,
+          utils);
     }
     return 1;
   }
@@ -565,6 +653,19 @@ int main(int argc, char** argv) {
     case Mode::Stat:
       do_stat(stat_args);
       break;
+    case Mode::Utils:
+      switch (opmode_utils) {
+        case UtilsMode::Consolidate:
+          do_utils_consolidate(opmode_utils_consolidate, utils_args);
+          break;
+        case UtilsMode::Vaccum:
+          do_utils_vaccum(opmode_utils_consolidate, utils_args);
+          break;
+        default:
+          usage_utils(utils);
+          return 1;
+      }
+      break;
     default:
       usage(
           cli,
@@ -573,7 +674,8 @@ int main(int argc, char** argv) {
           store_mode,
           export_mode,
           list_mode,
-          stat_mode);
+          stat_mode,
+          utils);
       return 1;
   }
 

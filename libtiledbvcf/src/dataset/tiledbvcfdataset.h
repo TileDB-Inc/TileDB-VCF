@@ -79,6 +79,11 @@ struct StatParams {
   std::vector<std::string> tiledb_config;
 };
 
+struct UtilsParams {
+  std::string uri;
+  std::vector<std::string> tiledb_config;
+};
+
 /* ********************************* */
 /*         TILEDBVCFDATASET          */
 /* ********************************* */
@@ -367,6 +372,80 @@ class TileDBVCFDataset {
    * @param stats_enabled
    */
   void set_tiledb_stats_enabled_vcf_header(const bool stats_enabled);
+
+  /**
+   * Consolidate fragment metadata of the vcf header array
+   * @param params
+   */
+  void consolidate_vcf_header_array_fragment_metadata(
+      const UtilsParams& params);
+
+  /**
+   * Consolidate fragment metadata of the data array
+   * @param params
+   */
+  void consolidate_data_array_fragment_metadata(const UtilsParams& params);
+
+  /**
+   * Consolidate fragment metadata of all arrays (vcf header array and data
+   * array)
+   * @param params
+   */
+  void consolidate_fragment_metadata(const UtilsParams& params);
+
+  /**
+   * Consolidate fragments  of the vcf header array
+   * @param params
+   */
+  void consolidate_vcf_header_array_fragments(const UtilsParams& params);
+
+  /**
+   * Consolidate fragments  of the data array
+   * @param params
+   */
+  void consolidate_data_array_fragments(const UtilsParams& params);
+
+  /**
+   * Consolidate fragments of all arrays (vcf header array and data array)
+   * @param params
+   */
+  void consolidate_fragments(const UtilsParams& params);
+
+  /**
+   * Vacuum fragment metadata of the vcf header array
+   * @param params
+   */
+  void vacuum_vcf_header_array_fragment_metadata(const UtilsParams& params);
+
+  /**
+   * Vacuum fragment metadata of the data array
+   * @param params
+   */
+  void vacuum_data_array_fragment_metadata(const UtilsParams& params);
+
+  /**
+   * Vacuum fragment metadata of all arrays (vcf header array and data array)
+   * @param params
+   */
+  void vacuum_fragment_metadata(const UtilsParams& params);
+
+  /**
+   * Vacuum fragments  of the vcf header array
+   * @param params
+   */
+  void vacuum_vcf_header_array_fragments(const UtilsParams& params);
+
+  /**
+   * Vacuum fragments  of the data array
+   * @param params
+   */
+  void vacuum_data_array_fragments(const UtilsParams& params);
+
+  /**
+   * Vacuum fragments of all arrays (vcf header array and data array)
+   * @param params
+   */
+  void vacuum_fragments(const UtilsParams& params);
 
  private:
   /* ********************************* */
