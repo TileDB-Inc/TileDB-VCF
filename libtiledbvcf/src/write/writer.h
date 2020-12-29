@@ -200,6 +200,7 @@ class Writer {
   /** Gets the version number of the open dataset. */
   void dataset_version(int32_t* version) const;
 
+  /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
 
  private:
