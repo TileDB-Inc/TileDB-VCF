@@ -6,7 +6,7 @@
 
 # TileDB-VCF
 
-A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB][].
+A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB Embedded][tiledb].
 
 ## Features
 
@@ -21,22 +21,13 @@ A C++ library for efficient storage and retrieval of genomic variant-call data u
 
 - Command line interface (CLI)
 - APIs for C, C++, Python, and Java
-- Integrates with Spark, Dask, and AWS Batch
-
-Check out our [docs][vcf] for installation and usage instructions:
-
-|           |       :package:       |       :memo:       |
-|----------:|:---------------------:|:------------------:|
-|       CLI | [Install][inst-cli]   | [Usage][use-cli]   |
-|    Python | [Install][inst-py]    | [Usage][use-py]    |
-|     Spark | [Install][inst-spark] | [Usage][use-spark] |
-| AWS Batch | [Install][inst-aws]   | [Usage][use-aws]   |
+- Integrates with Spark and Dask
 
 ## Quick Start
 
-The docs linked above provide more comprehensive examples but here a few quick exercises to get you started.
+The [documentation website][vcf] provides comprehensive usage examples but here are a few quick exercises to get you started.
 
-By the way, we host a publicly accessible version of the `vcf-samples-20` array on S3. If you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
+We'll use a dataset that includes 20 synthetic samples, each one containing over 20 million variants. We host a publicly accessible version of this dataset on S3, so if you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
 
 ### CLI
 
@@ -49,7 +40,7 @@ tiledbvcf export \
   --sample-names v2-usVwJUmo,v2-WpXCYApL
 ```
 
-Create a table of all variants within one or more regions of interest:
+Create a TSV file containing all variants within one or more regions of interest:
 
 ```sh
 tiledbvcf export \
@@ -66,12 +57,12 @@ Running the same query in python
 ```py
 import tiledbvcf
 
-ds = tiledbvcf.Dataset(uri="vcf-samples-20", mode="r")
+ds = tiledbvcf.Dataset(uri = "vcf-samples-20", mode="r")
 
 ds.read(
-    attrs=["sample_name", "pos_start", "fmt_GT"],
-    regions=["chr7:144000320-144008793", "chr11:56490349-56491395"],
-    samples=["v2-tJjMfKyL", "v2-eBAdKwID"]
+    attrs = ["sample_name", "pos_start", "fmt_GT"],
+    regions = ["chr7:144000320-144008793", "chr11:56490349-56491395"],
+    samples = ["v2-tJjMfKyL", "v2-eBAdKwID"]
 )
 ```
 
@@ -94,10 +85,9 @@ returns results as a pandas `DataFrame`
 
 ## Want to Learn More?
 
-* [Motivation and idea behind storing VCF data in 2D sparse arrays](https://docs.tiledb.com/genomics/)
-* [Data Model](https://docs.tiledb.com/genomics/advanced/data-model)
-* [Ingestion Algorithm](https://docs.tiledb.com/genomics/advanced/ingestion-algorithm)
-* [Read Algorithm](https://docs.tiledb.com/genomics/advanced/read-algorithm)
+* [Check out the full documentation][vcf]
+* [Motivation](https://docs.tiledb.com/solutions/integrations/population-genomics/the-problem) and [idea behind storing VCF data in 3D sparse arrays](https://docs.tiledb.com/solutions/integrations/population-genomics/the-problem)
+* [Data Model](https://docs.tiledb.com/solutions/integrations/population-genomics/data-model)
 
 # Code of Conduct
 
@@ -108,15 +98,12 @@ specific standards and reporting procedures detailed in depth in the
 https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
 
 <!-- links -->
-[tiledb]: https://tiledb.com
-[vcf]: https://docs.tiledb.com/genomics/
+[tiledb]: https://github.com/TileDB-Inc/TileDB
+[vcf]: https://docs.tiledb.com/solutions/integrations/population-genomics
 
-[inst-cli]: https://docs.tiledb.com/genomics/installation/standalone-tiledb-vcf
-[inst-py]: https://docs.tiledb.com/genomics/installation/python
-[inst-spark]: https://docs.tiledb.com/genomics/installation/spark
-[inst-aws]: https://docs.tiledb.com/genomics/installation/aws-batch
+[install]: https://docs.tiledb.com/solutions/integrations/population-genomics/installation/quick-install
+[build]: https://docs.tiledb.com/solutions/integrations/population-genomics/installation/building-from-source
 
-[use-cli]: https://docs.tiledb.com/genomics/usage/cli
-[use-py]: https://docs.tiledb.com/genomics/usage/python
-[use-spark]: https://docs.tiledb.com/genomics/usage/spark
-[use-aws]: https://docs.tiledb.com/genomics/usage/aws-batch
+[use-cli]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/cli
+[use-py]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/python
+[use-spark]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/spark
