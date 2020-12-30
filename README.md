@@ -6,7 +6,7 @@
 
 # TileDB-VCF
 
-A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB Embedded][].
+A C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB Embedded][tiledb].
 
 ## Features
 
