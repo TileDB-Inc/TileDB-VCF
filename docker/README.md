@@ -62,7 +62,7 @@ docker run --rm tiledb/tiledbvcf-cli list \
 Create a table of all variants within a region of interest for sample `v2-WpXCYApL`
 
 ```sh
-docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
+docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli:dev export \
   --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \
   -Ot --tsv-fields "CHR,POS,REF,S:GT"
   --regions chr7:144000320-144008793 \
