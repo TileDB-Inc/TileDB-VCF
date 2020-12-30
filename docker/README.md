@@ -1,6 +1,6 @@
 # TileDB-VCF Docker Images
 
-TileDB-VCF is a C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB][].
+TileDB-VCF is a C++ library for efficient storage and retrieval of genomic variant-call data using [TileDB Embedded][tiledb].
 
 ## Quick reference
 
@@ -120,7 +120,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](https://gi
 <!-- links -->
 [vcf-repo]: https://github.com/TileDB-Inc/TileDB-VCF
 [docker]: https://hub.docker.com/u/tiledb
-[tiledb]: https://tiledb.com
+[tiledb]: https://github.com/TileDB-Inc/TileDB
 [vcf-docs]: https://docs.tiledb.com/solutions/integrations/population-genomics
 [cli-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/cli
 [py-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/python
