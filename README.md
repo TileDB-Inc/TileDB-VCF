@@ -25,7 +25,7 @@ A C++ library for efficient storage and retrieval of genomic variant-call data u
 
 ## Quick Start
 
-The [documentation website][vcf] provides comprehensive usage examples but here a few quick exercises to get you started.
+The [documentation website][vcf] provides comprehensive usage examples but here are a few quick exercises to get you started.
 
 We'll use a dataset that includes 20 synthetic samples, each one containing over 20 million variants. We host a publicly accessible version of this dataset on S3, so if you have TileDB-VCF installed and you'd like to follow along just swap out the `uri`'s below for `s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20`. And if you *don't* have TileDB-VCF installed yet, you can use our [Docker images](docker/README.md) to test things out.
 
