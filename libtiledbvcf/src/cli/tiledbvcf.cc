@@ -63,7 +63,7 @@ std::string defaulthelp(const std::string& msg, T default_value) {
 /** Returns TileDB-VCF and TileDB version information in string form. */
 std::string version_info() {
   std::stringstream ss;
-  ss << "TileDB-VCF build " << utils::TILEDB_VCF_COMMIT_HASH << "\n";
+  ss << "TileDB-VCF version " << utils::TILEDB_VCF_COMMIT_HASH << "\n";
   auto v = tiledb::version();
   ss << "TileDB version " << std::get<0>(v) << "." << std::get<1>(v) << "."
      << std::get<2>(v);
