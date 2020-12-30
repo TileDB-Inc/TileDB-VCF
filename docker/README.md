@@ -56,14 +56,14 @@ List all samples in the dataset:
 
 ```sh
 docker run --rm tiledb/tiledbvcf-cli list \
-  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20
+  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20
 ```
 
 Create a table of all variants within a region of interest for sample `v2-WpXCYApL`
 
 ```sh
 docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
-  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20 \
+  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \
   -Ot --tsv-fields "CHR,POS,REF,S:GT"
   --regions chr7:144000320-144008793 \
   --sample-names v2-WpXCYApL
@@ -82,7 +82,7 @@ The following script performs the same query as above but returns a pandas `Data
 ```py
 import tiledbvcf
 
-uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v3/vcf-samples-20"
+uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
 # open the array in 'read' mode
 ds = tiledbvcf.Dataset(uri, mode = "r")
@@ -121,7 +121,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](https://gi
 [vcf-repo]: https://github.com/TileDB-Inc/TileDB-VCF
 [docker]: https://hub.docker.com/u/tiledb
 [tiledb]: https://tiledb.com
-[vcf-docs]: https://docs.tiledb.com/genomics/
-[cli-api]: https://docs.tiledb.com/genomics/apis/cli
-[py-api]: https://docs.tiledb.com/genomics/apis/python
+[vcf-docs]: https://docs.tiledb.com/solutions/integrations/population-genomics
+[cli-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/cli
+[py-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/python
 [vcf-samples-20]: https://console.tiledb.com/arrays/details/TileDB-Inc/vcf-samples-20-data
