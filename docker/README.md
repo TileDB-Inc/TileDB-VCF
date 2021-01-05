@@ -69,6 +69,29 @@ docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
   --sample-names v2-WpXCYApL
 ```
 
+To avoid permission issues when creating TileDB-VCF datasets with Docker you need to provide the current user ID and group ID to the container:
+
+```sh
+docker run --rm \
+  -v $PWD:/data \
+  -u "$(id -u):$(id -g)" \
+  tiledb/tiledbvcf-cli \
+  create -u test-array
+```
+
+User and group IDs should also be specified when ingesting data:
+
+```sh
+# create a sample file with S3 URIs for 10 example BCF files
+printf "s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G%i.bcf\n" $(seq 10) > samples.txt
+
+docker run --rm \
+  -v $PWD:/data \
+  -u "$(id -u):$(id -g)" \
+  tiledb/tiledbvcf-cli \
+  store -u test-array -f samples.txt --scratch-mb 10 --verbose
+```
+
 ### Python
 
 You can use the `tiledbvcf-py` container to execute an external script or launch an interactive Python session.
