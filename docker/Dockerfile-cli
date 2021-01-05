@@ -4,7 +4,7 @@ ENV AWS_EC2_METADATA_DISABLED true
 
 # Install some dependencies
 RUN yum -y install which wget git tar gzip unzip gcc-c++ zlib-devel \
-       openssl-devel bzip2-devel tbb-devel libcurl-devel xz-devel make \
+       openssl-devel bzip2-devel libcurl-devel xz-devel make \
        automake autoconf \
     && yum clean all
 
@@ -29,7 +29,6 @@ FROM amazonlinux:latest
 COPY --from=builder /usr/local/bin/* /usr/local/bin/
 COPY --from=builder /usr/local/include/* /usr/local/include/
 COPY --from=builder /usr/local/lib/* /usr/local/lib/
-COPY --from=builder /usr/lib64/libtbb.so.2 /usr/lib64/libtbb.so.2
 
 WORKDIR /data
 ENTRYPOINT ["/usr/local/bin/tiledbvcf"]
