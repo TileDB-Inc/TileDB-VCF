@@ -340,6 +340,80 @@ void set_htslib_tiledb_context(const std::vector<std::string>& tiledb_config) {
 
     set_tiledb_config(tiledb_config, hfile_tiledb_vfs_config);
 
+    // Set default sizes for read ahead cache, 256KiB for read size and 1GB for
+    // cache size. These values were emperically determined by running
+    // experiments using the 20 sample synthetic dataset
+    std::string hfile_tiledb_read_ahead_size = std::to_string(1024UL * 256);
+    std::string hfile_tiledb_read_ahead_cache_size =
+        std::to_string(1024UL * 1024 * 1024);
+    // Check for if the user set the tiledb read ahead size or cache
+    // If they set it we want to us their values instead of the defaults
+    for (const auto& s : tiledb_config) {
+      auto kv = utils::split(s, '=');
+      utils::trim(&kv[0]);
+      utils::trim(&kv[1]);
+      if (kv[0] == "vfs.read_ahead_size")
+        hfile_tiledb_read_ahead_size = kv[1];
+      if (kv[0] == "vfs.read_ahead_cache_size")
+        hfile_tiledb_read_ahead_size = kv[1];
+    }
+
+    // Set read-ahead cache used for remote sample file reading/loading
+    // read ahead 256kib
+    std::string read_ahead_size = hfile_tiledb_read_ahead_size;
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.read_ahead_size",
+        hfile_tiledb_read_ahead_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.read_ahead_cache_size",
+        hfile_tiledb_read_ahead_cache_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    // Always set parallel size so we avoid breaking htslib reads down into
+    // smaller chunks HTSLIB has a max read size of 32KiB so we don't need
+    // TileDB to try to optimize here Breaking things down just results in more
+    // overhead
+    std::string min_parallel_size = std::to_string(99999999);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.min_parallel_size",
+        min_parallel_size.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
+    // Similar to above, we want only 1 parallel operations per S3 read request.
+    // The reads are already capped at 32 KiB so splitting it into parallel
+    // reads is disadvantageous due to the latency
+    std::string max_parallel_ops = std::to_string(1);
+    rc = tiledb_config_set(
+        hfile_tiledb_vfs_config,
+        "vfs.s3.max_parallel_ops",
+        max_parallel_ops.c_str(),
+        &error);
+    if (rc != TILEDB_OK) {
+      const char* msg;
+      tiledb_error_message(error, &msg);
+      throw std::runtime_error(msg);
+    }
+
     if (hfile_tiledb_vfs_ctx != nullptr)
       tiledb_ctx_free(&hfile_tiledb_vfs_ctx);
 
@@ -395,6 +469,19 @@ bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs) {
       return false;
     }
   }
+
+  return true;
+}
+
+bool is_local_uri(const std::string& uri) {
+  if (starts_with(uri, "s3://"))
+    return false;
+  if (starts_with(uri, "azure://"))
+    return false;
+  if (starts_with(uri, "gcs://"))
+    return false;
+  if (starts_with(uri, "hdfs://"))
+    return false;
 
   return true;
 }

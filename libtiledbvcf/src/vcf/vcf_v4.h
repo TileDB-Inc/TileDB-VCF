@@ -62,6 +62,8 @@ class VCFV4 {
   VCFV4& operator=(const VCFV4&) = delete;
   VCFV4& operator=(VCFV4&&) = delete;
 
+  bool init(const std::string& contig_name, uint32_t pos);
+
   /**
    * Opens the specified VCF or BCF file and load the header.
    *
@@ -148,17 +150,22 @@ class VCFV4 {
     void reset();
     void swap(Iter& other);
     bool next(bcf1_t* rec);
+    bool seek(const std::string& contig_name, uint32_t pos);
 
    private:
     SafeBCFFh fh_;
     bcf_hdr_t* hdr_;
     hts_itr_t* hts_iter_;
     tbx_t* tbx_;
+    hts_idx_t* hts_idx_;
     kstring_t tmps_ = {0, 0, nullptr};
   };
 
   /** True if the file is open. */
   bool open_;
+
+  /** True if the file is init'ed by seek. */
+  bool inited_;
 
   /** Full path of the VCF file being read. */
   std::string path_;

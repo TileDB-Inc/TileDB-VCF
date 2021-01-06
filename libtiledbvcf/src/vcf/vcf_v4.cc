@@ -31,6 +31,7 @@ namespace vcf {
 
 VCFV4::VCFV4()
     : open_(false)
+    , inited_(false)
     , max_record_buffer_size_(10000)
     , hdr_(nullptr)
     , index_tbx_(nullptr)
@@ -117,6 +118,7 @@ void VCFV4::close() {
   }
 
   open_ = false;
+  inited_ = false;
   path_.clear();
   index_path_.clear();
 }
@@ -214,12 +216,7 @@ bcf_hdr_t* VCFV4::hdr() const {
   return hdr_;
 }
 
-bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
-  if (!open_)
-    return false;
-
-  seeked_contig_name_ = contig_name;
-
+bool VCFV4::init(const std::string& contig_name, uint32_t pos) {
   // Reset the record queue on all seeks
   if (!record_queue_.empty())
     std::queue<SafeSharedBCFRec>().swap(record_queue_);
@@ -242,6 +239,28 @@ bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
             std::move(fh), hdr_, index_tbx_, contig_name, pos))
       return false;
   }
+
+  inited_ = true;
+  return true;
+}
+
+bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
+  if (!open_)
+    return false;
+
+  // Reset the record queue on all seeks
+  if (!record_queue_.empty())
+    std::queue<SafeSharedBCFRec>().swap(record_queue_);
+
+  // On first contig we need to open the VCF file
+  if (!inited_) {
+    if (!init(contig_name, pos))
+      return false;
+  } else {
+    if (!record_iter_.seek(contig_name, pos))
+      return false;
+  }
+  seeked_contig_name_ = contig_name;
 
   // Buffer the next records into `record_queue_`.
   read_records();
@@ -329,6 +348,7 @@ bool VCFV4::Iter::init_bcf(
   int region_min = pos;
   int region_max = std::numeric_limits<int>::max();
 
+  hts_idx_ = index;
   hts_iter_ = bcf_itr_queryi(index, region_id, region_min, region_max);
   if (hts_iter_ == nullptr)
     return false;
@@ -364,11 +384,53 @@ bool VCFV4::Iter::init_tbx(
   return true;
 }
 
+bool VCFV4::Iter::seek(const std::string& contig_name, uint32_t pos) {
+  if (contig_name.empty())
+    throw std::runtime_error(
+        "Failed to init TBX iterator; contig name cannot be empty.");
+
+  int region_min = pos;
+  int region_max = std::numeric_limits<int>::max();
+
+  // If we have a tbx index
+  if (tbx_ != nullptr) {
+    // First free existing
+    if (hts_iter_ != nullptr && hts_iter_->bins.a != nullptr) {
+      hts_itr_destroy(hts_iter_);
+      hts_iter_ = nullptr;
+    }
+
+    int region_id = tbx_name2id(tbx_, contig_name.c_str());
+    if (region_id == -1)
+      return false;
+
+    hts_iter_ = tbx_itr_queryi(tbx_, region_id, region_min, region_max);
+    if (hts_iter_ == nullptr)
+      return false;
+  } else {
+    // First free existing
+    if (hts_iter_ != nullptr && hts_iter_->bins.a != nullptr) {
+      hts_itr_destroy(hts_iter_);
+      hts_iter_ = nullptr;
+    }
+
+    int region_id = bcf_hdr_name2id(hdr_, contig_name.c_str());
+    if (region_id == -1)
+      return false;
+
+    hts_iter_ = bcf_itr_queryi(hts_idx_, region_id, region_min, region_max);
+    if (hts_iter_ == nullptr)
+      return false;
+  }
+
+  return true;
+}
+
 void VCFV4::Iter::reset() {
   fh_.reset();
   hdr_ = nullptr;
 
-  if (hts_iter_ != nullptr) {
+  if (hts_iter_ != nullptr && hts_iter_->bins.a != nullptr) {
     hts_itr_destroy(hts_iter_);
     hts_iter_ = nullptr;
   }

@@ -474,7 +474,7 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
       utils::batch_elements(samples, 100);
   std::future<std::vector<SafeBCFHdr>> future_headers = std::async(
       std::launch::async,
-      SampleUtils::download_sample_headers,
+      SampleUtils::get_sample_headers,
       vfs,
       batches[0],
       params.scratch_space);
@@ -483,7 +483,7 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
     // Start the next batch downloading
     future_headers = std::async(
         std::launch::async,
-        SampleUtils::download_sample_headers,
+        SampleUtils::get_sample_headers,
         vfs,
         batches[i],
         params.scratch_space);

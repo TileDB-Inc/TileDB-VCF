@@ -51,7 +51,7 @@ namespace vcf {
 /** Struct holding information about available scratch disk space. */
 struct ScratchSpaceInfo {
   std::string path = "";
-  unsigned size_mb = 0;
+  uint64_t size_mb = 0;
 };
 
 /** URI of a sample (VCF) file, and optionally the URI of its index file. */
@@ -81,7 +81,7 @@ class SampleUtils {
    * @param scratch_space Scratch space info
    * @return List of local paths for downloaded samples.
    */
-  static std::vector<SampleAndIndex> download_samples(
+  static std::vector<SampleAndIndex> get_samples(
       const tiledb::VFS& vfs,
       const std::vector<SampleAndIndex>& samples,
       ScratchSpaceInfo* scratch_space);
@@ -95,7 +95,7 @@ class SampleUtils {
    * @param scratch_space Scratch space info
    * @return Vector of sample names
    */
-  static std::vector<std::string> download_sample_names(
+  static std::vector<std::string> get_sample_names(
       const tiledb::VFS& vfs,
       const std::vector<SampleAndIndex>& samples,
       const ScratchSpaceInfo& scratch_space);
@@ -109,11 +109,10 @@ class SampleUtils {
    * @param scratch_space Scratch space info
    * @return Vector of sample header instances
    */
-  static std::vector<SafeBCFHdr> download_sample_headers(
+  static std::vector<SafeBCFHdr> get_sample_headers(
       const tiledb::VFS& vfs,
       const std::vector<SampleAndIndex>& samples,
       const ScratchSpaceInfo& scratch_space);
-
   /**
    * Aggregates sample URIs passed explicitly and contained in a file into a
    * single list.
@@ -123,10 +122,37 @@ class SampleUtils {
       const std::string& samples_file_uri,
       const std::vector<std::string>& samples_uri_list);
 
+  /**
+   * Changes remote BCF/VCF sample files to vfs plugin path as necessary.
+   *
+   * @param samples List of samples to download
+   * @return List of local paths for downloaded samples.
+   */
+  static std::vector<SampleAndIndex> build_vfs_plugin_sample_list(
+      const std::vector<SampleAndIndex>& samples);
+
+  /**
+   * Builds a SampleAndIndex object with VFS htslib plugin prefix
+   * @param uri to adjust
+   * @return uri string with htslib prefix
+   */
+  static std::string build_vfs_plugin_uri(const std::string& uri);
+
+  /**
+   * Builds a SampleAndIndex object with VFS htslib plugin prefix
+   * @param sample to adjust
+   * @return SampleAndIndex object
+   */
+  static SampleAndIndex build_vfs_plugin_sample_and_index(
+      const SampleAndIndex& sample);
+
  private:
   /**
    * Helper method that downloads the header for each sample and performs a
    * 'process' callback on each header instance, returning the results.
+   *
+   * Note: If no scratch space is configured we will default to using vfs htslib
+   * plugin to avoid downloading
    *
    * @tparam T Return type of process function
    * @param vfs TileDB VFS instance to use
@@ -145,14 +171,17 @@ class SampleUtils {
     const auto old_log_level = hts_get_log_level();
     hts_set_log_level(HTS_LOG_OFF);
 
+    bool download_samples = !scratch_space.path.empty();
     // Set up some local scratch space
     const auto download_dest_dir =
         utils::uri_join(scratch_space.path, "sample-hdr-dl");
 
     bool cleanup_dir = false;
-    if (scratch_space.size_mb > 0 && !vfs.is_dir(download_dest_dir)) {
-      vfs.create_dir(download_dest_dir);
-      cleanup_dir = true;
+    if (download_samples) {
+      if (scratch_space.size_mb > 0 && !vfs.is_dir(download_dest_dir)) {
+        vfs.create_dir(download_dest_dir);
+        cleanup_dir = true;
+      }
     }
 
     Buffer buff;
@@ -178,19 +207,23 @@ class SampleUtils {
 
         // Download the file from S3 if necessary.
         std::string path;
-        if (utils::starts_with(s.sample_uri, "s3://")) {
-          if (!utils::download_file(
-                  vfs,
-                  s.sample_uri,
-                  download_dest_file,
-                  dl_num_bytes,
-                  scratch_space.size_mb,
-                  buff))
-            throw std::runtime_error(
-                "Could not download header for " + s.sample_uri +
-                ". Increase scratch space from current setting of " +
-                std::to_string(scratch_space.size_mb) + " MB.");
-          path = download_dest_file;
+        if (!utils::is_local_uri(s.sample_uri)) {
+          if (download_samples) {
+            if (!utils::download_file(
+                    vfs,
+                    s.sample_uri,
+                    download_dest_file,
+                    dl_num_bytes,
+                    scratch_space.size_mb,
+                    buff))
+              throw std::runtime_error(
+                  "Could not download header for " + s.sample_uri +
+                  ". Increase scratch space from current setting of " +
+                  std::to_string(scratch_space.size_mb) + " MB.");
+            path = download_dest_file;
+          } else {
+            path = build_vfs_plugin_uri(s.sample_uri);
+          }
         } else {
           path = s.sample_uri;
         }
