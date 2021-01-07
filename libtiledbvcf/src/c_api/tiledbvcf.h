@@ -952,6 +952,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_allow_duplicates(
     tiledb_vcf_writer_t* writer, bool allow_duplicates);
 
 /**
+ * [Creation only] Set the dataset's tile capacity upon creation.
+ *
+ * @param writer VCF writer object
+ * @param tile_capacity tile capacity for the data array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tile_capacity(
+    tiledb_vcf_writer_t* writer, uint64_t tile_capacity);
+
+/**
  * Creates a new TileDB-VCF dataset, using previously set parameters.
  *
  * @param writer VCF writer object

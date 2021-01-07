@@ -152,6 +152,10 @@ void Writer::set_allow_duplicates(const bool& allow_duplicates) {
   creation_params_.allow_duplicates = allow_duplicates;
 }
 
+void Writer::set_tile_capacity(const uint64_t tile_capacity) {
+  creation_params_.tile_capacity = tile_capacity;
+}
+
 void Writer::create_dataset() {
   TileDBVCFDataset::create(creation_params_);
 }

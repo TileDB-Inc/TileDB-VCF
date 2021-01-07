@@ -68,6 +68,11 @@ class Writer {
   */
   void set_allow_duplicates(const bool& allow_duplicates);
 
+ /**
+    [Creation only] Sets the data array's tile capacity
+  */
+  void set_tile_capacity(const uint64_t tile_capacity);
+
   /**
     [Creation only] Allocates scratch space for downloading sample files
   */

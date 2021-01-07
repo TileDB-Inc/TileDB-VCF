@@ -822,6 +822,18 @@ int32_t tiledb_vcf_writer_set_allow_duplicates(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_tile_capacity(
+    tiledb_vcf_writer_t* writer, uint64_t tile_capacity) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_tile_capacity(tile_capacity)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_create_dataset(tiledb_vcf_writer_t* writer) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;

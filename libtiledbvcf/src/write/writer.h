@@ -164,6 +164,12 @@ class Writer {
    */
   void set_allow_duplicates(const bool& allow_duplicates);
 
+  /**
+   * Sets the data array's tile capacity
+   * @param tile_capacity
+   */
+  void set_tile_capacity(const uint64_t tile_capacity);
+
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();
 

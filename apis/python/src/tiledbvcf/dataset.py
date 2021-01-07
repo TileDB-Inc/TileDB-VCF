@@ -208,12 +208,18 @@ class Dataset(object):
         return self.reader.result_num_records()
 
     def create_dataset(
-        self, extra_attrs=None, checksum_type=None, allow_duplicates=True
+        self,
+        extra_attrs=None,
+        tile_capacity=None,
+        checksum_type=None,
+        allow_duplicates=True
     ):
         """Create a new dataset
 
         :param list of str extra_attrs: CSV list of extra attributes to
             materialize from fmt field
+        :param int tile_capacity: Tile capacity to use for the array schema
+            (default = 10000).
         :param str checksum_type: Optional override checksum type for creating
             new dataset valid values are sha256, md5 or none.
         :param bool allow_duplicates: Allow records with duplicate start
@@ -224,6 +230,9 @@ class Dataset(object):
 
         extra_attrs = "" if extra_attrs is None else extra_attrs
         self.writer.set_extra_attributes(",".join(extra_attrs))
+
+        if tile_capacity is not None:
+            self.writer.set_tile_capacity(tile_capacity)
 
         if checksum_type is not None:
             checksum_type = checksum_type.lower()
