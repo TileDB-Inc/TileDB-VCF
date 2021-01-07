@@ -207,12 +207,37 @@ class Dataset(object):
 
         return self.reader.result_num_records()
 
+    def create_dataset(
+        self, extra_attrs=None, checksum_type=None, allow_duplicates=True
+    ):
+        """Create a new dataset
+
+        :param list of str extra_attrs: CSV list of extra attributes to
+            materialize from fmt field
+        :param str checksum_type: Optional override checksum type for creating
+            new dataset valid values are sha256, md5 or none.
+        :param bool allow_duplicates: Allow records with duplicate start
+            positions to be written to the array.
+        """
+        if self.mode != "w":
+            raise Exception("Dataset not open in write mode")
+
+        extra_attrs = "" if extra_attrs is None else extra_attrs
+        self.writer.set_extra_attributes(",".join(extra_attrs))
+
+        if checksum_type is not None:
+            checksum_type = checksum_type.lower()
+            self.writer.set_checksum(checksum_type)
+
+        self.writer.set_allow_duplicates(allow_duplicates)
+
+        # Create is a no-op if the dataset already exists.
+        # TODO: Inform user if dataset already exists?
+        self.writer.create_dataset()
+
     def ingest_samples(
         self,
         sample_uris=None,
-        extra_attrs=None,
-        checksum_type=None,
-        allow_duplicates=True,
         scratch_space_path=None,
         scratch_space_size=None,
         sample_batch_size=None,
@@ -221,10 +246,6 @@ class Dataset(object):
 
         :param list of str samples: CSV list of sample names to include in
             the count.
-        :param list of str extra_attrs: CSV list of extra attributes to
-            materialize from fmt field
-        :param str checksum_type: Optional override checksum type for creating
-            new dataset valid values are sha256, md5 or none.
         :param str scratch_space_path: Directory used for local storage of
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
@@ -236,12 +257,6 @@ class Dataset(object):
 
         if sample_uris is None:
             return
-
-        if checksum_type is not None:
-            checksum_type = checksum_type.lower()
-            self.writer.set_checksum(checksum_type)
-
-        self.writer.set_allow_duplicates(allow_duplicates)
 
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
@@ -255,11 +270,6 @@ class Dataset(object):
 
         self.writer.set_samples(",".join(sample_uris))
 
-        extra_attrs = "" if extra_attrs is None else extra_attrs
-        self.writer.set_extra_attributes(",".join(extra_attrs))
-
-        # Create is a no-op if the dataset already exists.
-        self.writer.create_dataset()
         # Only v2 and v3 datasets need registration
         if self.schema_version() < 4:
             self.writer.register_samples()
