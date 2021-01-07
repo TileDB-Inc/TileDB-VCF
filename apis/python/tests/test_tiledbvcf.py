@@ -274,6 +274,10 @@ def test_bad_attr_raises_exception(test_ds):
 def test_read_write_mode_exceptions():
     ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples"))
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
+
+    with pytest.raises(Exception):
+        ds.create_dataset()
+
     with pytest.raises(Exception):
         ds.ingest_samples(samples)
 
@@ -374,6 +378,7 @@ def test_read_var_length_filters(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["varLenFilter.vcf.gz"]]
+    ds.create_dataset()
     ds.ingest_samples(samples)
 
     ds = tiledbvcf.Dataset(uri, mode="r")
@@ -478,6 +483,7 @@ def test_read_multiple_alleles(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small3.bcf", "small.bcf"]]
+    ds.create_dataset()
     ds.ingest_samples(samples)
 
     ds = tiledbvcf.Dataset(uri, mode="r")
@@ -587,6 +593,7 @@ def test_read_null_attrs(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small3.bcf", "small.bcf"]]
+    ds.create_dataset()
     ds.ingest_samples(samples)
 
     ds = tiledbvcf.Dataset(uri, mode="r")
@@ -849,6 +856,7 @@ def test_basic_ingest(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
+    ds.create_dataset()
     ds.ingest_samples(samples)
 
     # Open it back in read mode and check some queries
@@ -861,6 +869,7 @@ def test_basic_ingest(tmp_path):
 def test_incremental_ingest(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
     ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
     ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small2.bcf")])
 
