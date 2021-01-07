@@ -103,6 +103,12 @@ void Writer::set_allow_duplicates(const bool& allow_duplicates) {
       writer, tiledb_vcf_writer_set_allow_duplicates(writer, allow_duplicates));
 }
 
+void Writer::set_tile_capacity(const uint64_t tile_capacity) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_tile_capacity(writer, tile_capacity));
+}
+
 void Writer::set_scratch_space(const std::string& path, int64_t size) {
   auto writer = ptr.get();
   check_error(
