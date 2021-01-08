@@ -53,6 +53,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_checksum", &Writer::set_checksum)
       .def("set_allow_duplicates", &Writer::set_allow_duplicates)
       .def("set_tile_capacity", &Writer::set_tile_capacity)
+      .def("set_anchor_gap", &Writer::set_anchor_gap)
       .def("set_scratch_space", &Writer::set_scratch_space)
       .def("create_dataset", &Writer::create_dataset)
       .def("register_samples", &Writer::register_samples)

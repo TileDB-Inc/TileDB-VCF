@@ -962,6 +962,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tile_capacity(
     tiledb_vcf_writer_t* writer, uint64_t tile_capacity);
 
 /**
+ * [Creation only] Set the length of gaps between inserted anchor records.
+ *
+ * @param writer VCF writer object
+ * @param anchor_gap anchor gap length (in bases)
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_anchor_gap(
+    tiledb_vcf_writer_t* writer, uint32_t anchor_gap);
+
+/**
  * Creates a new TileDB-VCF dataset, using previously set parameters.
  *
  * @param writer VCF writer object
