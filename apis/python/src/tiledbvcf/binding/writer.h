@@ -73,6 +73,11 @@ class Writer {
   */
   void set_tile_capacity(const uint64_t tile_capacity);
 
+ /**
+    [Creation only] Set the length of gaps between inserted anchor records.
+  */
+  void set_anchor_gap(const uint32_t anchor_gap);
+
   /**
     [Creation only] Allocates scratch space for downloading sample files
   */

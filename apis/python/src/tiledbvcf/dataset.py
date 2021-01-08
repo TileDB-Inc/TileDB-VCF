@@ -211,8 +211,9 @@ class Dataset(object):
         self,
         extra_attrs=None,
         tile_capacity=None,
+        anchor_gap=None,
         checksum_type=None,
-        allow_duplicates=True
+        allow_duplicates=True,
     ):
         """Create a new dataset
 
@@ -220,6 +221,8 @@ class Dataset(object):
             materialize from fmt field
         :param int tile_capacity: Tile capacity to use for the array schema
             (default = 10000).
+        :param int anchor_gap: Length of gaps between inserted anchor records in
+            bases (default = 1000).
         :param str checksum_type: Optional override checksum type for creating
             new dataset valid values are sha256, md5 or none.
         :param bool allow_duplicates: Allow records with duplicate start
@@ -233,6 +236,9 @@ class Dataset(object):
 
         if tile_capacity is not None:
             self.writer.set_tile_capacity(tile_capacity)
+
+        if anchor_gap is not None:
+            self.writer.set_anchor_gap(anchor_gap)
 
         if checksum_type is not None:
             checksum_type = checksum_type.lower()

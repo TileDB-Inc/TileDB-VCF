@@ -156,6 +156,10 @@ void Writer::set_tile_capacity(const uint64_t tile_capacity) {
   creation_params_.tile_capacity = tile_capacity;
 }
 
+void Writer::set_anchor_gap(const uint32_t anchor_gap) {
+  creation_params_.anchor_gap = anchor_gap;
+}
+
 void Writer::create_dataset() {
   TileDBVCFDataset::create(creation_params_);
 }

@@ -170,6 +170,12 @@ class Writer {
    */
   void set_tile_capacity(const uint64_t tile_capacity);
 
+  /**
+   * Defines the length of gaps between inserted anchor records.
+   * @param tile_capacity
+   */
+  void set_anchor_gap(const uint32_t anchor_gap);
+
   /** Creates an empty dataset based on parameters that have been set. */
   void create_dataset();
 
