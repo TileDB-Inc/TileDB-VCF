@@ -76,7 +76,7 @@ class Writer {
   /**
     [Creation only] Allocates scratch space for downloading sample files
   */
-  void set_scratch_space(const std::string& path, int64_t size);
+  void set_scratch_space(const std::string& path, uint64_t size);
 
   void create_dataset();
 
