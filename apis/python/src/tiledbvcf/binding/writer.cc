@@ -109,7 +109,8 @@ void Writer::set_tile_capacity(const uint64_t tile_capacity) {
       writer, tiledb_vcf_writer_set_tile_capacity(writer, tile_capacity));
 }
 
-void Writer::set_scratch_space(const std::string& path, int64_t size) {
+
+void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   auto writer = ptr.get();
   check_error(
       writer, tiledb_vcf_writer_set_scratch_space(writer, path.c_str(), size));
