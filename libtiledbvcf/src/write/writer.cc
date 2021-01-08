@@ -751,6 +751,10 @@ std::vector<Region> Writer::prepare_region_list(
   return result;
 }
 
+void Writer::set_memory_budget(const uint64_t size) {
+  ingestion_params_.max_tiledb_buffer_size_mb = size;
+}
+
 void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   ScratchSpaceInfo scratchSpaceInfo;
   scratchSpaceInfo.path = path;

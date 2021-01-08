@@ -1011,6 +1011,17 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_last_error(
     tiledb_vcf_writer_t* writer, tiledb_vcf_error_t** error);
 
 /**
+ * Set memory budget for ingestion
+ *
+ * @param writer VCF writer object
+ * @param size The max size of TileDB buffers before flushing. Defaults to 1GB.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_memory_budget(
+    tiledb_vcf_writer_t* writer, uint64_t size);
+
+/**
  * Set scratch space for ingestion or registration
  *
  * @param writer VCF writer object

@@ -114,6 +114,12 @@ void Writer::set_anchor_gap(const uint32_t anchor_gap) {
   check_error(writer, tiledb_vcf_writer_set_anchor_gap(writer, anchor_gap));
 }
 
+void Writer::set_memory_budget(const uint64_t size) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_memory_budget(writer, size));
+}
+
 void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   auto writer = ptr.get();
   check_error(

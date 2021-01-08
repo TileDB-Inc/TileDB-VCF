@@ -185,6 +185,10 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+
+  /** Set the max size of TileDB buffers before flushing. Defaults to 1GB. */
+  void set_memory_budget(const uint64_t size);
+
   /** Set ingestion scatch space for ingestion or registration */
   void set_scratch_space(const std::string& path, uint64_t size);
 

@@ -253,14 +253,17 @@ class Dataset(object):
     def ingest_samples(
         self,
         sample_uris=None,
+        memory_budget=None,
         scratch_space_path=None,
         scratch_space_size=None,
         sample_batch_size=None,
     ):
         """Ingest samples
 
-        :param list of str samples: CSV list of sample names to include in
+        :param list of str sample_uris: CSV list of sample names to include in
             the count.
+        :param int memory_budget: Set the max size (MB) of TileDB buffers before flushing
+            (default = 1024).
         :param str scratch_space_path: Directory used for local storage of
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
@@ -272,6 +275,9 @@ class Dataset(object):
 
         if sample_uris is None:
             return
+
+        if memory_budget is not None:
+            self.writer.set_memory_budget(memory_budget)
 
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
