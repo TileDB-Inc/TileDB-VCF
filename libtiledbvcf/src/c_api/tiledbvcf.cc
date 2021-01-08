@@ -839,8 +839,7 @@ int32_t tiledb_vcf_writer_set_anchor_gap(
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(
-          writer, writer->writer_->set_anchor_gap(anchor_gap)))
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_anchor_gap(anchor_gap)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;

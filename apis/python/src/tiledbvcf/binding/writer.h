@@ -68,14 +68,14 @@ class Writer {
   */
   void set_allow_duplicates(const bool& allow_duplicates);
 
- /**
-    [Creation only] Sets the data array's tile capacity
-  */
+  /**
+     [Creation only] Sets the data array's tile capacity
+   */
   void set_tile_capacity(const uint64_t tile_capacity);
 
- /**
-    [Creation only] Set the length of gaps between inserted anchor records.
-  */
+  /**
+     [Creation only] Set the length of gaps between inserted anchor records.
+   */
   void set_anchor_gap(const uint32_t anchor_gap);
 
   /**
@@ -89,7 +89,7 @@ class Writer {
 
   void ingest_samples();
 
-    /** Returns schema version number of the TileDB VCF dataset */
+  /** Returns schema version number of the TileDB VCF dataset */
   int32_t get_schema_version();
 
   /**
