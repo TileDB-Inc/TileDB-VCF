@@ -79,7 +79,12 @@ class Writer {
   void set_anchor_gap(const uint32_t anchor_gap);
 
   /**
-    [Creation only] Allocates scratch space for downloading sample files
+    [Store only] Set the max size of TileDB buffers before flushing.
+  */
+  void set_memory_budget(const uint64_t size);
+
+  /**
+    [Store only] Allocates scratch space for downloading sample files
   */
   void set_scratch_space(const std::string& path, uint64_t size);
 

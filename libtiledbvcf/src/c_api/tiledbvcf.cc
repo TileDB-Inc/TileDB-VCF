@@ -893,6 +893,17 @@ int32_t tiledb_vcf_writer_get_last_error(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_memory_budget(
+    tiledb_vcf_writer_t* writer, uint64_t size) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_memory_budget(size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_scratch_space(
     tiledb_vcf_writer_t* writer, const char* path, uint64_t size) {
   writer->writer_->set_scratch_space(path, size);
