@@ -65,12 +65,28 @@ steps:
       ./gradlew jar
 
       export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+
       ./gradlew test --stacktrace
 
-      ./gradlew checkFormat
+      BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/}
+
+      cp -r /home/vsts/work/1/s/apis/spark/build/reports/tests/test/ $BUILD_BINARIESDIRECTORY
+
+      //./gradlew checkFormat
     fi
 
   displayName: 'Build and test TileDB-VCF Spark API'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.BinariesDirectory)'
+    includeRootFolder: false
+    archiveType: 'tar' # Options: zip, 7z, tar, wim
+    tarCompression: 'gz' # Optional. Options: gz, bz2, xz, none
+    archiveFile: $(Build.ArtifactStagingDirectory)/tiledb-$(Agent.OS)-$(Build.SourceBranchName).tar.gz
+    replaceExistingArchive: true
+    verbose: true # Optional
+  condition: succeeded()
 
 - bash: |
     # azure bash does not treat intermediate failure as error
