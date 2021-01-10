@@ -51,7 +51,28 @@ steps:
     ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block) 
     ulimit -c               # should output 'unlimited' now    
 
-  
+
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      git clone -b victorgiannakouris/tiledbvcf-integration https://github.com/TileDB-Inc/hail.git
+      cd hail/hail && ./gradlew assemble && ./gradlew publishToMavenLocal && cd ../..
+    
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+      ./gradlew test --stacktrace
+
+      ./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API'
+
+- bash: |
     # azure bash does not treat intermediate failure as error
     # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
     set -e pipefail
@@ -153,24 +174,6 @@ steps:
     fi
 
   displayName: 'Build and test TileDB-VCF Python API'
-
-- bash: |
-    set -e pipefail
-
-    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
-
-      ./gradlew assemble
-
-      ./gradlew jar
-
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-      ./gradlew test
-
-      ./gradlew checkFormat
-    fi
-
-  displayName: 'Build and test TileDB-VCF Spark API'
 
 - bash: |
       set -e pipefail
