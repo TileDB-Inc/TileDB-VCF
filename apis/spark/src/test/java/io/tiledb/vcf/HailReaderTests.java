@@ -162,13 +162,13 @@ public class HailReaderTests extends SharedJavaSparkSession {
         };
 
     System.out.println("Expected");
-    for (Row row : expectedRows){
-        System.out.println(row);
+    for (Row row : expectedRows) {
+      System.out.println(row);
     }
 
     System.out.println("Actual");
-    for (Row row : rows){
-        System.out.println(row);
+    for (Row row : rows) {
+      System.out.println(row);
     }
 
     Assert.assertArrayEquals(expectedRows, rows);
