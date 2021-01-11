@@ -926,6 +926,18 @@ int32_t tiledb_vcf_writer_set_scratch_space(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_max_num_records(
+    tiledb_vcf_writer_t* writer, uint64_t max_num_records) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_record_limit(max_num_records)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_verbose(
     tiledb_vcf_writer_t* writer, const bool verbose) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)

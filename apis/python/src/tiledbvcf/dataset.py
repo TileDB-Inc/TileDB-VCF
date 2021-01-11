@@ -257,6 +257,7 @@ class Dataset(object):
         memory_budget_mb=None,
         scratch_space_path=None,
         scratch_space_size=None,
+        record_limit=None,
         sample_batch_size=None,
     ):
         """Ingest samples
@@ -270,6 +271,8 @@ class Dataset(object):
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
             for downloading remote samples (MB).
+        :param int record_limit Limit the number of VCF records read into memory
+            per file (default 50000)
         """
 
         if self.mode != "w":
@@ -290,6 +293,9 @@ class Dataset(object):
             raise Exception(
                 "Must set both scratch_space_path and scratch_space_size to use scratch space"
             )
+
+        if record_limit is not None:
+            self.writer.set_max_num_records(record_limit)
 
         if sample_batch_size is not None:
             self.writer.set_sample_batch_size(sample_batch_size)

@@ -194,6 +194,9 @@ class Writer {
   /** Set ingestion scatch space for ingestion or registration */
   void set_scratch_space(const std::string& path, uint64_t size);
 
+  /** Set max number of VCF records to buffer per file */
+  void set_record_limit(const uint64_t max_num_records);
+
   /**
    * Sets verbose mode on or off
    * @param verbose setting

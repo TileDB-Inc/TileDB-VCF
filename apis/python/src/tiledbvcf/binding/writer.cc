@@ -130,6 +130,12 @@ void Writer::set_scratch_space(const std::string& path, uint64_t size) {
       writer, tiledb_vcf_writer_set_scratch_space(writer, path.c_str(), size));
 }
 
+void Writer::set_max_num_records(const uint64_t max_num_records) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_max_num_records(writer, max_num_records));
+}
+
 void Writer::set_verbose(bool verbose) {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_set_verbose(writer, verbose));

@@ -93,6 +93,11 @@ class Writer {
   */
   void set_scratch_space(const std::string& path, uint64_t size);
 
+  /**
+    [Store only] Limits the number of VCF records to buffer per file
+  */
+  void set_max_num_records(const uint64_t max_num_records);
+
   void create_dataset();
 
   void register_samples();
