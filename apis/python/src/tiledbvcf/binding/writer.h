@@ -79,6 +79,11 @@ class Writer {
   void set_anchor_gap(const uint32_t anchor_gap);
 
   /**
+    [Store only] Set the number of threads used for ingestion.
+  */
+  void set_num_threads(const uint32_t threads);
+
+  /**
     [Store only] Set the max size of TileDB buffers before flushing.
   */
   void set_memory_budget(const uint64_t size);
