@@ -253,6 +253,7 @@ class Dataset(object):
     def ingest_samples(
         self,
         sample_uris=None,
+        threads=None,
         memory_budget=None,
         scratch_space_path=None,
         scratch_space_size=None,
@@ -262,6 +263,7 @@ class Dataset(object):
 
         :param list of str sample_uris: CSV list of sample names to include in
             the count.
+        :param int threads: Set the number of threads used for ingestion.
         :param int memory_budget: Set the max size (MB) of TileDB buffers before flushing
             (default = 1024).
         :param str scratch_space_path: Directory used for local storage of
@@ -275,6 +277,9 @@ class Dataset(object):
 
         if sample_uris is None:
             return
+
+        if threads is not None:
+            self.writer.set_num_threads(threads)
 
         if memory_budget is not None:
             self.writer.set_memory_budget(memory_budget)

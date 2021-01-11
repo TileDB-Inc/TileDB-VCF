@@ -185,6 +185,8 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+  /** Set number of ingestion threads. */
+  void set_num_threads(const unsigned threads);
 
   /** Set the max size of TileDB buffers before flushing. Defaults to 1GB. */
   void set_memory_budget(const uint64_t size);

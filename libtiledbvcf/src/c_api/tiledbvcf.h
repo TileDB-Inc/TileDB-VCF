@@ -1011,6 +1011,17 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_last_error(
     tiledb_vcf_writer_t* writer, tiledb_vcf_error_t** error);
 
 /**
+ * Set number of ingestion threads
+ *
+ * @param writer VCF writer object
+ * @param threads The number of threads used for sample ingestion.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_num_threads(
+    tiledb_vcf_writer_t* writer, uint32_t threads);
+
+/**
  * Set memory budget for ingestion
  *
  * @param writer VCF writer object
@@ -1018,8 +1029,8 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_last_error(
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 
-TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_memory_budget(
-    tiledb_vcf_writer_t* writer, uint64_t size);
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_set_memory_budget(tiledb_vcf_writer_t* writer, uint64_t size);
 
 /**
  * Set scratch space for ingestion or registration

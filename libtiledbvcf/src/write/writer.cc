@@ -751,6 +751,10 @@ std::vector<Region> Writer::prepare_region_list(
   return result;
 }
 
+void Writer::set_num_threads(const unsigned threads) {
+  ingestion_params_.num_threads = threads;
+}
+
 void Writer::set_memory_budget(const uint64_t size) {
   ingestion_params_.max_tiledb_buffer_size_mb = size;
 }
