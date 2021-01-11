@@ -1046,6 +1046,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_scratch_space(
     tiledb_vcf_writer_t* writer, const char* path, uint64_t size_mb);
 
 /**
+ * Set max record buffer size
+ *
+ * @param writer VCF writer object
+ * @param max_num_records The number of VCF records to buffer per file
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_max_num_records(
+    tiledb_vcf_writer_t* writer, uint64_t max_num_records);
+
+/**
  * Sets verbose mode on or off
  * @param reader VCF writter object
  * @param writer VCF writer object

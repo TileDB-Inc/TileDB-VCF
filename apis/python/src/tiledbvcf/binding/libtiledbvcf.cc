@@ -57,6 +57,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_num_threads", &Writer::set_num_threads)
       .def("set_memory_budget", &Writer::set_memory_budget)
       .def("set_scratch_space", &Writer::set_scratch_space)
+      .def("set_max_num_records", &Writer::set_max_num_records)
       .def("create_dataset", &Writer::create_dataset)
       .def("register_samples", &Writer::register_samples)
       .def("set_verbose", &Writer::set_verbose)

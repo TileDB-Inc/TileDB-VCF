@@ -759,6 +759,10 @@ void Writer::set_memory_budget(const unsigned mb) {
   ingestion_params_.max_tiledb_buffer_size_mb = mb;
 }
 
+void Writer::set_record_limit(const uint64_t max_num_records) {
+  ingestion_params_.max_record_buffer_size = max_num_records;
+}
+
 void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   ScratchSpaceInfo scratchSpaceInfo;
   scratchSpaceInfo.path = path;
