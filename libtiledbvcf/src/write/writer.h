@@ -189,7 +189,7 @@ class Writer {
   void set_num_threads(const unsigned threads);
 
   /** Set the max size of TileDB buffers before flushing. Defaults to 1GB. */
-  void set_memory_budget(const uint64_t size);
+  void set_memory_budget(const unsigned mb);
 
   /** Set ingestion scatch space for ingestion or registration */
   void set_scratch_space(const std::string& path, uint64_t size);

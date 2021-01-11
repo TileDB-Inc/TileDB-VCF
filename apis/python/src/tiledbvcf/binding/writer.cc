@@ -119,9 +119,9 @@ void Writer::set_num_threads(const uint32_t threads) {
   check_error(writer, tiledb_vcf_writer_set_num_threads(writer, threads));
 }
 
-void Writer::set_memory_budget(const uint64_t size) {
+void Writer::set_memory_budget(const uint32_t memory_mb) {
   auto writer = ptr.get();
-  check_error(writer, tiledb_vcf_writer_set_memory_budget(writer, size));
+  check_error(writer, tiledb_vcf_writer_set_memory_budget(writer, memory_mb));
 }
 
 void Writer::set_scratch_space(const std::string& path, uint64_t size) {
