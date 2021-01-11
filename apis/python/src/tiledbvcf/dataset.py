@@ -254,7 +254,7 @@ class Dataset(object):
         self,
         sample_uris=None,
         threads=None,
-        memory_budget=None,
+        memory_budget_mb=None,
         scratch_space_path=None,
         scratch_space_size=None,
         sample_batch_size=None,
@@ -264,7 +264,7 @@ class Dataset(object):
         :param list of str sample_uris: CSV list of sample names to include in
             the count.
         :param int threads: Set the number of threads used for ingestion.
-        :param int memory_budget: Set the max size (MB) of TileDB buffers before flushing
+        :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing
             (default = 1024).
         :param str scratch_space_path: Directory used for local storage of
             downloaded remote samples.
@@ -281,8 +281,8 @@ class Dataset(object):
         if threads is not None:
             self.writer.set_num_threads(threads)
 
-        if memory_budget is not None:
-            self.writer.set_memory_budget(memory_budget)
+        if memory_budget_mb is not None:
+            self.writer.set_memory_budget(memory_budget_mb)
 
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)

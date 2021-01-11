@@ -86,7 +86,7 @@ class Writer {
   /**
     [Store only] Set the max size of TileDB buffers before flushing.
   */
-  void set_memory_budget(const uint64_t size);
+  void set_memory_budget(const uint32_t memory_mb);
 
   /**
     [Store only] Allocates scratch space for downloading sample files

@@ -755,8 +755,8 @@ void Writer::set_num_threads(const unsigned threads) {
   ingestion_params_.num_threads = threads;
 }
 
-void Writer::set_memory_budget(const uint64_t size) {
-  ingestion_params_.max_tiledb_buffer_size_mb = size;
+void Writer::set_memory_budget(const unsigned mb) {
+  ingestion_params_.max_tiledb_buffer_size_mb = mb;
 }
 
 void Writer::set_scratch_space(const std::string& path, uint64_t size) {
