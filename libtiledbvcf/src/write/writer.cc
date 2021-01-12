@@ -755,6 +755,10 @@ void Writer::set_num_threads(const unsigned threads) {
   ingestion_params_.num_threads = threads;
 }
 
+void Writer::set_thread_task_size(const unsigned size) {
+  ingestion_params_.thread_task_size = size;
+}
+
 void Writer::set_memory_budget(const unsigned mb) {
   ingestion_params_.max_tiledb_buffer_size_mb = mb;
 }

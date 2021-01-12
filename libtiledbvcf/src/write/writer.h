@@ -188,6 +188,9 @@ class Writer {
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
 
+  /** Set the max length of an ingestion task. */
+  void set_thread_task_size(const unsigned size);
+
   /** Set the max size of TileDB buffers before flushing. Defaults to 1GB. */
   void set_memory_budget(const unsigned mb);
 

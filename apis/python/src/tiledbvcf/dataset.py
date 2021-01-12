@@ -254,6 +254,7 @@ class Dataset(object):
         self,
         sample_uris=None,
         threads=None,
+        thread_task_size=None,
         memory_budget_mb=None,
         scratch_space_path=None,
         scratch_space_size=None,
@@ -265,6 +266,9 @@ class Dataset(object):
         :param list of str sample_uris: CSV list of sample names to include in
             the count.
         :param int threads: Set the number of threads used for ingestion.
+        :param int thread_task_size: Set the max length (# columns) of an
+            ingestion task. Affects load balancing of ingestion work across
+            threads, and total memory consumption.
         :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing
             (default = 1024).
         :param str scratch_space_path: Directory used for local storage of
@@ -283,6 +287,9 @@ class Dataset(object):
 
         if threads is not None:
             self.writer.set_num_threads(threads)
+
+        if thread_task_size is not None:
+            self.writer.set_thread_task_size(thread_task_size)
 
         if memory_budget_mb is not None:
             self.writer.set_memory_budget(memory_budget_mb)
