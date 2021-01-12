@@ -119,6 +119,11 @@ void Writer::set_num_threads(const uint32_t threads) {
   check_error(writer, tiledb_vcf_writer_set_num_threads(writer, threads));
 }
 
+void Writer::set_thread_task_size(const uint32_t size) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_thread_task_size(writer, size));
+}
+
 void Writer::set_memory_budget(const uint32_t memory_mb) {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_set_memory_budget(writer, memory_mb));

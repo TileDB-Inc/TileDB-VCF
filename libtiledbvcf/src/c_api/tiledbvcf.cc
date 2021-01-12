@@ -904,6 +904,17 @@ int32_t tiledb_vcf_writer_set_num_threads(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_thread_task_size(
+    tiledb_vcf_writer_t* writer, uint32_t size) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_thread_task_size(size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_memory_budget(
     tiledb_vcf_writer_t* writer, uint64_t size) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)

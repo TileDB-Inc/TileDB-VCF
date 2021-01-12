@@ -1022,6 +1022,18 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_num_threads(
     tiledb_vcf_writer_t* writer, uint32_t threads);
 
 /**
+ * Set max length (# columns) of an ingestion task. Affects load balancing of
+ * ingestion work across threads, and total memory consumption.
+ *
+ * @param writer VCF writer object
+ * @param size The number of threads used for sample ingestion.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_thread_task_size(
+    tiledb_vcf_writer_t* writer, uint32_t size);
+
+/**
  * Set memory budget for ingestion
  *
  * @param writer VCF writer object

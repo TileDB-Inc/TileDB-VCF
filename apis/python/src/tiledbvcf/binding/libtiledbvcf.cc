@@ -55,6 +55,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_tile_capacity", &Writer::set_tile_capacity)
       .def("set_anchor_gap", &Writer::set_anchor_gap)
       .def("set_num_threads", &Writer::set_num_threads)
+      .def("set_thread_task_size", &Writer::set_thread_task_size)
       .def("set_memory_budget", &Writer::set_memory_budget)
       .def("set_scratch_space", &Writer::set_scratch_space)
       .def("set_max_num_records", &Writer::set_max_num_records)

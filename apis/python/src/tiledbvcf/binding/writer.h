@@ -84,6 +84,11 @@ class Writer {
   void set_num_threads(const uint32_t threads);
 
   /**
+    [Store only] Set the max size of an ingestion task.
+  */
+  void set_thread_task_size(const uint32_t size);
+
+  /**
     [Store only] Set the max size of TileDB buffers before flushing.
   */
   void set_memory_budget(const uint32_t memory_mb);
