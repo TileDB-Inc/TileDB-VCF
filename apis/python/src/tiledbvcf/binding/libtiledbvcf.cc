@@ -48,6 +48,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
   py::class_<Writer>(m, "Writer")
       .def(py::init())
       .def("init", &Writer::init)
+      .def("set_tiledb_stats_enabled", &Writer::set_tiledb_stats_enabled)
       .def("set_samples", &Writer::set_samples)
       .def("set_extra_attributes", &Writer::set_extra_attributes)
       .def("set_checksum", &Writer::set_checksum)
@@ -65,5 +66,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("ingest_samples", &Writer::ingest_samples)
       .def("get_schema_version", &Writer::get_schema_version)
       .def("set_tiledb_config", &Writer::set_tiledb_config)
-      .def("set_sample_batch_size", &Writer::set_sample_batch_size);
+      .def("set_sample_batch_size", &Writer::set_sample_batch_size)
+      .def("get_tiledb_stats_enabled", &Writer::get_tiledb_stats_enabled)
+      .def("get_tiledb_stats", &Writer::get_tiledb_stats);
 }
