@@ -35,8 +35,8 @@ class Dataset(object):
         :param mode: Mode of operation.
         :type mode: 'r' or 'w'
         :param cfg: TileDB VCF configuration (optional)
-        :param stats: Enable or disable TileDB stats (optional)
-        :param verbose: Enable or disable TileDB VCF verbose output (optional)
+        :param stats: Enable internal TileDB statistics (default False)
+        :param verbose: Enable TileDB-VCF verbose output (default False)
         """
         self.uri = uri
         self.mode = mode
@@ -51,6 +51,7 @@ class Dataset(object):
             self.writer = libtiledbvcf.Writer()
             self._set_write_cfg(cfg)
             self.writer.init(uri)
+            self.writer.set_tiledb_stats_enabled(stats)
             self.writer.set_verbose(verbose)
         else:
             raise Exception("Unsupported dataset mode {}".format(mode))
@@ -315,13 +316,15 @@ class Dataset(object):
         self.writer.ingest_samples()
 
     def tiledb_stats(self):
-        if self.mode != "r":
-            raise Exception("Stats can only be called for reader")
+        if self.mode == "r":
+            if not self.reader.get_tiledb_stats_enabled:
+                raise Exception("TileDB read stats not enabled")
+            return self.reader.get_tiledb_stats()
 
-        if not self.reader.get_tiledb_stats_enabled:
-            raise Exception("Stats not enabled")
-
-        return self.reader.get_tiledb_stats()
+        if self.mode == "w":
+            if not self.writer.get_tiledb_stats_enabled:
+                raise Exception("TileDB write stats not enabled")
+            return self.writer.get_tiledb_stats()
 
     def schema_version(self):
         """Retrieve the VCF dataset's schema version"""

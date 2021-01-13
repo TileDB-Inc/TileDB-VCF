@@ -49,6 +49,9 @@ class Writer {
   /** Initializes the writer for creating or writing to the given dataset. */
   void init(const std::string& dataset_uri);
 
+  /** Enables or disables internal TileDB statistics. */
+  void set_tiledb_stats_enabled(const bool stats_enabled);
+
   /** Sets a CSV list of samples be registered or ingested. */
   void set_samples(const std::string& samples);
 
@@ -126,6 +129,16 @@ class Writer {
     [Store only] Sets the number of samples per batch for ingestion
   */
   void set_sample_batch_size(const uint64_t size);
+
+  /**
+    [Store only] Checks whether internal TileDB Statistics are enabled
+  */
+  bool get_tiledb_stats_enabled();
+
+  /**
+    Fetches internal TileDB statistics
+  */
+  std::string get_tiledb_stats();
 
  private:
   /** Helper function to free a C writer instance */

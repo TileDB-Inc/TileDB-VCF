@@ -70,6 +70,13 @@ void Writer::init(const std::string& dataset_uri) {
   check_error(writer, tiledb_vcf_writer_init(writer, dataset_uri.c_str()));
 }
 
+void Writer::set_tiledb_stats_enabled(const bool stats_enabled) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_tiledb_stats_enabled(writer, stats_enabled));
+}
+
 void Writer::set_samples(const std::string& samples) {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_set_samples(writer, samples.c_str()));
@@ -181,6 +188,22 @@ void Writer::set_tiledb_config(const std::string& config_str) {
 void Writer::set_sample_batch_size(const uint64_t size) {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_set_sample_batch_size(writer, size));
+}
+
+bool Writer::get_tiledb_stats_enabled() {
+  auto writer = ptr.get();
+  bool stats_enabled;
+  check_error(
+      writer,
+      tiledb_vcf_writer_get_tiledb_stats_enabled(writer, &stats_enabled));
+  return stats_enabled;
+}
+
+std::string Writer::get_tiledb_stats() {
+  auto writer = ptr.get();
+  char* stats;
+  check_error(writer, tiledb_vcf_writer_get_tiledb_stats(writer, &stats));
+  return std::string(stats);
 }
 
 }  // namespace tiledbvcfpy
