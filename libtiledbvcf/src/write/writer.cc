@@ -64,6 +64,8 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     tiledb_config = creation_params_.tiledb_config;
   else if (!registration_params_.tiledb_config.empty())
     tiledb_config = registration_params_.tiledb_config;
+  else if (!utils_params_.tiledb_config.empty())
+    tiledb_config = utils_params_.tiledb_config;
 
   try {
     dataset_->open(uri, tiledb_config);
@@ -112,6 +114,7 @@ void Writer::set_tiledb_config(const std::string& config_str) {
   creation_params_.tiledb_config = utils::split(config_str, ',');
   registration_params_.tiledb_config = utils::split(config_str, ',');
   ingestion_params_.tiledb_config = utils::split(config_str, ',');
+  utils_params_.tiledb_config = utils::split(config_str, ',');
   // Attempt to set config to check validity
   // cfg object will be discarded as a later call to tiledb_init will properly
   // create config/context
@@ -127,6 +130,7 @@ void Writer::set_dataset_uri(const std::string& uri) {
   creation_params_.uri = uri;
   registration_params_.uri = uri;
   ingestion_params_.uri = uri;
+  utils_params_.uri = uri;
 }
 
 void Writer::set_sample_uris(const std::string& sample_uris) {
@@ -813,6 +817,10 @@ void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
 
 void Writer::set_sample_batch_size(const uint64_t size) {
   ingestion_params_.sample_batch_size = size;
+}
+
+void Writer::consolidate_fragment_metadata() {
+  dataset_->consolidate_fragment_metadata(utils_params_);
 }
 
 }  // namespace vcf

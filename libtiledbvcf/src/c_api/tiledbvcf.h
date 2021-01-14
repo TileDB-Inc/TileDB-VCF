@@ -1165,6 +1165,15 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
     tiledb_vcf_writer_t* writer, uint64_t size);
 
+/**
+ * Consolidate fragment metadata
+ *
+ * @param writer VCF writer object
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_consolidate_fragment_metadata(tiledb_vcf_writer_t* writer);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

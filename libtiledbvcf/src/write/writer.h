@@ -227,6 +227,9 @@ class Writer {
   /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
 
+  /** Consolidate fragment metadata. */
+  void consolidate_fragment_metadata();
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -245,6 +248,7 @@ class Writer {
   CreationParams creation_params_;
   RegistrationParams registration_params_;
   IngestionParams ingestion_params_;
+  UtilsParams utils_params_;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */

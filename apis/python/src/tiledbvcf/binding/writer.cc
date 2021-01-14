@@ -206,4 +206,9 @@ std::string Writer::get_tiledb_stats() {
   return std::string(stats);
 }
 
+void Writer::consolidate_fragment_metadata() {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_consolidate_fragment_metadata(writer));
+}
+
 }  // namespace tiledbvcfpy

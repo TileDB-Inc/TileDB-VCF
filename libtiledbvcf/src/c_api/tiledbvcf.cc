@@ -1054,6 +1054,18 @@ int32_t tiledb_vcf_writer_set_sample_batch_size(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_consolidate_fragment_metadata(
+    tiledb_vcf_writer_t* writer) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->consolidate_fragment_metadata()))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

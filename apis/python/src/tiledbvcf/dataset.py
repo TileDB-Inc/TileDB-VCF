@@ -374,6 +374,14 @@ class Dataset(object):
                 attrs.difference_update(self._info_attrs() + self._fmt_attrs())
             return sorted(list(attrs))
 
+    def consolidate_fragment_metadata(self):
+        """Consolidate fragment metadata"""
+        if self.mode != "w":
+            raise Exception(
+                "Dataset must be open in write mode to perform consolidation"
+            )
+        return self.writer.consolidate_fragment_metadata()
+
     def _queryable_attrs(self):
         return self.reader.get_queryable_attributes()
 
