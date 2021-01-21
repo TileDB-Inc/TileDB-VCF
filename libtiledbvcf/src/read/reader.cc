@@ -1822,8 +1822,8 @@ void Reader::prepare_attribute_buffers() {
         TileDBVCFDataset::AttrNames::V2::real_end};
   }
 
-  buffers_a.reset(new AttributeBufferSet);
-  buffers_b.reset(new AttributeBufferSet);
+  buffers_a.reset(new AttributeBufferSet(params_.verbose));
+  buffers_b.reset(new AttributeBufferSet(params_.verbose));
 
   const auto* user_exp = dynamic_cast<const InMemoryExporter*>(exporter_.get());
   if (params_.cli_count_only || exporter_ == nullptr ||
