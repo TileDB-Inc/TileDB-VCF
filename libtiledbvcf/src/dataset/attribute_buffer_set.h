@@ -44,6 +44,7 @@ namespace vcf {
  */
 class AttributeBufferSet {
  public:
+  AttributeBufferSet(bool verbose = false);
   /**
    * Resize buffers for the given set of attributes using the given allocation
    * budget.
@@ -224,6 +225,9 @@ class AttributeBufferSet {
    * attributes.
    */
   std::vector<std::tuple<bool, std::string, Buffer*, unsigned>> fixed_alloc_;
+
+  /** verbose output enabled */
+  bool verbose_;
 };
 
 }  // namespace vcf

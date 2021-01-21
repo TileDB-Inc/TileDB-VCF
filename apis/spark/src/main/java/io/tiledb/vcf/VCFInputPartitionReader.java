@@ -342,7 +342,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
                 + bufferSizeMB
                 + " is small. Increase the memory budget from its current setting of "
                 + (memBudgetMB * 2)
-                + " MB.");
+                + " MB. Or reduce fields current selection of "
+                + numColumns
+                + " fields ("
+                + nBuffers
+                + " buffers)");
       }
 
       if (bufferSizeMB > 2048) {
@@ -351,11 +355,20 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
         log.warn(
             String.format(
                 ""
-                    + "Size of individfaual buffers is larger than 2048 MB which is not supported by Arrow 0.10.0 (Spark 2.4). "
+                    + "Size of individual buffers is larger than 2048 MB which is not supported by Arrow 0.10.0 (Spark 2.4). "
                     + "Using %d buffers, a reasonable memory budget is %d."
                     + "Setting buffer size to 2048 instead.",
                 nBuffers, memBudgetMB));
       }
+
+      log.info(
+          "Initializing "
+              + numColumns
+              + " columns with "
+              + nBuffers
+              + " buffers of size "
+              + bufferSizeMB
+              + "MB");
 
       long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
 

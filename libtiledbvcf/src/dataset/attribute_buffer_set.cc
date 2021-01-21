@@ -4,6 +4,9 @@
 namespace tiledb {
 namespace vcf {
 
+AttributeBufferSet::AttributeBufferSet(bool verbose)
+    : verbose_(verbose){};
+
 void AttributeBufferSet::allocate_fixed(
     const std::unordered_set<std::string>& attr_names,
     unsigned mem_budget_mb,
@@ -27,6 +30,12 @@ void AttributeBufferSet::allocate_fixed(
   if (mem_budget_mb == 0) {
     nbytes = 1024;
     num_offsets = nbytes / sizeof(uint64_t);
+  }
+
+  if (verbose_) {
+    std::cout << "Allocating " << attr_names.size() << " fields ("
+              << num_buffers << " buffers) of size " << nbytes << " bytes ("
+              << nbytes / (1024.0f * 1024.0f) << "MB)" << std::endl;
   }
 
   using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
