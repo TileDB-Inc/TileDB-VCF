@@ -846,7 +846,7 @@ def test_sample_and_region_partitioned_read():
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
     df = ds.read(
         attrs=["sample_name", "pos_start", "pos_end"],
-        regions=["1:12000-13000", "1:17000-18000"]
+        regions=["1:12000-13000", "1:17000-18000"],
     )
     assert len(df) == 0
 
