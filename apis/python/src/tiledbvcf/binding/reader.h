@@ -127,6 +127,9 @@ class Reader {
   /** Returns all queryable attribute names */
   std::vector<std::string> get_queryable_attributes();
 
+  /** Returns all materialized attribute names */
+  std::vector<std::string> get_materialized_attributes();
+
   /** Returns number of registered samples in the dataset */
   int32_t get_sample_count();
 

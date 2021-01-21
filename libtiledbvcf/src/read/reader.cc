@@ -1894,6 +1894,17 @@ void Reader::queryable_attribute_name(int32_t index, char** name) {
   *name = const_cast<char*>(this->dataset_->queryable_attribute_name(index));
 }
 
+void Reader::materialized_attribute_count(int32_t* count) {
+  if (count == nullptr)
+    throw std::runtime_error("count must be non-null in attribute_count");
+
+  *count = this->dataset_->materialized_attribute_count();
+}
+
+void Reader::materialized_attribute_name(int32_t index, char** name) {
+  *name = const_cast<char*>(this->dataset_->materialized_attribute_name(index));
+}
+
 void Reader::fmt_attribute_count(int32_t* count) {
   if (count == nullptr)
     throw std::runtime_error("count must be non-null in attribute_count");

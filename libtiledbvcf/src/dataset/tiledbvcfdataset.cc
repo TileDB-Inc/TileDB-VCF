@@ -345,6 +345,13 @@ void TileDBVCFDataset::open(
     unique_queryable_attributes.emplace(s);
   }
 
+  // Set materialized attributes
+  for (const auto& key : unique_queryable_attributes) {
+    std::vector<char> name(key.begin(), key.end());
+    name.emplace_back('\0');
+    materialized_vcf_attributes_.push_back(name);
+  }
+
   for (const auto& info : info_field_types_) {
     unique_queryable_attributes.emplace("info_" + info.first);
   }
@@ -1465,6 +1472,15 @@ int32_t TileDBVCFDataset::queryable_attribute_count() const {
 const char* TileDBVCFDataset::queryable_attribute_name(
     const int32_t index) const {
   return this->vcf_attributes_[index].data();
+}
+
+int32_t TileDBVCFDataset::materialized_attribute_count() const {
+  return this->materialized_vcf_attributes_.size();
+}
+
+const char* TileDBVCFDataset::materialized_attribute_name(
+    const int32_t index) const {
+  return this->materialized_vcf_attributes_[index].data();
 }
 
 const char* TileDBVCFDataset::sample_name(const int32_t index) const {

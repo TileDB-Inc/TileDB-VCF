@@ -88,6 +88,12 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_get_attribute_name(
       long readerPtr, int index, byte[] name);
 
+  public static final native int tiledb_vcf_reader_get_materialized_attribute_count(
+      long readerPtr, int[] count);
+
+  public static final native int tiledb_vcf_reader_get_materialized_attribute_name(
+      long readerPtr, int index, byte[] name);
+
   public static final native int tiledb_vcf_reader_get_fmt_attribute_count(
       long readerPtr, int[] count);
 

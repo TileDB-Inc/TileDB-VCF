@@ -58,14 +58,16 @@ def test_retrieve_attributes(test_ds):
         "contig",
         "pos_start",
         "pos_end",
-        "query_bed_start",
-        "query_bed_end",
         "alleles",
         "id",
+        "fmt",
+        "info",
         "filters",
         "qual",
+        "query_bed_end",
+        "query_bed_start",
     ]
-    assert test_ds.attributes(attr_type="builtin") == sorted(builtin_attrs)
+    assert sorted(test_ds.attributes(attr_type="builtin")) == sorted(builtin_attrs)
 
     info_attrs = [
         "info_BaseQRankSum",

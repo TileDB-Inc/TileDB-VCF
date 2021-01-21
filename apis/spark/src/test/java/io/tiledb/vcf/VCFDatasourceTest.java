@@ -107,6 +107,42 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
         colNames);
   }
 
+  @Test
+  public void testMaterializedSchema() {
+    SparkSession spark = session();
+    Dataset<Row> dfRead =
+        spark
+            .read()
+            .format("io.tiledb.vcf.VCFDataSource")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("only_materialized_fields", true)
+            .load();
+
+    dfRead.createOrReplaceTempView("vcf");
+
+    long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
+    Assert.assertEquals(numColumns, 12l);
+
+    List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
+    List<String> colNames =
+        colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toList());
+    Assert.assertEquals(
+        Arrays.asList(
+            "queryBedStart",
+            "posStart",
+            "queryBedEnd",
+            "posEnd",
+            "qual",
+            "filter",
+            "id",
+            "fmt",
+            "alleles",
+            "contig",
+            "info",
+            "sampleName"),
+        colNames);
+  }
+
   @Test(expected = org.apache.spark.sql.AnalysisException.class)
   public void testSchemaBadColumnname() {
     SparkSession spark = session();
