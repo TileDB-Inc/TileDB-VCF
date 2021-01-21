@@ -368,11 +368,10 @@ class Dataset(object):
             return self._info_attrs()
         elif attr_type == "fmt":
             return self._fmt_attrs()
+        elif attr_type == "builtin":
+            return self._materialized_attrs()
         else:
-            attrs = set(self._queryable_attrs()).difference(comb_attrs)
-            if attr_type == "builtin":
-                attrs.difference_update(self._info_attrs() + self._fmt_attrs())
-            return sorted(list(attrs))
+            return self._queryable_attrs()
 
     def _queryable_attrs(self):
         return self.reader.get_queryable_attributes()
@@ -382,6 +381,9 @@ class Dataset(object):
 
     def _info_attrs(self):
         return self.reader.get_info_attributes()
+
+    def _materialized_attrs(self):
+        return self.reader.get_materialized_attributes()
 
     def _set_samples(self, samples=None, samples_file=None):
         if samples is not None and samples_file is not None:

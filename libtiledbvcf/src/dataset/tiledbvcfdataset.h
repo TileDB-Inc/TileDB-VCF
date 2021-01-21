@@ -322,6 +322,19 @@ class TileDBVCFDataset {
   const char* queryable_attribute_name(int32_t index) const;
 
   /**
+   * Get materialized attribute count
+   * @return
+   */
+  int32_t materialized_attribute_count() const;
+
+  /**
+   * Get materialized attribute name by index
+   * @param index
+   * @return
+   */
+  const char* materialized_attribute_name(int32_t index) const;
+
+  /**
    * Get sample name by index
    * @param index
    * @return
@@ -469,6 +482,9 @@ class TileDBVCFDataset {
 
   /** List of all attributes of vcf for querying */
   std::vector<std::vector<char>> vcf_attributes_;
+
+  /** List of all materialzied attributes of vcf for querying */
+  std::vector<std::vector<char>> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
   std::vector<std::vector<char>> sample_names_;

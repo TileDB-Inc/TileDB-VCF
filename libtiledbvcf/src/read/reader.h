@@ -276,17 +276,30 @@ class Reader {
       int32_t buffer_idx, const char** name, uint8_t** buff) const;
 
   /**
-   * Get the count of materialized attributes
+   * Get the count of queryable attributes
    * @param count of attributes
    */
   void queryable_attribute_count(int32_t* count);
+
+  /**
+   * Get a queryable attribute name by index
+   * @param index of attribute to fetch
+   * @param name of attribute
+   */
+  void queryable_attribute_name(int32_t index, char** name);
+
+  /**
+   * Get the count of materialized attributes
+   * @param count of attributes
+   */
+  void materialized_attribute_count(int32_t* count);
 
   /**
    * Get a materialized attribute name by index
    * @param index of attribute to fetch
    * @param name of attribute
    */
-  void queryable_attribute_name(int32_t index, char** name);
+  void materialized_attribute_name(int32_t index, char** name);
 
   /**
    * Get the count of fmt attributes

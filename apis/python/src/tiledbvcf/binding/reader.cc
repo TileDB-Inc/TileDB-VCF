@@ -408,6 +408,25 @@ std::vector<std::string> Reader::get_queryable_attributes() {
   return attrs;
 }
 
+
+std::vector<std::string> Reader::get_materialized_attributes() {
+  auto reader = ptr.get();
+  int32_t count;
+  std::vector<std::string> attrs;
+  check_error(
+      reader, tiledb_vcf_reader_get_materialized_attribute_count(reader, &count));
+
+  for (int32_t i = 0; i < count; i++) {
+    char* name;
+    check_error(
+        reader,
+        tiledb_vcf_reader_get_materialized_attribute_name(reader, i, &name));
+    attrs.emplace_back(name);
+  }
+
+  return attrs;
+}
+
 int32_t Reader::get_sample_count() {
   auto reader = ptr.get();
   int32_t count;

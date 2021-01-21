@@ -134,6 +134,17 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /**
+   * @return If only materialized fields should be exposed. If false then the spark schema show all
+   *     selectable fields
+   */
+  public Optional<Boolean> getOnlyMaterializedFields() {
+    if (options.containsKey("only_materialized_fields")) {
+      return Optional.of(Boolean.parseBoolean(options.get("only_materialized_fields")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);

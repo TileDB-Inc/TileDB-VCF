@@ -749,12 +749,31 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_attribute_type(
     int32_t* list);
 
 /**
- * Get count of materialized attributes in the array
+ * Get count of queryable attributes in the array
  * @param reader VCF reader object
  * @param count int32_t which is set to count of attributes
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_queryable_attribute_count(
+    tiledb_vcf_reader_t* reader, int32_t* count);
+
+/**
+ * Fetch name of a queryable attribute from the dataset
+ * @param reader VCF reader object
+ * @param index attribute to fetch name of
+ * @param name char* returned as name
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_queryable_attribute_name(
+    tiledb_vcf_reader_t* reader, int32_t index, char** name);
+
+/**
+ * Get count of materialized attributes in the array
+ * @param reader VCF reader object
+ * @param count int32_t which is set to count of attributes
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_materialized_attribute_count(
     tiledb_vcf_reader_t* reader, int32_t* count);
 
 /**
@@ -764,7 +783,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_queryable_attribute_count(
  * @param name char* returned as name
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_queryable_attribute_name(
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_materialized_attribute_name(
     tiledb_vcf_reader_t* reader, int32_t index, char** name);
 
 /**

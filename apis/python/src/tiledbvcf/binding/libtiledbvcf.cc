@@ -42,6 +42,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_fmt_attributes", &Reader::get_fmt_attributes)
       .def("get_info_attributes", &Reader::get_info_attributes)
       .def("get_queryable_attributes", &Reader::get_queryable_attributes)
+      .def("get_materialized_attributes", &Reader::get_materialized_attributes)
       .def("get_sample_count", &Reader::get_sample_count)
       .def("get_sample_names", &Reader::get_sample_names);
 

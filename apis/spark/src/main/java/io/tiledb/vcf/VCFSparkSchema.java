@@ -16,9 +16,11 @@ public class VCFSparkSchema implements Serializable {
 
   private StructType schema;
   private StructType pushDownSchema;
+  private VCFDataSourceOptions options;
 
   public VCFSparkSchema(URI uri, VCFDataSourceOptions options) {
 
+    this.options = options;
     Optional<String> credentialsCsv =
         options
             .getCredentialsProvider()
@@ -157,10 +159,21 @@ public class VCFSparkSchema implements Serializable {
    */
   private StructType buildSchema(VCFReader vcfReader) {
     StructType schema = new StructType();
-    for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet : vcfReader.attributes.entrySet()) {
-      String name = attrSet.getKey();
-      VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
-      schema = schema.add(schemaField(name, typeInfo));
+
+    if (options.getOnlyMaterializedFields().orElse(false)) {
+      for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
+          vcfReader.materializedAttributes.entrySet()) {
+        String name = attrSet.getKey();
+        VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
+        schema = schema.add(schemaField(name, typeInfo));
+      }
+    } else { // List all fields
+      for (Map.Entry<String, VCFReader.AttributeTypeInfo> attrSet :
+          vcfReader.attributes.entrySet()) {
+        String name = attrSet.getKey();
+        VCFReader.AttributeTypeInfo typeInfo = attrSet.getValue();
+        schema = schema.add(schemaField(name, typeInfo));
+      }
     }
 
     return schema;
