@@ -875,7 +875,7 @@ def test_large_export_correctness():
 
     # number of unique exported records
     record_index = ["sample_name", "contig", "pos_start"]
-    assert df[record_index].drop_duplicates() == 1168430
+    assert df[record_index].drop_duplicates().shape[0] == 1168430
 
 
 def test_basic_ingest(tmp_path):
