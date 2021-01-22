@@ -47,6 +47,11 @@ steps:
   displayName: 'Install dependencies'
 
 - bash: |
+    ulimit -c               # should output 0 if disabled
+    ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block) 
+    ulimit -c               # should output 'unlimited' now    
+
+  
     # azure bash does not treat intermediate failure as error
     # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
     set -e pipefail
@@ -61,17 +66,54 @@ steps:
     # Configure and build TileDB-VCF
     mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
     cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
+    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
 
     make -j4
     make -j4 -C libtiledbvcf tiledb_vcf_unit
-    make check
+    # cmake catches the segfault and blocks the core dump
+    # sudo make check
+    ./libtiledbvcf/test/tiledb_vcf_unit
+  
     ../test/run-cli-tests.sh . ../test/inputs
 
     make install-libtiledbvcf
 
   displayName: 'Build and test TileDB-VCF'
 
+# Currently the core dump on linux goes to the current directory, these might be needed on other distros/osx
+# - bash: |
+#     sudo chmod -R +rwx /var/crash/* # Enable access to core dumps (doesn't need to be in same run block)
+#   condition: and(failed(), eq(variables['Agent.OS'], 'Linux')) # only run this job if the build step failed
+#   displayName: "Enable Access to core dumps (failed checks only)"
+# 
+# - bash: |
+#     sudo chmod -R +rwx /cores/* # Enable access to core dumps (doesn't need to be in same run block)
+#   condition: and(failed(), eq(variables['Agent.OS'], 'Darwin')) # only run this job if the build step failed
+#   displayName: "Enable Access to core dumps (failed checks only)"
+  
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: 'libtiledbvcf/build/core'
+    artifactName: '$(ARTIFACT_NAME)-coredump'
+  condition: failed() # only run this job if the build step failed
+  
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.Repository.LocalPath)'
+    includeRootFolder: false
+    archiveType: 'tar' # Options: zip, 7z, tar, wim
+    tarCompression: 'gz' # Optional. Options: gz, bz2, xz, none
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
+    replaceExistingArchive: true
+    verbose: true # Optional
+  condition: or(failed(), succeeded()) # only run this job if the build step failed
+  
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
+    artifactName: 'build-dirs'
+  condition: or(failed(), succeeded()) # only run this job if the build step failed
+  
 - bash: |
     set -e pipefail
     if [[ "$BUILD_SPARK_API" == "ON" ]]; then
