@@ -7,13 +7,8 @@ namespace vcf {
 AttributeBufferSet::AttributeBufferSet(bool verbose)
     : verbose_(verbose){};
 
-void AttributeBufferSet::allocate_fixed(
-    const std::unordered_set<std::string>& attr_names,
-    unsigned mem_budget_mb,
-    unsigned version) {
-  clear();
-  fixed_alloc_.clear();
-
+uint64_t AttributeBufferSet::compute_buffer_size(
+    const std::unordered_set<std::string>& attr_names, uint64_t mem_budget_mb) {
   // Get count of number of query buffers being allocated
   size_t num_buffers = 0;
   for (const auto& s : attr_names) {
@@ -23,16 +18,34 @@ void AttributeBufferSet::allocate_fixed(
 
   // Every buffer alloc gets the same size.
   uint64_t nbytes = (uint64_t(mem_budget_mb) * 1024 * 1024) / num_buffers;
-  uint64_t num_offsets = nbytes / sizeof(uint64_t);
 
   // Requesting 0 MB will result in a 1 KB allocation. This is used by the
   // tests to test the path of incomplete TileDB queries.
   if (mem_budget_mb == 0) {
     nbytes = 1024;
-    num_offsets = nbytes / sizeof(uint64_t);
   }
 
+  return nbytes;
+}
+
+void AttributeBufferSet::allocate_fixed(
+    const std::unordered_set<std::string>& attr_names,
+    unsigned mem_budget_mb,
+    unsigned version) {
+  clear();
+  fixed_alloc_.clear();
+
+  uint64_t nbytes = compute_buffer_size(attr_names, mem_budget_mb);
+  uint64_t num_offsets = nbytes / sizeof(uint64_t);
+
   if (verbose_) {
+    // Get count of number of query buffers being allocated
+    size_t num_buffers = 0;
+    for (const auto& s : attr_names) {
+      bool fixed_len = TileDBVCFDataset::attribute_is_fixed_len(s);
+      num_buffers += fixed_len ? 1 : 2;
+    }
+
     std::cout << "Allocating " << attr_names.size() << " fields ("
               << num_buffers << " buffers) of size " << nbytes << " bytes ("
               << nbytes / (1024.0f * 1024.0f) << "MB)" << std::endl;
