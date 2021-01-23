@@ -44,7 +44,19 @@ namespace vcf {
  */
 class AttributeBufferSet {
  public:
-  AttributeBufferSet(bool verbose = false);
+  explicit AttributeBufferSet(bool verbose = false);
+
+  /**
+   * Compute the size of the buffers in bytes based on memory budget and list of
+   * attributes to select
+   * @param attr_names
+   * @param mem_budget_mb
+   * @return size of buffers in bytes
+   */
+  static uint64_t compute_buffer_size(
+      const std::unordered_set<std::string>& attr_names,
+      uint64_t mem_budget_mb);
+
   /**
    * Resize buffers for the given set of attributes using the given allocation
    * budget.

@@ -656,10 +656,10 @@ bool Reader::read_current_batch() {
     }
   }
 
-  // If a past TileDB query was in-flight (from incomplete reads), it was
-  // using the B buffers, so start off with that. Otherwise, submit a new
-  // async query.
-  if (read_state_.async_query.valid()) {
+  // If a past TileDB query was in-flight (from incomplete reads) and  B buffers
+  // are not null indicating we are double buffers, it was using the B buffers,
+  // so start off with that. Otherwise, submit a new async query.
+  if (double_buffering_ && read_state_.async_query.valid()) {
     std::swap(buffers_a, buffers_b);
   } else {
     buffers_a->set_buffers(query, dataset_->metadata().version);
@@ -696,7 +696,8 @@ bool Reader::read_current_batch() {
 
     // If the query was incomplete, submit it again while processing the
     // current results.
-    if (query_status == tiledb::Query::Status::INCOMPLETE) {
+    if (query_status == tiledb::Query::Status::INCOMPLETE &&
+        double_buffering_) {
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query =
           std::async(std::launch::async, [query]() { return query->submit(); });
@@ -727,8 +728,16 @@ bool Reader::read_current_batch() {
     if (!complete)
       return false;
 
-    // Swap the buffers.
-    std::swap(buffers_a, buffers_b);
+    // Swap the buffers if we are double buffering
+    if (double_buffering_) {
+      std::swap(buffers_a, buffers_b);
+    } else if (
+        query_status ==
+        tiledb::Query::Status::INCOMPLETE) {  // resubmit existing buffers_a if
+                                              // not double buffering
+      read_state_.async_query =
+          std::async(std::launch::async, [query]() { return query->submit(); });
+    }
   } while (read_state_.query_results.query_status() ==
                tiledb::Query::Status::INCOMPLETE &&
            read_state_.total_num_records_exported < params_.max_num_records);
@@ -1840,9 +1849,23 @@ void Reader::prepare_attribute_buffers() {
   }
 
   // We get half of the memory budget for the query buffers.
-  const unsigned alloc_budget = params_.memory_budget_mb / 4;
-  buffers_a->allocate_fixed(attrs, alloc_budget, dataset_->metadata().version);
-  buffers_b->allocate_fixed(attrs, alloc_budget, dataset_->metadata().version);
+  uint64_t alloc_budget = params_.memory_budget_mb / 2;
+
+  // If the query buffers would be less than 100MB don't double buffer
+  if (AttributeBufferSet::compute_buffer_size(attrs, alloc_budget) >
+      params_.double_buffering_threshold) {
+    alloc_budget = params_.memory_budget_mb / 4;
+    buffers_a->allocate_fixed(
+        attrs, alloc_budget, dataset_->metadata().version);
+    buffers_b->allocate_fixed(
+        attrs, alloc_budget, dataset_->metadata().version);
+    double_buffering_ = true;
+  } else {
+    buffers_a->allocate_fixed(
+        attrs, alloc_budget, dataset_->metadata().version);
+    buffers_b.reset(nullptr);
+    double_buffering_ = false;
+  }
 }
 
 void Reader::init_tiledb() {

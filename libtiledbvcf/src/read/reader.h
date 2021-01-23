@@ -85,6 +85,9 @@ struct ExportParams {
 
   // Memory/performance params:
   unsigned memory_budget_mb = 2 * 1024;
+
+  // Size in bytes at which if the buffers are larger we will double buffer
+  uint64_t double_buffering_threshold = 200 * 1024 * 1024;
 };
 
 /* ********************************* */
@@ -477,6 +480,9 @@ class Reader {
 
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_b;
+
+  /** Indicates if we are double buffering or not. */
+  bool double_buffering_ = true;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */
