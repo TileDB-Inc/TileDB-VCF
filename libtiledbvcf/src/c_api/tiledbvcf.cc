@@ -32,6 +32,7 @@
 
 #include "c_api/tiledbvcf.h"
 #include "read/reader.h"
+#include "vcf/bed_file.h"
 #include "write/writer.h"
 
 #include <cassert>
@@ -56,6 +57,11 @@ struct tiledb_vcf_error_t {
   std::string errmsg_;
 };
 
+struct tiledb_vcf_bed_file_t {
+  std::unique_ptr<tiledb::vcf::BedFile> bed_file_;
+  std::string saved_errmsg_;
+};
+
 /* ********************************* */
 /*             HELPERS               */
 /* ********************************* */
@@ -68,6 +74,12 @@ struct tiledb_vcf_error_t {
 static void save_error(tiledb_vcf_reader_t* reader, const std::string& error) {
   LOG_ERROR(error);
   reader->saved_errmsg_ = error;
+}
+
+static void save_error(
+    tiledb_vcf_bed_file_t* bed_file, const std::string& error) {
+  LOG_ERROR(error);
+  bed_file->saved_errmsg_ = error;
 }
 
 static void save_error(tiledb_vcf_writer_t* writer, const std::string& error) {
@@ -99,6 +111,15 @@ static void save_error(tiledb_vcf_writer_t* writer, const std::string& error) {
 inline int32_t sanity_check(const tiledb_vcf_reader_t* reader) {
   if (reader == nullptr || reader->reader_ == nullptr) {
     std::string err = "Invalid TileDB VCF reader object";
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+  return TILEDB_VCF_OK;
+}
+
+inline int32_t sanity_check(const tiledb_vcf_bed_file_t* bed_file) {
+  if (bed_file == nullptr || bed_file->bed_file_ == nullptr) {
+    std::string err = "Invalid TileDB VCF bed_file object";
     LOG_ERROR(err);
     return TILEDB_VCF_ERR;
   }
@@ -736,6 +757,156 @@ int32_t tiledb_vcf_reader_set_verbose(
 
   if (SAVE_ERROR_CATCH(reader, reader->reader_->set_verbose(verbose)))
     return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+/* ********************************* */
+/*             BED FILE              */
+/* ********************************* */
+
+int32_t tiledb_vcf_bed_file_alloc(tiledb_vcf_bed_file_t** bed_file) {
+  if (bed_file == nullptr) {
+    std::string err("Null pointer given for TileDB-VCF bed_file object");
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+
+  // Create a bed_file struct
+  *bed_file = new (std::nothrow) tiledb_vcf_bed_file_t;
+  if (*bed_file == nullptr) {
+    std::string err("Failed to allocate TileDB-VCF bed_file object");
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+
+  // Create a new bed_file object
+  try {
+    (*bed_file)->bed_file_.reset(new tiledb::vcf::BedFile);
+  } catch (const std::exception& e) {
+    std::string err(
+        "Failed to allocate TileDB-VCF bed_file object: " +
+        std::string(e.what()));
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+
+  if ((*bed_file)->bed_file_ == nullptr) {
+    delete *bed_file;
+    std::string err("Failed to allocate TileDB-VCF bed_file object");
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+
+  return TILEDB_VCF_OK;
+}
+
+void tiledb_vcf_bed_file_free(tiledb_vcf_bed_file_t** bed_file) {
+  if (bed_file != nullptr && *bed_file != nullptr) {
+    (*bed_file)->bed_file_.reset(nullptr);
+    delete (*bed_file);
+    *bed_file = nullptr;
+  }
+}
+
+int32_t tiledb_vcf_bed_file_get_last_error(
+    tiledb_vcf_bed_file_t* bed_file, tiledb_vcf_error_t** error) {
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR || error == nullptr)
+    return TILEDB_VCF_ERR;
+
+  // Create an error struct
+  *error = new (std::nothrow) tiledb_vcf_error_t;
+  if (*error == nullptr) {
+    std::string err("Failed to allocate TileDB-VCF error object");
+    LOG_ERROR(err);
+    return TILEDB_VCF_ERR;
+  }
+
+  (*error)->errmsg_ = bed_file->saved_errmsg_;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_bed_file_parse(
+    tiledb_vcf_reader_t* reader,
+    tiledb_vcf_bed_file_t* bed_file,
+    const char* bed_file_uri) {
+  // TODO: the reader is required because we need to make sure the htslib
+  // library is inited need to decided on the bed file vs reader hierarchy
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(bed_file, bed_file->bed_file_->parse(bed_file_uri)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_bed_file_get_contig_count(
+    tiledb_vcf_bed_file_t* bed_file, uint64_t* contig_count) {
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          bed_file, bed_file->bed_file_->contig_count(contig_count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_bed_file_get_total_region_count(
+    tiledb_vcf_bed_file_t* bed_file, uint64_t* total_region_count) {
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          bed_file,
+          bed_file->bed_file_->total_region_count(total_region_count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_bed_file_get_contig_region_count(
+    tiledb_vcf_bed_file_t* bed_file,
+    uint64_t contig_index,
+    uint64_t* region_count) {
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          bed_file,
+          bed_file->bed_file_->contig_region_count(contig_index, region_count)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_bed_file_get_contig_region(
+    tiledb_vcf_bed_file_t* bed_file,
+    uint64_t contig_index,
+    uint64_t region_index,
+    const char** region_str,
+    const char** region_contig,
+    uint32_t* region_start,
+    uint32_t* region_end) {
+  if (sanity_check(bed_file) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  tiledb::vcf::Region* region;
+  if (SAVE_ERROR_CATCH(
+          bed_file,
+          bed_file->bed_file_->contig_region(
+              contig_index, region_index, &region)))
+    return TILEDB_VCF_ERR;
+
+  *region_str = region->region_str.c_str();
+  *region_contig = region->seq_name.c_str();
+  *region_start = region->min;
+  *region_end = region->max;
 
   return TILEDB_VCF_OK;
 }
