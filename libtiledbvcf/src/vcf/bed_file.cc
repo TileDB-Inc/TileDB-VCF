@@ -38,9 +38,10 @@ void BedFile::parse(const std::string& path) {
   path_ = path;
 
   Region::parse_bed_file_htslib(path_, &regions_);
+  regions_.sort();
 
   // TODO: make function to return vector of lists of contigs so we don't need
-  // to break it out ehre right not parse_bed_file puts it all back together..
+  // to break it out here right not parse_bed_file puts it all back together..
   std::string last_contig;
   regions_per_contig_.clear();
   for (const auto& region : regions_) {
