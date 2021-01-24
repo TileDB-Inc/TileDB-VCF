@@ -119,4 +119,31 @@ public class LibVCFNative {
   public static final native boolean tiledb_vcf_reader_tiledb_stats_enabled(long readerPtr);
 
   public static final native String tiledb_vcf_reader_tiledb_stats(long readerPtr);
+
+  public static final native int tiledb_vcf_bed_file_alloc(long[] bedFilePtr);
+
+  public static final native int tiledb_vcf_bed_file_free(long bedFilePtr);
+
+  public static final native String tiledb_vcf_bed_file_get_last_error_message(long bedFilePtr);
+
+  public static final native int tiledb_vcf_bed_file_parse(
+      long readerPtr, long bedFilePtr, String bedFileURI);
+
+  public static final native int tiledb_vcf_bed_file_get_contig_count(
+      long bedFilePtr, long[] count);
+
+  public static final native int tiledb_vcf_bed_file_get_total_region_count(
+      long bedFilePtr, long[] count);
+
+  public static final native int tiledb_vcf_bed_file_get_contig_region_count(
+      long bedFilePtr, long contig_index, long[] count);
+
+  public static final native int tiledb_vcf_bed_file_get_contig_region(
+      long bedFilePtr,
+      long contig_index,
+      long region_index,
+      byte[] region_str,
+      byte[] region_contig,
+      long[] region_start,
+      long[] region_end);
 }
