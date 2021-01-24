@@ -1,9 +1,17 @@
 package io.tiledb.vcf;
 
+import io.tiledb.libvcfnative.VCFBedFile;
+import io.tiledb.libvcfnative.VCFReader;
+import io.tiledb.util.CredentialProviderUtils;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.sources.EqualTo;
@@ -93,8 +101,7 @@ public class VCFDataSourceReader
 
   @Override
   public List<InputPartition<ColumnarBatch>> planBatchInputPartitions() {
-    HashSet<String> dedupSamples = new HashSet<>();
-    dedupSamples.addAll(pushedSampleNames);
+    HashSet<String> dedupSamples = new HashSet<>(pushedSampleNames);
     Optional<String[]> optionSamples = options.getSamples();
     if (optionSamples.isPresent()) {
       if (!pushedSampleNames.isEmpty()) {
@@ -103,9 +110,7 @@ public class VCFDataSourceReader
         throw new RuntimeException(
             "Cannot combine 'samples' DF option with 'where sampleName' filtering");
       }
-      for (String sample : optionSamples.get()) {
-        dedupSamples.add(sample);
-      }
+      dedupSamples.addAll(Arrays.asList(optionSamples.get()));
     }
 
     // Get number of range partitions (if specified)
@@ -174,10 +179,30 @@ public class VCFDataSourceReader
       }
     }
 
+    Optional<Boolean> forceRangePartitioningByContig = options.getForceRangePartitioningByContig();
+    List<List<String>> regions = null;
+    if (forceRangePartitioningByContig.orElse(false)) {
+      regions = computeRegionPartitionsFromBedFile(numRangePartitions);
+      numRangePartitions = regions.size();
+      log.info(
+          "Forcing regions per contig partitioning has yielded "
+              + numRangePartitions
+              + " range partitions");
+    }
+
     // Create Spark input partitions
     List<InputPartition<ColumnarBatch>> inputPartitions =
         new ArrayList<>(numRangePartitions * numSamplePartitions);
     for (int r = 0; r < numRangePartitions; r++) {
+      List<String> local_regions = null;
+      if (regions != null) {
+        local_regions = regions.get(r);
+        // Skip empty region list
+        // TODO: find out why this happens?
+        if (local_regions.size() == 0) {
+          continue;
+        }
+      }
       for (int s = 0; s < numSamplePartitions; s++) {
         inputPartitions.add(
             new VCFInputPartition(
@@ -185,11 +210,60 @@ public class VCFDataSourceReader
                 schema,
                 options,
                 samples,
-                new VCFPartitionInfo(r, numRangePartitions),
-                new VCFPartitionInfo(s, numSamplePartitions)));
+                new VCFPartitionInfo(r, numRangePartitions, local_regions),
+                new VCFPartitionInfo(s, numSamplePartitions, null)));
       }
     }
 
     return inputPartitions;
+  }
+
+  List<List<String>> computeRegionPartitionsFromBedFile(int desiredNumRangePartitions) {
+    Optional<URI> bedURI = options.getBedURI();
+    if (!bedURI.isPresent()) {
+      throw new RuntimeException("Can't use force_range_partitioning_by_contig without setting bed_file");
+    }
+
+    log.info("Init VCFReader for partition calculation");
+    String uriString = options.getDatasetURI().get().toString();
+
+    Optional<String> credentialsCsv =
+        options
+            .getCredentialsProvider()
+            .map(CredentialProviderUtils::buildConfigMap)
+            .flatMap(VCFDataSourceOptions::getConfigCSV);
+
+    Optional<String> configCsv =
+        VCFDataSourceOptions.combineCsvOptions(options.getConfigCSV(), credentialsCsv);
+
+    String[] samples = new String[] {};
+    VCFReader vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), configCsv);
+
+    VCFBedFile bedFile = new VCFBedFile(vcfReader, bedURI.get().toString());
+
+    Map<String, List<String>> mapOfRegions = bedFile.getContigRegionStrings();
+    List<List<String>> res = new LinkedList<>(mapOfRegions.values());
+
+    // Sort the region list by size of regions in contig
+    res.sort(Comparator.comparingInt(List::size));
+
+    // Keep splitting the larges region lists until we have the desired minimum number of range
+    // Partitions, we stop if the large region has a size of 10 or less
+    while (res.size() < desiredNumRangePartitions && res.get(0).size() >= 10) {
+
+      List<String> top = res.remove(0);
+
+      List<String> first = new LinkedList<>(top.subList(0, top.size() / 2));
+      List<String> second = new LinkedList<>(top.subList(top.size() / 2, top.size()));
+      res.add(first);
+      res.add(second);
+
+      // Sort the region list by size of regions in contig
+      res.sort(Comparator.comparingInt(List::size));
+      Collections.reverse(res);
+    }
+
+    //    res.addAll(mapOfRegions.values());
+    return res;
   }
 }
