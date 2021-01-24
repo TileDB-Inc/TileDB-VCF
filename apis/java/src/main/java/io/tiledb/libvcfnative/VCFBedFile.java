@@ -1,7 +1,7 @@
 package io.tiledb.libvcfnative;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,7 +9,7 @@ public class VCFBedFile implements AutoCloseable {
   private long bedFilePtr;
   private final String bedFileURI;
 
-  public final Map<String, List<Region>> contigRegions;
+  private final Map<String, List<Region>> contigRegions;
 
   private long totalRegions;
 
@@ -27,7 +27,7 @@ public class VCFBedFile implements AutoCloseable {
     }
   }
 
-  VCFBedFile(VCFReader reader, String bedFileURI) {
+  public VCFBedFile(VCFReader reader, String bedFileURI) {
     long[] bedFilePtrArray = new long[1];
     int rc = LibVCFNative.tiledb_vcf_bed_file_alloc(bedFilePtrArray);
     if (rc != 0 || bedFilePtrArray[0] == 0) {
@@ -112,6 +112,25 @@ public class VCFBedFile implements AutoCloseable {
 
   public long getContigCount() {
     return contigRegions.size();
+  }
+
+  public Map<String, List<Region>> getContigRegions() {
+    return contigRegions;
+  }
+
+  public Map<String, List<String>> getContigRegionStrings() {
+    Map<String, List<String>> res = new HashMap<>();
+    for (Map.Entry<String, List<Region>> regions : contigRegions.entrySet()) {
+      // We use linked list because ArrayList are 32bit
+      List<String> l = new LinkedList<>();
+      for (Region region : regions.getValue()) {
+        l.add(region.regionStr);
+      }
+
+      res.put(regions.getKey(), l);
+    }
+
+    return res;
   }
 
   private String getLastErrorMessage() {
