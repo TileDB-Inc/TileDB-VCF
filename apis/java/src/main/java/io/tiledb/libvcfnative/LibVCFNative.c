@@ -810,6 +810,74 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(
   return result;
 }
 
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1alloc
+  (JNIEnv* env, jclass self, jlongArray bedFilePtrOut) {
+  (void)self;
+
+  // Check that the passed in array is not null
+  jlong* c_query = (*env)->GetLongArrayElements(env, bedFilePtrOut, NULL);
+  if (c_query == NULL) {
+    return -1;
+  }
+  if ((*env)->GetArrayLength(env, bedFilePtrOut) != 1) {
+    (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
+    return -1;
+  }
+
+  // Allocate a new bed_file
+  tiledb_vcf_bed_file_t* bed_file_ptr = NULL;
+  int rc = tiledb_vcf_bed_file_alloc(&bed_file_ptr);
+  if (rc != TILEDB_VCF_OK || bed_file_ptr == NULL) {
+    (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
+    return rc;
+  }
+
+  // Store the address of the bed_file struct
+  c_query[0] = (jlong)bed_file_ptr;
+  (*env)->SetLongArrayRegion(env, bedFilePtrOut, 0, 1, c_query);
+
+  // Un-pin memory region
+  (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1free
+  (JNIEnv* env, jclass self, jlong bedFilePtr) {
+  (void)self;
+
+  if (bedFilePtr == 0) {
+    return 0;
+  }
+
+  tiledb_vcf_bed_file_t* bed_file_ptr = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  tiledb_vcf_bed_file_free(&bed_file_ptr);
+
+  return 0;
+}
+
+JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1last_1error_1message
+  (JNIEnv* env, jclass self, jlong bedFilePtr) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return NULL;
+  }
+
+  const char* msg = "Error getting error message via JNI.";
+  tiledb_vcf_error_t* error = NULL;
+  int32_t rc = tiledb_vcf_bed_file_get_last_error(bed_file, &error);
+  if (rc == TILEDB_VCF_OK) {
+    tiledb_vcf_error_get_message(error, &msg);
+  } else {
+    error = NULL;
+  }
+
+  jstring result = (*env)->NewStringUTF(env, msg);
+  tiledb_vcf_error_free(&error);
+  return result;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1enable_1progress_1estimation(
     JNIEnv* env,
@@ -843,6 +911,45 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
   return rc;
 }
 
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1parse
+  (JNIEnv* env, jclass self, jlong readerPtr, jlong bedFilePtr, jstring bedFileURI) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* c_uri = (*env)->GetStringUTFChars(env, bedFileURI, 0);
+  if (c_uri == NULL) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int rc = tiledb_vcf_bed_file_parse(reader, bed_file, c_uri);
+  (*env)->ReleaseStringUTFChars(env, bedFileURI, c_uri);
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1count
+  (JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut){
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_count(bed_file, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
+
+  return rc;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1sample_1list(
     JNIEnv* env, jclass self, jlong readerPtr, jboolean printSampleList) {
@@ -854,6 +961,23 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
 
   int32_t rc =
       tiledb_vcf_reader_set_debug_print_sample_list(reader, printSampleList);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1total_1region_1count
+  (JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_total_region_count(bed_file, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
 
   return rc;
 }
@@ -872,6 +996,58 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
 
   int32_t rc = tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
       reader, printTileDBQueryRanges);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region_1count
+  (JNIEnv* env, jclass self, jlong bedFilePtr, jlong contigIndex, jlongArray countOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region_count(bed_file, contigIndex, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region
+  (JNIEnv* env, jclass self, jlong bedFilePtr, jlong contigIndex, jlong regionIndex, jbyteArray regionStrOut, jbyteArray regionContigOut, jlongArray regionStartOut, jlongArray regionEndOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* region_str;
+  const char* region_contig;
+  uint32_t region_start, region_end;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region(bed_file, contigIndex, regionIndex, &region_str, &region_contig, &region_start, &region_end);
+  if (rc == TILEDB_VCF_OK) {
+    int length = strlen(region_str);
+    (*env)->SetByteArrayRegion(env, regionStrOut, 0, length, region_str);
+
+    int length2 = strlen(region_contig);
+    (*env)->SetByteArrayRegion(env, regionContigOut, 0, length2, region_contig);
+
+    // Upcast to 64bit because java doesn't have unsigned 32bit ints
+    int64_t region_start_long = region_start;
+    rc = set_out_param_int64(env, region_start_long, regionStartOut);
+    if (rc != 0)
+      return rc;
+
+    // Upcast to 64bit because java doesn't have unsigned 32bit ints
+    int64_t region_end_long = region_end;
+    rc = set_out_param_int64(env, region_end_long, regionEndOut);
+    if (rc != 0)
+      return rc;
+  }
 
   return rc;
 }
