@@ -1355,6 +1355,7 @@ void Reader::prepare_regions_v4(
         regions_index_per_contig,
     std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
         query_regions) const {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   const uint32_t g = dataset_->metadata().anchor_gap;
   // Use a linked list for pre-partition regions to allow for parallel parsing
   // of BED file
@@ -1387,13 +1388,15 @@ void Reader::prepare_regions_v4(
   std::pair<std::string, std::string> contig_non_empty_domain =
       read_state_.array->non_empty_domain_var("contig");
 
+  auto all_contigs = dataset_->all_contigs_list_v4();
+  std::set<std::string> all_contig_names;
+
   // No specified regions means all regions.
   if (pre_partition_regions_list.empty()) {
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
-        dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-      pre_partition_regions_list = dataset_->all_contigs_list();
-    else {
-      pre_partition_regions_list = dataset_->all_contigs_list_v4();
+    pre_partition_regions_list = all_contigs;
+  } else {
+    for (const auto& contig : all_contigs) {
+      all_contig_names.emplace(contig.seq_name);
     }
   }
 
@@ -1405,6 +1408,14 @@ void Reader::prepare_regions_v4(
     r.seq_offset = 0;
     const uint32_t reg_min = r.min;
     const uint32_t reg_max = r.max;
+
+    // If we have the map of all contig names it means this is a user given
+    // region set in that case lets make sure the contig actually exists in the
+    // dataset before potentially running a useless query.
+    if (!all_contig_names.empty()) {
+      if (all_contig_names.find(r.seq_name) == all_contig_names.end())
+        continue;
+    }
 
     // Widen the query region by the anchor gap value, avoiding overflow.
     uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
