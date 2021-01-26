@@ -147,6 +147,24 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             + partitionId
             + " started");
 
+    new Thread(
+            () -> {
+              while (!task.isCompleted()) {
+                // Kill the task in case it has been marked as killed.
+                if (task == null || task.isInterrupted()) {
+                  log.info("Task found to be interrupted, calling close to kill VCF query early");
+                  close();
+                  throw new TaskKilledException();
+                }
+                try {
+                  Thread.sleep(10000);
+                } catch (InterruptedException ie) {
+                  log.error(ie);
+                }
+              }
+            })
+        .start();
+
     task.addTaskCompletionListener(
         context -> {
           log.info(
