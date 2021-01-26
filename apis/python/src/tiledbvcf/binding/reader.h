@@ -147,6 +147,18 @@ class Reader {
   /** Set to check if samples requested exist and error if not. */
   void set_check_samples_exist(bool check_samples_exist);
 
+  /**
+   * Enable TileDB heap profiler
+   *
+   * @param enabled should profiler be enabled
+   * @param file_name_prefix the prefix path to dump profiler stats to, leave empty for stdout
+   * @param dump_interval_ms the interval in milliseconds to dump stats, set to 0 to only capture bad allocs
+   * @param dump_interval_bytes the interval in bytes to dump stats, set to 0 to only capture bad allocs
+   * @param dump_threshold the allocation threshold bytes to dump stats, set to 0 to only capture bad allocs
+   *
+   */
+  void set_tiledb_heap_profiler_enabled(const bool& enabled, const std::string& file_name_prefix, const uint64_t& dump_interval_ms, const uint64_t& dump_interval_bytes, const uint64_t& dump_threshold_bytes);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {

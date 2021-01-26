@@ -191,6 +191,19 @@ void Writer::ingest_samples() {
     tiledb::Stats::reset();
   }
 
+  if (ingestion_params_.tiledb_heap_profiler_enabled) {
+    const char* file_name_prefix = nullptr;
+    if (!ingestion_params_.heap_profiler.file_name_prefix.empty()) {
+      file_name_prefix =
+          ingestion_params_.heap_profiler.file_name_prefix.c_str();
+    }
+    tiledb_heap_profiler_enable(
+        file_name_prefix,
+        ingestion_params_.heap_profiler.dump_interval_ms,
+        ingestion_params_.heap_profiler.dump_interval_bytes,
+        ingestion_params_.heap_profiler.dump_threshold_byte);
+  }
+
   init(ingestion_params_);
 
   // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
@@ -813,6 +826,32 @@ void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
 
 void Writer::set_sample_batch_size(const uint64_t size) {
   ingestion_params_.sample_batch_size = size;
+}
+
+void Writer::set_tiledb_heap_profiler_enabled(
+    bool heap_profiler_enabled,
+    const char* file_name_prefix,
+    uint64_t dump_interval_ms,
+    uint64_t dump_interval_bytes,
+    uint64_t dump_threshold_bytes) {
+  ingestion_params_.tiledb_heap_profiler_enabled = heap_profiler_enabled;
+  ingestion_params_.heap_profiler.file_name_prefix = file_name_prefix;
+  ingestion_params_.heap_profiler.dump_interval_ms = dump_interval_ms;
+  ingestion_params_.heap_profiler.dump_interval_bytes = dump_interval_bytes;
+  ingestion_params_.heap_profiler.dump_threshold_byte = dump_threshold_bytes;
+}
+
+void Writer::tiledb_heap_profiler_enabled(
+    bool* enabled,
+    const char** file_name_prefix,
+    uint64_t* dump_interval_ms,
+    uint64_t* dump_interval_bytes,
+    uint64_t* dump_threshold_bytes) const {
+  *enabled = ingestion_params_.tiledb_heap_profiler_enabled;
+  *file_name_prefix = ingestion_params_.heap_profiler.file_name_prefix.c_str();
+  *dump_interval_ms = ingestion_params_.heap_profiler.dump_interval_ms;
+  *dump_interval_bytes = ingestion_params_.heap_profiler.dump_interval_bytes;
+  *dump_threshold_bytes = ingestion_params_.heap_profiler.dump_threshold_byte;
 }
 
 }  // namespace vcf

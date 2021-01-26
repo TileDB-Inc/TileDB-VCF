@@ -574,4 +574,10 @@ void Reader::set_check_samples_exist(bool samples_exists) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_check_samples_exist(reader, samples_exists));
 }
+
+void Reader::set_tiledb_heap_profiler_enabled(const bool& enabled, const std::string& file_name_prefix, const uint64_t& dump_interval_ms, const uint64_t& dump_interval_bytes, const uint64_t& dump_threshold_bytes) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(reader, enabled, file_name_prefix.c_str(), dump_interval_ms, dump_interval_bytes, dump_threshold_bytes));
+}
+
 }  // namespace tiledbvcfpy

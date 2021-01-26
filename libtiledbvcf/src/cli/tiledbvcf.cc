@@ -430,7 +430,34 @@ int main(int argc, char** argv) {
            "Enable TileDB stats",
        option("--stats-vcf-header-array")
                .set(store_args.tiledb_stats_enabled_vcf_header_array) %
-           "Enable TileDB stats for vcf header array usage");
+           "Enable TileDB stats for vcf header array usage",
+       option("--heap-profiler").set(store_args.tiledb_heap_profiler_enabled) %
+           "Enable TileDB heap profiler",
+       option("--heap-profiler-file-name-prefix")
+               .set(store_args.heap_profiler.file_name_prefix) %
+           "Prefix path and name for TileDB heap profiler output, leave unset "
+           "for stdout",
+       option("--heap-profiler-dump-interval-ms") %
+               defaulthelp(
+                   "Interval in milliseconds to dump TileDB heap profiler "
+                   "stats, leave "
+                   "empty for catching only bad allocs",
+                   store_args.heap_profiler.dump_interval_ms) &
+           value("ms", store_args.heap_profiler.dump_interval_ms),
+       option("--heap-profiler-dump-interval-bytes") %
+               defaulthelp(
+                   "Interval in bytes to dump TileDB heap profiler stats, "
+                   "leave empty "
+                   "for catching only bad allocs",
+                   store_args.heap_profiler.dump_interval_ms) &
+           value("ms", store_args.heap_profiler.dump_interval_ms),
+       option("--heap-profiler-dump-threshold-bytes") %
+               defaulthelp(
+                   "Threshold in bytes to dump TileDB heap profiler stats, "
+                   "leave empty "
+                   "for catching only bad allocs",
+                   store_args.heap_profiler.dump_threshold_byte) &
+           value("ms", store_args.heap_profiler.dump_threshold_byte));
 
   ExportParams export_args;
   export_args.export_to_disk = true;
@@ -551,6 +578,33 @@ int main(int argc, char** argv) {
            "Disable validating that sample passed exist in dataset before "
            "executing "
            "query and error if any sample requested is not in the dataset");
+  option("--heap-profiler").set(export_args.tiledb_heap_profiler_enabled) %
+      "Enable TileDB heap profiler",
+      option("--heap-profiler-file-name-prefix")
+              .set(export_args.heap_profiler.file_name_prefix) %
+          "Prefix path and name for TileDB heap profiler output, leave unset "
+          "for stdout",
+      option("--heap-profiler-dump-interval-ms") %
+              defaulthelp(
+                  "Interval in milliseconds to dump TileDB heap profiler "
+                  "stats, leave "
+                  "empty for catching only bad allocs",
+                  export_args.heap_profiler.dump_interval_ms) &
+          value("ms", export_args.heap_profiler.dump_interval_ms),
+      option("--heap-profiler-dump-interval-bytes") %
+              defaulthelp(
+                  "Interval in bytes to dump TileDB heap profiler stats, "
+                  "leave empty "
+                  "for catching only bad allocs",
+                  export_args.heap_profiler.dump_interval_ms) &
+          value("ms", export_args.heap_profiler.dump_interval_ms),
+      option("--heap-profiler-dump-threshold-bytes") %
+              defaulthelp(
+                  "Threshold in bytes to dump TileDB heap profiler stats, "
+                  "leave empty "
+                  "for catching only bad allocs",
+                  export_args.heap_profiler.dump_threshold_byte) &
+          value("ms", export_args.heap_profiler.dump_threshold_byte);
 
   ListParams list_args;
   auto list_mode =
@@ -558,7 +612,8 @@ int main(int argc, char** argv) {
            value("uri", list_args.uri),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
+               "specifying optional TileDB configuration parameter "
+               "settings." &
            value("params").call([&list_args](const std::string& s) {
              list_args.tiledb_config = utils::split(s, ',');
            }));
@@ -569,7 +624,8 @@ int main(int argc, char** argv) {
            value("uri", stat_args.uri),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
+               "specifying optional TileDB configuration parameter "
+               "settings." &
            value("params").call([&stat_args](const std::string& s) {
              stat_args.tiledb_config = utils::split(s, ',');
            }));
@@ -580,7 +636,8 @@ int main(int argc, char** argv) {
            value("uri", utils_args.uri),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
+               "specifying optional TileDB configuration parameter "
+               "settings." &
            value("params").call([&utils_args](const std::string& s) {
              utils_args.tiledb_config = utils::split(s, ',');
            }));

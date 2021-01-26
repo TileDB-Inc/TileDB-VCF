@@ -39,6 +39,13 @@
 namespace tiledb {
 namespace vcf {
 
+struct HeapProfiler {
+  std::string file_name_prefix;
+  uint64_t dump_interval_ms = 0;
+  uint64_t dump_interval_bytes = 0;
+  uint64_t dump_threshold_byte = 0;
+};
+
 namespace utils {
 
 /** Commit hash of TileDB-VCF (#defined by CMake) */

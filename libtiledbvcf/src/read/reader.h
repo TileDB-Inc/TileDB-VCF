@@ -104,6 +104,8 @@ struct ExportParams {
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
   bool check_samples_exist = true;
+  bool tiledb_heap_profiler_enabled = false;
+  HeapProfiler heap_profiler;
 };
 
 /* ********************************* */
@@ -383,6 +385,20 @@ class Reader {
    * @param check_samples_exist
    */
   void set_check_samples_exist(const bool check_samples_exist);
+
+  void set_tiledb_heap_profiler_enabled(
+      bool heap_profiler_enabled,
+      const char* file_name_prefix,
+      uint64_t dump_interval_ms,
+      uint64_t dump_interval_bytes,
+      uint64_t dump_threshold_bytes);
+
+  void tiledb_heap_profiler_enabled(
+      bool* enabled,
+      const char** file_name_prefix,
+      uint64_t* dump_interval_ms,
+      uint64_t* dump_interval_bytes,
+      uint64_t* dump_threshold_bytes) const;
 
  private:
   /* ********************************* */

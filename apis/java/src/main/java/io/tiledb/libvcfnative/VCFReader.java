@@ -582,4 +582,27 @@ public class VCFReader implements AutoCloseable {
     }
     readerPtr = 0l;
   }
+
+  public VCFReader setHeapProfilerEnabled(
+      boolean enabled,
+      String fileNamePrefix,
+      long dumpIntervalMS,
+      long dumpIntervalBytes,
+      long dumpThresholdBytes) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(
+            this.readerPtr,
+            enabled,
+            fileNamePrefix,
+            dumpIntervalMS,
+            dumpIntervalBytes,
+            dumpThresholdBytes);
+
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting heap profile enabled: " + msg);
+    }
+
+    return this;
+  }
 }

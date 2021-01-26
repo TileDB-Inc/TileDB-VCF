@@ -471,6 +471,31 @@ class Dataset(object):
             self.reader.set_samples("")
             self.reader.set_samples_file(samples_file)
 
+    def heap_profiler(
+        self,
+        enabled=True,
+        file_name_prefix="",
+        dump_interval_ms=0,
+        dump_interval_bytes=0,
+        dump_threshold_bytes=0,
+    ):
+        if self.mode != "r":
+            return self.reader.set_tiledb_heap_profiler_enabled(
+                enabled,
+                file_name_prefix,
+                dump_interval_ms,
+                dump_interval_bytes,
+                dump_threshold_bytes,
+            )
+
+        return self.writer.set_tiledb_heap_profiler_enabled(
+            enabled,
+            file_name_prefix,
+            dump_interval_ms,
+            dump_interval_bytes,
+            dump_threshold_bytes,
+        )
+
 
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""

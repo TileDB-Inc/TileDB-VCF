@@ -125,4 +125,20 @@ public class LibVCFNative {
   public static final native boolean tiledb_vcf_reader_tiledb_stats_enabled(long readerPtr);
 
   public static final native String tiledb_vcf_reader_tiledb_stats(long readerPtr);
+
+  public static final native int tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(
+      long readerPtr,
+      boolean heap_profiler_enabled,
+      String file_name_prefix,
+      long dump_interval_ms,
+      long dump_interval_bytes,
+      long dump_threshold_bytes);
+
+  public static final native int tiledb_vcf_reader_get_tiledb_heap_profiler_enabled(
+      long readerPtr,
+      boolean[] heap_profiler_enabled,
+      byte[] file_name_prefix,
+      long[] dump_interval_ms,
+      long[] dump_interval_bytes,
+      long[] dump_threshold_bytes);
 }

@@ -206,4 +206,9 @@ std::string Writer::get_tiledb_stats() {
   return std::string(stats);
 }
 
+void Writer::set_tiledb_heap_profiler_enabled(const bool& enabled, const std::string& file_name_prefix, const uint64_t& dump_interval_ms, const uint64_t& dump_interval_bytes, const uint64_t& dump_threshold_bytes) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_tiledb_heap_profiler_enabled(writer, enabled, file_name_prefix.c_str(), dump_interval_ms, dump_interval_bytes, dump_threshold_bytes));
+}
+
 }  // namespace tiledbvcfpy

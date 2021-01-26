@@ -740,6 +740,52 @@ int32_t tiledb_vcf_reader_set_verbose(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(
+    tiledb_vcf_reader_t* reader,
+    const bool heap_profiler_enabled,
+    const char* file_name_prefix,
+    uint64_t dump_interval_ms,
+    uint64_t dump_interval_bytes,
+    uint64_t dump_threshold_bytes) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_tiledb_heap_profiler_enabled(
+              heap_profiler_enabled,
+              file_name_prefix,
+              dump_interval_ms,
+              dump_interval_bytes,
+              dump_threshold_bytes)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_get_tiledb_heap_profiler_enabled(
+    tiledb_vcf_reader_t* reader,
+    bool* heap_profiler_enabled,
+    const char** file_name_prefix,
+    uint64_t* dump_interval_ms,
+    uint64_t* dump_interval_bytes,
+    uint64_t* dump_threshold_bytes) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->tiledb_heap_profiler_enabled(
+              heap_profiler_enabled,
+              file_name_prefix,
+              dump_interval_ms,
+              dump_interval_bytes,
+              dump_threshold_bytes)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_set_buffer_percentage(
     tiledb_vcf_reader_t* reader, const float buffer_percentage) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)

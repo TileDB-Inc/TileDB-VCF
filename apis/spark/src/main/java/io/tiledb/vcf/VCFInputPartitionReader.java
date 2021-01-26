@@ -38,6 +38,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
    */
   private static final int DEFAULT_MEM_BUDGET_MB = 512;
 
+  private final TaskContext task;
+
   /** URI of the TileDB-VCF dataset. */
   private URI datasetURI;
 
@@ -126,7 +128,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       this.enableStatsLogLevel = Level.toLevel(this.options.getTileDBStatsLogLevel().get());
     }
 
-    TaskContext task = TaskContext.get();
+    task = TaskContext.get();
     log =
         Logger.getLogger(
             VCFInputPartitionReader.class.getName()
@@ -318,6 +320,16 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // Enable VCFReader stats
     if (!this.enableStatsLogLevel.equals(Level.OFF)) this.vcfReader.setStatsEnabled(true);
+
+    if (this.options.getTileDBHeapProfilerEnabled().orElse(false)) {
+      String fileNamePrefix = this.options.getTileDBHeapProfilerPrefix().orElse("");
+      long dumpIntervalMS = this.options.getTileDBHeapProfilerDumpIntervalMS().orElse(0L);
+      long dumpIntervalBytes = this.options.getTileDBHeapProfilerDumpIntervalBytes().orElse(0L);
+      long dumpThresholdBytes = this.options.getTileDBHeapProfilerDumpThresholdBytes().orElse(0L);
+
+      vcfReader.setHeapProfilerEnabled(
+          true, fileNamePrefix, dumpIntervalMS, dumpIntervalBytes, dumpThresholdBytes);
+    }
 
     // Set logical partition in array
     vcfReader.setRangePartition(
