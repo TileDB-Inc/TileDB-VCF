@@ -897,6 +897,37 @@ tiledb_vcf_reader_reset_buffers(tiledb_vcf_reader_t* reader);
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_last_error(
     tiledb_vcf_reader_t* reader, tiledb_vcf_error_t** error);
 
+/**
+ * Sets whether TileDB internal heap profiler should be enabled or not.
+ *
+ * @param reader VCF reader object
+ * @param heap_profiler_enabled whether to enable tiledb heap profiler or not,
+ * default is false
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(
+    tiledb_vcf_reader_t* reader,
+    const bool heap_profiler_enabled,
+    const char* file_name_prefix,
+    uint64_t dump_interval_ms,
+    uint64_t dump_interval_bytes,
+    uint64_t dump_threshold_bytes);
+
+/**
+ * Gets whether TileDB internal heap profiler should be enabled or not.
+ *
+ * @param reader VCF reader object
+ * @param heap_profiler_enabled whether to enable heap_profiler or not
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_tiledb_heap_profiler_enabled(
+    tiledb_vcf_reader_t* reader,
+    bool* heap_profiler_enabled,
+    const char** file_name_prefix,
+    uint64_t* dump_interval_ms,
+    uint64_t* dump_interval_bytes,
+    uint64_t* dump_threshold_bytes);
+
 /* ********************************* */
 /*             BED FILE              */
 /* ********************************* */
@@ -1280,6 +1311,37 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
     tiledb_vcf_writer_t* writer, uint64_t size);
+
+/**
+ * Sets whether TileDB internal heap profiler should be enabled or not.
+ *
+ * @param writer VCF writer object
+ * @param heap_profiler_enabled whether to enable tiledb heap profiler or not,
+ * default is false
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_heap_profiler_enabled(
+    tiledb_vcf_writer_t* writer,
+    const bool heap_profiler_enabled,
+    const char* file_name_prefix,
+    uint64_t dump_interval_ms,
+    uint64_t dump_interval_bytes,
+    uint64_t dump_threshold_bytes);
+
+/**
+ * Gets whether TileDB internal heap profiler should be enabled or not.
+ *
+ * @param writer VCF writer object
+ * @param heap_profiler_enabled whether to enable heap_profiler or not
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_get_tiledb_heap_profiler_enabled(
+    tiledb_vcf_writer_t* writer,
+    bool* heap_profiler_enabled,
+    const char** file_name_prefix,
+    uint64_t* dump_interval_ms,
+    uint64_t* dump_interval_bytes,
+    uint64_t* dump_threshold_bytes);
 
 /* ********************************* */
 /*               ERROR               */

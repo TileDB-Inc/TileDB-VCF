@@ -49,6 +49,28 @@ static int set_out_param_int64(
   return TILEDB_VCF_OK;
 }
 
+static int set_out_param_boolean(
+    JNIEnv* env, bool value, jbooleanArray valueOut) {
+  jboolean* c_value = (*env)->GetBooleanArrayElements(env, valueOut, NULL);
+  if (c_value == NULL) {
+    return -1;
+  }
+
+  // Check that an array of length 1 was passed.
+  if ((*env)->GetArrayLength(env, valueOut) != 1) {
+    (*env)->ReleaseBooleanArrayElements(env, valueOut, c_value, 0);
+    return -1;
+  }
+
+  // Cast value to jboolean and set result value array
+  c_value[0] = (jboolean)value;
+  (*env)->SetBooleanArrayRegion(env, valueOut, 0, 1, c_value);
+
+  (*env)->ReleaseBooleanArrayElements(env, valueOut, c_value, 0);
+
+  return TILEDB_VCF_OK;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1alloc(
     JNIEnv* env, jclass self, jlongArray readerPtrOut) {
@@ -933,6 +955,59 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
     if (rc != 0)
       return rc;
   }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1heap_1profiler_1enabled
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean enabled, jstring filePrefix, jlong dumpIntervalMS, jlong dumpIntervalBytes, jlong dumpThresholdBytes) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const bool heap_profiler_enabled = enabled ? true : false;
+
+  const char* c_file_prefix = (*env)->GetStringUTFChars(env, filePrefix, 0);
+
+  return tiledb_vcf_reader_set_tiledb_heap_profiler_enabled(reader, heap_profiler_enabled, c_file_prefix, dumpIntervalMS, dumpIntervalBytes, dumpThresholdBytes);
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1tiledb_1heap_1profiler_1enabled
+  (JNIEnv* env, jclass self, jlong readerPtr, jbooleanArray enabledOut, jbyteArray filePrefixOut, jlongArray dumpInternalMSOut, jlongArray dumpIntervalBytesOut, jlongArray dumpThresholdBytesOut) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  bool heap_profiler_enabled;
+  const char* c_file_prefix;
+  int64_t dump_interval_ms, dump_interval_bytes, dump_threshold_bytes;
+  int rc = tiledb_vcf_reader_get_tiledb_heap_profiler_enabled(reader, &heap_profiler_enabled, &c_file_prefix, &dump_interval_ms, &dump_interval_bytes, &dump_threshold_bytes);
+  if (rc != 0)
+    return rc;
+
+  int length = strlen(c_file_prefix);
+  (*env)->SetByteArrayRegion(env, filePrefixOut, 0, length, c_file_prefix);
+
+  rc = set_out_param_boolean(env, heap_profiler_enabled, enabledOut);
+  if (rc != 0)
+    return rc;
+
+  rc = set_out_param_int64(env, dump_interval_ms, dumpInternalMSOut);
+  if (rc != 0)
+    return rc;
+
+  rc = set_out_param_int64(env, dump_interval_bytes, dumpIntervalBytesOut);
+  if (rc != 0)
+    return rc;
+
+  rc = set_out_param_int64(env, dump_threshold_bytes, dumpThresholdBytesOut);
+  if (rc != 0)
+    return rc;
+
 
   return rc;
 }

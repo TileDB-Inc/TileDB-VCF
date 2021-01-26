@@ -134,6 +134,55 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return If TileDB heap profiler should be enabled */
+  public Optional<Boolean> getTileDBHeapProfilerEnabled() {
+    if (options.containsKey("tiledb_heap_profiler.enabled")) {
+      return Optional.of(Boolean.parseBoolean(options.get("tiledb_heap_profiler.enabled")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return The filename prefix for the VCFReader heap profiler. Empty means stdout */
+  public Optional<String> getTileDBHeapProfilerPrefix() {
+    if (options.containsKey("tiledb_heap_profiler.file_name_prefix")) {
+      String statsLogLevel = options.get("tiledb_heap_profiler.file_name_prefix");
+      return Optional.of(statsLogLevel);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * @return The TileDB heap profiler dump interval in milliseconds. Set to zero to only capture bad
+   *     allocs
+   */
+  public Optional<Long> getTileDBHeapProfilerDumpIntervalMS() {
+    if (options.containsKey("tiledb_heap_profiler.dump_interval_ms")) {
+      return Optional.of(Long.parseLong(options.get("tiledb_heap_profiler.dump_interval_ms")));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * @return The TileDB heap profiler dump interval in bytes. Set to zero to only capture bad allocs
+   */
+  public Optional<Long> getTileDBHeapProfilerDumpIntervalBytes() {
+    if (options.containsKey("tiledb_heap_profiler.dump_interval_bytes")) {
+      return Optional.of(Long.parseLong(options.get("tiledb_heap_profiler.dump_interval_bytes")));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * @return The TileDB heap profiler dump threshold in bytes. Set to zero to only capture bad
+   *     allocs
+   */
+  public Optional<Long> getTileDBHeapProfilerDumpThresholdBytes() {
+    if (options.containsKey("tiledb_heap_profiler.dump_threshold_bytes")) {
+      return Optional.of(Long.parseLong(options.get("tiledb_heap_profiler.dump_threshold_bytes")));
+    }
+    return Optional.empty();
+  }
+
   /** @return If TileDB-VCF reader should be set to verbose output mode */
   public Optional<Boolean> getVerbose() {
     if (options.containsKey("verbose")) {

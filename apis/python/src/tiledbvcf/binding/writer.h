@@ -140,6 +140,18 @@ class Writer {
   */
   std::string get_tiledb_stats();
 
+  /**
+   * Enable TileDB heap profiler
+   *
+   * @param enabled should profiler be enabled
+   * @param file_name_prefix the prefix path to dump profiler stats to, leave empty for stdout
+   * @param dump_interval_ms the interval in milliseconds to dump stats, set to 0 to only capture bad allocs
+   * @param dump_interval_bytes the interval in bytes to dump stats, set to 0 to only capture bad allocs
+   * @param dump_threshold the allocation threshold bytes to dump stats, set to 0 to only capture bad allocs
+   *
+   */
+  void set_tiledb_heap_profiler_enabled(const bool& enabled, const std::string& file_name_prefix, const uint64_t& dump_interval_ms, const uint64_t& dump_interval_bytes, const uint64_t& dump_threshold_bytes);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

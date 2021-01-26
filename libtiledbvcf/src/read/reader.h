@@ -97,6 +97,9 @@ struct ExportParams {
 
   // Size in bytes at which if the buffers are larger we will double buffer
   uint64_t double_buffering_threshold = 200 * 1024 * 1024;
+
+  bool tiledb_heap_profiler_enabled = false;
+  HeapProfiler heap_profiler;
 };
 
 /* ********************************* */
@@ -357,6 +360,20 @@ class Reader {
    * @param verbose setting
    */
   void set_verbose(const bool& verbose);
+
+  void set_tiledb_heap_profiler_enabled(
+      bool heap_profiler_enabled,
+      const char* file_name_prefix,
+      uint64_t dump_interval_ms,
+      uint64_t dump_interval_bytes,
+      uint64_t dump_threshold_bytes);
+
+  void tiledb_heap_profiler_enabled(
+      bool* enabled,
+      const char** file_name_prefix,
+      uint64_t* dump_interval_ms,
+      uint64_t* dump_interval_bytes,
+      uint64_t* dump_threshold_bytes) const;
 
  private:
   /* ********************************* */

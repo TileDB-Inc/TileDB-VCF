@@ -44,7 +44,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_queryable_attributes", &Reader::get_queryable_attributes)
       .def("get_materialized_attributes", &Reader::get_materialized_attributes)
       .def("get_sample_count", &Reader::get_sample_count)
-      .def("get_sample_names", &Reader::get_sample_names);
+      .def("get_sample_names", &Reader::get_sample_names)
+      .def("set_tiledb_heap_profiler_enabled", &Reader::set_tiledb_heap_profiler_enabled);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())
@@ -69,5 +70,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_tiledb_config", &Writer::set_tiledb_config)
       .def("set_sample_batch_size", &Writer::set_sample_batch_size)
       .def("get_tiledb_stats_enabled", &Writer::get_tiledb_stats_enabled)
-      .def("get_tiledb_stats", &Writer::get_tiledb_stats);
+      .def("get_tiledb_stats", &Writer::get_tiledb_stats)
+      .def("set_tiledb_heap_profiler_enabled", &Writer::set_tiledb_heap_profiler_enabled);
 }

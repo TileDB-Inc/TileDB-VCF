@@ -189,6 +189,32 @@ void Reader::tiledb_stats_enabled(bool* enabled) const {
   *enabled = params_.tiledb_stats_enabled;
 }
 
+void Reader::set_tiledb_heap_profiler_enabled(
+    bool heap_profiler_enabled,
+    const char* file_name_prefix,
+    uint64_t dump_interval_ms,
+    uint64_t dump_interval_bytes,
+    uint64_t dump_threshold_bytes) {
+  params_.tiledb_heap_profiler_enabled = heap_profiler_enabled;
+  params_.heap_profiler.file_name_prefix = file_name_prefix;
+  params_.heap_profiler.dump_interval_ms = dump_interval_ms;
+  params_.heap_profiler.dump_interval_bytes = dump_interval_bytes;
+  params_.heap_profiler.dump_threshold_byte = dump_threshold_bytes;
+}
+
+void Reader::tiledb_heap_profiler_enabled(
+    bool* enabled,
+    const char** file_name_prefix,
+    uint64_t* dump_interval_ms,
+    uint64_t* dump_interval_bytes,
+    uint64_t* dump_threshold_bytes) const {
+  *enabled = params_.tiledb_heap_profiler_enabled;
+  *file_name_prefix = params_.heap_profiler.file_name_prefix.c_str();
+  *dump_interval_ms = params_.heap_profiler.dump_interval_ms;
+  *dump_interval_bytes = params_.heap_profiler.dump_interval_bytes;
+  *dump_threshold_bytes = params_.heap_profiler.dump_threshold_byte;
+}
+
 void Reader::set_tiledb_stats_enabled_vcf_header_array(bool stats_enabled) {
   params_.tiledb_stats_enabled_vcf_header_array = stats_enabled;
 }
@@ -278,6 +304,18 @@ void Reader::get_buffer_validity_bitmap(
 }
 
 void Reader::read() {
+  if (params_.tiledb_heap_profiler_enabled) {
+    const char* file_name_prefix = nullptr;
+    if (!params_.heap_profiler.file_name_prefix.empty()) {
+      file_name_prefix = params_.heap_profiler.file_name_prefix.c_str();
+    }
+    tiledb_heap_profiler_enable(
+        file_name_prefix,
+        params_.heap_profiler.dump_interval_ms,
+        params_.heap_profiler.dump_interval_bytes,
+        params_.heap_profiler.dump_threshold_byte);
+  }
+
   dataset_->set_tiledb_stats_enabled(params_.tiledb_stats_enabled);
   dataset_->set_tiledb_stats_enabled_vcf_header(
       params_.tiledb_stats_enabled_vcf_header_array);

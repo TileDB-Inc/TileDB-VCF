@@ -359,6 +359,22 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region
   (JNIEnv *, jclass, jlong, jlong, jlong, jbyteArray, jbyteArray, jlongArray, jlongArray);
 
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_tiledb_heap_profiler_enabled
+ * Signature: (JZLjava/lang/String;JJJ)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1heap_1profiler_1enabled
+  (JNIEnv *, jclass, jlong, jboolean, jstring, jlong, jlong, jlong);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_tiledb_heap_profiler_enabled
+ * Signature: (J[Z[B[J[J[J)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1tiledb_1heap_1profiler_1enabled
+  (JNIEnv *, jclass, jlong, jbooleanArray, jbyteArray, jlongArray, jlongArray, jlongArray);
+
 #ifdef __cplusplus
 }
 #endif

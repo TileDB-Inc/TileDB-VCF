@@ -76,6 +76,9 @@ struct IngestionParams {
 
   // Number of samples per batch for ingestion
   uint64_t sample_batch_size = 10;
+
+  bool tiledb_heap_profiler_enabled = false;
+  HeapProfiler heap_profiler;
 };
 
 /* ********************************* */
@@ -226,6 +229,20 @@ class Writer {
 
   /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
+
+  void set_tiledb_heap_profiler_enabled(
+      bool heap_profiler_enabled,
+      const char* file_name_prefix,
+      uint64_t dump_interval_ms,
+      uint64_t dump_interval_bytes,
+      uint64_t dump_threshold_bytes);
+
+  void tiledb_heap_profiler_enabled(
+      bool* enabled,
+      const char** file_name_prefix,
+      uint64_t* dump_interval_ms,
+      uint64_t* dump_interval_bytes,
+      uint64_t* dump_threshold_bytes) const;
 
  private:
   /* ********************************* */
