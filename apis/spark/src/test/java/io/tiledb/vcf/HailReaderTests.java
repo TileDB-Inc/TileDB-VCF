@@ -78,8 +78,8 @@ public class HailReaderTests extends SharedJavaSparkSession {
     HailContext hc = HailContext.apply(sb, "/tmp/hail.log", false, false, 50, false, 3);
 
     TileDBHailVCFReader reader =
-        new TileDBHailVCFReader(
-            URI.create(testSampleGroupURI("ingested_2samples")), opts, testSampleDataset().toDF());
+        new TileDBHailVCFReader(testSampleGroupURI("ingested_2samples"), "HG01762,HG00280");
+        new TileDBHailVCFReader(testSampleDataset());
 
     ExecuteContext ctx =
         new ExecuteContext(
