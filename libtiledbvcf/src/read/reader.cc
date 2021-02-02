@@ -1850,13 +1850,15 @@ void Reader::prepare_attribute_buffers() {
         "requirements.");
   }
 
-  // We get half of the memory budget for the query buffers.
-  uint64_t alloc_budget = params_.memory_budget_mb / 2;
+  // We get one-forth of the memory budget for the query buffers.
+  // another one-forth goes to TileDB for `sm.memory_budget` and
+  // `sm.memory_budget_var`
+  uint64_t alloc_budget = params_.memory_budget_mb / 2 / 2;
 
   // If the query buffers would be less than 100MB don't double buffer
   if (AttributeBufferSet::compute_buffer_size(attrs, alloc_budget) >
       params_.double_buffering_threshold) {
-    alloc_budget = params_.memory_budget_mb / 4;
+    alloc_budget = params_.memory_budget_mb / 4 / 2;
     buffers_a->allocate_fixed(
         attrs, alloc_budget, dataset_->metadata().version);
     buffers_b->allocate_fixed(
