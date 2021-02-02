@@ -51,7 +51,7 @@ enum class Mode {
   UNDEF
 };
 /** TileDBVCF Util command operation modes */
-enum class UtilsMode { Consolidate, Vaccum, UNDEF };
+enum class UtilsMode { Consolidate, Vacuum, UNDEF };
 enum class UtilsConsolidateMode { FragmentMeta, Fragments, UNDEF };
 
 /** Returns a help string, displaying the given default value. */
@@ -273,7 +273,7 @@ void do_utils_consolidate(
         "fragments");
 }
 
-void do_utils_vaccum(
+void do_utils_vacuum(
     const UtilsConsolidateMode vacuum_mode, const UtilsParams& args) {
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -570,7 +570,7 @@ int main(int argc, char** argv) {
   auto utils =
       (command("utils").set(opmode, Mode::Utils),
        (command("consolidate").set(opmode_utils, UtilsMode::Consolidate) |
-        command("vaccum").set(opmode_utils, UtilsMode::Vaccum)),
+        command("vacuum").set(opmode_utils, UtilsMode::Vacuum)),
        command("fragment_meta")
                .set(
                    opmode_utils_consolidate,
@@ -658,8 +658,8 @@ int main(int argc, char** argv) {
         case UtilsMode::Consolidate:
           do_utils_consolidate(opmode_utils_consolidate, utils_args);
           break;
-        case UtilsMode::Vaccum:
-          do_utils_vaccum(opmode_utils_consolidate, utils_args);
+        case UtilsMode::Vacuum:
+          do_utils_vacuum(opmode_utils_consolidate, utils_args);
           break;
         default:
           usage_utils(utils);
