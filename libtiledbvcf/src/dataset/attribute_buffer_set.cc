@@ -35,8 +35,8 @@ void AttributeBufferSet::allocate_fixed(
   clear();
   fixed_alloc_.clear();
 
-  uint64_t nbytes = compute_buffer_size(attr_names, mem_budget_mb);
-  uint64_t num_offsets = nbytes / sizeof(uint64_t);
+  buffer_size_bytes_ = compute_buffer_size(attr_names, mem_budget_mb);
+  uint64_t num_offsets = buffer_size_bytes_ / sizeof(uint64_t);
 
   if (verbose_) {
     // Get count of number of query buffers being allocated
@@ -47,8 +47,9 @@ void AttributeBufferSet::allocate_fixed(
     }
 
     std::cout << "Allocating " << attr_names.size() << " fields ("
-              << num_buffers << " buffers) of size " << nbytes << " bytes ("
-              << nbytes / (1024.0f * 1024.0f) << "MB)" << std::endl;
+              << num_buffers << " buffers) of size " << buffer_size_bytes_
+              << " bytes (" << buffer_size_bytes_ / (1024.0f * 1024.0f) << "MB)"
+              << std::endl;
   }
 
   using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
@@ -61,73 +62,73 @@ void AttributeBufferSet::allocate_fixed(
     if ((s == dimNamesV3::sample || s == dimNamesV2::sample) &&
         (version == TileDBVCFDataset::Version::V2 ||
          version == TileDBVCFDataset::Version::V3)) {
-      sample_.resize(nbytes);
+      sample_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &sample_, sizeof(uint32_t));
     } else if (
         s == dimNamesV4::sample && version == TileDBVCFDataset::Version::V4) {
-      sample_name_.resize(nbytes);
+      sample_name_.resize(buffer_size_bytes_);
       sample_name_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &sample_name_, sizeof(char));
     } else if (s == dimNamesV4::contig) {
-      contig_.resize(nbytes);
+      contig_.resize(buffer_size_bytes_);
       contig_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &contig_, sizeof(char));
     } else if (s == dimNamesV4::start_pos || s == dimNamesV3::start_pos) {
-      start_pos_.resize(nbytes);
+      start_pos_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &start_pos_, sizeof(uint32_t));
     } else if (s == dimNamesV2::end_pos) {
-      end_pos_.resize(nbytes);
+      end_pos_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &end_pos_, sizeof(uint32_t));
     } else if (
         s == attrNamesV4::real_start_pos || s == attrNamesV3::real_start_pos) {
-      real_start_pos_.resize(nbytes);
+      real_start_pos_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &real_start_pos_, sizeof(uint32_t));
     } else if (s == attrNamesV3::end_pos) {
-      end_pos_.resize(nbytes);
+      end_pos_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &end_pos_, sizeof(uint32_t));
     } else if (s == attrNamesV2::pos) {
-      pos_.resize(nbytes);
+      pos_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &pos_, sizeof(uint32_t));
     } else if (s == attrNamesV2::real_end) {
-      real_end_.resize(nbytes);
+      real_end_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &real_end_, sizeof(uint32_t));
     } else if (
         s == attrNamesV4::qual || s == attrNamesV3::qual ||
         s == attrNamesV2::qual) {
-      qual_.resize(nbytes);
+      qual_.resize(buffer_size_bytes_);
       fixed_alloc_.emplace_back(false, s, &qual_, sizeof(float));
     } else if (
         s == attrNamesV4::alleles || s == attrNamesV3::alleles ||
         s == attrNamesV2::alleles) {
-      alleles_.resize(nbytes);
+      alleles_.resize(buffer_size_bytes_);
       alleles_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &alleles_, sizeof(char));
     } else if (
         s == attrNamesV4::id || s == attrNamesV3::id || s == attrNamesV2::id) {
-      id_.resize(nbytes);
+      id_.resize(buffer_size_bytes_);
       id_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &id_, sizeof(char));
     } else if (
         s == attrNamesV4::filter_ids || s == attrNamesV3::filter_ids ||
         s == attrNamesV2::filter_ids) {
-      filter_ids_.resize(nbytes);
+      filter_ids_.resize(buffer_size_bytes_);
       filter_ids_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &filter_ids_, sizeof(int32_t));
     } else if (
         s == attrNamesV4::info || s == attrNamesV3::info ||
         s == attrNamesV2::info) {
-      info_.resize(nbytes);
+      info_.resize(buffer_size_bytes_);
       info_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &info_, sizeof(char));
     } else if (
         s == attrNamesV4::fmt || s == attrNamesV3::fmt ||
         s == attrNamesV2::fmt) {
-      fmt_.resize(nbytes);
+      fmt_.resize(buffer_size_bytes_);
       fmt_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &fmt_, sizeof(char));
     } else {
       Buffer& buff = extra_attrs_[s];
-      buff.resize(nbytes);
+      buff.resize(buffer_size_bytes_);
       buff.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &buff, sizeof(char));
     }
@@ -546,6 +547,10 @@ bool AttributeBufferSet::extra_attr(const std::string& name, Buffer** buffer) {
     *buffer = &it->second;
     return true;
   }
+}
+
+uint64_t AttributeBufferSet::size_per_buffer() const {
+  return buffer_size_bytes_;
 }
 
 }  // namespace vcf

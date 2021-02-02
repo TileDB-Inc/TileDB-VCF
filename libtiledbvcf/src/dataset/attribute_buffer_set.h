@@ -66,6 +66,7 @@ class AttributeBufferSet {
    * @param extra List of attributes to allocate buffers for.
    * @param mem_budget_mb Memory budget (MB) of sum of allocations.
    * @param version dataset version
+   * @return size of buffers allocated in bytes
    */
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
@@ -186,6 +187,13 @@ class AttributeBufferSet {
    */
   bool extra_attr(const std::string& name, Buffer** buffer);
 
+  /**
+   * Returns the size of each buffer allocated. If you want the total size of
+   * all buffers see total_size()
+   * @return size
+   */
+  uint64_t size_per_buffer() const;
+
  private:
   /** sample_name v4 dimension (string) */
   Buffer sample_name_;
@@ -240,6 +248,9 @@ class AttributeBufferSet {
 
   /** verbose output enabled */
   bool verbose_;
+
+  /** size of allocated buffers in bytes */
+  uint64_t buffer_size_bytes_;
 };
 
 }  // namespace vcf

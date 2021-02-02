@@ -359,6 +359,8 @@ void Reader::init_for_reads() {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     return init_for_reads_v4();
   }
+
+  set_tiledb_query_config();
 }
 
 void Reader::init_for_reads_v2() {
@@ -1876,12 +1878,6 @@ void Reader::init_tiledb() {
   cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
-  // TileDB gets half of our memory budget, and a minimum of 10MB.
-  const uint64_t tiledb_mem_budget = std::max<uint64_t>(
-      10 * 1024 * 1024, (uint64_t(params_.memory_budget_mb) * 1024 * 1024) / 2);
-  cfg["sm.memory_budget"] = tiledb_mem_budget / 2;
-  cfg["sm.memory_budget_var"] = tiledb_mem_budget / 2;
-
   // User overrides
   utils::set_tiledb_config(params_.tiledb_config, &cfg);
 
@@ -1986,6 +1982,16 @@ void Reader::info_attribute_name(int32_t index, char** name) {
 
 void Reader::set_verbose(const bool& verbose) {
   params_.verbose = verbose;
+}
+
+void Reader::set_tiledb_query_config() {
+  assert(read_state_.query != nullptr);
+  assert(buffers_a != nullptr);
+
+  tiledb::Config cfg;
+  cfg["sm.memory_budget"] = buffers_a->size_per_buffer();
+  cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
+  read_state_.query->set_config(cfg);
 }
 
 }  // namespace vcf
