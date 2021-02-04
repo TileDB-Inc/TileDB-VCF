@@ -219,7 +219,12 @@ class Dataset(object):
         :return: Pandas DataFrame
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
-        return table.to_pandas()
+
+        # Grab buffers and hold reference on the pandas dataframe so they are not gc'ed when the reader goes out of scope
+        table_buffers = self.reader.get_buffers()
+        df = table.to_pandas()
+        df.attrs["_vcf_buffers"] = table_buffers
+        return df
 
     def continue_read_arrow(self, release_buffers=True):
         """
