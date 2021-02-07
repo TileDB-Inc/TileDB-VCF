@@ -59,6 +59,12 @@ struct PartitionInfo {
   unsigned num_partitions = 1;
 };
 
+struct MemoryBudgetBreakdown {
+  uint64_t buffers = 1024;
+  uint64_t tiledb_tile_cache = 1024;
+  uint64_t tiledb_memory_budget = 1024;
+};
+
 /** Arguments/params for export. */
 struct ExportParams {
   // Basic export params:
@@ -86,7 +92,8 @@ struct ExportParams {
   bool tiledb_stats_enabled_vcf_header_array = false;
 
   // Memory/performance params:
-  unsigned memory_budget_mb = 2 * 1024;
+  uint64_t memory_budget_mb = 2 * 1024;
+  MemoryBudgetBreakdown memory_budget_breakdown;
 
   // Size in bytes at which if the buffers are larger we will double buffer
   uint64_t double_buffering_threshold = 200 * 1024 * 1024;
@@ -623,6 +630,8 @@ class Reader {
    * `sm.memory_buget_var`
    */
   void set_tiledb_query_config();
+
+  void compute_memory_budget_details();
 };
 
 }  // namespace vcf

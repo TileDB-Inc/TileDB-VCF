@@ -50,12 +50,11 @@ class AttributeBufferSet {
    * Compute the size of the buffers in bytes based on memory budget and list of
    * attributes to select
    * @param attr_names
-   * @param mem_budget_mb
+   * @param mem_budget
    * @return size of buffers in bytes
    */
   static uint64_t compute_buffer_size(
-      const std::unordered_set<std::string>& attr_names,
-      uint64_t mem_budget_mb);
+      const std::unordered_set<std::string>& attr_names, uint64_t mem_budget);
 
   /**
    * Resize buffers for the given set of attributes using the given allocation
@@ -64,13 +63,13 @@ class AttributeBufferSet {
    * Used when reading.
    *
    * @param extra List of attributes to allocate buffers for.
-   * @param mem_budget_mb Memory budget (MB) of sum of allocations.
+   * @param memory_budget Memory budget (MB) of sum of allocations.
    * @param version dataset version
    * @return size of buffers allocated in bytes
    */
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
-      unsigned mem_budget_mb,
+      uint64_t memory_budget,
       unsigned version);
 
   /**
