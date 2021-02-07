@@ -193,6 +193,12 @@ class AttributeBufferSet {
    */
   uint64_t size_per_buffer() const;
 
+  /**
+   * Number of buffers allocated
+   * @return number of buffers allocated
+   */
+  uint64_t nbuffers() const;
+
  private:
   /** sample_name v4 dimension (string) */
   Buffer sample_name_;
@@ -250,6 +256,9 @@ class AttributeBufferSet {
 
   /** size of allocated buffers in bytes */
   uint64_t buffer_size_bytes_;
+
+  /** Total number of buffers allocated */
+  uint64_t number_of_buffers_;
 };
 
 }  // namespace vcf
