@@ -307,6 +307,16 @@ void append_from_file(const std::string& uri, std::vector<std::string>* lines);
 int bcf_type_size(const int type);
 
 /**
+ * Parse the give list of params (of the format 'param.name=value') and set them
+ * on the unordered map
+ * @param params vector of params
+ * @param cfg unordered_map to set values on
+ */
+void set_tiledb_config_map(
+    const std::vector<std::string>& params,
+    std::unordered_map<std::string, std::string>* cfg);
+
+/**
  * Parses the given list of params (of the format 'param.name=value') and sets
  * them on the given Config instance.
  */
@@ -322,6 +332,24 @@ void set_tiledb_config(
  */
 void set_tiledb_config(
     const std::vector<std::string>& params, tiledb_config_t* cfg);
+
+/**
+ * Sets a map of parameters to a TileDB Config
+ * @param params unordered map of configuration parameters
+ * @param cfg TileDB Config to set
+ */
+void set_tiledb_config(
+    const std::unordered_map<std::string, std::string>& params,
+    tiledb::Config* cfg);
+
+/**
+ * Sets a map of parameters to a TileDB Config
+ * @param params unordered map of configuration parameters
+ * @param cfg TileDB Config to set
+ */
+void set_tiledb_config(
+    const std::unordered_map<std::string, std::string>& params,
+    tiledb_config_t* cfg);
 
 /**
  * Set the htslib global config and context. We use this c++ function to provide

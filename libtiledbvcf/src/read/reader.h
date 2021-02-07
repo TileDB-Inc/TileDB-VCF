@@ -80,6 +80,8 @@ struct ExportParams {
   bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
+  std::unordered_map<std::string, std::string> tiledb_config_map;
+
   bool tiledb_stats_enabled = false;
   bool tiledb_stats_enabled_vcf_header_array = false;
 

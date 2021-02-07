@@ -279,6 +279,21 @@ int bcf_type_size(const int type) {
   }
 }
 
+void set_tiledb_config_map(
+    const std::vector<std::string>& params,
+    std::unordered_map<std::string, std::string>* cfg) {
+  for (const auto& s : params) {
+    auto kv = utils::split(s, '=');
+    if (kv.size() != 2)
+      throw std::runtime_error(
+          "Error setting TileDB config parameter; bad value '" + s + "'");
+
+    utils::trim(&kv[0]);
+    utils::trim(&kv[1]);
+    cfg->emplace(kv[0], kv[1]);
+  }
+}
+
 void set_tiledb_config(
     const std::vector<std::string>& params, tiledb::Config* cfg) {
   set_tiledb_config(params, cfg->ptr().get());
@@ -295,6 +310,22 @@ void set_tiledb_config(
     utils::trim(&kv[0]);
     utils::trim(&kv[1]);
     tiledb_config_set(cfg, kv[0].c_str(), kv[1].c_str(), &err);
+    tiledb::impl::check_config_error(err);
+  }
+}
+
+void set_tiledb_config(
+    const std::unordered_map<std::string, std::string>& params,
+    tiledb::Config* cfg) {
+  set_tiledb_config(params, cfg->ptr().get());
+}
+
+void set_tiledb_config(
+    const std::unordered_map<std::string, std::string>& params,
+    tiledb_config_t* cfg) {
+  tiledb_error_t* err;
+  for (const auto& kv : params) {
+    tiledb_config_set(cfg, kv.first.c_str(), kv.second.c_str(), &err);
     tiledb::impl::check_config_error(err);
   }
 }

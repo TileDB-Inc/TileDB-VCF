@@ -1880,8 +1880,10 @@ void Reader::init_tiledb() {
   cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
-  // User overrides
-  utils::set_tiledb_config(params_.tiledb_config, &cfg);
+  // User overrides. We set it on the map and actual config
+  utils::set_tiledb_config_map(
+      params_.tiledb_config, &params_.tiledb_config_map);
+  utils::set_tiledb_config(params_.tiledb_config_map, &cfg);
 
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
@@ -1991,8 +1993,14 @@ void Reader::set_tiledb_query_config() {
   assert(buffers_a != nullptr);
 
   tiledb::Config cfg;
-  cfg["sm.memory_budget"] = buffers_a->size_per_buffer();
-  cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
+  if (params_.tiledb_config_map.find("sm.memory_budget") ==
+      params_.tiledb_config_map.end())
+    cfg["sm.memory_budget"] = buffers_a->size_per_buffer();
+
+  if (params_.tiledb_config_map.find("sm.memory_budget_var") ==
+      params_.tiledb_config_map.end())
+    cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
+
   read_state_.query->set_config(cfg);
 }
 
