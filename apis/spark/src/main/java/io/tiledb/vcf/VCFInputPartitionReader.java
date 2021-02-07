@@ -325,13 +325,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (memoryBudget.isPresent()) {
       memBudgetMB = memoryBudget.get();
     }
+    long vcfMemBudgetMB = memBudgetMB;
 
     // Given fixed memory budget and required attributes, compute buffer sizes. Note that if
     // nBuffers is 0,
     // this is just a counting operation, and no buffers need to be allocated.
     if (nBuffers > 0) {
-      // We get half, the other half goes to libtiledbvcf.
-      memBudgetMB /= 2;
+      // We get 1/3rd, the other 2/3rds goes to libtiledbvcf.
+      vcfMemBudgetMB = ((Double) (memBudgetMB / 3.0 * 2)).longValue();
+      memBudgetMB /= 3;
 
       // Compute allocation size; check against some reasonable minimum.
       long bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
@@ -341,7 +343,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             "Warning: TileDB-VCF-Spark buffer allocation of "
                 + bufferSizeMB
                 + " is small. Increase the memory budget from its current setting of "
-                + (memBudgetMB * 2)
+                + (memBudgetMB * 3)
                 + " MB. Or reduce fields current selection of "
                 + numColumns
                 + " fields ("
@@ -379,7 +381,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     }
 
-    vcfReader.setMemoryBudget(Util.longToInt(memBudgetMB));
+    // Set the VCF c++ memory budget to 2/3rds of total budget
+    vcfReader.setMemoryBudget(Util.longToInt(vcfMemBudgetMB));
 
     if (enableStatsLogging) {
       log.info(

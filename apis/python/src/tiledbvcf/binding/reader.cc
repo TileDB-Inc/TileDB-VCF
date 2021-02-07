@@ -122,11 +122,11 @@ void Reader::set_sample_partition(int32_t partition, int32_t num_partitions) {
 void Reader::set_memory_budget(int32_t memory_mb) {
   mem_budget_mb_ = memory_mb;
 
-  // TileDB-VCF gets half the budget, we use the other half for buffer
+  // TileDB-VCF gets two thirds the budget, we use the other third for buffer
   // allocation.
   auto reader = ptr.get();
   check_error(
-      reader, tiledb_vcf_reader_set_memory_budget(reader, mem_budget_mb_ / 2));
+      reader, tiledb_vcf_reader_set_memory_budget(reader, uint64_t(mem_budget_mb_ / 3.0 * 2.0)));
 }
 
 void Reader::set_sort_regions(bool sort_regions) {
@@ -189,8 +189,8 @@ void Reader::alloc_buffers() {
   if (num_buffers == 0)
     return;
 
-  // Only use half the budget because TileDB-VCF gets the other half.
-  const int64_t budget_mb = mem_budget_mb_ / 2;
+  // Only use one third the budget because TileDB-VCF gets the other two thirds.
+  const int64_t budget_mb = mem_budget_mb_ / 3.0;
 
   // The undocumented "0 MB" budget is used only for testing incomplete queries.
   int64_t alloc_size_bytes;
