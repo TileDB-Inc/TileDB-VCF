@@ -359,6 +359,8 @@ void Reader::init_for_reads() {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     return init_for_reads_v4();
   }
+
+  set_tiledb_query_config();
 }
 
 void Reader::init_for_reads_v2() {
@@ -1848,13 +1850,15 @@ void Reader::prepare_attribute_buffers() {
         "requirements.");
   }
 
-  // We get half of the memory budget for the query buffers.
-  uint64_t alloc_budget = params_.memory_budget_mb / 2;
+  // We get one-forth of the memory budget for the query buffers.
+  // another one-forth goes to TileDB for `sm.memory_budget` and
+  // `sm.memory_budget_var`
+  uint64_t alloc_budget = params_.memory_budget_mb / 2 / 2;
 
   // If the query buffers would be less than 100MB don't double buffer
   if (AttributeBufferSet::compute_buffer_size(attrs, alloc_budget) >
       params_.double_buffering_threshold) {
-    alloc_budget = params_.memory_budget_mb / 4;
+    alloc_budget = params_.memory_budget_mb / 4 / 2;
     buffers_a->allocate_fixed(
         attrs, alloc_budget, dataset_->metadata().version);
     buffers_b->allocate_fixed(
@@ -1876,14 +1880,10 @@ void Reader::init_tiledb() {
   cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
-  // TileDB gets half of our memory budget, and a minimum of 10MB.
-  const uint64_t tiledb_mem_budget = std::max<uint64_t>(
-      10 * 1024 * 1024, (uint64_t(params_.memory_budget_mb) * 1024 * 1024) / 2);
-  cfg["sm.memory_budget"] = tiledb_mem_budget / 2;
-  cfg["sm.memory_budget_var"] = tiledb_mem_budget / 2;
-
-  // User overrides
-  utils::set_tiledb_config(params_.tiledb_config, &cfg);
+  // User overrides. We set it on the map and actual config
+  utils::set_tiledb_config_map(
+      params_.tiledb_config, &params_.tiledb_config_map);
+  utils::set_tiledb_config(params_.tiledb_config_map, &cfg);
 
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
@@ -1986,6 +1986,22 @@ void Reader::info_attribute_name(int32_t index, char** name) {
 
 void Reader::set_verbose(const bool& verbose) {
   params_.verbose = verbose;
+}
+
+void Reader::set_tiledb_query_config() {
+  assert(read_state_.query != nullptr);
+  assert(buffers_a != nullptr);
+
+  tiledb::Config cfg;
+  if (params_.tiledb_config_map.find("sm.memory_budget") ==
+      params_.tiledb_config_map.end())
+    cfg["sm.memory_budget"] = buffers_a->size_per_buffer();
+
+  if (params_.tiledb_config_map.find("sm.memory_budget_var") ==
+      params_.tiledb_config_map.end())
+    cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
+
+  read_state_.query->set_config(cfg);
 }
 
 }  // namespace vcf

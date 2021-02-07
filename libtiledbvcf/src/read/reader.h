@@ -80,6 +80,8 @@ struct ExportParams {
   bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
   std::vector<std::string> tiledb_config;
+  std::unordered_map<std::string, std::string> tiledb_config_map;
+
   bool tiledb_stats_enabled = false;
   bool tiledb_stats_enabled_vcf_header_array = false;
 
@@ -613,6 +615,14 @@ class Reader {
   /** Checks that the partitioning values are valid. */
   static void check_partitioning(
       uint64_t partition_idx, uint64_t num_partitions);
+
+  /**
+   * Builds and sets a TileDB config for the query
+   *
+   * Currently used for setting things like the `sm.memory_budget` and
+   * `sm.memory_buget_var`
+   */
+  void set_tiledb_query_config();
 };
 
 }  // namespace vcf
