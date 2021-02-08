@@ -230,9 +230,6 @@ void Exporter::recover_record(
       num_fmt_fields++;
     }
   }
-
-  dst->n_fmt = num_fmt_fields;
-  dst->n_info = num_info_fields + 1;  // + 1 because we add "END"
 }
 
 }  // namespace vcf
