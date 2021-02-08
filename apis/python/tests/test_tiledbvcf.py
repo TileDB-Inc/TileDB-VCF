@@ -177,10 +177,18 @@ def test_basic_reads(test_ds):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+
+    for use_arrow in [False, True]:
+        func = test_ds.read_arrow if use_arrow else test_ds.read
+
+        df = func(attrs=["sample_name", "pos_start", "pos_end"])
+        if use_arrow:
+            df = df.to_pandas()
+
+        _check_dfs(
+            expected_df,
+            df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
+        )
 
     # Region intersection
     df = test_ds.read(
@@ -318,6 +326,31 @@ def test_incomplete_reads():
     _check_dfs(
         pd.DataFrame.from_dict({"pos_end": np.array([13395, 13413], dtype=np.int32)}),
         df,
+    )
+
+    # test incomplete via read_arrow
+    table = test_ds.read_arrow(attrs=["pos_end"], regions=["1:12700-13400"])
+    assert not test_ds.read_completed()
+    assert len(table) == 2
+    _check_dfs(
+        pd.DataFrame.from_dict({"pos_end": np.array([12771, 12771], dtype=np.int32)}),
+        table.to_pandas(),
+    )
+
+    table = test_ds.continue_read_arrow()
+    assert not test_ds.read_completed()
+    assert len(table) == 2
+    _check_dfs(
+        pd.DataFrame.from_dict({"pos_end": np.array([13374, 13389], dtype=np.int32)}),
+        table.to_pandas(),
+    )
+
+    table = test_ds.continue_read_arrow()
+    assert test_ds.read_completed()
+    assert len(table) == 2
+    _check_dfs(
+        pd.DataFrame.from_dict({"pos_end": np.array([13395, 13413], dtype=np.int32)}),
+        table.to_pandas(),
     )
 
 
