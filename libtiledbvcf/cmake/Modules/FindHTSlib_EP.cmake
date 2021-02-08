@@ -69,6 +69,11 @@ if (NOT HTSLIB_FOUND)
     else()
       set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.10")
     endif()
+    SET(CFLAGS "")
+    string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
+    if (BUILD_TYPE STREQUAL "DEBUG")
+      SET(CFLAGS "-g")
+    endif()
     ExternalProject_Add(ep_htslib
       PREFIX "externals"
       URL "https://github.com/samtools/htslib/archive/1.10.zip"
@@ -79,7 +84,7 @@ if (NOT HTSLIB_FOUND)
         COMMAND
           autoconf
         COMMAND
-          ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS}
+          ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}
       BUILD_COMMAND
         $(MAKE)
       INSTALL_COMMAND
