@@ -8,7 +8,7 @@ AttributeBufferSet::AttributeBufferSet(bool verbose)
     : verbose_(verbose){};
 
 uint64_t AttributeBufferSet::compute_buffer_size(
-    const std::unordered_set<std::string>& attr_names, uint64_t mem_budget_mb) {
+    const std::unordered_set<std::string>& attr_names, uint64_t mem_budget) {
   // Get count of number of query buffers being allocated
   size_t num_buffers = 0;
   for (const auto& s : attr_names) {
@@ -17,11 +17,11 @@ uint64_t AttributeBufferSet::compute_buffer_size(
   }
 
   // Every buffer alloc gets the same size.
-  uint64_t nbytes = (uint64_t(mem_budget_mb) * 1024 * 1024) / num_buffers;
+  uint64_t nbytes = mem_budget / num_buffers;
 
   // Requesting 0 MB will result in a 1 KB allocation. This is used by the
   // tests to test the path of incomplete TileDB queries.
-  if (mem_budget_mb == 0) {
+  if (mem_budget == 0) {
     nbytes = 1024;
   }
 
@@ -30,12 +30,12 @@ uint64_t AttributeBufferSet::compute_buffer_size(
 
 void AttributeBufferSet::allocate_fixed(
     const std::unordered_set<std::string>& attr_names,
-    unsigned mem_budget_mb,
+    uint64_t memory_budget,
     unsigned version) {
   clear();
   fixed_alloc_.clear();
 
-  buffer_size_bytes_ = compute_buffer_size(attr_names, mem_budget_mb);
+  buffer_size_bytes_ = compute_buffer_size(attr_names, memory_budget);
   uint64_t num_offsets = buffer_size_bytes_ / sizeof(uint64_t);
 
   if (verbose_) {

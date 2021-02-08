@@ -1853,12 +1853,13 @@ void Reader::prepare_attribute_buffers() {
   // We get one-forth of the memory budget for the query buffers.
   // another one-forth goes to TileDB for `sm.memory_budget` and
   // `sm.memory_budget_var`
-  uint64_t alloc_budget = params_.memory_budget_mb / 2 / 2;
+  uint64_t alloc_budget = params_.memory_budget_breakdown.buffers;
 
   // If the query buffers would be less than 100MB don't double buffer
   if (AttributeBufferSet::compute_buffer_size(attrs, alloc_budget) >
       params_.double_buffering_threshold) {
-    alloc_budget = params_.memory_budget_mb / 4 / 2;
+    // If we are double buffering allocate half to each set of buffers
+    alloc_budget = params_.memory_budget_breakdown.buffers / 2;
     buffers_a->allocate_fixed(
         attrs, alloc_budget, dataset_->metadata().version);
     buffers_b->allocate_fixed(
@@ -1876,7 +1877,10 @@ void Reader::init_tiledb() {
   tiledb::Config cfg;
 
   // Default settings
-  cfg["sm.tile_cache_size"] = uint64_t(1) * 1024 * 1024 * 1024;
+  // Tile cache gets 10% of memory budget
+  compute_memory_budget_details();
+  cfg["sm.tile_cache_size"] = params_.memory_budget_breakdown.tiledb_tile_cache;
+
   cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
@@ -1884,6 +1888,12 @@ void Reader::init_tiledb() {
   utils::set_tiledb_config_map(
       params_.tiledb_config, &params_.tiledb_config_map);
   utils::set_tiledb_config(params_.tiledb_config_map, &cfg);
+
+  // Set the tile cache to what the config is, this updates the value if the
+  // user provided an override Currently this isn't used anywhere else but for
+  // good measure let's update to the users value
+  params_.memory_budget_breakdown.tiledb_tile_cache =
+      std::stoull(cfg.get("sm.tile_cache_size"));
 
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
@@ -2002,6 +2012,22 @@ void Reader::set_tiledb_query_config() {
     cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
 
   read_state_.query->set_config(cfg);
+}
+
+void Reader::compute_memory_budget_details() {
+  uint64_t memory_budget = params_.memory_budget_mb * 1024 * 1024;
+
+  // Set the tile cache to 10% of total budget
+  params_.memory_budget_breakdown.tiledb_tile_cache = memory_budget * 0.1;
+  memory_budget -= params_.memory_budget_breakdown.tiledb_tile_cache;
+
+  // Set the buffers to 50% of the remaining budget
+  params_.memory_budget_breakdown.buffers = memory_budget / 2;
+  memory_budget -= params_.memory_budget_breakdown.buffers;
+
+  // Set the buffers to all of the remaining budget (which is the same as the
+  // buffers)
+  params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 }
 
 }  // namespace vcf
