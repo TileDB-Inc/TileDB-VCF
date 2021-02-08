@@ -122,20 +122,18 @@ class Dataset(object):
                     pass
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
 
-    def read(
+    def read_arrow(
         self,
         attrs,
         samples=None,
         regions=None,
         samples_file=None,
         bed_file=None,
-        return_type="pandas",
     ):
-
-        """Reads data from a TileDB-VCF dataset.
+        """Reads data from a TileDB-VCF dataset into Arrow table.
 
         For large datasets, a call to `read()` may not be able to fit all
-        results in memory. In that case, the returned dataframe will contain as
+        results in memory. In that case, the returned table will contain as
         many results as possible, and in order to retrieve the rest of the
         results, use the `continue_read()` function.
 
@@ -147,7 +145,6 @@ class Dataset(object):
         :param str samples_file: URI of file containing sample names to be read,
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
-        :param return_type: Type to return, 'pandas' for pandas dataframe or 'arrow' for raw arrow table
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -163,7 +160,47 @@ class Dataset(object):
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
 
-        return self.continue_read(return_type=return_type)
+        return self.continue_read_arrow()
+
+    def read(
+        self,
+        attrs,
+        samples=None,
+        regions=None,
+        samples_file=None,
+        bed_file=None,
+    ):
+        """Reads data from a TileDB-VCF dataset into Pandas dataframe.
+
+        For large datasets, a call to `read()` may not be able to fit all
+        results in memory. In that case, the returned table will contain as
+        many results as possible, and in order to retrieve the rest of the
+        results, use the `continue_read()` function.
+
+        You can also use the Python generator version, `read_iter()`.
+
+        :param list of str attrs: List of attribute names to be read.
+        :param list of str samples: CSV list of sample names to be read.
+        :param list of str regions: CSV list of genomic regions to be read.
+        :param str samples_file: URI of file containing sample names to be read,
+            one per line.
+        :param str bed_file: URI of a BED file of genomic regions to be read.
+        :return: Pandas DataFrame or PyArrow Array containing results.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+
+        self.reader.reset()
+        self._set_samples(samples, samples_file)
+
+        regions = "" if regions is None else regions
+        self.reader.set_regions(",".join(regions))
+        self.reader.set_attributes(attrs)
+
+        if bed_file is not None:
+            self.reader.set_bed_file(bed_file)
+
+        return self.continue_read()
 
     def read_iter(
         self, attrs, samples=None, regions=None, samples_file=None, bed_file=None
@@ -176,20 +213,25 @@ class Dataset(object):
         while not self.read_completed():
             yield self.continue_read()
 
-    def continue_read(self, release_buffers=True, return_type="pandas"):
+    def continue_read(self, release_buffers=True):
         """
         Continue an incomplete read
-        :param return_type: Type to return, 'pandas' for pandas dataframe or 'arrow' for raw arrow table
-        :return: pandas dataframe or pyarrow array
+        :return: Pandas DataFrame
+        """
+        table = self.continue_read_arrow(release_buffers=release_buffers)
+        return table.to_pandas()
+
+    def continue_read_arrow(self, release_buffers=True):
+        """
+        Continue an incomplete read
+        :return: PyArrow Table
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
 
         self.reader.read(release_buffers)
         table = self.reader.get_results_arrow()
-        if return_type == "arrow":
-            return table
-        return table.to_pandas()
+        return table
 
     def read_completed(self):
         """Returns true if the previous read operation was complete.

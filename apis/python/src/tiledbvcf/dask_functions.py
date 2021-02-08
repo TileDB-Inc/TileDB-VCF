@@ -36,20 +36,17 @@ def _read_partition(read_args):
     table_fragments = []
 
     ds = Dataset(read_args.uri, "r", read_args.cfg)
-    pyar = ds.read(
+    pyar = ds.read_arrow(
         attrs=read_args.attrs,
         samples=read_args.samples,
         regions=read_args.regions,
         samples_file=read_args.samples_file,
         bed_file=read_args.bed_file,
-        return_type="arrow",
     )
     table_fragments.append(pyar)
 
     while not ds.read_completed():
-        table_fragments.append(
-            ds.continue_read(release_buffers=False, return_type="arrow")
-        )
+        table_fragments.append(ds.continue_read_arrow(release_buffers=False))
 
     table = pa.concat_tables(table_fragments, promote=False)
 
