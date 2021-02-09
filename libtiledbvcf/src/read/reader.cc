@@ -2005,11 +2005,15 @@ void Reader::set_tiledb_query_config() {
   tiledb::Config cfg;
   if (params_.tiledb_config_map.find("sm.memory_budget") ==
       params_.tiledb_config_map.end())
-    cfg["sm.memory_budget"] = buffers_a->size_per_buffer();
+    cfg["sm.memory_budget"] =
+        params_.memory_budget_breakdown.tiledb_memory_budget /
+        buffers_a->nbuffers();
 
   if (params_.tiledb_config_map.find("sm.memory_budget_var") ==
       params_.tiledb_config_map.end())
-    cfg["sm.memory_budget_var"] = buffers_a->size_per_buffer();
+    cfg["sm.memory_budget_var"] =
+        params_.memory_budget_breakdown.tiledb_memory_budget /
+        buffers_a->nbuffers();
 
   read_state_.query->set_config(cfg);
 }
@@ -2021,12 +2025,12 @@ void Reader::compute_memory_budget_details() {
   params_.memory_budget_breakdown.tiledb_tile_cache = memory_budget * 0.1;
   memory_budget -= params_.memory_budget_breakdown.tiledb_tile_cache;
 
-  // Set the buffers to 50% of the remaining budget
-  params_.memory_budget_breakdown.buffers = memory_budget / 2;
+  // Set the buffers to 25% of the remaining budget
+  params_.memory_budget_breakdown.buffers = memory_budget * 0.25;
   memory_budget -= params_.memory_budget_breakdown.buffers;
 
-  // Set the buffers to all of the remaining budget (which is the same as the
-  // buffers)
+  // Set the buffers to all of the remaining budget (3x the buffers for a 25/75
+  // split between buffers and memory budget
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 }
 

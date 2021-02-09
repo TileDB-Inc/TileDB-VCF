@@ -38,18 +38,18 @@ void AttributeBufferSet::allocate_fixed(
   buffer_size_bytes_ = compute_buffer_size(attr_names, memory_budget);
   uint64_t num_offsets = buffer_size_bytes_ / sizeof(uint64_t);
 
-  if (verbose_) {
-    // Get count of number of query buffers being allocated
-    size_t num_buffers = 0;
-    for (const auto& s : attr_names) {
-      bool fixed_len = TileDBVCFDataset::attribute_is_fixed_len(s);
-      num_buffers += fixed_len ? 1 : 2;
-    }
+  // Get count of number of query buffers being allocated
+  number_of_buffers_ = 0;
+  for (const auto& s : attr_names) {
+    bool fixed_len = TileDBVCFDataset::attribute_is_fixed_len(s);
+    number_of_buffers_ += fixed_len ? 1 : 2;
+  }
 
+  if (verbose_) {
     std::cout << "Allocating " << attr_names.size() << " fields ("
-              << num_buffers << " buffers) of size " << buffer_size_bytes_
-              << " bytes (" << buffer_size_bytes_ / (1024.0f * 1024.0f) << "MB)"
-              << std::endl;
+              << number_of_buffers_ << " buffers) of size "
+              << buffer_size_bytes_ << " bytes ("
+              << buffer_size_bytes_ / (1024.0f * 1024.0f) << "MB)" << std::endl;
   }
 
   using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;
@@ -551,6 +551,10 @@ bool AttributeBufferSet::extra_attr(const std::string& name, Buffer** buffer) {
 
 uint64_t AttributeBufferSet::size_per_buffer() const {
   return buffer_size_bytes_;
+}
+
+uint64_t AttributeBufferSet::nbuffers() const {
+  return number_of_buffers_;
 }
 
 }  // namespace vcf
