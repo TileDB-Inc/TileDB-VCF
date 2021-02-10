@@ -753,6 +753,13 @@ bool Reader::read_current_batch() {
         hdr = read_state_.current_hdrs.at(s.sample_id).get();
       else {
         assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+        auto hdr_iter = read_state_.current_hdrs.find(
+            read_state_.current_hdrs_lookup[s.sample_name]);
+        if (hdr_iter == read_state_.current_hdrs.end())
+          throw std::runtime_error(
+              "Could not find VCF header for " + s.sample_name +
+              " in read_current_batch for finalize_Export");
+
         hdr = read_state_.current_hdrs
                   .at(read_state_.current_hdrs_lookup[s.sample_name])
                   .get();
@@ -1165,6 +1172,12 @@ bool Reader::report_cell(
     sample = SampleAndId{std::string(sample_name, size)};
     hdr_index = read_state_.current_hdrs_lookup[sample.sample_name];
   }
+
+  auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
+  if (hdr_iter == read_state_.current_hdrs.end())
+    throw std::runtime_error(
+        "Could not find VCF header for " + sample.sample_name +
+        " in report_cell");
 
   const auto& hdr = read_state_.current_hdrs.at(hdr_index);
   if (!exporter_->export_record(
