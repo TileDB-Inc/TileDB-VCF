@@ -1388,6 +1388,9 @@ void Reader::prepare_regions_v4(
   std::pair<std::string, std::string> contig_non_empty_domain =
       read_state_.array->non_empty_domain_var("contig");
 
+  if (params_.verbose) {
+    std::cout << "Fetching all contigs from first vcf header" << std::endl;
+  }
   auto all_contigs = dataset_->all_contigs_list_v4();
   std::set<std::string> all_contig_names;
 
