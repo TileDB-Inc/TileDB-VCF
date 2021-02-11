@@ -637,8 +637,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   } else {
     // When no samples are passed grab the first one
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
-    if (!non_empty_domain.first.empty())
+    if (!non_empty_domain.first.empty()) {
+      std::cout << "setting range for fetch_vcf_headers to "
+                << non_empty_domain.first << std::endl;
       query.add_range(0, non_empty_domain.first, non_empty_domain.first);
+    }
   }
   query.set_layout(TILEDB_ROW_MAJOR);
 
@@ -697,7 +700,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     uint64_t num_samples_chars = result_el["sample"].second;
 
     bool has_results = num_chars != 0;
-
+    const char* status_str;
+    tiledb_query_status_to_str(tiledb_query_status_t(status), &status_str);
+    std::cout << "vcf header query status: " << status_str
+              << ", has_results=" << has_results << ", num_chars=" << num_chars
+              << ", num_offsets=" << num_offsets << std::endl;
     if (status == Query::Status::INCOMPLETE && !has_results) {
       // If there are no results, double the size of the buffer and then
       // resubmit the query.
