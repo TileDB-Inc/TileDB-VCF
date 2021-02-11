@@ -24,7 +24,10 @@
  * THE SOFTWARE.
  */
 
+#include <chrono>
 #include <future>
+#include <random>
+#include <thread>
 
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
@@ -545,6 +548,7 @@ bool Reader::next_read_batch_v4() {
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
 
+  std::stringstream ss;
   // Set ranges
   // For samples we special case when we are looking at all samples. If so we
   // just need to set one range with the start/end sample id
@@ -559,18 +563,35 @@ bool Reader::next_read_batch_v4() {
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
-    for (const auto& sample : read_state_.current_sample_batches)
+    for (const auto& sample : read_state_.current_sample_batches) {
       read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+      ss << "query.add_range(2, \"" << sample.sample_name
+         << "\", \"" + sample.sample_name + "\");" << std::endl;
+    }
   }
 
   for (const auto& query_region :
-       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second)
+       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+           .second) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    ss << "query.add_range(1, " << query_region.col_min << ", "
+       << query_region.col_max << ");" << std::endl;
+  }
 
   read_state_.query->add_range(
       0,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
+  ss << "query.add_range(0, \""
+     << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
+     << "\", \""
+     << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
+     << "\");" << std::endl;
+
+  std::mt19937_64 eng{std::random_device{}()};  // or seed however you want
+  std::uniform_int_distribution<> dist{500, 3000};
+  std::this_thread::sleep_for(std::chrono::milliseconds{dist(eng)});
+  std::cerr << ss.str() << std::endl;
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
