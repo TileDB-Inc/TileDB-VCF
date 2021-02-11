@@ -77,7 +77,7 @@ else()
 #    else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/jpm/heap-profiler-c-api.zip"
+          URL "https://github.com/TileDB-Inc/TileDB/archive/release-2.2.zip"
           #URL_HASH SHA1=ab9e629cf7a79cd840d6aabbd5c87f6c9f8af6af
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
