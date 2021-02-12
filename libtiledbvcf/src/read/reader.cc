@@ -570,13 +570,21 @@ bool Reader::next_read_batch_v4() {
     }
   }
 
-  for (const auto& query_region :
-       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
-           .second) {
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
-    ss << "query.add_range(1, " << query_region.col_min << ", "
-       << query_region.col_max << ");" << std::endl;
-  }
+  //  for (const auto& query_region :
+  //       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+  //           .second) {
+  //    read_state_.query->add_range(1, query_region.col_min,
+  //    query_region.col_max); ss << "query.add_range(1, " <<
+  //    query_region.col_min << ", "
+  //       << query_region.col_max << ");" << std::endl;
+  //  }
+  // Set the TileDB query to just the min/max of the start_pos
+  auto query_regions =
+      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second;
+  read_state_.query->add_range(
+      1, query_regions.begin()->col_min, query_regions.rbegin()->col_max);
+  ss << "query.add_range(1, " << query_regions.begin()->col_min << ", "
+     << query_regions.rbegin()->col_max << ");" << std::endl;
 
   read_state_.query->add_range(
       0,
