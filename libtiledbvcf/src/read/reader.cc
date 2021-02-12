@@ -161,6 +161,7 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
 
 void Reader::set_memory_budget(unsigned mb) {
   params_.memory_budget_mb = mb;
+  compute_memory_budget_details();
 }
 
 void Reader::set_record_limit(uint64_t max_num_records) {
