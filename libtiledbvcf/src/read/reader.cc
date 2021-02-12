@@ -2075,6 +2075,18 @@ void Reader::compute_memory_budget_details() {
   // Set the buffers to all of the remaining budget (3x the buffers for a 25/75
   // split between buffers and memory budget
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
+
+  if (params_.verbose) {
+    std::cout << "Set memory budgets as follows: "
+              << "starting budget: " << params_.memory_budget_mb * 1024 * 1024
+              << ", tile_cache: "
+              << params_.memory_budget_breakdown.tiledb_tile_cache
+              << ", per_buffer_size: "
+              << params_.memory_budget_breakdown.buffers
+              << ", tiledb_memory_budget: "
+              << params_.memory_budget_breakdown.tiledb_memory_budget
+              << std::endl;
+  }
 }
 
 }  // namespace vcf
