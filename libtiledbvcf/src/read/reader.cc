@@ -169,6 +169,7 @@ void Reader::set_record_limit(uint64_t max_num_records) {
 }
 
 void Reader::set_tiledb_config(const std::string& config_str) {
+  std::cout << "setting reader config to: " << config_str << std::endl;
   params_.tiledb_config = utils::split(config_str, ',');
   // Attempt to set config to check validity
   // cfg object will be discarded as a later call to tiledb_init will properly
@@ -2076,13 +2077,13 @@ void Reader::set_tiledb_query_config() {
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
     if (params_.verbose) {
-      std::cout << "Setting sm.memory_budget="
+      std::cout << "Setting sm.memory_budget_var="
                 << params_.memory_budget_breakdown.tiledb_memory_budget /
                        buffers_a->nbuffers()
                 << std::endl;
     }
   } else if (params_.verbose) {
-    std::cout << "sm.memory_budget set by user not overriding" << std::endl;
+    std::cout << "sm.memory_budget_var set by user not overriding" << std::endl;
   }
 
   read_state_.query->set_config(cfg);
