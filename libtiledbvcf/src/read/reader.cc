@@ -2056,16 +2056,34 @@ void Reader::set_tiledb_query_config() {
 
   tiledb::Config cfg;
   if (params_.tiledb_config_map.find("sm.memory_budget") ==
-      params_.tiledb_config_map.end())
+      params_.tiledb_config_map.end()) {
     cfg["sm.memory_budget"] =
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
+    if (params_.verbose) {
+      std::cout << "Setting sm.memory_budget="
+                << params_.memory_budget_breakdown.tiledb_memory_budget /
+                       buffers_a->nbuffers()
+                << std::endl;
+    }
+  } else if (params_.verbose) {
+    std::cout << "sm.memory_budget set by user not overriding" << std::endl;
+  }
 
   if (params_.tiledb_config_map.find("sm.memory_budget_var") ==
-      params_.tiledb_config_map.end())
+      params_.tiledb_config_map.end()) {
     cfg["sm.memory_budget_var"] =
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
+    if (params_.verbose) {
+      std::cout << "Setting sm.memory_budget="
+                << params_.memory_budget_breakdown.tiledb_memory_budget /
+                       buffers_a->nbuffers()
+                << std::endl;
+    }
+  } else if (params_.verbose) {
+    std::cout << "sm.memory_budget set by user not overriding" << std::endl;
+  }
 
   read_state_.query->set_config(cfg);
 }
