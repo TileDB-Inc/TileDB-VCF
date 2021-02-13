@@ -143,6 +143,12 @@ class Reader {
    */
   void set_verbose(bool verbose);
 
+  /** Set the TileDB query buffer memory percentage */
+  void set_buffer_percentage(float buffer_percentage);
+
+  /** Set the TileDB tile cache memory percentage */
+  void set_tiledb_tile_cache_percentage(float tile_percentage);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {

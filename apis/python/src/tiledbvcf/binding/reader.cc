@@ -473,4 +473,14 @@ void Reader::deleter(tiledb_vcf_reader_t* r) {
   tiledb_vcf_reader_free(&r);
 }
 
+void Reader::set_buffer_percentage(float buffer_percentage) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_buffer_percentage(reader, buffer_percentage));
+}
+
+void Reader::set_tiledb_tile_cache_percentage(float tile_percentage) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_tiledb_tile_cache_percentage(reader, tile_percentage));
+}
+
 }  // namespace tiledbvcfpy

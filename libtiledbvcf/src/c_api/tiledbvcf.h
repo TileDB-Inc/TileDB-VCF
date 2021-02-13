@@ -852,6 +852,22 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_verbose(tiledb_vcf_reader_t* reader, bool verbose);
 
 /**
+ * Sets the percentage of buffer size to tiledb memory budget
+ * @param reader VCF reader object
+ * @param buffer_percentage setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_buffer_percentage(
+    tiledb_vcf_reader_t* reader, float buffer_percentage);
+
+/**
+ * Sets the percentage of tiledb tile cache size to overal memory budget
+ * @param reader VCF reader object
+ * @param buffer_percentage setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_tiledb_tile_cache_percentage(
+    tiledb_vcf_reader_t* reader, float tile_percentage);
+
+/**
  * Returns the version number of the TileDB VCF dataset.
  *
  * @param reader VCF reader object
