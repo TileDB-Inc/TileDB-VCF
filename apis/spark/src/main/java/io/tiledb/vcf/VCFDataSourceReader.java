@@ -199,7 +199,7 @@ public class VCFDataSourceReader
         local_regions = regions.get(r);
         // Skip empty region list
         // TODO: find out why this happens?
-        if (local_regions.size() == 0) {
+        if (local_regions == null || local_regions.size() == 0) {
           continue;
         }
       }
