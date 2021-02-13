@@ -301,7 +301,9 @@ void Reader::read() {
   switch (read_state_.status) {
     case ReadStatus::COMPLETED:
     case ReadStatus::FAILED:
-      // Do nothing and return.
+      // Reset buffers as the are no longer needed
+      buffers_a.reset(nullptr);
+      buffers_b.reset(nullptr);
       return;
     case ReadStatus::INCOMPLETE:
       // Do nothing; read will resume.
