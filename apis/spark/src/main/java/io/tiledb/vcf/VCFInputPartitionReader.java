@@ -232,12 +232,15 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader = null;
     }
 
-    releaseArrowVectors();
-
     if (resultBatch != null) {
       resultBatch.close();
       resultBatch = null;
     }
+
+    releaseArrowVectors();
+
+    // Hint that there is items to collect
+    System.gc();
   }
 
   /** Closes any allocated Arrow vectors and clears the list. */

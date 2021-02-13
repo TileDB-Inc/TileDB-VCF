@@ -221,7 +221,8 @@ public class VCFDataSourceReader
   List<List<String>> computeRegionPartitionsFromBedFile(int desiredNumRangePartitions) {
     Optional<URI> bedURI = options.getBedURI();
     if (!bedURI.isPresent()) {
-      throw new RuntimeException("Can't use force_range_partitioning_by_contig without setting bed_file");
+      throw new RuntimeException(
+          "Can't use force_range_partitioning_by_contig without setting bed_file");
     }
 
     log.info("Init VCFReader for partition calculation");
