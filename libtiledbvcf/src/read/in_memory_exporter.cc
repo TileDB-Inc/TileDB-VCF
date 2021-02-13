@@ -944,6 +944,13 @@ void InMemoryExporter::get_info_fmt_value(
   bool is_extracted_attr = false;
   if (curr_query_results_->buffers()->extra_attr(attr_name, &src)) {
     is_extracted_attr = true;
+
+    auto sizes_iter = curr_query_results_->extra_attrs_size().find(attr_name);
+    if (sizes_iter == curr_query_results_->extra_attrs_size().end())
+      throw std::runtime_error(
+          "Could not find size for extra attribute" + attr_name +
+          " in get_info_fmt_value");
+
     src_size = curr_query_results_->extra_attrs_size().at(attr_name);
   } else if (is_info) {
     src = &curr_query_results_->buffers()->info();

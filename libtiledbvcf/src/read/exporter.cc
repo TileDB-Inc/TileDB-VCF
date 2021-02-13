@@ -183,6 +183,12 @@ void Exporter::recover_record(
     const bool is_info = parts.first == "info";
     const auto& field_name = parts.second;
 
+    auto sizes_iter = results.extra_attrs_size().find(attr.first);
+    if (sizes_iter == results.extra_attrs_size().end())
+      throw std::runtime_error(
+          "Could not find size for extra attribute" + attr.first +
+          " in recover_record");
+
     auto sizes = results.extra_attrs_size().at(attr.first);
     const char* field_ptr =
         attr.second.data<char>() + attr.second.offsets()[cell_idx];
