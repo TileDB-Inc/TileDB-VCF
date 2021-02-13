@@ -63,6 +63,8 @@ struct MemoryBudgetBreakdown {
   uint64_t buffers = 1024;
   uint64_t tiledb_tile_cache = 1024;
   uint64_t tiledb_memory_budget = 1024;
+  float buffers_percentage = 0.25;
+  float tile_cache_percentage = 0.1;
 };
 
 /** Arguments/params for export. */
@@ -357,6 +359,18 @@ class Reader {
    * @param verbose setting
    */
   void set_verbose(const bool& verbose);
+
+  /**
+   * Percentage of buffer size to tiledb memory budget
+   * @param buffer_percentage
+   */
+  void set_buffer_percentage(const float& buffer_percentage);
+
+  /**
+   * Percentage of tiledb tile cache size to overall memory budget
+   * @param tile_cache_percentage
+   */
+  void set_tiledb_tile_cache_percentage(const float& tile_cache_percentage);
 
  private:
   /* ********************************* */

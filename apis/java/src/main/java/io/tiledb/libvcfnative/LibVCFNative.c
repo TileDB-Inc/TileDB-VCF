@@ -689,6 +689,28 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return tiledb_vcf_reader_set_verbose(reader, verbose);
 }
 
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1percentage
+  (JNIEnv* env, jclass self, jlong readerPtr, jfloat buffer_percentage) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    return tiledb_vcf_reader_set_buffer_percentage(reader, buffer_percentage);
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1tile_1cache_1percentage
+  (JNIEnv* env, jclass self, jlong readerPtr, jfloat tile_cache_percentage) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    return tiledb_vcf_reader_set_tiledb_tile_cache_percentage(reader, tile_cache_percentage);
+}
+
 JNIEXPORT jstring JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1last_1error_1message(
     JNIEnv* env, jclass self, jlong readerPtr) {

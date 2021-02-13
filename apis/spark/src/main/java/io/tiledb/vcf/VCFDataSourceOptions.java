@@ -142,6 +142,22 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Percentage of memory budget for TileDB buffers vs TileDB memory */
+  public Optional<Float> getTileDBBufferPercentage() {
+    if (options.containsKey("tiledb_buffer_percentage")) {
+      return Optional.of(Float.parseFloat(options.get("tiledb_buffer_percentage")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return Percentage of memory budget for TileDB tile cache */
+  public Optional<Float> getTileDBTileCachePercentage() {
+    if (options.containsKey("tiledb_tile_cache_percentage")) {
+      return Optional.of(Float.parseFloat(options.get("tiledb_tile_cache_percentage")));
+    }
+    return Optional.empty();
+  }
+
   /**
    * @return If only materialized fields should be exposed. If false then the spark schema show all
    *     selectable fields

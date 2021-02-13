@@ -515,6 +515,26 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setBufferPercentage(float bufferPercentage) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_buffer_percentage(this.readerPtr, bufferPercentage);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting buffer percentage: " + msg);
+    }
+    return this;
+  }
+
+  public VCFReader setTileDBTileCachePercentage(float tileCachePercentage) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_tiledb_tile_cache_percentage(
+            this.readerPtr, tileCachePercentage);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting TileDB tile cache percentage: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader setStatsEnabled(boolean statsEnabled) {
     int rc = LibVCFNative.tiledb_vcf_reader_set_tiledb_stats_enabled(this.readerPtr, statsEnabled);
     if (rc != 0) {

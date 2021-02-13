@@ -265,6 +265,22 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_buffer_percentage
+ * Signature: (JZ)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1percentage
+  (JNIEnv *, jclass, jlong, jfloat);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_tiledb_tile_cache_percentage
+ * Signature: (JF)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1tile_1cache_1percentage
+  (JNIEnv *, jclass, jlong, jfloat);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_get_last_error_message
  * Signature: (J)Ljava/lang/String;
  */
