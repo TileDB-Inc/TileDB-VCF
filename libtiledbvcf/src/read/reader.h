@@ -436,6 +436,10 @@ class Reader {
     /** Total number of records exported across all incomplete reads. */
     uint64_t total_num_records_exported = 0;
 
+    /** Estimated number of records for query. */
+    uint64_t query_estimated_num_records = 0;
+    uint64_t total_query_records_processed = 0;
+
     /** The number of records exported during the last read, complete or not. */
     uint64_t last_num_records_exported = 0;
 

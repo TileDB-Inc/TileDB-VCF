@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <future>
+#include <iomanip>
 #include <random>
 #include <thread>
 
@@ -490,6 +491,30 @@ bool Reader::next_read_batch_v2_v3() {
               << std::endl;
   }
 
+  // Get estimated records for verbose output
+  read_state_.total_query_records_processed = 0;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    read_state_.query_estimated_num_records =
+        read_state_.query->est_result_size(
+            TileDBVCFDataset::DimensionNames::V2::end_pos) /
+        tiledb_datatype_size(
+            dataset_->data_array()
+                ->schema()
+                .domain()
+                .dimension(TileDBVCFDataset::DimensionNames::V2::end_pos)
+                .type());
+  } else {
+    read_state_.query_estimated_num_records =
+        read_state_.query->est_result_size(
+            TileDBVCFDataset::DimensionNames::V3::start_pos) /
+        tiledb_datatype_size(
+            dataset_->data_array()
+                ->schema()
+                .domain()
+                .dimension(TileDBVCFDataset::DimensionNames::V3::start_pos)
+                .type());
+  }
+
   return true;
 }
 
@@ -623,6 +648,18 @@ bool Reader::next_read_batch_v4() {
               << read_state_.sample_batches.size() << ")." << std::endl;
   }
 
+  // Get estimated records for verbose output
+  read_state_.total_query_records_processed = 0;
+  read_state_.query_estimated_num_records =
+      read_state_.query->est_result_size(
+          TileDBVCFDataset::DimensionNames::V4::start_pos) /
+      tiledb_datatype_size(
+          dataset_->data_array()
+              ->schema()
+              .domain()
+              .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
+              .type());
+
   return true;
 }
 
@@ -740,6 +777,8 @@ bool Reader::read_current_batch() {
 
     // Process the query results.
     auto old_num_exported = read_state_.last_num_records_exported;
+    read_state_.total_query_records_processed +=
+        read_state_.query_results.num_cells();
     auto t0 = std::chrono::steady_clock::now();
 
     bool complete;
@@ -757,7 +796,13 @@ bool Reader::read_current_batch() {
                 << " cells in " << utils::chrono_duration(t0)
                 << " sec. Reported "
                 << (read_state_.last_num_records_exported - old_num_exported)
-                << " cells." << std::endl;
+                << " cells. Approximately " << std::fixed
+                << std::setprecision(2)
+                << (read_state_.total_query_records_processed /
+                    static_cast<double>(
+                        read_state_.query_estimated_num_records) *
+                    100)
+                << "% completed with query cells." << std::endl;
 
     // Return early if we couldn't process all the results.
     if (!complete)
