@@ -552,11 +552,7 @@ public class VCFReader implements AutoCloseable {
   @Override
   public void close() {
     // release held references to NIO ByteBuffers
-    Iterator it = buffers.entrySet().iterator();
-    while (it.hasNext()) {
-      it.next();
-      it.remove();
-    }
+    buffers.clear();
     if (readerPtr != 0L) {
       LibVCFNative.tiledb_vcf_reader_free(readerPtr);
     }
