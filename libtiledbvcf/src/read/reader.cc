@@ -1625,10 +1625,6 @@ void Reader::prepare_regions_v4(
             bool new_region = true;
             std::vector<QueryRegion>* query_region_contig = nullptr;
             for (auto& query_region_pair : local_query_regions) {
-              // Only coalesce regions of same contig
-              if (query_region_pair.first != r.seq_name)
-                continue;
-
               query_region_contig = &query_region_pair.second;
 
               for (auto& query_region : query_region_pair.second) {
@@ -1679,6 +1675,11 @@ void Reader::prepare_regions_v4(
                   --query_regions_size;
                   local_query_regions.erase(local_query_regions.begin() + j);
                   --i;
+                  break;
+                } else if (
+                    query_region.col_max < query_region_to_check.col_min) {
+                  // If we region we are checking is beyond the where this one
+                  // ends, exit early in the comparisons
                   break;
                 }
               }
