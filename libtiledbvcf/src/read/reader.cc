@@ -1624,20 +1624,44 @@ void Reader::prepare_regions_v4(
 
             bool new_region = true;
             std::vector<QueryRegion>* query_region_contig = nullptr;
+            /*            for (auto& query_region_pair : local_query_regions) {
+                          query_region_contig = &query_region_pair.second;
+
+                          for (auto& query_region : query_region_pair.second) {
+                            if (widened_reg_min <= query_region.col_max &&
+                                reg_max >= query_region.col_min) {
+                              query_region.col_max =
+                                  std::max(query_region.col_max, reg_max);
+                              query_region.col_min = std::min(
+                                  static_cast<uint64_t>(query_region.col_min),
+                                  widened_reg_min);
+                              query_region.contig = r.seq_name;
+                              new_region = false;
+                            }
+                          }
+                        }*/
+
             for (auto& query_region_pair : local_query_regions) {
+              if (query_region_pair.first != r.seq_name)
+                continue;
               query_region_contig = &query_region_pair.second;
 
-              for (auto& query_region : query_region_pair.second) {
-                if (widened_reg_min <= query_region.col_max &&
-                    reg_max >= query_region.col_min) {
-                  query_region.col_max =
-                      std::max(query_region.col_max, reg_max);
-                  query_region.col_min = std::min(
-                      static_cast<uint64_t>(query_region.col_min),
-                      widened_reg_min);
-                  query_region.contig = r.seq_name;
-                  new_region = false;
-                }
+              // Since the query regions are pre-sorted by start position we
+              // only need to check the last region we inserted for comparison.
+              // We know that the current region we are merging/inserting comes
+              // after the previous. The only thing to check is to insert or to
+              // merge
+              auto query_region = query_region_pair.second.back();
+              if (widened_reg_min <= query_region.col_max &&
+                  reg_max >= query_region.col_min) {
+                query_region.col_max = std::max(query_region.col_max, reg_max);
+                query_region.col_min = std::min(
+                    static_cast<uint64_t>(query_region.col_min),
+                    widened_reg_min);
+                query_region.contig = r.seq_name;
+                new_region = false;
+              } else {
+                break;
               }
             }
             if (new_region) {
