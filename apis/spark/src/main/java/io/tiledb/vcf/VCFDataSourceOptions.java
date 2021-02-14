@@ -158,6 +158,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Percentage of memory budget for Spark buffers */
+  public Optional<Float> getSparkBufferPercentage() {
+    if (options.containsKey("spark_buffer_percentage")) {
+      return Optional.of(Float.parseFloat(options.get("spark_buffer_percentage")));
+    }
+    return Optional.empty();
+  }
+
   /**
    * @return If only materialized fields should be exposed. If false then the spark schema show all
    *     selectable fields

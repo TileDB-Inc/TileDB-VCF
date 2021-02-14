@@ -354,6 +354,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (memoryBudget.isPresent()) {
       memBudgetMB = memoryBudget.get();
     }
+
+    Optional<Float> sparkBufferPercentageOptional = options.getSparkBufferPercentage();
+    float sparkBufferPercentage = 1.0f / 3.0f;
+    if (sparkBufferPercentageOptional.isPresent()) {
+      sparkBufferPercentage = sparkBufferPercentageOptional.get();
+    }
     long vcfMemBudgetMB = memBudgetMB;
 
     // Given fixed memory budget and required attributes, compute buffer sizes. Note that if
@@ -361,8 +367,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     // this is just a counting operation, and no buffers need to be allocated.
     if (nBuffers > 0) {
       // We get 1/3rd, the other 2/3rds goes to libtiledbvcf.
-      vcfMemBudgetMB = ((Double) (memBudgetMB / 3.0 * 2)).longValue();
-      memBudgetMB /= 3;
+      vcfMemBudgetMB = ((Float) (memBudgetMB * (1 - sparkBufferPercentage))).longValue();
+      memBudgetMB = memBudgetMB - vcfMemBudgetMB;
 
       // Compute allocation size; check against some reasonable minimum.
       long bufferSizeMB = ((memBudgetMB * 1024 * 1024) / nBuffers) / (1024 * 1024);
