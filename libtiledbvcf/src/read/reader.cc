@@ -1660,8 +1660,6 @@ void Reader::prepare_regions_v4(
                     widened_reg_min);
                 query_region.contig = r.seq_name;
                 new_region = false;
-              } else {
-                break;
               }
             }
             if (new_region) {
@@ -1721,6 +1719,13 @@ void Reader::prepare_regions_v4(
     query_regions->insert(
         query_regions->end(), q_regions.begin(), q_regions.end());
   }
+  std::sort(
+      query_regions->begin(),
+      query_regions->end(),
+      [](const std::pair<std::string, std::vector<QueryRegion>>& a,
+         const std::pair<std::string, std::vector<QueryRegion>>& b) {
+        return a.first < b.first;
+      });
   if (params_.verbose) {
     std::cout << "Combined all query regions in " << utils::chrono_duration(t0)
               << " sec." << std::endl;
