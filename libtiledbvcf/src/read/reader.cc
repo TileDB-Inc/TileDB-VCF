@@ -693,6 +693,7 @@ void Reader::init_exporter() {
 
 bool Reader::read_current_batch() {
   tiledb::Query* query = read_state_.query.get();
+  const bool verbose = params_.verbose;
 
   if (read_state_.status == ReadStatus::INCOMPLETE) {
     auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
@@ -736,7 +737,15 @@ bool Reader::read_current_batch() {
   } else {
     buffers_a->set_buffers(query, dataset_->metadata().version);
     read_state_.async_query =
-        std::async(std::launch::async, [query]() { return query->submit(); });
+        std::async(std::launch::async, [query, verbose]() {
+          auto t0 = std::chrono::steady_clock::now();
+          auto st = query->submit();
+          if (verbose) {
+            std::cout << "query completed in " << utils::chrono_duration(t0)
+                      << " sec." << std::endl;
+          }
+          return st;
+        });
   }
 
   do {
@@ -772,7 +781,15 @@ bool Reader::read_current_batch() {
         double_buffering_) {
       buffers_b->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query =
-          std::async(std::launch::async, [query]() { return query->submit(); });
+          std::async(std::launch::async, [query, verbose]() {
+            auto t0 = std::chrono::steady_clock::now();
+            auto st = query->submit();
+            if (verbose) {
+              std::cout << "query completed in " << utils::chrono_duration(t0)
+                        << " sec." << std::endl;
+            }
+            return st;
+          });
     }
 
     // Process the query results.
@@ -816,7 +833,15 @@ bool Reader::read_current_batch() {
         tiledb::Query::Status::INCOMPLETE) {  // resubmit existing buffers_a if
                                               // not double buffering
       read_state_.async_query =
-          std::async(std::launch::async, [query]() { return query->submit(); });
+          std::async(std::launch::async, [query, verbose]() {
+            auto t0 = std::chrono::steady_clock::now();
+            auto st = query->submit();
+            if (verbose) {
+              std::cout << "query completed in " << utils::chrono_duration(t0)
+                        << " sec." << std::endl;
+            }
+            return st;
+          });
     }
   } while (read_state_.query_results.query_status() ==
                tiledb::Query::Status::INCOMPLETE &&
