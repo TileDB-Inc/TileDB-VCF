@@ -589,6 +589,15 @@ bool Reader::next_read_batch_v4() {
             .current_sample_batches
                 [read_state_.current_sample_batches.size() - 1]
             .sample_name);
+    ss << "query.add_range(2, \""
+       << read_state_.current_sample_batches[0].sample_name
+       << "\", \"" +
+              read_state_
+                  .current_sample_batches
+                      [read_state_.current_sample_batches.size() - 1]
+                  .sample_name +
+              "\");"
+       << std::endl;
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
@@ -1445,6 +1454,11 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
     const auto& samples = dataset_->get_all_samples_from_vcf_headers();
     for (const auto& s : samples) {
       result.push_back({.sample_name = s, .sample_id = 0});
+    }
+    if (params_.verbose) {
+      std::cout << "Setting all_samples=true. Did not find samples from sample "
+                   "file or sample list"
+                << std::endl;
     }
     *all_samples = true;
   }
