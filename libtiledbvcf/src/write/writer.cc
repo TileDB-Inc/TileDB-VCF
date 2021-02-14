@@ -626,7 +626,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   }
 
   if (ingestion_params_.verbose)
-    std::cout << "Finalizing contig " << last_region_contig << std::endl;
+    std::cout << "Finalizing last contig " << last_region_contig << std::endl;
 
   // Finalize fragment for this contig
   finalize_tasks_.emplace_back(
