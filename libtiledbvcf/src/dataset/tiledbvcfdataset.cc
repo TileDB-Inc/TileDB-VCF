@@ -702,9 +702,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     bool has_results = num_chars != 0;
     const char* status_str;
     tiledb_query_status_to_str(tiledb_query_status_t(status), &status_str);
-    std::cout << "vcf header query status: " << status_str
-              << ", has_results=" << has_results << ", num_chars=" << num_chars
-              << ", num_offsets=" << num_offsets << std::endl;
     if (status == Query::Status::INCOMPLETE && !has_results) {
       // If there are no results, double the size of the buffer and then
       // resubmit the query.
