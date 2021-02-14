@@ -1585,7 +1585,7 @@ void Reader::prepare_regions_v4(
         regions);
   }
 
-  // Expand individual regions to a minimum width of the anchor gap.
+  // First build list of each region's contig
   size_t region_index = 0;
   for (auto& r : *regions) {
     // Save mapping of contig to region indexing
@@ -1598,72 +1598,107 @@ void Reader::prepare_regions_v4(
     regions_index_per_contig->find(r.seq_name)
         ->second.emplace_back(region_index);
     ++region_index;
+  }
+  // Expand individual regions to a minimum width of the anchor gap.
 
-    r.seq_offset = 0;
-    const uint32_t reg_min = r.min;
-    const uint32_t reg_max = r.max;
+  std::vector<std::future<
+      std::vector<std::pair<std::string, std::vector<QueryRegion>>>>>
+      query_regions_future;
 
-    // Widen the query region by the anchor gap value, avoiding overflow.
-    uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
+  for (const auto& regions_index : *regions_index_per_contig) {
+    query_regions_future.push_back(std::async(
+        std::launch::async,
+        [regions,
+         g](const std::pair<std::string, std::vector<size_t>>& regions_index) {
+          std::vector<std::pair<std::string, std::vector<QueryRegion>>>
+              local_query_regions;
+          for (auto& r_index : regions_index.second) {
+            auto r = (*regions)[r_index];
+            r.seq_offset = 0;
+            const uint32_t reg_min = r.min;
+            const uint32_t reg_max = r.max;
 
-    bool new_region = true;
-    std::vector<QueryRegion>* query_region_contig = nullptr;
-    for (auto& query_region_pair : *query_regions) {
-      // Only coalesce regions of same contig
-      if (query_region_pair.first != r.seq_name)
-        continue;
+            // Widen the query region by the anchor gap value, avoiding
+            // overflow.
+            uint64_t widened_reg_min = g > reg_min ? 0 : reg_min - g;
 
-      query_region_contig = &query_region_pair.second;
+            bool new_region = true;
+            std::vector<QueryRegion>* query_region_contig = nullptr;
+            for (auto& query_region_pair : local_query_regions) {
+              // Only coalesce regions of same contig
+              if (query_region_pair.first != r.seq_name)
+                continue;
 
-      for (auto& query_region : query_region_pair.second) {
-        if (widened_reg_min <= query_region.col_max &&
-            reg_max >= query_region.col_min) {
-          query_region.col_max = std::max(query_region.col_max, reg_max);
-          query_region.col_min = std::min(
-              static_cast<uint64_t>(query_region.col_min), widened_reg_min);
-          query_region.contig = r.seq_name;
-          new_region = false;
-        }
-      }
-    }
-    if (new_region) {
-      if (query_region_contig == nullptr) {
-        query_regions->emplace_back(r.seq_name, std::vector<QueryRegion>());
-        query_region_contig = &query_regions->back().second;
-      }
-      // Start a new query region.
-      query_region_contig->emplace_back();
-      query_region_contig->back().col_min = widened_reg_min;
-      query_region_contig->back().col_max = reg_max;
-      query_region_contig->back().contig = r.seq_name;
-    }
+              query_region_contig = &query_region_pair.second;
+
+              for (auto& query_region : query_region_pair.second) {
+                if (widened_reg_min <= query_region.col_max &&
+                    reg_max >= query_region.col_min) {
+                  query_region.col_max =
+                      std::max(query_region.col_max, reg_max);
+                  query_region.col_min = std::min(
+                      static_cast<uint64_t>(query_region.col_min),
+                      widened_reg_min);
+                  query_region.contig = r.seq_name;
+                  new_region = false;
+                }
+              }
+            }
+            if (new_region) {
+              if (query_region_contig == nullptr) {
+                local_query_regions.emplace_back(
+                    r.seq_name, std::vector<QueryRegion>());
+                query_region_contig = &local_query_regions.back().second;
+              }
+              // Start a new query region.
+              query_region_contig->emplace_back();
+              query_region_contig->back().col_min = widened_reg_min;
+              query_region_contig->back().col_max = reg_max;
+              query_region_contig->back().contig = r.seq_name;
+            }
+          }
+
+          // After we built the ranges we need to loop one more time to
+          // coalescing any final ranges. While we are looping through
+          // originally we might miss coalescing ranges as we don't consider the
+          // n+1 range that hasn't been created yet
+          for (auto& query_region_pair : local_query_regions) {
+            size_t query_regions_size = query_region_pair.second.size();
+            for (size_t i = 0; i < query_regions_size; i++) {
+              auto& query_region = query_region_pair.second[i];
+              for (size_t j = i + 1; j < query_region_pair.second.size(); j++) {
+                auto& query_region_to_check = query_region_pair.second[j];
+                if (query_region.col_min <= query_region_to_check.col_max &&
+                    query_region.col_max >= query_region_to_check.col_min) {
+                  query_region.col_max = std::max(
+                      query_region.col_max, query_region_to_check.col_max);
+                  query_region.col_min = std::min(
+                      query_region.col_min, query_region_to_check.col_min);
+                  // If we merge the ranges, let's remove it from the query
+                  // regions and reset to previous to re-evaluate
+                  --query_regions_size;
+                  local_query_regions.erase(local_query_regions.begin() + j);
+                  --i;
+                  break;
+                }
+              }
+            }
+          }
+
+          return local_query_regions;
+        },
+        regions_index));
   }
 
-  // After we built the ranges we need to loop one more time to coalescing any
-  // final ranges. While we are looping through originally we might miss
-  // coalescing ranges as we don't consider the n+1 range that hasn't been
-  // created yet
-  for (auto& query_region_pair : *query_regions) {
-    size_t query_regions_size = query_region_pair.second.size();
-    for (size_t i = 0; i < query_regions_size; i++) {
-      auto& query_region = query_region_pair.second[i];
-      for (size_t j = i + 1; j < query_region_pair.second.size(); j++) {
-        auto& query_region_to_check = query_region_pair.second[j];
-        if (query_region.col_min <= query_region_to_check.col_max &&
-            query_region.col_max >= query_region_to_check.col_min) {
-          query_region.col_max =
-              std::max(query_region.col_max, query_region_to_check.col_max);
-          query_region.col_min =
-              std::min(query_region.col_min, query_region_to_check.col_min);
-          // If we merge the ranges, let's remove it from the query regions
-          // and reset to previous to re-evaluate
-          --query_regions_size;
-          query_regions->erase(query_regions->begin() + j);
-          --i;
-          break;
-        }
-      }
-    }
+  auto t0 = std::chrono::steady_clock::now();
+  for (auto& q : query_regions_future) {
+    auto q_regions = q.get();
+    query_regions->insert(
+        query_regions->end(), q_regions.begin(), q_regions.end());
+  }
+  if (params_.verbose) {
+    std::cout << "Combined all query regions in " << utils::chrono_duration(t0)
+              << " sec." << std::endl;
   }
 }  // namespace vcf
 
