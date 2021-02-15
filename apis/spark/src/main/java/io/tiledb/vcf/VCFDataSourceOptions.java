@@ -221,4 +221,11 @@ public class VCFDataSourceOptions implements Serializable {
       return Optional.of(first.get().concat(",").concat(second.get()));
     }
   }
+
+  public Optional<String> getHeapDumpLocation() {
+    if (options.containsKey("heap_dump_location")) {
+      return Optional.of(options.get("heap_dump_location"));
+    }
+    return Optional.empty();
+  }
 }

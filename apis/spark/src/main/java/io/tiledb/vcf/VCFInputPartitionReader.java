@@ -3,6 +3,10 @@ package io.tiledb.vcf;
 import io.netty.buffer.ArrowBuf;
 import io.tiledb.libvcfnative.VCFReader;
 import io.tiledb.util.CredentialProviderUtils;
+
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -81,7 +85,6 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private long statsTotalBufferBytes;
 
   private Level enableStatsLogLevel;
-
   /**
    * Creates a TileDB-VCF reader.
    *
@@ -155,6 +158,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
                   + partitionId
                   + " completed");
         });
+
+    heapDump();
   }
 
   @Override
@@ -241,6 +246,31 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     // Hint that there is items to collect
     System.gc();
+
+    heapDump();
+  }
+
+  private long getProcessId(){
+    RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
+    String jvmName = bean.getName();
+    return Long.valueOf(jvmName.split("@")[0]);
+  }
+
+  private void heapDump() {
+
+    try {
+      long pid = getProcessId();
+
+      String path = String.format("%d_%d_start.hproof", pid, System.currentTimeMillis());
+      if (options.getHeapDumpLocation().isPresent())
+        path = options.getHeapDumpLocation().get() + "/" + path;
+
+      String cmd = String.format("jmap -dump:live,format=b,file=%s %d", path, pid);
+      Runtime.getRuntime().exec(cmd);
+    }
+    catch (IOException ioe) {
+      log.warn("Error when tried to export heapdump: " + ioe);
+    }
   }
 
   /** Closes any allocated Arrow vectors and clears the list. */
