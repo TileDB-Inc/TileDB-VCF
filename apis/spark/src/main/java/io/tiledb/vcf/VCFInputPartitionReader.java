@@ -239,6 +239,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (arrowVectors != null) {
       for (ArrowColumnVector v : arrowVectors) v.close();
     }
+
+    ArrowUtils.rootAllocator().close();
   }
 
   /**
