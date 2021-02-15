@@ -5,7 +5,6 @@ import io.tiledb.libvcfnative.VCFReader;
 import io.tiledb.util.CredentialProviderUtils;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.arrow.memory.RootAllocator;
@@ -25,7 +24,6 @@ import org.apache.spark.sql.execution.arrow.ArrowUtils;
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.vectorized.ArrowColumnVector;
-import org.apache.spark.sql.vectorized.ColumnVector;
 import org.apache.spark.sql.vectorized.ColumnarBatch;
 
 /** This class implements a Spark batch reader from a TileDB-VCF data source. */
@@ -51,7 +49,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private VCFReader vcfReader;
 
   /** List of the allocated Arrow vectors used to hold columnar data. */
-  private List<ArrowColumnVector> arrowVectors;
+  private ArrowColumnVector[] arrowVectors;
 
   /** The current batch of results. */
   private ColumnarBatch resultBatch;
@@ -101,7 +99,6 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       VCFPartitionInfo samplePartitionInfo) {
     this.datasetURI = uri;
     this.schema = schema;
-    this.arrowVectors = new ArrayList<>();
     this.options = options;
     this.rangePartitionInfo = rangePartitionInfo;
     this.samplePartitionInfo = samplePartitionInfo;
@@ -200,12 +197,6 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (numRecords == 0 && vcfReader.getStatus() == VCFReader.Status.INCOMPLETE)
       throw new RuntimeException("Unexpected VCF incomplete vcfReader with 0 results.");
 
-    // First batch of results
-    if (resultBatch == null) {
-      ColumnVector[] colVecs = new ColumnVector[arrowVectors.size()];
-      for (int i = 0; i < arrowVectors.size(); i++) colVecs[i] = arrowVectors.get(i);
-      resultBatch = new ColumnarBatch(colVecs);
-    }
     resultBatch.setNumRows(Util.longToInt(numRecords));
     long t2 = System.nanoTime();
 
@@ -247,7 +238,6 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   private void releaseArrowVectors() {
     if (arrowVectors != null) {
       for (ArrowColumnVector v : arrowVectors) v.close();
-      arrowVectors.clear();
     }
   }
 
@@ -410,10 +400,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       long bufferSizeBytes = bufferSizeMB * (1024 * 1024);
 
       releaseArrowVectors();
+      arrowVectors = new ArrowColumnVector[numColumns];
       for (int idx = 0; idx < numColumns; idx++) {
-        allocateAndSetBuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes);
+        allocateAndSetBuffer(sparkFields[idx].name(), attrNames[idx], bufferSizeBytes, idx);
         this.statsTotalBufferBytes += numBuffersForField(attrNames[idx]) * bufferSizeBytes;
       }
+      resultBatch = new ColumnarBatch(arrowVectors);
     }
 
     // Set the VCF c++ memory budget to 2/3rds of total budget
@@ -438,7 +430,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
    *     attributes have multiple buffers allocated (data values, offsets), in which case this size
    *     is used for all buffers individually.
    */
-  private void allocateAndSetBuffer(String fieldName, String attrName, long attributeBufferSize) {
+  private void allocateAndSetBuffer(
+      String fieldName, String attrName, long attributeBufferSize, int fieldIndex) {
     VCFReader.AttributeTypeInfo info = vcfReader.getAttributeDatatype(attrName);
 
     // Allocate an Arrow-backed buffer for the attribute.
@@ -505,7 +498,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       }
     }
 
-    this.arrowVectors.add(new ArrowColumnVector(valueVector));
+    this.arrowVectors[fieldIndex] = new ArrowColumnVector(valueVector);
   }
 
   /**
