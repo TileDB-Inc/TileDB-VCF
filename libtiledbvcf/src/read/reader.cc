@@ -1442,17 +1442,27 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
   }
 
   // No specified samples means all samples.
+  const auto& samples = dataset_->get_all_samples_from_vcf_headers();
   if (result.empty()) {
-    const auto& samples = dataset_->get_all_samples_from_vcf_headers();
     for (const auto& s : samples) {
       result.push_back({.sample_name = s, .sample_id = 0});
     }
     if (params_.verbose) {
       std::cout << "Setting all_samples=true. Did not find samples from sample "
-                   "file or sample list"
+                   "file or sample list."
                 << std::endl;
     }
     *all_samples = true;
+  } else if (samples.size() == result.size()) {
+    // If we've validated that all the user requests samples exist in the array
+    // and the user request samples is the same size as all the samples, then
+    // the user is doing a fill export.
+    *all_samples = true;
+    if (params_.verbose) {
+      std::cout << "Setting all_samples=true. User listing samples and it was "
+                   "all samples."
+                << std::endl;
+    }
   }
 
   return result;
