@@ -264,7 +264,9 @@ public class VCFDataSourceReader
       Collections.reverse(res);
     }
 
-    //    res.addAll(mapOfRegions.values());
+    bedFile.close();
+    vcfReader.close();
+
     return res;
   }
 }
