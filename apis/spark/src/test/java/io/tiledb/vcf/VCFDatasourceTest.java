@@ -168,7 +168,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("partitions", 2)
             .load();
     Assert.assertEquals(2, dfRead.select("sampleName").rdd().getNumPartitions());
-    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    List<Row> rows = dfRead.select("*").collectAsList();
     Assert.assertEquals(10, rows.size());
     Dataset<Row> dfExpected = testSampleDataset();
     List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
