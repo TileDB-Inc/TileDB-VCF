@@ -317,6 +317,7 @@ void Reader::read() {
       read_state_.regions.clear();
       read_state_.query_regions.clear();
       read_state_.query_regions_v4.clear();
+      dataset_.reset(nullptr);
       return;
     case ReadStatus::INCOMPLETE:
       // Do nothing; read will resume.
