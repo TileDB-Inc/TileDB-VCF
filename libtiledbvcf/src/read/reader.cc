@@ -310,6 +310,9 @@ void Reader::read() {
       // Reset buffers as the are no longer needed
       buffers_a.reset(nullptr);
       buffers_b.reset(nullptr);
+      read_state_.query.reset(nullptr);
+      read_state_.array = nullptr;
+      ctx_.reset(nullptr);
       return;
     case ReadStatus::INCOMPLETE:
       // Do nothing; read will resume.
