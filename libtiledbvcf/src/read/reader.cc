@@ -318,6 +318,7 @@ void Reader::read() {
       read_state_.query_regions.clear();
       read_state_.query_regions_v4.clear();
       dataset_.reset(nullptr);
+      utils::free_htslib_tiledb_context();
       return;
     case ReadStatus::INCOMPLETE:
       // Do nothing; read will resume.
