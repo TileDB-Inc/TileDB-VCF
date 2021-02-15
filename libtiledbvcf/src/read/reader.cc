@@ -1656,7 +1656,7 @@ void Reader::prepare_regions_v4(
               // We know that the current region we are merging/inserting comes
               // after the previous. The only thing to check is to insert or to
               // merge
-              auto query_region = query_region_pair.second.back();
+              auto& query_region = query_region_pair.second.back();
               if (widened_reg_min <= query_region.col_max &&
                   reg_max >= query_region.col_min) {
                 query_region.col_max = std::max(query_region.col_max, reg_max);
