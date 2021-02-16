@@ -1959,11 +1959,19 @@ void Reader::prepare_attribute_buffers() {
     buffers_b->allocate_fixed(
         attrs, alloc_budget, dataset_->metadata().version);
     double_buffering_ = true;
+    if (params_.verbose)
+      std::cout << "double buffering enabled because buffers are above "
+                   "threshold size of "
+                << params_.double_buffering_threshold << std::endl;
   } else {
     buffers_a->allocate_fixed(
         attrs, alloc_budget, dataset_->metadata().version);
     buffers_b.reset(nullptr);
     double_buffering_ = false;
+    if (params_.verbose)
+      std::cout << "double buffering disabled because buffers are below "
+                   "threshold size of "
+                << params_.double_buffering_threshold << std::endl;
   }
 }
 
