@@ -364,8 +364,6 @@ void Reader::init_for_reads() {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     return init_for_reads_v4();
   }
-
-  set_tiledb_query_config();
 }
 
 void Reader::init_for_reads_v2() {
@@ -475,6 +473,7 @@ bool Reader::next_read_batch_v2_v3() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
+  set_tiledb_query_config();
 
   // Set ranges
   for (const auto& sample : read_state_.current_sample_batches)
@@ -576,6 +575,7 @@ bool Reader::next_read_batch_v4() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
+  set_tiledb_query_config();
 
   // Set ranges
   // For samples we special case when we are looking at all samples. If so we
