@@ -811,6 +811,7 @@ bool Reader::read_current_batch() {
         query_status ==
         tiledb::Query::Status::INCOMPLETE) {  // resubmit existing buffers_a if
                                               // not double buffering
+      buffers_a->set_buffers(query, dataset_->metadata().version);
       read_state_.async_query =
           std::async(std::launch::async, [query, verbose]() {
             auto t0 = std::chrono::steady_clock::now();
