@@ -439,7 +439,7 @@ int main(int argc, char** argv) {
            value("uri", export_args.uri),
        option("-O", "--output-format") %
                "Export format. Options are: 'b': bcf (compressed); 'u': bcf; "
-               "'z': vcf.gz; 'v': vcf; 't': TSV. [default b]" &
+               "'z': vcf.gz; 'v': vcf; 't': TSV, 'p': pvcf. [default b]" &
            value("format").call([&export_args](const std::string& s) {
              const std::map<std::string, ExportFormat> m = {
                  {"b", ExportFormat::CompressedBCF},
@@ -447,7 +447,7 @@ int main(int argc, char** argv) {
                  {"z", ExportFormat::VCFGZ},
                  {"v", ExportFormat::VCF},
                  {"t", ExportFormat::TSV},
-             };
+                 {"p", ExportFormat::PVCF}};
              auto it = m.find(s);
              if (it == m.end())
                throw std::invalid_argument("Unknown export format '" + s + "'");

@@ -30,6 +30,7 @@
 #include <thread>
 
 #include "dataset/attribute_buffer_set.h"
+#include "nonstd/span.hpp"
 #include "read/bcf_exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
@@ -481,7 +482,15 @@ bool Reader::next_read_batch_v2_v3() {
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
   for (const auto& query_region : read_state_.query_regions)
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+
+  // Default to no sorting
   read_state_.query->set_layout(TILEDB_UNORDERED);
+
+  // If we are sorting on export ask TileDB for row major which will be sorted
+  // on the anchors
+  if (params_.sort_real_start_pos)
+    read_state_.query->set_layout(TILEDB_ROW_MAJOR);
+
   if (params_.verbose) {
     std::cout << "Initialized TileDB query with "
               << read_state_.query_regions.size() << " start_pos ranges, "
@@ -605,7 +614,14 @@ bool Reader::next_read_batch_v4() {
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
 
+  // Default to no sorting
   read_state_.query->set_layout(TILEDB_UNORDERED);
+
+  // If we are sorting on export ask TileDB for row major which will be sorted
+  // on the anchors
+  if (params_.sort_real_start_pos)
+    read_state_.query->set_layout(TILEDB_ROW_MAJOR);
+
   if (params_.verbose) {
     std::cout << "Initialized TileDB query with "
               << read_state_
@@ -650,6 +666,11 @@ void Reader::init_exporter() {
       case ExportFormat::VCFGZ:
       case ExportFormat::VCF:
         exporter_.reset(new BCFExporter(params_.format));
+        break;
+      case ExportFormat::PVCF:
+        params_.sort_real_start_pos = true;
+        exporter_.reset(
+            new TSVExporter(params_.tsv_output_path, params_.tsv_fields));
         break;
       case ExportFormat::TSV:
         exporter_.reset(
@@ -901,6 +922,24 @@ bool Reader::process_query_results_v4() {
   if (num_cells == 0 || read_state_.cell_idx >= num_cells)
     return true;
 
+  // Sort all TileDB Results if asked
+  // TODO: handle incompletes, need to find the last real_start_pos value in the
+  // set of records then don't process any record with that value, hold them in
+  // memory and see if the next incomplete batch starts with that real_start_pos
+  // or not. We don't know if a multi-sample real_start_pos crosses a query
+  // batch, so just the last one has to be buffered and checked
+  std::vector<uint64_t> sorted_indexes;
+  if (params_.sort_real_start_pos) {
+    nonstd::span<uint32_t> real_start_pos(
+        results.buffers()->real_start_pos().data<uint32_t>(), num_cells);
+
+    auto sample_names = results.buffers()->sample_name().data();
+
+    sorted_indexes = utils::sort_indexes_pvcf<
+        nonstd::span<uint32_t>,
+        std::vector<nonstd::string_view>>(real_start_pos, sample_names);
+  }
+
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
   // V4 querys are run on a single contig at a time, so we can grab it from the
@@ -928,7 +967,10 @@ bool Reader::process_query_results_v4() {
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
-    const uint64_t i = read_state_.cell_idx;
+    uint64_t i = read_state_.cell_idx;
+    // If asked to sort, use the ordered index instead of the cell_idx
+    if (params_.sort_real_start_pos)
+      i = sorted_indexes[read_state_.cell_idx];
 
     // Get the start, real_start and end. We don't need the contig because we
     // know the query is limited to a single contig

@@ -97,6 +97,9 @@ struct ExportParams {
 
   // Size in bytes at which if the buffers are larger we will double buffer
   uint64_t double_buffering_threshold = 200 * 1024 * 1024;
+
+  // Should results be sorted on real_start_pos
+  bool sort_real_start_pos = false;
 };
 
 /* ********************************* */

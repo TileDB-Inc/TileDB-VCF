@@ -32,6 +32,8 @@
 
 #include <tiledb/query.h>
 
+#include "nonstd/string_view.hpp"
+
 namespace tiledb {
 namespace vcf {
 
@@ -85,6 +87,20 @@ class Buffer {
   T* data() const {
     return (T*)data_;
   }
+
+  /**
+   * Fetch a string value as a string_view to avoid copy
+   *
+   * @param element_index
+   * @return
+   */
+  nonstd::string_view value(uint64_t element_index) const;
+
+  /**
+   * Fetch data as a string_view in vector
+   * @return
+   */
+  std::vector<nonstd::string_view> data() const;
 
   template <typename T>
   T value(uint64_t element_index) const {

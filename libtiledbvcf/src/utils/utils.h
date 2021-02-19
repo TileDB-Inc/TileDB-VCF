@@ -27,8 +27,10 @@
 #ifndef TILEDB_VCF_UTILS_H
 #define TILEDB_VCF_UTILS_H
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -385,6 +387,40 @@ bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs);
  * @return true if file is local path (file:// or no prefix), else false
  */
 bool is_local_uri(const std::string& uri);
+
+/**
+ *
+ * Given a vector of T return an a vector if indexes, sorted by ascending values
+ *
+ * inspired by: https://stackoverflow.com/a/12399290/11562375
+ * @tparam T
+ * @param v
+ * @return
+ */
+template <typename T, typename U>
+std::vector<uint64_t> sort_indexes_pvcf(
+    const T& start_pos, const U& sample_names) {
+  assert(start_pos.size() == sample_names.size());
+  // initialize original index locations
+  std::vector<size_t> idx(start_pos.size());
+  std::iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  // using std::stable_sort instead of std::sort
+  // to avoid unnecessary index re-orderings
+  // when v contains elements of equal values
+  std::stable_sort(
+      idx.begin(),
+      idx.end(),
+      [&start_pos, &sample_names](size_t i1, size_t i2) {
+        if (start_pos[i1] == start_pos[i2])
+          return sample_names[i1] < sample_names[i2];
+
+        return start_pos[i1] < start_pos[i2];
+      });
+
+  return idx;
+}
 
 }  // namespace utils
 }  // namespace vcf
