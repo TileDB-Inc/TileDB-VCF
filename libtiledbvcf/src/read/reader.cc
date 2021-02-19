@@ -2137,11 +2137,14 @@ void Reader::compute_memory_budget_details() {
   uint64_t memory_budget = params_.memory_budget_mb * 1024 * 1024;
 
   // Set the tile cache to 10% of total budget
-  params_.memory_budget_breakdown.tiledb_tile_cache = memory_budget * 0.1;
+  params_.memory_budget_breakdown.tiledb_tile_cache =
+      memory_budget * params_.memory_budget_breakdown.tile_cache_percentage /
+      100;
   memory_budget -= params_.memory_budget_breakdown.tiledb_tile_cache;
 
   // Set the buffers to 25% of the remaining budget
-  params_.memory_budget_breakdown.buffers = memory_budget * 0.25;
+  params_.memory_budget_breakdown.buffers =
+      memory_budget * params_.memory_budget_breakdown.buffers_percentage / 100;
   memory_budget -= params_.memory_budget_breakdown.buffers;
 
   // Set the buffers to all of the remaining budget (3x the buffers for a 25/75
@@ -2159,6 +2162,19 @@ void Reader::compute_memory_budget_details() {
               << params_.memory_budget_breakdown.tiledb_memory_budget
               << std::endl;
   }
+}
+
+void Reader::set_buffer_percentage(const float& buffer_percentage) {
+  params_.memory_budget_breakdown.buffers_percentage = buffer_percentage;
+  // Always recompute memory budgets after update
+  compute_memory_budget_details();
+}
+
+void Reader::set_tiledb_tile_cache_percentage(
+    const float& tile_cache_percentage) {
+  params_.memory_budget_breakdown.tile_cache_percentage = tile_cache_percentage;
+  // Always recompute memory budgets after update
+  compute_memory_budget_details();
 }
 
 }  // namespace vcf

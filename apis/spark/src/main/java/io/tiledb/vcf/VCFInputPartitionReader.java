@@ -196,7 +196,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
   public ColumnarBatch get() {
     long t1 = System.nanoTime();
 
-    Long numRecords = vcfReader.getNumRecords();
+    long numRecords = vcfReader.getNumRecords();
     if (numRecords == 0 && vcfReader.getStatus() == VCFReader.Status.INCOMPLETE)
       throw new RuntimeException("Unexpected VCF incomplete vcfReader with 0 results.");
 
@@ -302,6 +302,18 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     Optional<Boolean> verbose = options.getVerbose();
     if (verbose.isPresent()) {
       vcfReader.setVerbose(verbose.get());
+    }
+
+    // Set TileDB buffer percentage
+    Optional<Float> tiledbBufferPercentage = options.getTileDBBufferPercentage();
+    if (tiledbBufferPercentage.isPresent()) {
+      vcfReader.setBufferPercentage(tiledbBufferPercentage.get());
+    }
+
+    // Set TileDB tile cache percentage
+    Optional<Float> tiledbTileCachePercentage = options.getTileDBTileCachePercentage();
+    if (tiledbTileCachePercentage.isPresent()) {
+      vcfReader.setTileDBTileCachePercentage(tiledbTileCachePercentage.get());
     }
 
     // Enable VCFReader stats

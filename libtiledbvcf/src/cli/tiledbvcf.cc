@@ -515,6 +515,19 @@ int main(int argc, char** argv) {
          export_args.cli_count_only = true;
        }) % "Don't write output files, only print the count of the resulting "
             "number of intersecting records.",
+       option("--mem-budget-buffer-percentage") %
+               defaulthelp(
+                   "The percentage of the memory budget to use for TileDB "
+                   "query buffers. Default 25",
+                   export_args.memory_budget_breakdown.buffers_percentage) &
+           value("%", export_args.memory_budget_breakdown.buffers_percentage),
+       option("--mem-budget-tile-cache-percentage") %
+               defaulthelp(
+                   "The percentage of the memory budget to use for TileDB tile "
+                   "cache. Default 10",
+                   export_args.memory_budget_breakdown.tile_cache_percentage) &
+           value(
+               "%", export_args.memory_budget_breakdown.tile_cache_percentage),
        option("-b", "--mem-budget-mb") %
                defaulthelp(
                    "The memory budget (MB) used when submitting TileDB "

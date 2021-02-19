@@ -20,9 +20,13 @@ ReadConfig = namedtuple(
         "memory_budget_mb",
         # List of strings of format 'option=value'
         "tiledb_config",
+        # Percentage of memory to dedicate to TileDB Query Buffers (default: 25)
+        "buffer_percentage",
+        # Percentage of memory to dedicate to TileDB Tile Cache (default: 10)
+        "tiledb_tile_cache_percentage",
     ],
 )
-ReadConfig.__new__.__defaults__ = (None,) * 6  # len(ReadConfig._fields)
+ReadConfig.__new__.__defaults__ = (None,) * 8  # len(ReadConfig._fields)
 
 
 class Dataset(object):
@@ -69,6 +73,12 @@ class Dataset(object):
             self.reader.set_sort_regions(cfg.sort_regions)
         if cfg.memory_budget_mb is not None:
             self.reader.set_memory_budget(cfg.memory_budget_mb)
+        if cfg.buffer_percentage is not None:
+            self.reader.set_buffer_percentage(cfg.buffer_percentage)
+        if cfg.tiledb_tile_cache_percentage is not None:
+            self.reader.set_tiledb_tile_cache_percentage(
+                cfg.tiledb_tile_cache_percentage
+            )
         if cfg.tiledb_config is not None:
             tiledb_config_list = list()
             if isinstance(cfg.tiledb_config, list):
