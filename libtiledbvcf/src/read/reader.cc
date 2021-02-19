@@ -1580,16 +1580,23 @@ void Reader::prepare_regions_v4(
 
       query_region_contig = &query_region_pair.second;
 
-      for (auto& query_region : query_region_pair.second) {
-        if (widened_reg_min <= query_region.col_max &&
-            reg_max >= query_region.col_min) {
-          query_region.col_max = std::max(query_region.col_max, reg_max);
-          query_region.col_min = std::min(
-              static_cast<uint64_t>(query_region.col_min), widened_reg_min);
-          query_region.contig = r.seq_name;
-          new_region = false;
-        }
+      // Since the query regions are pre-sorted by start position we
+      // only need to check the last region we inserted for comparison.
+      // We know that the current region we are merging/inserting comes
+      // after the previous. The only thing to check is to insert or to
+      // merge
+      auto& query_region = query_region_contig->back();
+      if (widened_reg_min <= query_region.col_max &&
+          reg_max >= query_region.col_min) {
+        query_region.col_max = std::max(query_region.col_max, reg_max);
+        query_region.col_min = std::min(
+            static_cast<uint64_t>(query_region.col_min), widened_reg_min);
+        query_region.contig = r.seq_name;
+        new_region = false;
       }
+      // If we are here this was the right query region contig so we can stop
+      // looking for it
+      break;
     }
     if (new_region) {
       if (query_region_contig == nullptr) {
@@ -1625,6 +1632,10 @@ void Reader::prepare_regions_v4(
           --query_regions_size;
           query_regions->erase(query_regions->begin() + j);
           --i;
+          break;
+        } else if (query_region.col_max < query_region_to_check.col_min) {
+          // If we region we are checking is beyond the where this one
+          // ends, exit early in the comparisons
           break;
         }
       }
