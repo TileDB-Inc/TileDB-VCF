@@ -139,6 +139,7 @@ class Dataset(object):
         regions=None,
         samples_file=None,
         bed_file=None,
+        skip_check_samples=False,
     ):
         """Reads data from a TileDB-VCF dataset into Arrow table.
 
@@ -155,6 +156,7 @@ class Dataset(object):
         :param str samples_file: URI of file containing sample names to be read,
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
+        :param bool skip_check_samples: Should checking the samples requested exist in the array
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -166,6 +168,7 @@ class Dataset(object):
         regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
+        self.reader.set_check_samples_exist(not skip_check_samples)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -179,6 +182,7 @@ class Dataset(object):
         regions=None,
         samples_file=None,
         bed_file=None,
+        skip_check_samples=False,
     ):
         """Reads data from a TileDB-VCF dataset into Pandas dataframe.
 
@@ -195,6 +199,7 @@ class Dataset(object):
         :param str samples_file: URI of file containing sample names to be read,
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
+        :param bool skip_check_samples: Should checking the samples requested exist in the array
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -206,6 +211,7 @@ class Dataset(object):
         regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
+        self.reader.set_check_samples_exist(not skip_check_samples)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)

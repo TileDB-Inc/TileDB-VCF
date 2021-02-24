@@ -149,6 +149,9 @@ class Reader {
   /** Set the TileDB tile cache memory percentage */
   void set_tiledb_tile_cache_percentage(float tile_percentage);
 
+  /** Set to check if samples requested exist and error if not. */
+  void set_check_samples_exist(bool check_samples_exist);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {
