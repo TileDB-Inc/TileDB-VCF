@@ -101,7 +101,9 @@ TileDBVCFDataset::TileDBVCFDataset()
     : open_(false)
     , tiledb_stats_enabled_(true)
     , tiledb_stats_enabled_vcf_header_(true)
-    , sample_names_loaded_(false) {
+    , sample_names_loaded_(false)
+    , info_fmt_field_types_loaded_(false)
+    , queryable_attribute_loaded_(false) {
   utils::init_htslib();
 }
 
@@ -324,15 +326,25 @@ void TileDBVCFDataset::open(
         std::to_string(metadata_.version) +
         " but only versions 2, 3 and 4 are supported.");
 
-  if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
-    load_field_type_maps();
-  else {
-    assert(metadata_.version == Version::V4);
-    load_field_type_maps_v4();
-  }
-
   open_ = true;
 
+  // only v2/v3 arrays preload sample list
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
+    for (const auto& s : metadata_.sample_names_) {
+      std::vector<char> sample(s.begin(), s.end());
+      sample.emplace_back('\0');
+      sample_names_.push_back(sample);
+    }
+  }
+}
+
+void TileDBVCFDataset::build_queryable_attributes() const {
+  utils::UniqueWriteLock lck_(
+      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
+  // After the write lock is acquired check to make sure a different thread
+  // hasn't loaded the attribute list
+  if (!vcf_attributes_.empty())
+    return;
   // Build queryable attribute and sample lists
   std::set<std::string> unique_queryable_attributes{
       "sample_name", "query_bed_start", "query_bed_end", "contig"};
@@ -354,11 +366,11 @@ void TileDBVCFDataset::open(
     materialized_vcf_attributes_.push_back(name);
   }
 
-  for (const auto& info : info_field_types_) {
+  for (const auto& info : info_field_types()) {
     unique_queryable_attributes.emplace("info_" + info.first);
   }
 
-  for (const auto& fmt : fmt_field_types_) {
+  for (const auto& fmt : fmt_field_types()) {
     unique_queryable_attributes.emplace("fmt_" + fmt.first);
   }
 
@@ -368,17 +380,16 @@ void TileDBVCFDataset::open(
     vcf_attributes_.push_back(name);
   }
 
-  // only v2/v3 arrays preload sample list
-  if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
-    for (const auto& s : metadata_.sample_names_) {
-      std::vector<char> sample(s.begin(), s.end());
-      sample.emplace_back('\0');
-      sample_names_.push_back(sample);
-    }
-  }
+  queryable_attribute_loaded_ = true;
 }
 
-void TileDBVCFDataset::load_field_type_maps() {
+void TileDBVCFDataset::load_field_type_maps() const {
+  utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  // After we acquire the write lock we need to check if another thread has
+  // loaded the field types
+  if (info_fmt_field_types_loaded_)
+    return;
+
   // Empty array (no samples registered); do nothing.
   if (metadata_.sample_ids.empty())
     return;
@@ -418,20 +429,30 @@ void TileDBVCFDataset::load_field_type_maps() {
       fmt_field_types_[name] = type;
     }
   }
+
+  info_fmt_field_types_loaded_ = true;
 }
 
-void TileDBVCFDataset::load_field_type_maps_v4() {
-  std::unordered_map<uint32_t, SafeBCFHdr> hdrs =
-      fetch_vcf_headers_v4({}, nullptr);
-
-  if (hdrs.empty())
+void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
+  utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  // After we acquire the write lock we need to check if another thread has
+  // loaded the field types
+  if (info_fmt_field_types_loaded_)
     return;
-  else if (hdrs.size() != 1)
-    throw std::runtime_error(
-        "Error loading dataset field types; no headers fetched.");
 
-  const auto& hdr_ptr = hdrs.begin()->second;
-  bcf_hdr_t* hdr = hdr_ptr.get();
+  std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
+  if (hdr == nullptr) {
+    hdrs = fetch_vcf_headers_v4({}, nullptr);
+
+    if (hdrs.empty())
+      return;
+    else if (hdrs.size() != 1)
+      throw std::runtime_error(
+          "Error loading dataset field types; no headers fetched.");
+
+    hdr = hdrs.begin()->second.get();
+  }
+
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -455,6 +476,8 @@ void TileDBVCFDataset::load_field_type_maps_v4() {
       fmt_field_types_[name] = type;
     }
   }
+
+  info_fmt_field_types_loaded_ = true;
 }
 
 void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
@@ -1447,14 +1470,40 @@ std::set<std::string> TileDBVCFDataset::all_attributes() const {
   return result;
 }
 
-int TileDBVCFDataset::info_field_type(const std::string& name) const {
+int TileDBVCFDataset::info_field_type(
+    const std::string& name, const bcf_hdr_t* hdr) const {
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  if (!info_fmt_field_types_loaded_) {
+    lck_.unlock();
+    if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+      load_field_type_maps();
+    else {
+      assert(metadata_.version == Version::V4);
+      load_field_type_maps_v4(hdr);
+    }
+    lck_.lock();
+  }
+
   auto it = info_field_types_.find(name);
   if (it == info_field_types_.end())
     throw std::invalid_argument("Error getting INFO type for '" + name + "'");
   return it->second;
 }
 
-int TileDBVCFDataset::fmt_field_type(const std::string& name) const {
+int TileDBVCFDataset::fmt_field_type(
+    const std::string& name, const bcf_hdr_t* hdr) const {
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  if (!info_fmt_field_types_loaded_) {
+    lck_.unlock();
+    if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+      load_field_type_maps();
+    else {
+      assert(metadata_.version == Version::V4);
+      load_field_type_maps_v4(hdr);
+    }
+    lck_.lock();
+  }
+
   auto it = fmt_field_types_.find(name);
   if (it == fmt_field_types_.end())
     throw std::invalid_argument("Error getting FMT type for '" + name + "'");
@@ -1462,20 +1511,52 @@ int TileDBVCFDataset::fmt_field_type(const std::string& name) const {
 }
 
 int32_t TileDBVCFDataset::queryable_attribute_count() const {
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
+  if (!queryable_attribute_loaded_) {
+    lck_.unlock();
+    build_queryable_attributes();
+    lck_.lock();
+  }
+
   return this->vcf_attributes_.size();
 }
 
 const char* TileDBVCFDataset::queryable_attribute_name(
     const int32_t index) const {
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
+  if (!queryable_attribute_loaded_) {
+    lck_.unlock();
+    build_queryable_attributes();
+    lck_.lock();
+  }
+
   return this->vcf_attributes_[index].data();
 }
 
 int32_t TileDBVCFDataset::materialized_attribute_count() const {
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
+  if (!queryable_attribute_loaded_) {
+    lck_.unlock();
+    build_queryable_attributes();
+    lck_.lock();
+  }
+
   return this->materialized_vcf_attributes_.size();
 }
 
 const char* TileDBVCFDataset::materialized_attribute_name(
     const int32_t index) const {
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
+  if (!queryable_attribute_loaded_) {
+    lck_.unlock();
+    build_queryable_attributes();
+    lck_.lock();
+  }
+
   return this->materialized_vcf_attributes_[index].data();
 }
 
@@ -1514,11 +1595,34 @@ bool TileDBVCFDataset::cloud_dataset(std::string root_uri) {
   return utils::starts_with(root_uri, "tiledb://");
 }
 
-std::map<std::string, int> TileDBVCFDataset::info_field_types() {
+std::map<std::string, int> TileDBVCFDataset::info_field_types() const {
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  if (!info_fmt_field_types_loaded_) {
+    lck_.unlock();
+    if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+      load_field_type_maps();
+    else {
+      assert(metadata_.version == Version::V4);
+      load_field_type_maps_v4(nullptr);
+    }
+    lck_.lock();
+  }
   return info_field_types_;
 }
 
-std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
+std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  if (!info_fmt_field_types_loaded_) {
+    lck_.unlock();
+    if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+      load_field_type_maps();
+    else {
+      assert(metadata_.version == Version::V4);
+      load_field_type_maps_v4(nullptr);
+    }
+    lck_.lock();
+  }
+
   return fmt_field_types_;
 }
 

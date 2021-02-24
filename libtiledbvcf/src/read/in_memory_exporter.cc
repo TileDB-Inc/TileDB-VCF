@@ -379,20 +379,22 @@ bool InMemoryExporter::export_record(
             &user_buff,
             sample_name.c_str(),
             sample_name.size(),
-            sample_name.size());
+            sample_name.size(),
+            hdr);
         break;
       }
       case ExportableAttribute::Contig: {
         if (version == TileDBVCFDataset::Version::V4) {
           uint64_t size = 0;
           const char* contig = buffers->contig().value<char>(cell_idx, &size);
-          overflow = !copy_cell(&user_buff, contig, size, size);
+          overflow = !copy_cell(&user_buff, contig, size, size, hdr);
         } else {
           overflow = !copy_cell(
               &user_buff,
               query_region.seq_name.c_str(),
               query_region.seq_name.size(),
-              query_region.seq_name.size());
+              query_region.seq_name.size(),
+              hdr);
         }
         break;
       }
@@ -401,7 +403,7 @@ bool InMemoryExporter::export_record(
           const uint32_t real_start_pos =
               buffers->real_start_pos().value<uint32_t>(cell_idx) + 1;
           overflow = !copy_cell(
-              &user_buff, &real_start_pos, sizeof(real_start_pos), 1);
+              &user_buff, &real_start_pos, sizeof(real_start_pos), 1, hdr);
 
         } else if (version == TileDBVCFDataset::Version::V3) {
           const uint32_t real_start_pos =
@@ -409,12 +411,12 @@ bool InMemoryExporter::export_record(
                contig_offset) +
               1;
           overflow = !copy_cell(
-              &user_buff, &real_start_pos, sizeof(real_start_pos), 1);
+              &user_buff, &real_start_pos, sizeof(real_start_pos), 1, hdr);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
           const uint32_t pos =
               (buffers->pos().value<uint32_t>(cell_idx) - contig_offset) + 1;
-          overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1);
+          overflow = !copy_cell(&user_buff, &pos, sizeof(pos), 1, hdr);
         }
         break;
       }
@@ -422,29 +424,30 @@ bool InMemoryExporter::export_record(
         if (version == TileDBVCFDataset::Version::V4) {
           const uint32_t end_pos =
               buffers->end_pos().value<uint32_t>(cell_idx) + 1;
-          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1);
+          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1, hdr);
         } else if (version == TileDBVCFDataset::Version::V3) {
           const uint32_t end_pos =
               (buffers->end_pos().value<uint32_t>(cell_idx) - contig_offset) +
               1;
-          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1);
+          overflow = !copy_cell(&user_buff, &end_pos, sizeof(end_pos), 1, hdr);
         } else {
           assert(version == TileDBVCFDataset::Version::V2);
           const uint32_t real_end =
               (buffers->real_end().value<uint32_t>(cell_idx) - contig_offset) +
               1;
-          overflow = !copy_cell(&user_buff, &real_end, sizeof(real_end), 1);
+          overflow =
+              !copy_cell(&user_buff, &real_end, sizeof(real_end), 1, hdr);
         }
         break;
       }
       case ExportableAttribute::QueryBedStart: {
         overflow = !copy_cell(
-            &user_buff, &query_region.min, sizeof(query_region.min), 1);
+            &user_buff, &query_region.min, sizeof(query_region.min), 1, hdr);
         break;
       }
       case ExportableAttribute::QueryBedEnd: {
         uint32_t end = query_region.max + 1;
-        overflow = !copy_cell(&user_buff, &end, sizeof(end), 1);
+        overflow = !copy_cell(&user_buff, &end, sizeof(end), 1, hdr);
         break;
       }
       case ExportableAttribute::Alleles: {
@@ -463,7 +466,7 @@ bool InMemoryExporter::export_record(
         // Don't copy terminating null byte
         if (nbytes > 0)
           nbytes -= 1;
-        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes, hdr);
         break;
       }
       case ExportableAttribute::Filters: {
@@ -472,7 +475,7 @@ bool InMemoryExporter::export_record(
       }
       case ExportableAttribute::Qual: {
         const auto qual = buffers->qual().value<float>(cell_idx);
-        overflow = !copy_cell(&user_buff, &qual, sizeof(qual), 1);
+        overflow = !copy_cell(&user_buff, &qual, sizeof(qual), 1, hdr);
         break;
       }
       case ExportableAttribute::Fmt: {
@@ -484,7 +487,7 @@ bool InMemoryExporter::export_record(
             curr_query_results_->fmt_size().second,
             &data,
             &nbytes);
-        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes, hdr);
         break;
       }
       case ExportableAttribute::Info: {
@@ -496,11 +499,11 @@ bool InMemoryExporter::export_record(
             curr_query_results_->info_size().second,
             &data,
             &nbytes);
-        overflow = !copy_cell(&user_buff, data, nbytes, nbytes);
+        overflow = !copy_cell(&user_buff, data, nbytes, nbytes, hdr);
         break;
       }
       case ExportableAttribute::InfoOrFmt: {
-        overflow = !copy_info_fmt_value(cell_idx, &user_buff);
+        overflow = !copy_info_fmt_value(cell_idx, &user_buff, hdr);
         break;
       }
       default:
@@ -624,7 +627,7 @@ void InMemoryExporter::attribute_datatype(
       *datatype = AttrDatatype::INT32;
       break;
     case ExportableAttribute::InfoOrFmt:
-      *datatype = get_info_fmt_datatype(dataset, attribute);
+      *datatype = get_info_fmt_datatype(dataset, attribute, nullptr);
       break;
     default:
       throw std::runtime_error(
@@ -639,7 +642,9 @@ void InMemoryExporter::attribute_datatype(
 }
 
 AttrDatatype InMemoryExporter::get_info_fmt_datatype(
-    const TileDBVCFDataset* dataset, const std::string& attr) {
+    const TileDBVCFDataset* dataset,
+    const std::string& attr,
+    const bcf_hdr_t* hdr) {
   // Special-case genotype, since the header thinks it's a string.
   if (attr == "fmt_GT")
     return AttrDatatype::INT32;
@@ -648,8 +653,8 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
   bool is_info = parts.first == "info";
   const auto& field_name = parts.second;
 
-  int htslib_type = is_info ? dataset->info_field_type(field_name) :
-                              dataset->fmt_field_type(field_name);
+  int htslib_type = is_info ? dataset->info_field_type(field_name, hdr) :
+                              dataset->fmt_field_type(field_name, hdr);
   switch (htslib_type) {
     case BCF_HT_FLAG:
       return AttrDatatype::INT32;
@@ -682,14 +687,18 @@ void InMemoryExporter::get_var_attr_value(
 }
 
 bool InMemoryExporter::copy_cell(
-    UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
+    UserBuffer* dest,
+    const void* data,
+    uint64_t nbytes,
+    uint64_t nelts,
+    const bcf_hdr_t* hdr) const {
   const bool var_len = dest->offsets != nullptr;
   int64_t index = dest->curr_sizes.num_offsets;
   // If its not var length get the index from data element count
   if (!var_len)
     index = dest->curr_sizes.data_nelts;
 
-  if (!copy_cell_data(dest, data, nbytes, nelts))
+  if (!copy_cell_data(dest, data, nbytes, nelts, hdr))
     return false;
   bool is_null = data == nullptr;
   if (!update_cell_list_and_bitmap(dest, index, is_null, 1, index))
@@ -698,7 +707,11 @@ bool InMemoryExporter::copy_cell(
 }
 
 bool InMemoryExporter::copy_cell_data(
-    UserBuffer* dest, const void* data, uint64_t nbytes, uint64_t nelts) const {
+    UserBuffer* dest,
+    const void* data,
+    uint64_t nbytes,
+    uint64_t nelts,
+    const bcf_hdr_t* hdr) const {
   const bool var_len = dest->offsets != nullptr;
 
   // Check for data buffer overflow
@@ -721,7 +734,7 @@ bool InMemoryExporter::copy_cell_data(
     // Arrow expects null values to have 1 value which is ignored for fixed
     // length fields
     nbytes = attr_datatype_size(
-        get_info_fmt_datatype(this->dataset_, dest->attr_name));
+        get_info_fmt_datatype(this->dataset_, dest->attr_name, hdr));
     nelts = 1;
   }
 
@@ -842,7 +855,7 @@ bool InMemoryExporter::copy_alleles_list(
 
     // Copy the allele to the user data buffer (and update value offsets).
     const uint64_t len = idx - start_idx;
-    if (!copy_cell_data(dest, p + start_idx, len, len))
+    if (!copy_cell_data(dest, p + start_idx, len, len, nullptr))
       return false;
 
     idx++;  // Skip comma
@@ -896,7 +909,7 @@ bool InMemoryExporter::copy_filters_list(
     for (int i = 0; i < num_filters; i++) {
       const char* filter_name = bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]);
       const uint64_t len = strlen(filter_name);
-      if (!copy_cell_data(dest, filter_name, len, len))
+      if (!copy_cell_data(dest, filter_name, len, len, nullptr))
         return false;
     }
   }
@@ -910,7 +923,7 @@ bool InMemoryExporter::copy_filters_list(
 }
 
 bool InMemoryExporter::copy_info_fmt_value(
-    uint64_t cell_idx, UserBuffer* dest) const {
+    uint64_t cell_idx, UserBuffer* dest, const bcf_hdr_t* hdr) const {
   const std::string& field_name = dest->info_fmt_field_name;
   const bool is_gt = field_name == "GT";
   const void* src = nullptr;
@@ -923,9 +936,9 @@ bool InMemoryExporter::copy_info_fmt_value(
     int decoded[nelts];
     for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
-    return copy_cell(dest, decoded, nelts * sizeof(int), nelts);
+    return copy_cell(dest, decoded, nelts * sizeof(int), nelts, hdr);
   } else {
-    return copy_cell(dest, src, nbytes, nelts);
+    return copy_cell(dest, src, nbytes, nelts, hdr);
   }
 }
 

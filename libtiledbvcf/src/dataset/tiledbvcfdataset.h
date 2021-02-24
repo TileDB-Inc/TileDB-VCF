@@ -360,16 +360,16 @@ class TileDBVCFDataset {
   std::set<std::string> all_attributes() const;
 
   /** Returns the BCF_HT_ type for the info field of the given name. */
-  int info_field_type(const std::string& name) const;
+  int info_field_type(const std::string& name, const bcf_hdr_t* hdr) const;
 
   /** Returns the BCF_HT_ type for the format field of the given name. */
-  int fmt_field_type(const std::string& name) const;
+  int fmt_field_type(const std::string& name, const bcf_hdr_t* hdr) const;
 
   /** Map of info field name -> hstlib type. */
-  std::map<std::string, int> info_field_types();
+  std::map<std::string, int> info_field_types() const;
 
   /** Map of fmt field name -> hstlib type. */
-  std::map<std::string, int> fmt_field_types();
+  std::map<std::string, int> fmt_field_types() const;
 
   /**
    * Get queryable attribute count
@@ -549,16 +549,16 @@ class TileDBVCFDataset {
   Metadata metadata_;
 
   /** Map of info field name -> hstlib type. */
-  std::map<std::string, int> info_field_types_;
+  mutable std::map<std::string, int> info_field_types_;
 
   /** Map of fmt field name -> hstlib type. */
-  std::map<std::string, int> fmt_field_types_;
+  mutable std::map<std::string, int> fmt_field_types_;
 
   /** List of all attributes of vcf for querying */
-  std::vector<std::vector<char>> vcf_attributes_;
+  mutable std::vector<std::vector<char>> vcf_attributes_;
 
   /** List of all materialzied attributes of vcf for querying */
-  std::vector<std::vector<char>> materialized_vcf_attributes_;
+  mutable std::vector<std::vector<char>> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
   mutable std::vector<std::vector<char>> sample_names_;
@@ -585,6 +585,18 @@ class TileDBVCFDataset {
 
   /** Are sample names loaded */
   mutable bool sample_names_loaded_;
+
+  /** RWLock for building type field maps for info/fmt */
+  utils::RWLock type_field_rw_lock_;
+
+  /** flag for if info_field_types/fmt_field_types has been loaded */
+  mutable bool info_fmt_field_types_loaded_;
+
+  /** RWLock for building list of queryable attributes */
+  utils::RWLock queryable_attribute_lock_;
+
+  /** flag for if queryable attributes have been computed or not */
+  mutable bool queryable_attribute_loaded_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
@@ -724,12 +736,12 @@ class TileDBVCFDataset {
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
-  void load_field_type_maps();
+  void load_field_type_maps() const;
 
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
-  void load_field_type_maps_v4();
+  void load_field_type_maps_v4(const bcf_hdr_t* hdr) const;
 
   /**
    * Open the VCF header array
@@ -763,6 +775,11 @@ class TileDBVCFDataset {
    * @return The dataset's Metadata.
    */
   void read_metadata_v4();
+
+  /**
+   * Build list of queryable attributes
+   */
+  void build_queryable_attributes() const;
 };
 
 }  // namespace vcf

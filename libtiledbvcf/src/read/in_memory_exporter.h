@@ -27,6 +27,7 @@
 #ifndef TILEDB_VCF_USER_BUFFER_EXPORTER_H
 #define TILEDB_VCF_USER_BUFFER_EXPORTER_H
 
+#include <stdint-gcc.h>
 #include "enums/attr_datatype.h"
 #include "read/exporter.h"
 #include "read_query_results.h"
@@ -276,7 +277,9 @@ class InMemoryExporter : public Exporter {
 
   /** Gets the datatype for a specific info_/fmt_ attribute. */
   static AttrDatatype get_info_fmt_datatype(
-      const TileDBVCFDataset* dataset, const std::string& attr);
+      const TileDBVCFDataset* dataset,
+      const std::string& attr,
+      const bcf_hdr_t* hdr);
 
   UserBuffer* get_buffer(const std::string& attribute);
 
@@ -285,14 +288,16 @@ class InMemoryExporter : public Exporter {
       UserBuffer* dest,
       const void* data,
       uint64_t nbytes,
-      uint64_t nelts) const;
+      uint64_t nelts,
+      const bcf_hdr_t* hdr) const;
 
   /** Copies the cell value, and updates the offsets for var-len attributes. */
   bool copy_cell_data(
       UserBuffer* dest,
       const void* data,
       uint64_t nbytes,
-      uint64_t nelts) const;
+      uint64_t nelts,
+      const bcf_hdr_t* hdr) const;
 
   /**
    * Updates the attribute list offsets and validity bitmap. This should be
@@ -321,7 +326,8 @@ class InMemoryExporter : public Exporter {
       const bcf_hdr_t* hdr, uint64_t cell_idx, UserBuffer* dest) const;
 
   /** Helper method to export an info_/fmt_ attribute. */
-  bool copy_info_fmt_value(uint64_t cell_idx, UserBuffer* dest) const;
+  bool copy_info_fmt_value(
+      uint64_t cell_idx, UserBuffer* dest, const bcf_hdr_t* hdr) const;
 
   /**
    * Gets a pointer to the variable-length attribute data in the given source

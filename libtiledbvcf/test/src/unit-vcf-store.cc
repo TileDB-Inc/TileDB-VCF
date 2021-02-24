@@ -114,8 +114,9 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
     REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
 
-    REQUIRE(ds.fmt_field_type("GQ") == BCF_HT_INT);
-    REQUIRE(ds.info_field_type("BaseQRankSum") == BCF_HT_REAL);
+    REQUIRE(ds.fmt_field_type("GQ", hdrs.at(0).get()) == BCF_HT_INT);
+    REQUIRE(
+        ds.info_field_type("BaseQRankSum", hdrs.at(0).get()) == BCF_HT_REAL);
   }
 
   // Ingest the samples
