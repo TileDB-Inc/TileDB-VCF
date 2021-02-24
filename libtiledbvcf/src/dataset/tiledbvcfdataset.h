@@ -294,7 +294,8 @@ class TileDBVCFDataset {
    */
   std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers_v4(
       const std::vector<SampleAndId>& samples,
-      std::unordered_map<std::string, size_t>* lookup_map) const;
+      std::unordered_map<std::string, size_t>* lookup_map,
+      uint64_t memory_budget = 10485760) const;
 
   /**
    * Returns a list of regions, one per contig (spanning the entire contig),
@@ -420,7 +421,8 @@ class TileDBVCFDataset {
    *
    * @return vector of all sample names
    */
-  std::vector<std::string> get_all_samples_from_vcf_headers() const;
+  std::vector<std::string> get_all_samples_from_vcf_headers(
+      const uint64_t memory_budget = 10485760) const;
 
   std::shared_ptr<tiledb::Array> data_array() const;
 

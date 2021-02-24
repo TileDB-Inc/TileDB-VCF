@@ -27,7 +27,6 @@
 #ifndef TILEDB_VCF_USER_BUFFER_EXPORTER_H
 #define TILEDB_VCF_USER_BUFFER_EXPORTER_H
 
-#include <stdint-gcc.h>
 #include "enums/attr_datatype.h"
 #include "read/exporter.h"
 #include "read_query_results.h"
