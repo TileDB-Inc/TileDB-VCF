@@ -571,7 +571,9 @@ bool Reader::next_read_batch_v4() {
     // Fetch new headers for new sample batch
     read_state_.current_hdrs.clear();
     read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-        read_state_.current_sample_batches, &read_state_.current_hdrs_lookup);
+        read_state_.current_sample_batches,
+        &read_state_.current_hdrs_lookup,
+        params_.memory_budget_breakdown.buffers);
   }
 
   // Set up the TileDB query
