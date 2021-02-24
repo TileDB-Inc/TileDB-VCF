@@ -37,7 +37,9 @@
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
 
+#include "utils/rwlock.h"
 #include "utils/sample_utils.h"
+#include "utils/unique_rwlock.h"
 #include "vcf/region.h"
 
 namespace tiledb {
@@ -165,6 +167,64 @@ class TileDBVCFDataset {
    * General metadata for a dataset. This should be kept relatively small.
    */
   struct Metadata {
+    Metadata()
+        : tile_capacity(0)
+        , ingestion_sample_batch_size(0)
+        , anchor_gap(0)
+        , free_sample_id(0)
+        , total_contig_length(0) {
+    }
+
+    Metadata(Metadata&& metadata) noexcept {
+      vcf::utils::UniqueReadLock lck_(&metadata.sample_names_rw_lock_);
+      version = metadata.version;
+      tile_capacity = metadata.tile_capacity;
+      ingestion_sample_batch_size = metadata.ingestion_sample_batch_size;
+      anchor_gap = metadata.anchor_gap;
+      extra_attributes = metadata.extra_attributes;
+      free_sample_id = metadata.free_sample_id;
+      all_samples = metadata.all_samples;
+      sample_ids = metadata.sample_ids;
+      sample_names_ = metadata.sample_names_;
+      contig_offsets = metadata.contig_offsets;
+      contig_lengths = metadata.contig_lengths;
+      total_contig_length = metadata.total_contig_length;
+    }
+
+    Metadata(const Metadata& metadata) {
+      vcf::utils::UniqueReadLock lck_(&metadata.sample_names_rw_lock_);
+      version = metadata.version;
+      tile_capacity = metadata.tile_capacity;
+      ingestion_sample_batch_size = metadata.ingestion_sample_batch_size;
+      anchor_gap = metadata.anchor_gap;
+      extra_attributes = metadata.extra_attributes;
+      free_sample_id = metadata.free_sample_id;
+      all_samples = metadata.all_samples;
+      sample_ids = metadata.sample_ids;
+      sample_names_ = metadata.sample_names_;
+      contig_offsets = metadata.contig_offsets;
+      contig_lengths = metadata.contig_lengths;
+      total_contig_length = metadata.total_contig_length;
+    }
+
+    Metadata& operator=(const Metadata& metadata) {
+      vcf::utils::UniqueReadLock lck_(&metadata.sample_names_rw_lock_);
+      version = metadata.version;
+      tile_capacity = metadata.tile_capacity;
+      ingestion_sample_batch_size = metadata.ingestion_sample_batch_size;
+      anchor_gap = metadata.anchor_gap;
+      extra_attributes = metadata.extra_attributes;
+      free_sample_id = metadata.free_sample_id;
+      all_samples = metadata.all_samples;
+      sample_ids = metadata.sample_ids;
+      sample_names_ = metadata.sample_names_;
+      contig_offsets = metadata.contig_offsets;
+      contig_lengths = metadata.contig_lengths;
+      total_contig_length = metadata.total_contig_length;
+
+      return *this;
+    }
+
     unsigned version = Version::V4;
     uint64_t tile_capacity;
     uint32_t ingestion_sample_batch_size;
@@ -172,18 +232,21 @@ class TileDBVCFDataset {
     std::vector<std::string> extra_attributes;
 
     uint32_t free_sample_id;
-    std::vector<std::string> all_samples;
+    mutable std::vector<std::string> all_samples;
 
     /**
      * Mapping of sample name -> sample ID (row coord).
      */
-    std::map<std::string, uint32_t> sample_ids;
+    mutable std::map<std::string, uint32_t> sample_ids;
 
     /**
      * Mapping of sample ID (row coord) -> sample name. This field is derived,
      * not serialized.
      */
-    std::vector<std::string> sample_names;
+    mutable std::vector<std::string> sample_names_;
+
+    /** Lock for accessing and manipulating sample_names */
+    mutable utils::RWLock sample_names_rw_lock_;
 
     /** Mapping of contig name -> global genomic offset. */
     std::map<std::string, uint32_t> contig_offsets;
@@ -357,7 +420,7 @@ class TileDBVCFDataset {
    *
    * @return vector of all sample names
    */
-  std::vector<std::string> get_all_samples_from_vcf_headers();
+  std::vector<std::string> get_all_samples_from_vcf_headers() const;
 
   std::shared_ptr<tiledb::Array> data_array() const;
 
@@ -460,6 +523,17 @@ class TileDBVCFDataset {
    */
   void vacuum_fragments(const UtilsParams& params);
 
+  /**
+   * Return sample name vector
+   * @return
+   */
+  std::vector<std::vector<char>> sample_names() const;
+
+  /**
+   * Load sample names
+   */
+  void load_sample_names_v4() const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -487,7 +561,7 @@ class TileDBVCFDataset {
   std::vector<std::vector<char>> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
-  std::vector<std::vector<char>> sample_names_;
+  mutable std::vector<std::vector<char>> sample_names_;
 
   /** Pointer to hold an open vcf header array. This avoid opening the array
    * multiple times in multiple places */
@@ -508,6 +582,9 @@ class TileDBVCFDataset {
 
   /** TileDB stats enablement for vcf header array */
   bool tiledb_stats_enabled_vcf_header_;
+
+  /** Are sample names loaded */
+  mutable bool sample_names_loaded_;
 
   /* ********************************* */
   /*          STATIC METHODS           */

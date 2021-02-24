@@ -1375,7 +1375,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
   // No specified samples means all samples.
   if (result.empty()) {
     const auto& md = dataset_->metadata();
-    for (const auto& s : md.sample_names) {
+    for (const auto& s : md.sample_names_) {
       auto it = md.sample_ids.find(s);
       if (it == md.sample_ids.end())
         throw std::runtime_error(
@@ -1402,38 +1402,40 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
           "Error preparing sample list for export; sample name '" + s +
           "' is invalid.");
 
-    const auto& sample_ids = dataset_->metadata().sample_ids;
-    auto it = sample_ids.find(name);
-    if (it == sample_ids.end())
-      throw std::runtime_error(
-          "Error preparing sample list for export; sample '" + s +
-          "' has not been registered.");
-
-    result.push_back({.sample_name = name, .sample_id = it->second});
+    result.push_back({.sample_name = name, .sample_id = 0});
   }
 
   if (!params_.samples_file_uri.empty()) {
     const auto& metadata = dataset_->metadata();
-    auto per_line = [&metadata, &result](std::string* line) {
-      std::string name;
-      if (!VCFUtils::normalize_sample_name(*line, &name))
-        throw std::runtime_error(
-            "Error preparing sample list for export; sample name '" + *line +
-            "' is invalid.");
+    const bool check_samples_exist = params_.check_samples_exist;
+    if (check_samples_exist)
+      dataset_->load_sample_names_v4();
+    auto per_line =
+        [&metadata, &result, &check_samples_exist](std::string* line) {
+          std::string name;
+          if (!VCFUtils::normalize_sample_name(*line, &name))
+            throw std::runtime_error(
+                "Error preparing sample list for export; sample name '" +
+                *line + "' is invalid.");
 
-      const auto& sample_ids = metadata.sample_ids;
-      auto it = sample_ids.find(name);
-      if (it == sample_ids.end())
-        throw std::runtime_error(
-            "Error preparing sample list for export; sample '" + *line +
-            "' has not been registered.");
+          if (check_samples_exist) {
+            const auto& sample_ids = metadata.sample_ids;
+            auto it = sample_ids.find(name);
+            if (it == sample_ids.end())
+              throw std::runtime_error(
+                  "Error preparing sample list for export; sample '" + *line +
+                  "' has not been registered.");
 
-      result.push_back({.sample_name = name, .sample_id = it->second});
-    };
+            result.push_back(
+                {.sample_name = name,
+                 .sample_id = static_cast<uint32_t>(result.size())});
+          }
+        };
     utils::read_file_lines(*vfs_, params_.samples_file_uri, per_line);
   }
 
   // No specified samples means all samples.
+  // TODO: make this use vcf headers
   if (result.empty()) {
     const auto& samples = dataset_->get_all_samples_from_vcf_headers();
     for (const auto& s : samples) {
@@ -1451,6 +1453,7 @@ void Reader::prepare_regions_v4(
         regions_index_per_contig,
     std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
         query_regions) const {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   const uint32_t g = dataset_->metadata().anchor_gap;
   // Use a linked list for pre-partition regions to allow for parallel parsing
   // of BED file
@@ -1485,12 +1488,7 @@ void Reader::prepare_regions_v4(
 
   // No specified regions means all regions.
   if (pre_partition_regions_list.empty()) {
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
-        dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-      pre_partition_regions_list = dataset_->all_contigs_list();
-    else {
-      pre_partition_regions_list = dataset_->all_contigs_list_v4();
-    }
+    pre_partition_regions_list = dataset_->all_contigs_list_v4();
   }
 
   std::vector<Region> filtered_regions;
@@ -2086,7 +2084,7 @@ void Reader::info_attribute_count(int32_t* count) {
 void Reader::sample_count(int32_t* count) {
   if (count == nullptr)
     throw std::runtime_error("Error getting sample count");
-  *count = dataset_->metadata().sample_names.size();
+  *count = dataset_->sample_names().size();
 }
 
 void Reader::sample_name(int32_t index, const char** name) {
@@ -2175,6 +2173,10 @@ void Reader::set_tiledb_tile_cache_percentage(
   params_.memory_budget_breakdown.tile_cache_percentage = tile_cache_percentage;
   // Always recompute memory budgets after update
   compute_memory_budget_details();
+}
+
+void Reader::set_check_samples_exist(const bool check_samples_exist) {
+  params_.check_samples_exist = check_samples_exist;
 }
 
 }  // namespace vcf

@@ -868,6 +868,15 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_tiledb_tile_cache_percentage(
     tiledb_vcf_reader_t* reader, float tile_percentage);
 
 /**
+ * Sets if the reader should validate all requested samples exist in the array
+ * before running the query
+ * @param reader VCF reader object
+ * @param check_samples_exist setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_check_samples_exist(
+    tiledb_vcf_reader_t* reader, bool check_samples_exist);
+
+/**
  * Returns the version number of the TileDB VCF dataset.
  *
  * @param reader VCF reader object

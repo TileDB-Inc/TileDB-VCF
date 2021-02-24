@@ -545,7 +545,10 @@ int main(int argc, char** argv) {
            "Enable TileDB stats",
        option("--stats-vcf-header-array")
                .set(export_args.tiledb_stats_enabled_vcf_header_array) %
-           "Enable TileDB stats for vcf header array usage");
+           "Enable TileDB stats for vcf header array usage",
+       option("--check-samples-exist").set(export_args.check_samples_exist) %
+           "Validate that sample passed exist in dataset before executing "
+           "query and error if any sample requested is not in the dataset");
 
   ListParams list_args;
   auto list_mode =

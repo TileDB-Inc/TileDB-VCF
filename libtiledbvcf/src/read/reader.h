@@ -99,6 +99,11 @@ struct ExportParams {
 
   // Size in bytes at which if the buffers are larger we will double buffer
   uint64_t double_buffering_threshold = 200 * 1024 * 1024;
+
+  // Should we check that the sample names passed for export exist in the array
+  // and error out if not This can add latency which might not be cared about
+  // because we have to fetch the list of samples from the VCF header array
+  bool check_samples_exist = false;
 };
 
 /* ********************************* */
@@ -371,6 +376,13 @@ class Reader {
    * @param tile_cache_percentage
    */
   void set_tiledb_tile_cache_percentage(const float& tile_cache_percentage);
+
+  /**
+   * Set if the list of user passed samples should be validated to exist before
+   * running the query
+   * @param check_samples_exist
+   */
+  void set_check_samples_exist(const bool check_samples_exist);
 
  private:
   /* ********************************* */
