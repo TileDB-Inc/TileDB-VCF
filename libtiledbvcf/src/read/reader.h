@@ -103,7 +103,7 @@ struct ExportParams {
   // Should we check that the sample names passed for export exist in the array
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
-  bool check_samples_exist = false;
+  bool check_samples_exist = true;
 };
 
 /* ********************************* */
