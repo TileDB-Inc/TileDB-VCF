@@ -32,6 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
 
@@ -99,7 +100,8 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 TileDBVCFDataset::TileDBVCFDataset()
     : open_(false)
     , tiledb_stats_enabled_(true)
-    , tiledb_stats_enabled_vcf_header_(true) {
+    , tiledb_stats_enabled_vcf_header_(true)
+    , sample_names_loaded_(false) {
   utils::init_htslib();
 }
 
@@ -366,10 +368,13 @@ void TileDBVCFDataset::open(
     vcf_attributes_.push_back(name);
   }
 
-  for (const auto& s : metadata_.sample_names) {
-    std::vector<char> sample(s.begin(), s.end());
-    sample.emplace_back('\0');
-    sample_names_.push_back(sample);
+  // only v2/v3 arrays preload sample list
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
+    for (const auto& s : metadata_.sample_names_) {
+      std::vector<char> sample(s.begin(), s.end());
+      sample.emplace_back('\0');
+      sample_names_.push_back(sample);
+    }
   }
 }
 
@@ -378,7 +383,7 @@ void TileDBVCFDataset::load_field_type_maps() {
   if (metadata_.sample_ids.empty())
     return;
 
-  std::string first_sample_name = metadata_.sample_names.at(0);
+  std::string first_sample_name = metadata_.sample_names_.at(0);
   uint32_t first_sample_id = metadata_.sample_ids.at(first_sample_name);
   SampleAndId first_sample = {first_sample_name, first_sample_id};
 
@@ -515,8 +520,8 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
 void TileDBVCFDataset::print_samples_list() {
   if (!open_)
     throw std::invalid_argument("Cannot list samples; dataset is not open.");
-  for (const auto& s : metadata_.sample_names)
-    std::cout << s << "\n";
+  for (const auto& s : sample_names())
+    std::cout << s.data() << "\n";
 }
 
 void TileDBVCFDataset::print_dataset_stats() {
@@ -532,8 +537,7 @@ void TileDBVCFDataset::print_dataset_stats() {
               << std::endl;
   std::cout << "- Tile capacity: " << metadata_.tile_capacity << std::endl;
   std::cout << "- Anchor gap: " << metadata_.anchor_gap << std::endl;
-  std::cout << "- Number of samples: " << metadata_.sample_names.size()
-            << std::endl;
+  std::cout << "- Number of samples: " << sample_names().size() << std::endl;
 
   std::cout << "- Extracted attributes: ";
   if (metadata_.extra_attributes.empty()) {
@@ -863,7 +867,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
         std::free(hdr_str);
 
         if (0 !=
-            bcf_hdr_add_sample(hdr, metadata_.sample_names[sample].c_str())) {
+            bcf_hdr_add_sample(hdr, metadata_.sample_names_[sample].c_str())) {
           throw std::runtime_error("Error adding the sample.");
         }
 
@@ -1043,15 +1047,6 @@ void TileDBVCFDataset::read_metadata_v4() {
 
   get_csv_md_value("extra_attributes", &metadata.extra_attributes);
 
-  metadata.all_samples = get_all_samples_from_vcf_headers();
-
-  // Derive the sample id -> name map.
-  metadata.sample_names.resize(metadata.all_samples.size());
-  for (size_t i = 0; i < metadata.all_samples.size(); i++) {
-    metadata.sample_names[i] = metadata.all_samples[i];
-    metadata.sample_ids[metadata.all_samples[i]] = i;
-  }
-
   // Set ingestion_sample_batch_size default to 10
   metadata.ingestion_sample_batch_size = 10;
 
@@ -1142,11 +1137,12 @@ void TileDBVCFDataset::read_metadata() {
   get_csv_pairs_md_value("contig_lengths", &metadata.contig_lengths);
 
   // Derive the sample id -> name map.
-  metadata.sample_names.resize(metadata.sample_ids.size());
+  metadata.sample_names_.resize(metadata.sample_ids.size());
   for (const auto& pair : metadata.sample_ids)
-    metadata.sample_names[pair.second] = pair.first;
+    metadata.sample_names_[pair.second] = pair.first;
 
   metadata_ = metadata;
+  sample_names_loaded_ = true;
 }
 
 void TileDBVCFDataset::write_metadata(
@@ -1484,6 +1480,8 @@ const char* TileDBVCFDataset::materialized_attribute_name(
 }
 
 const char* TileDBVCFDataset::sample_name(const int32_t index) const {
+  if (!sample_names_loaded_ && metadata_.version == Version::V4)
+    load_sample_names_v4();
   return this->sample_names_[index].data();
 }
 
@@ -1524,7 +1522,8 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() {
   return fmt_field_types_;
 }
 
-std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers() {
+std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
+    const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -1722,6 +1721,45 @@ void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
 void TileDBVCFDataset::vacuum_fragments(const UtilsParams& params) {
   vacuum_data_array_fragments(params);
   vacuum_vcf_header_array_fragments(params);
+}
+
+void TileDBVCFDataset::load_sample_names_v4() const {
+  utils::UniqueWriteLock lck_(&metadata_.sample_names_rw_lock_);
+  // After the lock is acquired we need to make sure a different thread hasn't
+  // loaded it
+  if (sample_names_loaded_)
+    return;
+
+  metadata_.all_samples = get_all_samples_from_vcf_headers();
+
+  // Derive the sample id -> name map.
+  metadata_.sample_names_.resize(metadata_.all_samples.size());
+  for (size_t i = 0; i < metadata_.all_samples.size(); i++) {
+    const std::string& sample_name = metadata_.all_samples[i];
+    metadata_.sample_names_[i] = sample_name;
+    metadata_.sample_ids[sample_name] = i;
+
+    std::vector<char> sample(sample_name.begin(), sample_name.end());
+    sample.emplace_back('\0');
+    sample_names_.push_back(sample);
+  }
+
+  sample_names_loaded_ = true;
+}
+
+std::vector<std::vector<char>> TileDBVCFDataset::sample_names() const {
+  utils::UniqueReadLock lck_(&metadata_.sample_names_rw_lock_);
+  if (!sample_names_loaded_) {
+    // Unlock the read if we are going to load it
+    lck_.unlock();
+    // Only v4 needs to load sample names
+    if (metadata_.version == Version::V4)
+      load_sample_names_v4();
+    // Reacquire the read lock to return a copy
+    lck_.lock();
+  }
+
+  return sample_names_;
 }
 }  // namespace vcf
 }  // namespace tiledb

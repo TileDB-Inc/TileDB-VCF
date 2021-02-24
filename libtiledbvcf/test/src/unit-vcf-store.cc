@@ -101,10 +101,12 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
   {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
+    if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
+      ds.load_sample_names_v4();
     REQUIRE(ds.metadata().all_samples == std::vector<std::string>{"HG01762"});
     REQUIRE(ds.metadata().sample_ids.count("HG01762") == 1);
     REQUIRE_THAT(
-        ds.metadata().sample_names,
+        ds.metadata().sample_names_,
         Catch::Matchers::VectorContains(std::string("HG01762")));
 
     auto hdrs = ds.fetch_vcf_headers_v4({{"HG01762", 0}}, nullptr);
@@ -130,6 +132,8 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
   {
     TileDBVCFDataset ds;
     ds.open(dataset_uri);
+    if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
+      ds.load_sample_names_v4();
     REQUIRE_THAT(
         ds.metadata().all_samples,
         Catch::Matchers::UnorderedEquals(
@@ -138,7 +142,7 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE(ds.metadata().sample_ids.count("HG00280") == 1);
     std::vector<std::string> samples = {"HG01762", "HG00280"};
     REQUIRE_THAT(
-        ds.metadata().sample_names, Catch::Matchers::Contains(samples));
+        ds.metadata().sample_names_, Catch::Matchers::Contains(samples));
 
     auto hdrs =
         ds.fetch_vcf_headers_v4({{"HG01762", 0}, {"HG00280", 1}}, nullptr);
