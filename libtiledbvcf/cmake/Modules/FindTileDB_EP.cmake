@@ -87,6 +87,7 @@ else()
             -DTILEDB_S3=${TILEDB_S3}
             -DTILEDB_VERBOSE=ON
             -DTILEDB_SERIALIZATION=ON
+            -DTILEDB_TESTS=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
           UPDATE_COMMAND ""
           INSTALL_COMMAND
