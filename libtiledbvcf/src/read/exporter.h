@@ -97,6 +97,8 @@ class Exporter {
    */
   virtual std::set<std::string> array_attributes_required() const = 0;
 
+  bool need_headers() const;
+
  protected:
   /** The dataset. */
   const TileDBVCFDataset* dataset_;
@@ -109,6 +111,9 @@ class Exporter {
 
   /** Reusable htslib record struct. */
   SafeBCFRec reusable_rec_;
+
+  /** Does the exporter need headers */
+  bool need_headers_ = false;
 
   /**
    * Given the TileDB query results, populates the htslib record struct with

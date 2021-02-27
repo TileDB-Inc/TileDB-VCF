@@ -35,6 +35,7 @@ TSVExporter::TSVExporter(
     const std::vector<std::string>& output_fields)
     : output_initialized_(false)
     , output_file_(output_file) {
+  need_headers_ = true;
   for (const auto& f : output_fields) {
     auto parts = utils::split(f, ':');
     if (parts.size() < 2) {
@@ -48,8 +49,10 @@ TSVExporter::TSVExporter(
     } else {
       std::string name = parts[1];
       if (utils::starts_with(f, "I:")) {
+        need_headers_ = true;
         output_fields_.emplace_back(OutputField::Type::Info, name);
       } else if (utils::starts_with(f, "S:")) {
+        need_headers_ = true;
         output_fields_.emplace_back(OutputField::Type::Fmt, name);
       } else if (utils::starts_with(f, "Q:")) {
         output_fields_.emplace_back(OutputField::Type::Query, name);

@@ -489,7 +489,10 @@ class Reader {
 
     /** indicates if the user is querying all samples in the array, this cause
      * some special case optimizations. */
-    bool all_samples;
+    bool all_samples = false;
+
+    /** Does the export need headers to be fetched. */
+    bool need_headers = false;
   };
 
   /* ********************************* */

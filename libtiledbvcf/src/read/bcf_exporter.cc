@@ -34,6 +34,7 @@ namespace tiledb {
 namespace vcf {
 
 BCFExporter::BCFExporter(ExportFormat fmt) {
+  need_headers_ = true;
   switch (fmt) {
     case ExportFormat::CompressedBCF:
       extension_ = ".bcf";
