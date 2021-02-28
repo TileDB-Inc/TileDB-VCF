@@ -442,7 +442,7 @@ void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
 
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
   if (hdr == nullptr) {
-    hdrs = fetch_vcf_headers_v4({}, nullptr);
+    hdrs = fetch_vcf_headers_v4({}, nullptr, false, true);
 
     if (hdrs.empty())
       return;
@@ -646,9 +646,26 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map,
+    const bool all_samples,
+    const bool first_sample,
     const uint64_t memory_budget) const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
+
+  if (all_samples && first_sample)
+    throw std::runtime_error(
+        "Cannot set all_samples and first_sample in same fetch vcf headers "
+        "request");
+
+  if (all_samples && !samples.empty())
+    throw std::runtime_error(
+        "Cannot set all_samples and samples list in same fetch vcf headers "
+        "request");
+
+  if (first_sample && !samples.empty())
+    throw std::runtime_error(
+        "Cannot set first_sample and samples list in same fetch vcf headers "
+        "request");
 
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
@@ -662,7 +679,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     for (const auto& sample : samples) {
       query.add_range(0, sample.sample_name, sample.sample_name);
     }
-  } else {
+  } else if (all_samples) {
+    // When no samples are passed grab the first one
+    auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
+    if (!non_empty_domain.first.empty())
+      query.add_range(0, non_empty_domain.first, non_empty_domain.second);
+  } else if (first_sample) {
     // When no samples are passed grab the first one
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
     if (!non_empty_domain.first.empty())
@@ -949,7 +971,7 @@ std::list<Region> TileDBVCFDataset::all_contigs_list() const {
 
 std::vector<Region> TileDBVCFDataset::all_contigs_v4() const {
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs =
-      fetch_vcf_headers_v4({}, nullptr);
+      fetch_vcf_headers_v4({}, nullptr, false, true);
 
   if (hdrs.empty())
     return {};

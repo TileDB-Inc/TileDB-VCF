@@ -95,7 +95,7 @@ void BCFExporter::finalize_export(
     record_buffers_v4_.erase(buff_map_it);
   }
 
-  auto file_it = file_info_.find(sample.sample_id);
+  auto file_it = file_info_.find(sample.sample_name);
   if (file_it != file_info_.end())
     file_info_.erase(file_it);
 }
@@ -145,7 +145,7 @@ void BCFExporter::flush_record_buffer(
 
 void BCFExporter::init_export_for_sample(
     const SampleAndId& sample, const bcf_hdr_t* hdr) {
-  if (file_info_.count(sample.sample_id) > 0)
+  if (file_info_.count(sample.sample_name) > 0)
     return;
 
   std::string path = output_path(sample);
@@ -164,7 +164,7 @@ void BCFExporter::init_export_for_sample(
         "Error creating BCF output file '" + path +
         "'; error writing header: ");
 
-  file_info_[sample.sample_id] = path;
+  file_info_[sample.sample_name] = path;
   all_exported_files_.push_back(path);
 }
 

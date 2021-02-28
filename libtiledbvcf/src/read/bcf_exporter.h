@@ -56,7 +56,7 @@ class BCFExporter : public Exporter {
   /** Number of records to buffer for a file before flushing to disk. */
   const unsigned RECORD_BUFFER_LIMIT = 10000;
 
-  std::map<uint32_t, std::string> file_info_;
+  std::map<std::string, std::string> file_info_;
   std::unordered_map<std::string, Buffer> record_buffers_v4_;
   std::string extension_;
   std::string fmt_code_;
