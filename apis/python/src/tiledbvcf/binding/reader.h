@@ -95,7 +95,9 @@ class Reader {
    * Returns a map of attribute name -> (offsets_buff, data_buff) containing the
    * data from the last read operation.
    */
-  std::map<std::string, std::pair<py::array, py::array>> get_buffers();
+  std::map<std::string, std::tuple<py::array, py::array, py::array, py::array>> get_buffers();
+
+  void* numpy_callback(void*);
 
   /**
    * Returns a PyArrow table containing the results from the last read

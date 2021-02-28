@@ -74,6 +74,16 @@ class get_pybind_include(object):
 
         return pybind11.get_include(self.user)
 
+class get_numpy_include(object):
+    """Helper class to determine the numpy include path
+    The purpose of this class is to postpone importing numpy
+    until it is actually installed, so that the ``get_include()``
+    method can be invoked."""
+
+    def __str__(self):
+        import numpy
+
+        return numpy.get_include()
 
 class PathConfig(object):
     """Helper class with some path information."""
@@ -210,7 +220,7 @@ def get_ext_modules():
         Extension(
             "tiledbvcf.libtiledbvcf",
             src_files,
-            include_dirs=[get_pybind_include(), get_pybind_include(user=True)],
+            include_dirs=[get_pybind_include(), get_pybind_include(user=True), get_numpy_include()],
             libraries=["tiledbvcf"],
             library_dirs=[],
             language="c++",

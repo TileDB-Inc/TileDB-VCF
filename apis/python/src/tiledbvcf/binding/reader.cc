@@ -295,18 +295,29 @@ void Reader::release_buffers() {
   buffers_.clear();
 }
 
-std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
-  std::map<std::string, std::pair<py::array, py::array>> result;
+std::map<std::string, std::tuple<py::array, py::array, py::array, py::array>> Reader::get_buffers() {
+  std::map<std::string, std::tuple<py::array, py::array, py::array, py::array>> result;
   for (auto& buff : buffers_) {
     const auto& attr = buff.attr_name;
-    result[attr] = {buff.offsets, buff.data};
+    result[attr] = {
+      buff.offsets, buff.list_offsets, buff.data, buff.bitmap
+    };
   }
   return result;
 }
 
 py::object Reader::get_results_arrow() {
   auto reader = ptr.get();
-  std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader);
+
+  std::map<void*, void*> buffer_map;
+  for (auto& buf : buffers_) {
+    buffer_map[(void*)buf.offsets.data()] = (void*)buf.offsets.ptr();
+    buffer_map[(void*)buf.list_offsets.data()] = (void*)buf.list_offsets.ptr();
+    buffer_map[(void*)buf.data.data()] = (void*)buf.data.ptr();
+    buffer_map[(void*)buf.bitmap.data()] = (void*)buf.bitmap.ptr();
+  }
+
+  std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader, static_cast<void*>(&buffer_map));
   if (table == nullptr)
     throw std::runtime_error(
         "TileDB-VCF-Py: Error converting to Arrow; null Array.");

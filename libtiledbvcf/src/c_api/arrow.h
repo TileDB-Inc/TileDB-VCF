@@ -34,11 +34,30 @@
 #define TILEDB_VCF_ARROW_H
 
 #include <arrow/api.h>
+#include <arrow/python/api.h>
+#include <map>
 
 #include "tiledbvcf.h"
 
+#include <pybind11/pybind11.h>
+//#include <pybind11/numpy.h>
+
+namespace {
+  void* get_numpy_buffer(void* buf_map_c, void* data) {
+    auto buf_map = reinterpret_cast< std::map<void*, void*>* >(buf_map_c);
+
+    auto npy_object = buf_map->find(data);
+    if (npy_object == buf_map->end())
+      return nullptr;
+    return (void*)npy_object->second;
+  }
+}
+
 namespace tiledb {
 namespace vcf {
+
+//using namespace arrow::py;
+using NumPyBuffer = arrow::py::NumPyBuffer;
 
 /**
  * Class providing integration between TileDB-VCF results and Apache Arrow.
@@ -52,7 +71,7 @@ class Arrow {
    * @param reader Reader whose results to wrap
    * @return Arrow Table wrapping the reader's results
    */
-  static std::shared_ptr<arrow::Table> to_arrow(tiledb_vcf_reader_t* reader) {
+  static std::shared_ptr<arrow::Table> to_arrow(tiledb_vcf_reader_t* reader, void* buf_npy) {
     int num_buffers = 0;
     check_error(
         reader,
@@ -71,6 +90,19 @@ class Arrow {
       // Get buffer info
       BufferInfo buffer_info = get_buffer_info(reader, i);
 
+      if (buffer_info.values_buff) {
+        buffer_info.values_buff = (void*)get_numpy_buffer(buf_npy, buffer_info.values_buff);
+      }
+      if (buffer_info.offset_buff) {
+        buffer_info.offset_buff = (int32_t*)get_numpy_buffer(buf_npy, buffer_info.offset_buff);
+      }
+      if (buffer_info.list_offset_buff) {
+        buffer_info.list_offset_buff = (int32_t*)get_numpy_buffer(buf_npy, buffer_info.list_offset_buff);
+      }
+      if (buffer_info.bitmap_buff) {
+        buffer_info.bitmap_buff = (uint8_t*)get_numpy_buffer(buf_npy, buffer_info.bitmap_buff);
+      }
+
       // Get actual buffer result size
       int64_t num_offsets = 0, num_data_elements = 0, num_data_bytes = 0;
       check_error(
@@ -88,7 +120,7 @@ class Arrow {
           arrow::field(buffer_info.name, arrow_field_dtype(buffer_info));
       fields.push_back(field);
 
-      std::shared_ptr<arrow::Array> array = make_arrow_array(
+      auto array = make_arrow_array(
           buffer_info, num_records, num_offsets, num_data_elements);
       arrays.push_back(array);
     }
@@ -111,6 +143,7 @@ class Arrow {
     int32_t* offset_buff = nullptr;
     int32_t* list_offset_buff = nullptr;
     uint8_t* bitmap_buff = nullptr;
+    bool is_numpy = false;
   };
 
   /** Returns the value of x/y (integer division) rounded up. */
@@ -269,13 +302,19 @@ class Arrow {
       const BufferInfo& buffer_info,
       int64_t num_records,
       int64_t num_data_elements) {
-    auto arrow_buff = arrow::Buffer::Wrap(
-        reinterpret_cast<T*>(buffer_info.values_buff), num_data_elements);
+
+    //arrow_buff = arrow::Buffer::Wrap(
+    //  reinterpret_cast<T*>(buffer_info.values_buff), num_data_elements);
+
+    auto arrow_buff = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.values_buff);
 
     // Handle nulls
     if (buffer_info.nullable) {
-      std::shared_ptr<arrow::Buffer> arrow_nulls =
-          arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+      //std::shared_ptr<arrow::Buffer> arrow_nulls =
+      //    arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+
+      auto arrow_nulls = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.bitmap_buff);
+
       return std::shared_ptr<arrow::Array>(
           new ArrayT(num_data_elements, arrow_buff, arrow_nulls));
     }
@@ -290,24 +329,34 @@ class Arrow {
       int64_t num_records,
       int64_t num_offsets,
       int64_t num_data_elements) {
-    auto arrow_values = arrow::Buffer::Wrap(
-        reinterpret_cast<char*>(buffer_info.values_buff), num_data_elements);
-    auto arrow_offsets =
-        arrow::Buffer::Wrap(buffer_info.offset_buff, num_offsets);
+    //auto arrow_values = arrow::Buffer::Wrap(
+    //    reinterpret_cast<char*>(buffer_info.values_buff), num_data_elements);
+    //auto arrow_offsets =
+    //    arrow::Buffer::Wrap(buffer_info.offset_buff, num_offsets);
+
+    auto arrow_values = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.values_buff);
+    auto arrow_offsets = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.offset_buff);
 
     std::shared_ptr<arrow::Buffer> arrow_nulls;
-    if (buffer_info.nullable)
-      arrow_nulls =
-          arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+    if (buffer_info.nullable) {
+      //arrow_nulls =
+      //    arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+
+      arrow_nulls = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.bitmap_buff);
+    }
 
     if (buffer_info.list) {
       // List of var-len char attribute.
       const int64_t num_list_offsets = num_records == 0 ? 0 : num_records + 1;
       const int64_t num_strings = num_offsets == 0 ? 0 : num_offsets - 1;
-      auto arrow_list_offsets =
-          arrow::Buffer::Wrap(buffer_info.list_offset_buff, num_list_offsets);
+      //auto arrow_list_offsets =
+      //    arrow::Buffer::Wrap(buffer_info.list_offset_buff, num_list_offsets);
+
+      auto arrow_list_offsets = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.list_offset_buff);
+
       auto string_array = std::shared_ptr<arrow::Array>(
           new arrow::StringArray(num_strings, arrow_offsets, arrow_values));
+
       return std::shared_ptr<arrow::Array>(new arrow::ListArray(
           arrow::list(arrow::utf8()),
           num_records,
@@ -330,15 +379,20 @@ class Arrow {
       int64_t num_offsets,
       int64_t num_data_elements) {
     auto dtype = arrow_dtype(buffer_info.datatype);
-    auto arrow_values = arrow::Buffer::Wrap(
-        reinterpret_cast<T*>(buffer_info.values_buff), num_data_elements);
-    auto arrow_offsets =
-        arrow::Buffer::Wrap(buffer_info.offset_buff, num_offsets);
+    //auto arrow_values = arrow::Buffer::Wrap(
+    //    reinterpret_cast<T*>(buffer_info.values_buff), num_data_elements);
+    //auto arrow_offsets =
+    //    arrow::Buffer::Wrap(buffer_info.offset_buff, num_offsets);
+
+    auto arrow_values = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.values_buff);
+    auto arrow_offsets = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.offset_buff);
 
     std::shared_ptr<arrow::Buffer> arrow_nulls;
-    if (buffer_info.nullable)
-      arrow_nulls =
-          arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+    if (buffer_info.nullable) {
+      //arrow_nulls =
+      //    arrow::Buffer::Wrap(buffer_info.bitmap_buff, ceil(num_records, 8));
+      arrow_nulls = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.bitmap_buff);
+    }
 
     std::shared_ptr<arrow::Array> values_array(
         new ArrayT(num_data_elements, arrow_values));
@@ -346,8 +400,10 @@ class Arrow {
     if (buffer_info.list) {
       // List of var-len attribute.
       const int64_t num_list_offsets = num_records == 0 ? 0 : num_records + 1;
-      auto arrow_list_offsets =
-          arrow::Buffer::Wrap(buffer_info.list_offset_buff, num_list_offsets);
+      //auto arrow_list_offsets =
+      //    arrow::Buffer::Wrap(buffer_info.list_offset_buff, num_list_offsets);
+
+      auto arrow_list_offsets = std::make_shared<NumPyBuffer>((PyObject*)buffer_info.list_offset_buff);
 
       const int64_t num_list_elts = num_offsets == 0 ? 0 : num_offsets - 1;
       std::shared_ptr<arrow::Array> elts_array(new arrow::ListArray(
