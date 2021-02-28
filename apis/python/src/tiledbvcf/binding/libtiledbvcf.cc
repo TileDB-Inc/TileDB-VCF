@@ -47,7 +47,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_sample_names", &Reader::get_sample_names)
       .def("set_buffer_percentage", &Reader::set_buffer_percentage)
       .def("set_tiledb_tile_cache_percentage", &Reader::set_tiledb_tile_cache_percentage)
-      .def("set_check_samples_exist", &Reader::set_check_samples_exist);
+      .def("set_check_samples_exist", &Reader::set_check_samples_exist)
+      .def("_release_buffers", &Reader::release_buffers);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())

@@ -243,6 +243,27 @@ def test_basic_reads(test_ds):
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
+def test_arrow_ownership(test_ds):
+    # Sample only
+    table = test_ds.read_arrow(
+        attrs=["sample_name", "pos_start", "pos_end"], samples=["HG01762"]
+    )
+
+    test_ds.reader._release_buffers()
+
+    df = table.to_pandas()
+
+    expected_df = pd.DataFrame(
+        {
+            "sample_name": pd.Series(["HG01762", "HG01762", "HG01762"]),
+            "pos_start": pd.Series([12141, 12546, 13354], dtype=np.int32),
+            "pos_end": pd.Series([12277, 12771, 13389], dtype=np.int32),
+        }
+    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+
 
 def test_multiple_counts(test_ds):
     assert test_ds.count() == 14
@@ -940,3 +961,4 @@ def test_incremental_ingest(tmp_path):
     assert ds.count() == 14
     assert ds.count(regions=["1:12700-13400"]) == 6
     assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+

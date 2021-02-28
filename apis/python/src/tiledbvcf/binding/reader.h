@@ -152,6 +152,9 @@ class Reader {
   /** Set to check if samples requested exist and error if not. */
   void set_check_samples_exist(bool check_samples_exist);
 
+  /** Releases references on allocated buffers and clears the buffers list. */
+  void release_buffers();
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {
@@ -191,8 +194,6 @@ class Reader {
   /** Sets the allocated buffers on the reader object. */
   void set_buffers();
 
-  /** Releases references on allocated buffers and clears the buffers list. */
-  void release_buffers();
 };
 
 }  // namespace tiledbvcfpy
