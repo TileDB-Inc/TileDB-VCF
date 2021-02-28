@@ -158,6 +158,8 @@ class Reader {
   struct BufferInfo {
     /** Name of attribute. */
     std::string attr_name;
+    /** TileDB-VCF datatype. */
+    tiledb_vcf_attr_datatype_t datatype;
     /** Offsets buffer, for var-len attributes. */
     std::shared_ptr<arrow::Buffer> offsets;
     /** List offsets buffer, for list var-len attributes. */
@@ -166,8 +168,12 @@ class Reader {
     std::shared_ptr<arrow::Buffer> data;
     /** Null-value bitmap, for nullable attributes. */
     std::shared_ptr<arrow::Buffer> bitmap;
-
+    /** Array array wrapping array buffers. */
     std::shared_ptr<arrow::Array> array;
+    /** Arrow datatype. */
+    std::shared_ptr<arrow::DataType> arrow_datatype;
+    /** Arrow array datatype (can be list or list of list). */
+    std::shared_ptr<arrow::DataType> arrow_array_datatype;
   };
 
   /** Helper function to free a C reader instance */
@@ -200,8 +206,11 @@ class Reader {
   /** Releases references on allocated buffers and clears the buffers list. */
   void release_buffers();
 
+  /** Build arrow array from bufferInfo. */
+  std::shared_ptr<arrow::Array> build_arrow_array_from_buffer(BufferInfo& buffer, const uint64_t& count, const uint64_t& num_offsets, const uint64_t& num_data_elements);
+
   template <typename T>
-  std::shared_ptr<arrow::Array> build_arrow_array(std::shared_ptr<arrow::DataType> arrow_datatype, const BufferInfo& buffer, const uint64_t count) {
+  std::shared_ptr<arrow::Array> build_arrow_array(const BufferInfo& buffer, const uint64_t count, const uint64_t& num_offsets, const uint64_t& num_data_elements) {
     std::shared_ptr<arrow::Array> array;
     std::shared_ptr<arrow::Array> data_array;
     bool var_len = buffer.offsets != nullptr;
@@ -210,22 +219,21 @@ class Reader {
 
     if(list) {
       if (var_len) {
-        auto real_data_array = std::make_shared<T>(count, buffer.data);
-        data_array = std::make_shared<arrow::ListArray>(arrow::list(arrow_datatype), count, buffer.offsets, real_data_array);
+        auto real_data_array = std::make_shared<T>(num_data_elements, buffer.data);
+        data_array = std::make_shared<arrow::ListArray>(arrow::list(buffer.arrow_datatype), num_offsets-1, buffer.offsets, real_data_array);
       } else {
-        data_array = std::make_shared<T>(count, buffer.data);
+        data_array = std::make_shared<T>(num_data_elements, buffer.data);
       }
-      array = std::make_shared<arrow::ListArray>(arrow::list(arrow::list(arrow_datatype)), count, buffer.list_offsets, data_array, buffer.bitmap);
+      array = std::make_shared<arrow::ListArray>(arrow::list(arrow::list(buffer.arrow_datatype)), count, buffer.list_offsets, data_array, buffer.bitmap);
     } else if (var_len) {
-      data_array = std::make_shared<T>(count, buffer.data);
-      array = std::make_shared<arrow::ListArray>(arrow::list(arrow_datatype), count, buffer.offsets, data_array, buffer.bitmap);
+      data_array = std::make_shared<T>(num_data_elements, buffer.data);
+      array = std::make_shared<arrow::ListArray>(arrow::list(buffer.arrow_datatype), count, buffer.offsets, data_array, buffer.bitmap);
     } else {
       // fixed length
-      array = std::make_shared<T>(count, buffer.data, buffer.bitmap);
+      array = std::make_shared<T>(num_data_elements, buffer.data, buffer.bitmap);
     }
 
     return array;
   }
 };
-
 }  // namespace tiledbvcfpy

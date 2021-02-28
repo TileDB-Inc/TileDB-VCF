@@ -46,7 +46,7 @@ def _read_partition(read_args):
     table_fragments.append(pyar)
 
     while not ds.read_completed():
-        table_fragments.append(ds.continue_read_arrow(release_buffers=False))
+        table_fragments.append(ds.continue_read_arrow(release_buffers=True))
 
     table = pa.concat_tables(table_fragments, promote=False)
 
