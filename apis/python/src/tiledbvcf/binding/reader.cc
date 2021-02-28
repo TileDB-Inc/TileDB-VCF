@@ -348,29 +348,8 @@ void Reader::release_buffers() {
   buffers_.clear();
 }
 
-//std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
-//  std::map<std::string, std::pair<py::array, py::array>> result;
-//  for (auto& buff : buffers_) {
-//    const auto& attr = buff.attr_name;
-//    result[attr] = {buff.offsets, buff.data};
-//  }
-//  return result;
-//}
-
 py::object Reader::get_results_arrow() {
   auto reader = ptr.get();
-//  std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader);
-//  if (table == nullptr)
-//    throw std::runtime_error(
-//        "TileDB-VCF-Py: Error converting to Arrow; null Array.");
-//  PyObject* obj = arrow::py::wrap_table(table);
-//  if (obj == nullptr) {
-//    PyErr_PrintEx(1);
-//    throw std::runtime_error(
-//        "TileDB-VCF-Py: Error converting to Arrow; null Python object.");
-//  }
-//  return py::reinterpret_steal<py::object>(obj);
-
 
     std::vector<std::shared_ptr<arrow::Field>> fields;
     std::vector<std::shared_ptr<arrow::Array>> arrays;

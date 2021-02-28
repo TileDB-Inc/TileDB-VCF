@@ -93,12 +93,6 @@ class Reader {
   void read(const bool release_buffs=true);
 
   /**
-   * Returns a map of attribute name -> (offsets_buff, data_buff) containing the
-   * data from the last read operation.
-   */
-//  std::map<std::string, std::pair<py::array, py::array>> get_buffers();
-
-  /**
    * Returns a PyArrow table containing the results from the last read
    * operation.
    */
