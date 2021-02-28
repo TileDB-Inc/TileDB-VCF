@@ -218,23 +218,58 @@ void Reader::alloc_buffers(const bool release_buffs) {
     buffer.attr_name = attr;
 
     auto dtype = to_numpy_dtype(datatype);
+    auto arrow_datatype = to_arrow_datatype(datatype);
     size_t count = alloc_size_bytes / dtype.itemsize();
-    // Forcing a stride of 1 here (I think) guarantees the backing memory
-    // will be contiguous.
-    buffer.data = py::array(dtype, {count}, {1});
+
+    auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+    if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+    } else {
+        buffer.data =  std::move(*maybe_buffer);
+    }
 
     if (var_len == 1) {
-      size_t count = alloc_size_bytes / sizeof(int32_t);
-      buffer.offsets = py::array_t<int32_t, py::array::c_style>(count);
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: offset buffer allocation failed");
+      } else {
+        buffer.offsets =  std::move(*maybe_buffer);
+      }
     }
 
     if (list == 1) {
-      size_t count = alloc_size_bytes / sizeof(int32_t);
-      buffer.list_offsets = py::array_t<int32_t, py::array::c_style>(count);
+
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: list offset buffer allocation failed");
+      } else {
+        buffer.list_offsets =  std::move(*maybe_buffer);
+      }
     }
 
     if (nullable == 1) {
-      buffer.bitmap = py::array_t<uint8_t, py::array::c_style>(count);
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+      throw std::runtime_error("TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+      } else {
+        buffer.bitmap =  std::move(*maybe_buffer);
+      }
+    }
+    if (datatype == TILEDB_VCF_CHAR) {
+        if(list) {
+          auto data_array = std::make_shared<arrow::StringArray>(count, buffer.offsets, buffer.data);
+          buffer.array = std::make_shared<arrow::ListArray>(arrow::list(arrow_datatype), count, buffer.list_offsets, data_array, buffer.bitmap);
+        } else {
+          buffer.array = std::make_shared<arrow::StringArray>(count, buffer.offsets, buffer.data, buffer.bitmap);
+        }
+    } else if (datatype == TILEDB_VCF_UINT8) {
+        buffer.array = build_arrow_array<arrow::UInt8Array>(arrow_datatype, buffer, count);
+    } else if (datatype == TILEDB_VCF_INT32) {
+        buffer.array = build_arrow_array<arrow::Int32Array>(arrow_datatype, buffer, count);
+    } else if (datatype == TILEDB_VCF_FLOAT32) {
+        buffer.array = build_arrow_array<arrow::FloatArray>(arrow_datatype, buffer, count);
+    } else {
+        throw std::runtime_error("TileDB-VCF-Py: unknown datatype for arrow creation: " + std::to_string(datatype));
     }
   }
 }
@@ -243,48 +278,42 @@ void Reader::set_buffers() {
   auto reader = ptr.get();
   for (auto& buff : buffers_) {
     const auto& attr = buff.attr_name;
-    py::buffer_info offsets_info = buff.offsets.request(true);
-    py::buffer_info list_offsets_info = buff.list_offsets.request(true);
-    py::buffer_info data_info = buff.data.request(true);
-    py::buffer_info bitmap_info = buff.bitmap.request(true);
-
-    size_t offsets_bytes = offsets_info.itemsize * offsets_info.shape[0];
-    size_t list_offsets_bytes =
-        list_offsets_info.itemsize * list_offsets_info.shape[0];
-    size_t data_bytes = data_info.itemsize * data_info.shape[0];
-    size_t bitmap_bytes = bitmap_info.itemsize * bitmap_info.shape[0];
+    auto offsets = buff.offsets;
+    auto list_offsets = buff.list_offsets;
+    auto data = buff.data;
+    auto bitmap = buff.bitmap;
 
     check_error(
         reader,
         tiledb_vcf_reader_set_buffer_values(
-            reader, attr.c_str(), data_bytes, data_info.ptr));
+            reader, attr.c_str(), data->size(), data->mutable_data()));
 
-    if (offsets_bytes > 0)
+    if (offsets != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_offsets(
               reader,
               attr.c_str(),
-              offsets_bytes,
-              reinterpret_cast<int32_t*>(offsets_info.ptr)));
+              offsets->size(),
+              reinterpret_cast<int32_t*>(offsets->mutable_data())));
 
-    if (list_offsets_bytes > 0)
+    if (list_offsets != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_list_offsets(
               reader,
               attr.c_str(),
-              list_offsets_bytes,
-              reinterpret_cast<int32_t*>(list_offsets_info.ptr)));
+              list_offsets->size(),
+              reinterpret_cast<int32_t*>(list_offsets->mutable_data())));
 
-    if (bitmap_bytes > 0)
+    if (bitmap != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_validity_bitmap(
               reader,
               attr.c_str(),
-              bitmap_bytes,
-              static_cast<uint8_t*>(bitmap_info.ptr)));
+              bitmap->size(),
+              bitmap->mutable_data()));
   }
 }
 
@@ -295,14 +324,14 @@ void Reader::release_buffers() {
   buffers_.clear();
 }
 
-std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
-  std::map<std::string, std::pair<py::array, py::array>> result;
-  for (auto& buff : buffers_) {
-    const auto& attr = buff.attr_name;
-    result[attr] = {buff.offsets, buff.data};
-  }
-  return result;
-}
+//std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
+//  std::map<std::string, std::pair<py::array, py::array>> result;
+//  for (auto& buff : buffers_) {
+//    const auto& attr = buff.attr_name;
+//    result[attr] = {buff.offsets, buff.data};
+//  }
+//  return result;
+//}
 
 py::object Reader::get_results_arrow() {
   auto reader = ptr.get();
@@ -464,6 +493,24 @@ py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
     default:
       throw std::runtime_error(
           "TileDB-VCF-Py: Error converting to numpy dtype; unhandled "
+          "datatype " +
+          std::to_string(datatype));
+  }
+}
+
+std::shared_ptr<arrow::DataType> Reader::to_arrow_datatype(tiledb_vcf_attr_datatype_t datatype) {
+  switch (datatype) {
+    case TILEDB_VCF_CHAR:
+    return arrow::utf8();
+    case TILEDB_VCF_UINT8:
+      return arrow::uint8();
+    case TILEDB_VCF_INT32:
+      return arrow::int32();
+    case TILEDB_VCF_FLOAT32:
+      return arrow::float32();
+    default:
+      throw std::runtime_error(
+          "TileDB-VCF-Py: Error converting to arrow datatype; unhandled "
           "datatype " +
           std::to_string(datatype));
   }

@@ -32,7 +32,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_tiledb_stats_enabled", &Reader::set_tiledb_stats_enabled)
       .def("set_verbose", &Reader::set_verbose)
       .def("read", &Reader::read, py::arg("release_buffs")=true)
-      .def("get_buffers", &Reader::get_buffers)
+//      .def("get_buffers", &Reader::get_buffers)
       .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)
       .def("result_num_records", &Reader::result_num_records)

@@ -26,6 +26,7 @@
  * THE SOFTWARE.
  */
 
+#include <arrow/api.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -95,7 +96,7 @@ class Reader {
    * Returns a map of attribute name -> (offsets_buff, data_buff) containing the
    * data from the last read operation.
    */
-  std::map<std::string, std::pair<py::array, py::array>> get_buffers();
+//  std::map<std::string, std::pair<py::array, py::array>> get_buffers();
 
   /**
    * Returns a PyArrow table containing the results from the last read
@@ -158,13 +159,15 @@ class Reader {
     /** Name of attribute. */
     std::string attr_name;
     /** Offsets buffer, for var-len attributes. */
-    py::array offsets;
+    std::shared_ptr<arrow::Buffer> offsets;
     /** List offsets buffer, for list var-len attributes. */
-    py::array list_offsets;
+    std::shared_ptr<arrow::Buffer> list_offsets;
     /** Data buffer. */
-    py::array data;
+    std::shared_ptr<arrow::Buffer> data;
     /** Null-value bitmap, for nullable attributes. */
-    py::array bitmap;
+    std::shared_ptr<arrow::Buffer> bitmap;
+
+    std::shared_ptr<arrow::Array> array;
   };
 
   /** Helper function to free a C reader instance */
@@ -172,6 +175,9 @@ class Reader {
 
   /** Convert the given datatype to a numpy dtype */
   static py::dtype to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype);
+
+  /** Convert the given datatype to a arrow datatype */
+  static std::shared_ptr<arrow::DataType> to_arrow_datatype(tiledb_vcf_attr_datatype_t datatype);
 
   /** The underlying C reader object. */
   std::unique_ptr<tiledb_vcf_reader_t, decltype(&deleter)> ptr;
@@ -193,6 +199,33 @@ class Reader {
 
   /** Releases references on allocated buffers and clears the buffers list. */
   void release_buffers();
+
+  template <typename T>
+  std::shared_ptr<arrow::Array> build_arrow_array(std::shared_ptr<arrow::DataType> arrow_datatype, const BufferInfo& buffer, const uint64_t count) {
+    std::shared_ptr<arrow::Array> array;
+    std::shared_ptr<arrow::Array> data_array;
+    bool var_len = buffer.offsets != nullptr;
+    bool list = buffer.list_offsets != nullptr;
+    bool nullable = buffer.bitmap != nullptr;
+
+    if(list) {
+      if (var_len) {
+        auto real_data_array = std::make_shared<T>(count, buffer.data);
+        data_array = std::make_shared<arrow::ListArray>(arrow::list(arrow_datatype), count, buffer.offsets, real_data_array);
+      } else {
+        data_array = std::make_shared<T>(count, buffer.data);
+      }
+      array = std::make_shared<arrow::ListArray>(arrow::list(arrow::list(arrow_datatype)), count, buffer.list_offsets, data_array, buffer.bitmap);
+    } else if (var_len) {
+      data_array = std::make_shared<T>(count, buffer.data);
+      array = std::make_shared<arrow::ListArray>(arrow::list(arrow_datatype), count, buffer.offsets, data_array, buffer.bitmap);
+    } else {
+      // fixed length
+      array = std::make_shared<T>(count, buffer.data, buffer.bitmap);
+    }
+
+    return array;
+  }
 };
 
 }  // namespace tiledbvcfpy
