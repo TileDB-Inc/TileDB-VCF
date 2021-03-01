@@ -236,11 +236,7 @@ class Dataset(object):
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
 
-        # Grab buffers and hold reference on the pandas dataframe so they are not gc'ed when the reader goes out of scope
-        table_buffers = self.reader.get_buffers()
-        df = table.to_pandas()
-        df.attrs["_vcf_buffers"] = table_buffers
-        return df
+        return table.to_pandas()
 
     def continue_read_arrow(self, release_buffers=True):
         """

@@ -48,6 +48,14 @@ void check_error(tiledb_vcf_reader_t* reader, int32_t rc) {
     throw std::runtime_error(msg);
   }
 }
+
+
+void check_arrow_error(const arrow::Status& st) {
+  if (!st.ok()) {
+    std::string msg_str = "TileDB-VCF-Py Arrow error: " + st.message();
+    throw std::runtime_error(msg_str);
+  }
+}
 }  // namespace
 
 namespace tiledbvcfpy {
@@ -218,73 +226,118 @@ void Reader::alloc_buffers(const bool release_buffs) {
     buffer.attr_name = attr;
 
     auto dtype = to_numpy_dtype(datatype);
+    buffer.datatype = datatype;
+    buffer.arrow_datatype = to_arrow_datatype(datatype);
+    buffer.arrow_array_datatype = to_arrow_datatype(datatype);
     size_t count = alloc_size_bytes / dtype.itemsize();
-    // Forcing a stride of 1 here (I think) guarantees the backing memory
-    // will be contiguous.
-    buffer.data = py::array(dtype, {count}, {1});
+
+    auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+    if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+    } else {
+        buffer.data =  std::move(*maybe_buffer);
+    }
 
     if (var_len == 1) {
-      size_t count = alloc_size_bytes / sizeof(int32_t);
-      buffer.offsets = py::array_t<int32_t, py::array::c_style>(count);
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: offset buffer allocation failed");
+      } else {
+        buffer.offsets =  std::move(*maybe_buffer);
+      }
+
+      // Make list type (can be list of list if also list below), exclude double counting strings
+      if (datatype != TILEDB_VCF_CHAR)
+          buffer.arrow_array_datatype = arrow::list(buffer.arrow_array_datatype);
     }
 
     if (list == 1) {
-      size_t count = alloc_size_bytes / sizeof(int32_t);
-      buffer.list_offsets = py::array_t<int32_t, py::array::c_style>(count);
+
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+        throw std::runtime_error("TileDB-VCF-Py: list offset buffer allocation failed");
+      } else {
+        buffer.list_offsets =  std::move(*maybe_buffer);
+      }
+
+      // Make list type (can be list of list if also var_length)
+      buffer.arrow_array_datatype = arrow::list(buffer.arrow_array_datatype);
     }
 
     if (nullable == 1) {
-      buffer.bitmap = py::array_t<uint8_t, py::array::c_style>(count);
+      auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
+      if (!maybe_buffer.ok()) {
+      throw std::runtime_error("TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+      } else {
+        buffer.bitmap =  std::move(*maybe_buffer);
+      }
     }
+
+    buffer.array = build_arrow_array_from_buffer(buffer, count, count, count);
   }
+}
+
+std::shared_ptr<arrow::Array> Reader::build_arrow_array_from_buffer(BufferInfo& buffer, const uint64_t& count, const uint64_t& num_offsets, const uint64_t& num_data_elements) {
+    std::shared_ptr<arrow::Array> array;
+    if (buffer.datatype == TILEDB_VCF_CHAR) {
+        if(buffer.list_offsets != nullptr) {
+          auto data_array = std::make_shared<arrow::StringArray>(num_offsets-1, buffer.offsets, buffer.data);
+          array = std::make_shared<arrow::ListArray>(arrow::list(buffer.arrow_datatype), count, buffer.list_offsets, data_array, buffer.bitmap);
+        } else {
+          array = std::make_shared<arrow::StringArray>(count, buffer.offsets, buffer.data, buffer.bitmap);
+        }
+    } else if (buffer.datatype == TILEDB_VCF_UINT8) {
+        array = build_arrow_array<arrow::UInt8Array>(buffer, count, num_offsets, num_data_elements);
+    } else if (buffer.datatype == TILEDB_VCF_INT32) {
+        array = build_arrow_array<arrow::Int32Array>(buffer, count, num_offsets, num_data_elements);
+    } else if (buffer.datatype == TILEDB_VCF_FLOAT32) {
+        array = build_arrow_array<arrow::FloatArray>(buffer, count, num_offsets, num_data_elements);
+    } else {
+        throw std::runtime_error("TileDB-VCF-Py: unknown datatype for arrow creation: " + std::to_string(buffer.datatype));
+    }
+    return array;
 }
 
 void Reader::set_buffers() {
   auto reader = ptr.get();
   for (auto& buff : buffers_) {
     const auto& attr = buff.attr_name;
-    py::buffer_info offsets_info = buff.offsets.request(true);
-    py::buffer_info list_offsets_info = buff.list_offsets.request(true);
-    py::buffer_info data_info = buff.data.request(true);
-    py::buffer_info bitmap_info = buff.bitmap.request(true);
-
-    size_t offsets_bytes = offsets_info.itemsize * offsets_info.shape[0];
-    size_t list_offsets_bytes =
-        list_offsets_info.itemsize * list_offsets_info.shape[0];
-    size_t data_bytes = data_info.itemsize * data_info.shape[0];
-    size_t bitmap_bytes = bitmap_info.itemsize * bitmap_info.shape[0];
+    auto offsets = buff.offsets;
+    auto list_offsets = buff.list_offsets;
+    auto data = buff.data;
+    auto bitmap = buff.bitmap;
 
     check_error(
         reader,
         tiledb_vcf_reader_set_buffer_values(
-            reader, attr.c_str(), data_bytes, data_info.ptr));
+            reader, attr.c_str(), data->size(), data->mutable_data()));
 
-    if (offsets_bytes > 0)
+    if (offsets != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_offsets(
               reader,
               attr.c_str(),
-              offsets_bytes,
-              reinterpret_cast<int32_t*>(offsets_info.ptr)));
+              offsets->size(),
+              reinterpret_cast<int32_t*>(offsets->mutable_data())));
 
-    if (list_offsets_bytes > 0)
+    if (list_offsets != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_list_offsets(
               reader,
               attr.c_str(),
-              list_offsets_bytes,
-              reinterpret_cast<int32_t*>(list_offsets_info.ptr)));
+              list_offsets->size(),
+              reinterpret_cast<int32_t*>(list_offsets->mutable_data())));
 
-    if (bitmap_bytes > 0)
+    if (bitmap != nullptr)
       check_error(
           reader,
           tiledb_vcf_reader_set_buffer_validity_bitmap(
               reader,
               attr.c_str(),
-              bitmap_bytes,
-              static_cast<uint8_t*>(bitmap_info.ptr)));
+              bitmap->size(),
+              bitmap->mutable_data()));
   }
 }
 
@@ -295,28 +348,44 @@ void Reader::release_buffers() {
   buffers_.clear();
 }
 
-std::map<std::string, std::pair<py::array, py::array>> Reader::get_buffers() {
-  std::map<std::string, std::pair<py::array, py::array>> result;
-  for (auto& buff : buffers_) {
-    const auto& attr = buff.attr_name;
-    result[attr] = {buff.offsets, buff.data};
-  }
-  return result;
-}
-
 py::object Reader::get_results_arrow() {
   auto reader = ptr.get();
-  std::shared_ptr<arrow::Table> table = tiledb::vcf::Arrow::to_arrow(reader);
-  if (table == nullptr)
-    throw std::runtime_error(
-        "TileDB-VCF-Py: Error converting to Arrow; null Array.");
-  PyObject* obj = arrow::py::wrap_table(table);
-  if (obj == nullptr) {
-    PyErr_PrintEx(1);
-    throw std::runtime_error(
-        "TileDB-VCF-Py: Error converting to Arrow; null Python object.");
-  }
-  return py::reinterpret_steal<py::object>(obj);
+
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    std::vector<std::shared_ptr<arrow::Array>> arrays;
+
+    int64_t num_records = result_num_records();
+    for (auto& buffer : buffers_) {
+      std::shared_ptr<arrow::Field> field =
+          arrow::field(buffer.attr_name, buffer.arrow_array_datatype);
+      fields.push_back(field);
+
+      // build new arrow::array based on the result size
+      int64_t num_offsets = 0, num_data_elements = 0, num_data_bytes = 0;
+      check_error(
+          reader,
+          tiledb_vcf_reader_get_result_size(
+            reader,
+            buffer.attr_name.c_str(),
+            &num_offsets,
+            &num_data_elements,
+            &num_data_bytes));
+
+      std::shared_ptr<arrow::Array> array = build_arrow_array_from_buffer(buffer, num_records, num_offsets, num_data_elements);
+      arrays.push_back(array);
+    }
+
+    std::shared_ptr<arrow::Schema> schema = arrow::schema(fields);
+    auto table = arrow::Table::Make(schema, arrays, num_records);
+    check_arrow_error(table->Validate());
+
+    PyObject* obj = arrow::py::wrap_table(table);
+    if (obj == nullptr) {
+        PyErr_PrintEx(1);
+        throw std::runtime_error(
+            "TileDB-VCF-Py: Error converting to Arrow; null Python object.");
+    }
+    return py::reinterpret_steal<py::object>(obj);
 }
 
 int64_t Reader::result_num_records() {
@@ -469,6 +538,24 @@ py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
   }
 }
 
+std::shared_ptr<arrow::DataType> Reader::to_arrow_datatype(tiledb_vcf_attr_datatype_t datatype) {
+  switch (datatype) {
+    case TILEDB_VCF_CHAR:
+    return arrow::utf8();
+    case TILEDB_VCF_UINT8:
+      return arrow::uint8();
+    case TILEDB_VCF_INT32:
+      return arrow::int32();
+    case TILEDB_VCF_FLOAT32:
+      return arrow::float32();
+    default:
+      throw std::runtime_error(
+          "TileDB-VCF-Py: Error converting to arrow datatype; unhandled "
+          "datatype " +
+          std::to_string(datatype));
+  }
+}
+
 void Reader::deleter(tiledb_vcf_reader_t* r) {
   tiledb_vcf_reader_free(&r);
 }
@@ -487,5 +574,4 @@ void Reader::set_check_samples_exist(bool samples_exists) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_check_samples_exist(reader, samples_exists));
 }
-
 }  // namespace tiledbvcfpy
