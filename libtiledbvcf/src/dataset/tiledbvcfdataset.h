@@ -398,6 +398,8 @@ class TileDBVCFDataset {
    */
   const char* materialized_attribute_name(int32_t index) const;
 
+  bool is_attribute_materialized(const std::string& attr) const;
+
   /**
    * Get sample name by index
    * @param index
@@ -535,6 +537,20 @@ class TileDBVCFDataset {
    * Load sample names
    */
   void load_sample_names_v4() const;
+
+  /**
+   * Check if a attr is an info field or not
+   * @param attr
+   * @return true if "info_" prefixed
+   */
+  bool is_info_field(const std::string& attr) const;
+
+  /**
+   * Check if a attr is an fmt field or not
+   * @param attr
+   * @return true if "fmt_" prefixed
+   */
+  bool is_fmt_field(const std::string& attr) const;
 
  private:
   /* ********************************* */

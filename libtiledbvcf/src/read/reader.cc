@@ -65,8 +65,10 @@ void Reader::open_dataset(const std::string& dataset_uri) {
 void Reader::reset() {
   read_state_ = ReadState();
   read_state_.array = dataset_->data_array();
-  if (exporter_ != nullptr)
+  if (exporter_ != nullptr) {
     exporter_->reset();
+    read_state_.need_headers = exporter_->need_headers();
+  }
 }
 
 void Reader::reset_buffers() {
@@ -128,24 +130,52 @@ void Reader::set_buffer_values(
     const std::string& attribute, void* buff, int64_t buff_size) {
   auto exp = set_in_memory_exporter();
   exp->set_buffer_values(attribute, buff, buff_size);
+
+  if (dataset_->is_fmt_field(attribute) || dataset_->is_info_field(attribute)) {
+    if (dataset_ != nullptr && !dataset_->is_attribute_materialized(attribute))
+      read_state_.need_headers = true;
+  } else if (attribute == "filters") {
+    read_state_.need_headers = true;
+  }
 }
 
 void Reader::set_buffer_offsets(
     const std::string& attribute, int32_t* buff, int64_t buff_size) {
   auto exp = set_in_memory_exporter();
   exp->set_buffer_offsets(attribute, buff, buff_size);
+
+  if (dataset_->is_fmt_field(attribute) || dataset_->is_info_field(attribute)) {
+    if (dataset_ != nullptr && !dataset_->is_attribute_materialized(attribute))
+      read_state_.need_headers = true;
+  } else if (attribute == "filters") {
+    read_state_.need_headers = true;
+  }
 }
 
 void Reader::set_buffer_list_offsets(
     const std::string& attribute, int32_t* buff, int64_t buff_size) {
   auto exp = set_in_memory_exporter();
   exp->set_buffer_list_offsets(attribute, buff, buff_size);
+
+  if (dataset_->is_fmt_field(attribute) || dataset_->is_info_field(attribute)) {
+    if (dataset_ != nullptr && !dataset_->is_attribute_materialized(attribute))
+      read_state_.need_headers = true;
+  } else if (attribute == "filters") {
+    read_state_.need_headers = true;
+  }
 }
 
 void Reader::set_buffer_validity_bitmap(
     const std::string& attribute, uint8_t* buff, int64_t buff_size) {
   auto exp = set_in_memory_exporter();
   exp->set_buffer_validity_bitmap(attribute, buff, buff_size);
+
+  if (dataset_->is_fmt_field(attribute) || dataset_->is_info_field(attribute)) {
+    if (dataset_ != nullptr && !dataset_->is_attribute_materialized(attribute))
+      read_state_.need_headers = true;
+  } else if (attribute == "filters") {
+    read_state_.need_headers = true;
+  }
 }
 
 InMemoryExporter* Reader::set_in_memory_exporter() {
@@ -569,11 +599,13 @@ bool Reader::next_read_batch_v4() {
     }
 
     // Fetch new headers for new sample batch
-    read_state_.current_hdrs.clear();
-    read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-        read_state_.current_sample_batches,
-        &read_state_.current_hdrs_lookup,
-        params_.memory_budget_breakdown.buffers);
+    if (read_state_.need_headers) {
+      read_state_.current_hdrs.clear();
+      read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+          read_state_.current_sample_batches,
+          &read_state_.current_hdrs_lookup,
+          params_.memory_budget_breakdown.buffers);
+    }
   }
 
   // Set up the TileDB query
@@ -670,6 +702,11 @@ void Reader::init_exporter() {
   // count operation, and is supported.
   if (exporter_ != nullptr)
     exporter_->set_dataset(dataset_.get());
+
+  // Set need_headers based on if the exporter needs a header and its not been
+  // requested by an info/fmt field
+  if (!read_state_.need_headers && exporter_ != nullptr)
+    read_state_.need_headers = exporter_->need_headers();
 }
 
 bool Reader::read_current_batch() {
@@ -832,22 +869,24 @@ bool Reader::read_current_batch() {
   // Batch complete; finalize the export (if applicable).
   if (exporter_ != nullptr) {
     for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-      bcf_hdr_t* hdr;
-      if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
-          dataset_->metadata().version == TileDBVCFDataset::Version::V2)
-        hdr = read_state_.current_hdrs.at(s.sample_id).get();
-      else {
-        assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-        auto hdr_iter = read_state_.current_hdrs.find(
-            read_state_.current_hdrs_lookup[s.sample_name]);
-        if (hdr_iter == read_state_.current_hdrs.end())
-          throw std::runtime_error(
-              "Could not find VCF header for " + s.sample_name +
-              " in read_current_batch for finalize_Export");
+      bcf_hdr_t* hdr = nullptr;
+      if (read_state_.need_headers) {
+        if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+            dataset_->metadata().version == TileDBVCFDataset::Version::V2)
+          hdr = read_state_.current_hdrs.at(s.sample_id).get();
+        else {
+          assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+          auto hdr_iter = read_state_.current_hdrs.find(
+              read_state_.current_hdrs_lookup[s.sample_name]);
+          if (hdr_iter == read_state_.current_hdrs.end())
+            throw std::runtime_error(
+                "Could not find VCF header for " + s.sample_name +
+                " in read_current_batch for finalize_Export");
 
-        hdr = read_state_.current_hdrs
-                  .at(read_state_.current_hdrs_lookup[s.sample_name])
-                  .get();
+          hdr = read_state_.current_hdrs
+                    .at(read_state_.current_hdrs_lookup[s.sample_name])
+                    .get();
+        }
       }
       exporter_->finalize_export(s, hdr);
     }
@@ -1258,15 +1297,19 @@ bool Reader::report_cell(
     hdr_index = read_state_.current_hdrs_lookup[sample.sample_name];
   }
 
-  auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
-  if (hdr_iter == read_state_.current_hdrs.end())
-    throw std::runtime_error(
-        "Could not find VCF header for " + sample.sample_name +
-        " in report_cell");
+  bcf_hdr_t* hdr_ptr = nullptr;
+  if (read_state_.need_headers) {
+    auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
+    if (hdr_iter == read_state_.current_hdrs.end())
+      throw std::runtime_error(
+          "Could not find VCF header for " + sample.sample_name +
+          " in report_cell");
 
-  const auto& hdr = read_state_.current_hdrs.at(hdr_index);
+    const auto& hdr = read_state_.current_hdrs.at(hdr_index);
+    hdr_ptr = hdr.get();
+  }
   if (!exporter_->export_record(
-          sample, hdr.get(), region, contig_offset, results, cell_idx))
+          sample, hdr_ptr, region, contig_offset, results, cell_idx))
     return false;
 
   // If no overflow, increment num records count.

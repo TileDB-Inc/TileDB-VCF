@@ -238,5 +238,9 @@ void Exporter::recover_record(
   }
 }
 
+bool Exporter::need_headers() const {
+  return need_headers_;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

@@ -1538,6 +1538,17 @@ const char* TileDBVCFDataset::materialized_attribute_name(
   return this->materialized_vcf_attributes_[index].data();
 }
 
+bool TileDBVCFDataset::is_attribute_materialized(
+    const std::string& attr) const {
+  for (const auto& materialized_attr_name :
+       this->materialized_vcf_attributes_) {
+    if (std::string(materialized_attr_name.data()) == attr)
+      return true;
+  }
+
+  return false;
+}
+
 const char* TileDBVCFDataset::sample_name(const int32_t index) const {
   if (!sample_names_loaded_ && metadata_.version == Version::V4)
     load_sample_names_v4();
@@ -1830,6 +1841,14 @@ std::vector<std::vector<char>> TileDBVCFDataset::sample_names() const {
   }
 
   return sample_names_;
+}
+
+bool TileDBVCFDataset::is_info_field(const std::string& attr) const {
+  return attr.substr(0, 5) == "info_";
+}
+
+bool TileDBVCFDataset::is_fmt_field(const std::string& attr) const {
+  return attr.substr(0, 4) == "fmt_";
 }
 }  // namespace vcf
 }  // namespace tiledb
