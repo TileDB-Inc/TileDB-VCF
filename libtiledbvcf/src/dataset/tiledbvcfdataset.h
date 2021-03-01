@@ -295,6 +295,8 @@ class TileDBVCFDataset {
   std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers_v4(
       const std::vector<SampleAndId>& samples,
       std::unordered_map<std::string, size_t>* lookup_map,
+      bool all_samples,
+      bool first_sample,
       uint64_t memory_budget = 10485760) const;
 
   /**

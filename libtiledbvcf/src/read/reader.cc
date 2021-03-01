@@ -551,8 +551,8 @@ bool Reader::next_read_batch_v2_v3() {
 
 bool Reader::next_read_batch_v4() {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-  // Check if we're done.
-  if (read_state_.batch_idx >= read_state_.sample_batches.size() ||
+  // Check if we're done. In v4 Sample batches are always one
+  if (read_state_.batch_idx >= 1 ||
       read_state_.total_num_records_exported >= params_.max_num_records)
     return false;
 
@@ -566,7 +566,7 @@ bool Reader::next_read_batch_v4() {
     read_state_.batch_idx = 0;
     read_state_.query_contig_batch_idx = 0;
   } else if (
-      read_state_.batch_idx + 1 < read_state_.sample_batches.size() ||
+      read_state_.batch_idx + 1 < 1 ||
       read_state_.query_contig_batch_idx + 1 <
           read_state_.query_regions_v4.size()) {
     // If we have query contig batches left for this sample batch only increment
@@ -588,14 +588,20 @@ bool Reader::next_read_batch_v4() {
 
   // Headers
   if (new_samples) {
-    // Sample row range
-    read_state_.current_sample_batches =
-        read_state_.sample_batches[read_state_.batch_idx];
+    // If all samples and no partitioning, there is no sample batch
+    if (read_state_.all_samples &&
+        params_.sample_partitioning.num_partitions == 1) {
+      read_state_.current_sample_batches.clear();
+    } else {
+      // Sample row range
+      read_state_.current_sample_batches =
+          read_state_.sample_batches[read_state_.batch_idx];
 
-    // Sample handles
-    read_state_.current_samples.clear();
-    for (const auto& s : read_state_.current_sample_batches) {
-      read_state_.current_samples[s.sample_id] = s;
+      // Sample handles
+      read_state_.current_samples.clear();
+      for (const auto& s : read_state_.current_sample_batches) {
+        read_state_.current_samples[s.sample_id] = s;
+      }
     }
 
     // Fetch new headers for new sample batch
@@ -604,6 +610,8 @@ bool Reader::next_read_batch_v4() {
       read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
           read_state_.current_sample_batches,
           &read_state_.current_hdrs_lookup,
+          read_state_.all_samples,
+          false,
           params_.memory_budget_breakdown.buffers);
     }
   }
@@ -616,13 +624,23 @@ bool Reader::next_read_batch_v4() {
   // For samples we special case when we are looking at all samples. If so we
   // just need to set one range with the start/end sample id
   if (read_state_.all_samples) {
-    read_state_.query->add_range(
-        2,
-        read_state_.current_sample_batches[0].sample_name,
-        read_state_
-            .current_sample_batches
-                [read_state_.current_sample_batches.size() - 1]
-            .sample_name);
+    if (params_.sample_partitioning.num_partitions == 1) {
+      auto non_empty_domain = dataset_->data_array()->non_empty_domain_var(
+          TileDBVCFDataset::DimensionNames::V4::sample);
+      read_state_.query->add_range(
+          2, non_empty_domain.first, non_empty_domain.second);
+    } else {
+      // if we have all samples but are partitioning we need to only use the
+      // first/last sample of the partition partitions are sorted both globally
+      // and in the vector so this is a shortcut to have less ranges
+      read_state_.query->add_range(
+          2,
+          read_state_.current_sample_batches[0].sample_name,
+          read_state_
+              .current_sample_batches
+                  [read_state_.current_sample_batches.size() - 1]
+              .sample_name);
+    }
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
@@ -641,20 +659,24 @@ bool Reader::next_read_batch_v4() {
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
-    std::cout << "Initialized TileDB query with "
-              << read_state_
-                     .query_regions_v4[read_state_.query_contig_batch_idx]
-                     .second.size()
-              << " start_pos ranges,"
-              << read_state_.current_sample_batches.size() << " samples"
-              << " for contig "
-              << read_state_
-                     .query_regions_v4[read_state_.query_contig_batch_idx]
-                     .first
-              << " (contig batch " << read_state_.query_contig_batch_idx + 1
-              << "/" << read_state_.query_regions_v4.size() << ", sample batch "
-              << read_state_.batch_idx + 1 << "/"
-              << read_state_.sample_batches.size() << ")." << std::endl;
+    std::stringstream ss;
+    ss << "Initialized TileDB query with "
+       << read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+              .second.size()
+       << " start_pos ranges, ";
+
+    if (read_state_.all_samples)
+      ss << " all samples";
+    else
+      ss << read_state_.current_sample_batches.size() << " samples";
+
+    ss << " for contig "
+       << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
+       << " (contig batch " << read_state_.query_contig_batch_idx + 1 << "/"
+       << read_state_.query_regions_v4.size() << ", sample batch "
+       << read_state_.batch_idx + 1 << "/" << read_state_.sample_batches.size()
+       << ")." << std::endl;
+    std::cout << ss.str();
   }
 
   // Get estimated records for verbose output
@@ -867,28 +889,22 @@ bool Reader::read_current_batch() {
            read_state_.total_num_records_exported < params_.max_num_records);
 
   // Batch complete; finalize the export (if applicable).
-  if (exporter_ != nullptr) {
-    for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-      bcf_hdr_t* hdr = nullptr;
-      if (read_state_.need_headers) {
-        if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
-            dataset_->metadata().version == TileDBVCFDataset::Version::V2)
-          hdr = read_state_.current_hdrs.at(s.sample_id).get();
-        else {
-          assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-          auto hdr_iter = read_state_.current_hdrs.find(
-              read_state_.current_hdrs_lookup[s.sample_name]);
-          if (hdr_iter == read_state_.current_hdrs.end())
-            throw std::runtime_error(
-                "Could not find VCF header for " + s.sample_name +
-                " in read_current_batch for finalize_Export");
-
-          hdr = read_state_.current_hdrs
-                    .at(read_state_.current_hdrs_lookup[s.sample_name])
-                    .get();
-        }
+  if (exporter_ != nullptr && read_state_.need_headers) {
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+      for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
+        bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.sample_id).get();
+        exporter_->finalize_export(s, hdr);
       }
-      exporter_->finalize_export(s, hdr);
+    } else {
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+
+      for (const auto& s : read_state_.current_hdrs_lookup) {
+        std::string sample_name = s.first;
+        bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
+        exporter_->finalize_export(
+            SampleAndId{.sample_name = sample_name, .sample_id = 0}, hdr);
+      }
     }
   }
 
@@ -944,8 +960,8 @@ bool Reader::process_query_results_v4() {
 
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
-  // V4 querys are run on a single contig at a time, so we can grab it from the
-  // batch
+  // V4 querys are run on a single contig at a time, so we can grab it from
+  // the batch
   std::string query_contig =
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first;
 
@@ -1073,7 +1089,8 @@ bool Reader::process_query_results_v3() {
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
-    // If the end position is before or after the config find the proper contig
+    // If the end position is before or after the config find the proper
+    // contig
     if (end >= std::get<0>(contig_info) + std::get<1>(contig_info) ||
         end < std::get<0>(contig_info))
       contig_info = dataset_->contig_from_column(end);
@@ -1112,8 +1129,8 @@ bool Reader::process_query_results_v3() {
       if (real_start > reg_max)
         continue;
 
-      // If the regions (sorted) are starting past the end of the record we can
-      // safely exit out, as we will not intersect this record anymore
+      // If the regions (sorted) are starting past the end of the record we
+      // can safely exit out, as we will not intersect this record anymore
       if (end < reg_min)
         break;
 
@@ -1182,7 +1199,8 @@ bool Reader::process_query_results_v2() {
     const uint32_t real_end = results.buffers()->real_end().value<uint32_t>(i);
     const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
-    // If the end position is before or after the config find the proper contig
+    // If the end position is before or after the config find the proper
+    // contig
     if (end >= std::get<0>(contig_info) + std::get<1>(contig_info) ||
         end < std::get<0>(contig_info))
       contig_info = dataset_->contig_from_column(end);
@@ -1220,8 +1238,8 @@ bool Reader::process_query_results_v2() {
       if (start > reg_max)
         continue;
 
-      // If the regions (sorted) are starting past the end of the record we can
-      // safely exit out, as we will not intersect this record anymore
+      // If the regions (sorted) are starting past the end of the record we
+      // can safely exit out, as we will not intersect this record anymore
       if (real_end < reg_min)
         break;
 
@@ -1358,6 +1376,10 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
   assert(all_samples);
   // Get the list of all sample names and ID
   auto samples = prepare_sample_names_v4(all_samples);
+  // If we are fetching all samples and there is no partitioning we don't need
+  // sample batches
+  if (*all_samples && params_.sample_partitioning.num_partitions == 1)
+    return {};
 
   // Sort by sample ID
   std::sort(
@@ -1480,11 +1502,14 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
   }
 
   // No specified samples means all samples.
-  // TODO: make this use vcf headers
   if (result.empty()) {
-    const auto& samples = dataset_->get_all_samples_from_vcf_headers();
-    for (const auto& s : samples) {
-      result.push_back({.sample_name = s, .sample_id = 0});
+    // If the user requested sample partitioning we need to fetch the list of
+    // samples
+    if (params_.sample_partitioning.num_partitions > 1) {
+      const auto& samples = dataset_->get_all_samples_from_vcf_headers();
+      for (const auto& s : samples) {
+        result.push_back({.sample_name = s, .sample_id = 0});
+      }
     }
     *all_samples = true;
   }
@@ -2190,8 +2215,8 @@ void Reader::compute_memory_budget_details() {
       memory_budget * params_.memory_budget_breakdown.buffers_percentage / 100;
   memory_budget -= params_.memory_budget_breakdown.buffers;
 
-  // Set the buffers to all of the remaining budget (3x the buffers for a 25/75
-  // split between buffers and memory budget
+  // Set the buffers to all of the remaining budget (3x the buffers for a
+  // 25/75 split between buffers and memory budget
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 
   if (params_.verbose) {

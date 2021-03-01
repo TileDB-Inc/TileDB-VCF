@@ -109,7 +109,8 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
         ds.metadata().sample_names_,
         Catch::Matchers::VectorContains(std::string("HG01762")));
 
-    auto hdrs = ds.fetch_vcf_headers_v4({{"HG01762", 0}}, nullptr);
+    auto hdrs =
+        ds.fetch_vcf_headers_v4({{"HG01762", 0}}, nullptr, false, false);
     REQUIRE(hdrs.size() == 1);
     REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
     REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
@@ -145,8 +146,8 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE_THAT(
         ds.metadata().sample_names_, Catch::Matchers::Contains(samples));
 
-    auto hdrs =
-        ds.fetch_vcf_headers_v4({{"HG01762", 0}, {"HG00280", 1}}, nullptr);
+    auto hdrs = ds.fetch_vcf_headers_v4(
+        {{"HG01762", 0}, {"HG00280", 1}}, nullptr, false, false);
     REQUIRE(hdrs.size() == 2);
     std::vector<std::string> expected_samples = {"HG01762", "HG00280"};
     std::vector<std::string> result_samples = {

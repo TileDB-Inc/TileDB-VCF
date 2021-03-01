@@ -3824,6 +3824,16 @@ TEST_CASE("C API: Reader submit (partitioned samples)", "[capi][reader]") {
   REQUIRE(tiledb_vcf_reader_read(reader0) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_reader_read(reader1) == TILEDB_VCF_OK);
 
+  // Check result size
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 8);
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader1, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 3);
+
   // Check status
   REQUIRE(tiledb_vcf_reader_get_status(reader0, &status) == TILEDB_VCF_OK);
   REQUIRE(status == TILEDB_VCF_COMPLETED);
