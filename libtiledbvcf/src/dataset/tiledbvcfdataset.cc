@@ -664,8 +664,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map,
     const bool all_samples,
-    const bool first_sample,
-    const uint64_t memory_budget) const {
+    const bool first_sample) const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -709,16 +708,39 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   }
   query.set_layout(TILEDB_ROW_MAJOR);
 
-  uint64_t memory_budget_per_buffer =
-      static_cast<uint64_t>(static_cast<double>(memory_budget) / 4.0);
-  uint64_t header_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t header_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
-  uint64_t sample_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t sample_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
+  uint64_t header_offset_element = 0;
+  uint64_t header_data_element = 0;
+  uint64_t sample_offset_element = 0;
+  uint64_t sample_data_element = 0;
+#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  std::pair<uint64_t, uint64_t> header_est_size =
+      query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size.first, static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+
+  // Sample estimate
+  std::pair<uint64_t, uint64_t> sample_est_size =
+      query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size.first, static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+#else
+  std::array<uint64_t, 2> header_est_size = query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+
+  // Sample estimate
+  std::array<uint64_t, 2> sample_est_size = query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+#endif
 
   std::vector<uint64_t> offsets(header_offset_element);
   std::vector<char> data(header_data_element);
@@ -1663,8 +1685,8 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
   return fmt_field_types_;
 }
 
-std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
-    const uint64_t memory_budget) const {
+std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
+    const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -1683,12 +1705,24 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
   query.add_range(0, non_empty_domain.first, non_empty_domain.second);
   query.set_layout(TILEDB_ROW_MAJOR);
 
-  uint64_t memory_budget_per_buffer =
-      static_cast<uint64_t>(static_cast<double>(memory_budget) / 4.0);
-  uint64_t sample_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t sample_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
+  uint64_t sample_offset_element = 0;
+  uint64_t sample_data_element = 0;
+#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  // Sample estimate
+  std::pair<uint64_t, uint64_t> sample_est_size =
+      query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size.first, static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+#else
+  // Sample estimate
+  std::array<uint64_t, 2> sample_est_size = query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+#endif
 
   std::vector<uint64_t> sample_offsets(sample_offset_element);
   std::vector<char> sample_data(sample_data_element);
