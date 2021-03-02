@@ -209,7 +209,6 @@ class Reader {
     std::shared_ptr<arrow::Array> data_array;
     bool var_len = buffer.offsets != nullptr;
     bool list = buffer.list_offsets != nullptr;
-    bool nullable = buffer.bitmap != nullptr;
 
     if(list) {
       if (var_len) {
