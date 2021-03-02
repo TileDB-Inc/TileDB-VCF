@@ -573,10 +573,10 @@ class TileDBVCFDataset {
   mutable std::map<std::string, int> fmt_field_types_;
 
   /** List of all attributes of vcf for querying */
-  mutable std::vector<std::string> vcf_attributes_;
+  mutable std::vector<std::vector<char>> vcf_attributes_;
 
   /** List of all materialzied attributes of vcf for querying */
-  mutable std::vector<std::string> materialized_vcf_attributes_;
+  mutable std::vector<std::vector<char>> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
   mutable std::vector<std::vector<char>> sample_names_;
