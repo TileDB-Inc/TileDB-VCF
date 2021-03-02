@@ -338,6 +338,33 @@ void TileDBVCFDataset::open(
   }
 }
 
+void TileDBVCFDataset::build_materialized_attributes() const {
+  utils::UniqueWriteLock lck_(
+      const_cast<utils::RWLock*>(&materialized_attribute_lock_));
+  // After the write lock is acquired check to make sure a different thread
+  // hasn't loaded the attribute list
+  if (!materialized_vcf_attributes_.empty())
+    return;
+  // Build queryable attribute and sample lists
+  std::set<std::string> unique_queryable_attributes{
+      "sample_name", "query_bed_start", "query_bed_end", "contig"};
+  for (auto s : this->all_attributes()) {
+    if (s == "end_pos" || s == "real_end")
+      s = "pos_end";
+    else if (s == "start_pos" || s == "real_start_pos" || s == "pos")
+      s = "pos_start";
+    else if (s == "filter_ids")
+      s = "filters";
+
+    unique_queryable_attributes.emplace(s);
+  }
+
+  // Set materialized attributes
+  materialized_vcf_attributes_ = std::vector<std::string>(
+      unique_queryable_attributes.begin(), unique_queryable_attributes.end());
+  materialized_attribute_loaded_ = true;
+}
+
 void TileDBVCFDataset::build_queryable_attributes() const {
   utils::UniqueWriteLock lck_(
       const_cast<utils::RWLock*>(&queryable_attribute_lock_));
@@ -359,13 +386,6 @@ void TileDBVCFDataset::build_queryable_attributes() const {
     unique_queryable_attributes.emplace(s);
   }
 
-  // Set materialized attributes
-  for (const auto& key : unique_queryable_attributes) {
-    std::vector<char> name(key.begin(), key.end());
-    name.emplace_back('\0');
-    materialized_vcf_attributes_.push_back(name);
-  }
-
   for (const auto& info : info_field_types()) {
     unique_queryable_attributes.emplace("info_" + info.first);
   }
@@ -374,11 +394,8 @@ void TileDBVCFDataset::build_queryable_attributes() const {
     unique_queryable_attributes.emplace("fmt_" + fmt.first);
   }
 
-  for (const auto& key : unique_queryable_attributes) {
-    std::vector<char> name(key.begin(), key.end());
-    name.emplace_back('\0');
-    vcf_attributes_.push_back(name);
-  }
+  vcf_attributes_ = std::vector<std::string>(
+      unique_queryable_attributes.begin(), unique_queryable_attributes.end());
 
   queryable_attribute_loaded_ = true;
 }
@@ -1532,15 +1549,15 @@ const char* TileDBVCFDataset::queryable_attribute_name(
     lck_.lock();
   }
 
-  return this->vcf_attributes_[index].data();
+  return this->vcf_attributes_[index].c_str();
 }
 
 int32_t TileDBVCFDataset::materialized_attribute_count() const {
   utils::UniqueReadLock lck_(
-      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
-  if (!queryable_attribute_loaded_) {
+      const_cast<utils::RWLock*>(&materialized_attribute_lock_));
+  if (!materialized_attribute_loaded_) {
     lck_.unlock();
-    build_queryable_attributes();
+    build_materialized_attributes();
     lck_.lock();
   }
 
@@ -1550,21 +1567,29 @@ int32_t TileDBVCFDataset::materialized_attribute_count() const {
 const char* TileDBVCFDataset::materialized_attribute_name(
     const int32_t index) const {
   utils::UniqueReadLock lck_(
-      const_cast<utils::RWLock*>(&queryable_attribute_lock_));
-  if (!queryable_attribute_loaded_) {
+      const_cast<utils::RWLock*>(&materialized_attribute_lock_));
+  if (!materialized_attribute_loaded_) {
     lck_.unlock();
-    build_queryable_attributes();
+    build_materialized_attributes();
     lck_.lock();
   }
 
-  return this->materialized_vcf_attributes_[index].data();
+  return this->materialized_vcf_attributes_[index].c_str();
 }
 
 bool TileDBVCFDataset::is_attribute_materialized(
     const std::string& attr) const {
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&materialized_attribute_lock_));
+  if (!materialized_attribute_loaded_) {
+    lck_.unlock();
+    build_materialized_attributes();
+    lck_.lock();
+  }
+
   for (const auto& materialized_attr_name :
        this->materialized_vcf_attributes_) {
-    if (std::string(materialized_attr_name.data()) == attr)
+    if (materialized_attr_name == attr)
       return true;
   }
 
@@ -1668,7 +1693,6 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
   std::vector<char> sample_data(sample_data_element);
 
   Query::Status status;
-
   query.set_buffer("sample", sample_offsets, sample_data);
 
   do {

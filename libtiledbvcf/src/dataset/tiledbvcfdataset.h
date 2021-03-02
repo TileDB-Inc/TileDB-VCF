@@ -575,10 +575,10 @@ class TileDBVCFDataset {
   mutable std::map<std::string, int> fmt_field_types_;
 
   /** List of all attributes of vcf for querying */
-  mutable std::vector<std::vector<char>> vcf_attributes_;
+  mutable std::vector<std::string> vcf_attributes_;
 
   /** List of all materialzied attributes of vcf for querying */
-  mutable std::vector<std::vector<char>> materialized_vcf_attributes_;
+  mutable std::vector<std::string> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
   mutable std::vector<std::vector<char>> sample_names_;
@@ -617,6 +617,12 @@ class TileDBVCFDataset {
 
   /** flag for if queryable attributes have been computed or not */
   mutable bool queryable_attribute_loaded_;
+
+  /** RWLock for building list of materialized attributes */
+  utils::RWLock materialized_attribute_lock_;
+
+  /** flag for if materialized attributes have been computed or not */
+  mutable bool materialized_attribute_loaded_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
@@ -800,6 +806,11 @@ class TileDBVCFDataset {
    * Build list of queryable attributes
    */
   void build_queryable_attributes() const;
+
+  /**
+   * Build list of materialized attributes
+   */
+  void build_materialized_attributes() const;
 };
 
 }  // namespace vcf
