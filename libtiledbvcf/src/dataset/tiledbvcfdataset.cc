@@ -728,10 +728,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   Query::Status status;
   uint32_t sample_idx = 0;
 
-  query.set_buffer("header", offsets, data);
-  query.set_buffer("sample", sample_offsets, sample_data);
-
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("header", offsets, data);
+    query.set_buffer("sample", sample_offsets, sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -758,8 +760,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       if (num_samples_offsets == 0)
         sample_offsets.resize(sample_offsets.size() * 2);
 
-      query.set_buffer("header", offsets, data);
-      query.set_buffer("sample", sample_offsets, sample_data);
     } else if (has_results) {
       // Parse the samples.
 
@@ -852,10 +852,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
   Query::Status status;
 
-  query.set_buffer("header", offsets, data);
-  query.set_buffer("sample", sample_data);
-
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("header", offsets, data);
+    query.set_buffer("sample", sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -878,8 +880,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
       if (num_samples == 0)
         sample_data.resize(sample_data.size() * 2);
 
-      query.set_buffer("header", offsets, data);
-      query.set_buffer("sample", sample_data);
     } else if (has_results) {
       // Parse the samples.
 
@@ -1694,9 +1694,12 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
   std::vector<char> sample_data(sample_data_element);
 
   Query::Status status;
-  query.set_buffer("sample", sample_offsets, sample_data);
 
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("sample", sample_offsets, sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -1715,7 +1718,6 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
       if (num_offsets == 0)
         sample_offsets.resize(sample_offsets.size() * 2);
 
-      query.set_buffer("sample", sample_offsets, sample_data);
     } else if (has_results) {
       // Parse the samples.
 
