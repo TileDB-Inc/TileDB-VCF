@@ -1020,7 +1020,8 @@ TileDBVCFDataset::contig_from_column(uint32_t col) const {
     throw std::runtime_error(
         "Error finding contig containing column " + std::to_string(col));
 
-  return {contig_offset, contig_length, contig};
+  return std::tuple<uint32_t, uint32_t, std::string>{
+      contig_offset, contig_length, contig};
 }
 
 void TileDBVCFDataset::read_metadata_v4() {
