@@ -611,8 +611,7 @@ bool Reader::next_read_batch_v4() {
           read_state_.current_sample_batches,
           &read_state_.current_hdrs_lookup,
           read_state_.all_samples,
-          false,
-          params_.memory_budget_breakdown.buffers);
+          false);
     }
   }
 

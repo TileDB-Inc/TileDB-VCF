@@ -296,8 +296,7 @@ class TileDBVCFDataset {
       const std::vector<SampleAndId>& samples,
       std::unordered_map<std::string, size_t>* lookup_map,
       bool all_samples,
-      bool first_sample,
-      uint64_t memory_budget = 10485760) const;
+      bool first_sample) const;
 
   /**
    * Returns a list of regions, one per contig (spanning the entire contig),
@@ -425,8 +424,7 @@ class TileDBVCFDataset {
    *
    * @return vector of all sample names
    */
-  std::vector<std::string> get_all_samples_from_vcf_headers(
-      const uint64_t memory_budget = 10485760) const;
+  std::vector<std::string> get_all_samples_from_vcf_headers() const;
 
   std::shared_ptr<tiledb::Array> data_array() const;
 
@@ -575,10 +573,10 @@ class TileDBVCFDataset {
   mutable std::map<std::string, int> fmt_field_types_;
 
   /** List of all attributes of vcf for querying */
-  mutable std::vector<std::string> vcf_attributes_;
+  mutable std::vector<std::vector<char>> vcf_attributes_;
 
   /** List of all materialzied attributes of vcf for querying */
-  mutable std::vector<std::string> materialized_vcf_attributes_;
+  mutable std::vector<std::vector<char>> materialized_vcf_attributes_;
 
   /** List of sample names for exporting */
   mutable std::vector<std::vector<char>> sample_names_;

@@ -360,8 +360,11 @@ void TileDBVCFDataset::build_materialized_attributes() const {
   }
 
   // Set materialized attributes
-  materialized_vcf_attributes_ = std::vector<std::string>(
-      unique_queryable_attributes.begin(), unique_queryable_attributes.end());
+  for (const auto& key : unique_queryable_attributes) {
+    std::vector<char> name(key.begin(), key.end());
+    name.emplace_back('\0');
+    materialized_vcf_attributes_.push_back(name);
+  }
   materialized_attribute_loaded_ = true;
 }
 
@@ -394,9 +397,11 @@ void TileDBVCFDataset::build_queryable_attributes() const {
     unique_queryable_attributes.emplace("fmt_" + fmt.first);
   }
 
-  vcf_attributes_ = std::vector<std::string>(
-      unique_queryable_attributes.begin(), unique_queryable_attributes.end());
-
+  for (const auto& key : unique_queryable_attributes) {
+    std::vector<char> name(key.begin(), key.end());
+    name.emplace_back('\0');
+    vcf_attributes_.push_back(name);
+  }
   queryable_attribute_loaded_ = true;
 }
 
@@ -664,8 +669,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map,
     const bool all_samples,
-    const bool first_sample,
-    const uint64_t memory_budget) const {
+    const bool first_sample) const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -709,16 +713,39 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   }
   query.set_layout(TILEDB_ROW_MAJOR);
 
-  uint64_t memory_budget_per_buffer =
-      static_cast<uint64_t>(static_cast<double>(memory_budget) / 4.0);
-  uint64_t header_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t header_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
-  uint64_t sample_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t sample_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
+  uint64_t header_offset_element = 0;
+  uint64_t header_data_element = 0;
+  uint64_t sample_offset_element = 0;
+  uint64_t sample_data_element = 0;
+#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  std::pair<uint64_t, uint64_t> header_est_size =
+      query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size.first, static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+
+  // Sample estimate
+  std::pair<uint64_t, uint64_t> sample_est_size =
+      query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size.first, static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+#else
+  std::array<uint64_t, 2> header_est_size = query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+
+  // Sample estimate
+  std::array<uint64_t, 2> sample_est_size = query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+#endif
 
   std::vector<uint64_t> offsets(header_offset_element);
   std::vector<char> data(header_data_element);
@@ -728,10 +755,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   Query::Status status;
   uint32_t sample_idx = 0;
 
-  query.set_buffer("header", offsets, data);
-  query.set_buffer("sample", sample_offsets, sample_data);
-
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("header", offsets, data);
+    query.set_buffer("sample", sample_offsets, sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -758,8 +787,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       if (num_samples_offsets == 0)
         sample_offsets.resize(sample_offsets.size() * 2);
 
-      query.set_buffer("header", offsets, data);
-      query.set_buffer("sample", sample_offsets, sample_data);
     } else if (has_results) {
       // Parse the samples.
 
@@ -852,10 +879,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
   Query::Status status;
 
-  query.set_buffer("header", offsets, data);
-  query.set_buffer("sample", sample_data);
-
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("header", offsets, data);
+    query.set_buffer("sample", sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -878,8 +907,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
       if (num_samples == 0)
         sample_data.resize(sample_data.size() * 2);
 
-      query.set_buffer("header", offsets, data);
-      query.set_buffer("sample", sample_data);
     } else if (has_results) {
       // Parse the samples.
 
@@ -1550,7 +1577,7 @@ const char* TileDBVCFDataset::queryable_attribute_name(
     lck_.lock();
   }
 
-  return this->vcf_attributes_[index].c_str();
+  return this->vcf_attributes_[index].data();
 }
 
 int32_t TileDBVCFDataset::materialized_attribute_count() const {
@@ -1575,7 +1602,7 @@ const char* TileDBVCFDataset::materialized_attribute_name(
     lck_.lock();
   }
 
-  return this->materialized_vcf_attributes_[index].c_str();
+  return this->materialized_vcf_attributes_[index].data();
 }
 
 bool TileDBVCFDataset::is_attribute_materialized(
@@ -1590,7 +1617,7 @@ bool TileDBVCFDataset::is_attribute_materialized(
 
   for (const auto& materialized_attr_name :
        this->materialized_vcf_attributes_) {
-    if (materialized_attr_name == attr)
+    if (std::string(materialized_attr_name.data()) == attr)
       return true;
   }
 
@@ -1663,8 +1690,8 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
   return fmt_field_types_;
 }
 
-std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
-    const uint64_t memory_budget) const {
+std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
+    const {
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -1683,20 +1710,35 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
   query.add_range(0, non_empty_domain.first, non_empty_domain.second);
   query.set_layout(TILEDB_ROW_MAJOR);
 
-  uint64_t memory_budget_per_buffer =
-      static_cast<uint64_t>(static_cast<double>(memory_budget) / 4.0);
-  uint64_t sample_offset_element = std::max(
-      memory_budget_per_buffer / sizeof(uint64_t), static_cast<uint64_t>(1));
-  uint64_t sample_data_element = std::max(
-      memory_budget_per_buffer / sizeof(char), static_cast<uint64_t>(1));
+  uint64_t sample_offset_element = 0;
+  uint64_t sample_data_element = 0;
+#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  // Sample estimate
+  std::pair<uint64_t, uint64_t> sample_est_size =
+      query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size.first, static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+#else
+  // Sample estimate
+  std::array<uint64_t, 2> sample_est_size = query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+#endif
 
   std::vector<uint64_t> sample_offsets(sample_offset_element);
   std::vector<char> sample_data(sample_data_element);
 
   Query::Status status;
-  query.set_buffer("sample", sample_offsets, sample_data);
 
   do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("sample", sample_offsets, sample_data);
+
     status = query.submit();
 
     auto result_el = query.result_buffer_elements();
@@ -1715,7 +1757,6 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers(
       if (num_offsets == 0)
         sample_offsets.resize(sample_offsets.size() * 2);
 
-      query.set_buffer("sample", sample_offsets, sample_data);
     } else if (has_results) {
       // Parse the samples.
 
