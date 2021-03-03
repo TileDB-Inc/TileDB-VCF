@@ -507,10 +507,17 @@ bool Reader::next_read_batch_v2_v3() {
   set_tiledb_query_config();
 
   // Set ranges
-  for (const auto& sample : read_state_.current_sample_batches)
+  std::stringstream range_string;
+  for (const auto& sample : read_state_.current_sample_batches) {
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-  for (const auto& query_region : read_state_.query_regions)
+    range_string << "query.add_range(0, " << sample.sample_id << ", "
+                 << sample.sample_id << ");" << std::endl;
+  }
+  for (const auto& query_region : read_state_.query_regions) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    range_string << "query.add_range(1, " << query_region.col_min << ", "
+                 << query_region.col_max << ");" << std::endl;
+  }
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
     std::cout << "Initialized TileDB query with "
@@ -518,6 +525,8 @@ bool Reader::next_read_batch_v2_v3() {
               << read_state_.current_sample_batches.size() << " sample ranges."
               << std::endl;
   }
+
+  std::cerr << range_string.str() << std::endl;
 
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
@@ -619,6 +628,7 @@ bool Reader::next_read_batch_v4() {
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
   set_tiledb_query_config();
 
+  std::stringstream range_string;
   // Set ranges
   // For samples we special case when we are looking at all samples. If so we
   // just need to set one range with the start/end sample id
@@ -628,6 +638,9 @@ bool Reader::next_read_batch_v4() {
           TileDBVCFDataset::DimensionNames::V4::sample);
       read_state_.query->add_range(
           2, non_empty_domain.first, non_empty_domain.second);
+      range_string << "query.add_range(2, \"" << non_empty_domain.first
+                   << "\", \"" << non_empty_domain.second << "\");"
+                   << std::endl;
     } else {
       // if we have all samples but are partitioning we need to only use the
       // first/last sample of the partition partitions are sorted both globally
@@ -639,22 +652,43 @@ bool Reader::next_read_batch_v4() {
               .current_sample_batches
                   [read_state_.current_sample_batches.size() - 1]
               .sample_name);
+      range_string << "query.add_range(2, \""
+                   << read_state_.current_sample_batches[0].sample_name
+                   << "\", \""
+                   << read_state_
+                          .current_sample_batches
+                              [read_state_.current_sample_batches.size() - 1]
+                          .sample_name
+                   << "\");" << std::endl;
     }
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
-    for (const auto& sample : read_state_.current_sample_batches)
+    for (const auto& sample : read_state_.current_sample_batches) {
       read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+      range_string << "query.add_range(2, \"" << sample.sample_name << "\", \""
+                   << sample.sample_name << "\");" << std::endl;
+    }
   }
 
   for (const auto& query_region :
-       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second)
+       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+           .second) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    range_string << "query.add_range(1, " << query_region.col_min << ", "
+                 << query_region.col_max << ");" << std::endl;
+  }
 
   read_state_.query->add_range(
       0,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
+  range_string
+      << "query.add_range(0, \""
+      << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
+      << "\", \""
+      << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
+      << "\");" << std::endl;
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
@@ -677,6 +711,8 @@ bool Reader::next_read_batch_v4() {
        << ")." << std::endl;
     std::cout << ss.str();
   }
+
+  std::cerr << range_string.str() << std::endl;
 
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
