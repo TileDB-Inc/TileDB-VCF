@@ -47,16 +47,16 @@ class Dataset(object):
         self.cfg = cfg
         if self.mode == "r":
             self.reader = libtiledbvcf.Reader()
+            self.reader.set_verbose(verbose)
             self._set_read_cfg(cfg)
             self.reader.init(uri)
             self.reader.set_tiledb_stats_enabled(stats)
-            self.reader.set_verbose(verbose)
         elif self.mode == "w":
             self.writer = libtiledbvcf.Writer()
+            self.writer.set_verbose(verbose)
             self._set_write_cfg(cfg)
             self.writer.init(uri)
             self.writer.set_tiledb_stats_enabled(stats)
-            self.writer.set_verbose(verbose)
         else:
             raise Exception("Unsupported dataset mode {}".format(mode))
 
