@@ -103,7 +103,8 @@ TileDBVCFDataset::TileDBVCFDataset()
     , tiledb_stats_enabled_vcf_header_(true)
     , sample_names_loaded_(false)
     , info_fmt_field_types_loaded_(false)
-    , queryable_attribute_loaded_(false) {
+    , queryable_attribute_loaded_(false)
+    , materialized_attribute_loaded_(false) {
   utils::init_htslib();
 }
 
