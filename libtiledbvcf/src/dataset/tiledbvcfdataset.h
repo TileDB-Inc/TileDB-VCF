@@ -552,6 +552,9 @@ class TileDBVCFDataset {
    */
   bool is_fmt_field(const std::string& attr) const;
 
+  /** Returns true if the dataset is tiledb cloud URI. */
+  bool tiledb_cloud_dataset() const;
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -751,7 +754,7 @@ class TileDBVCFDataset {
       const std::string& root_uri, bool check_for_cloud = true);
 
   /** Returns true if the array starts with the tiledb:// URI **/
-  static bool cloud_dataset(std::string root_uri);
+  static bool cloud_dataset(const std::string& root_uri);
 
   /* ********************************* */
   /*          PRIVATE METHODS          */

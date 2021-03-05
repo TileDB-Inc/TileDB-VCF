@@ -1656,8 +1656,12 @@ std::string TileDBVCFDataset::vcf_headers_uri(
   return utils::uri_join(grp, "vcf_headers", delimiter);
 }
 
-bool TileDBVCFDataset::cloud_dataset(std::string root_uri) {
+bool TileDBVCFDataset::cloud_dataset(const std::string& root_uri) {
   return utils::starts_with(root_uri, "tiledb://");
+}
+
+bool TileDBVCFDataset::tiledb_cloud_dataset() const {
+  return cloud_dataset(root_uri_);
 }
 
 std::map<std::string, int> TileDBVCFDataset::info_field_types() const {

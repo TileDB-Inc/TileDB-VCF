@@ -2218,6 +2218,21 @@ void Reader::compute_memory_budget_details() {
   // 25/75 split between buffers and memory budget
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 
+  // TileDB Cloud datasets use all the memory for buffers
+  if (dataset_ != nullptr && dataset_->tiledb_cloud_dataset()) {
+    if (params_.verbose) {
+      std::cout << "Overrode memory budgets because array is TileDB Cloud "
+                   "array. All memory will be given to buffers."
+                << std::endl;
+    }
+    params_.memory_budget_breakdown.tiledb_tile_cache = 0;
+    // Set the budget to non-zero but its effectively ignored
+    params_.memory_budget_breakdown.tiledb_memory_budget = 1024;
+    // Set the buffers to the full budget
+    params_.memory_budget_breakdown.buffers =
+        params_.memory_budget_mb * 1024 * 1024;
+  }
+
   if (params_.verbose) {
     std::cout << "Set memory budgets as follows: "
               << "starting budget: " << params_.memory_budget_mb * 1024 * 1024
