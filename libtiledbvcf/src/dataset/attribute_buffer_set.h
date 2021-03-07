@@ -43,6 +43,32 @@ namespace vcf {
  * what is exported for in-memory.
  */
 class AttributeBufferSet {
+  struct BufferSizeByType {
+    BufferSizeByType(
+        const uint64_t& char_buffer_size,
+        const uint64_t& uint8_buffer_size,
+        const uint64_t& int32_buffer_size,
+        const uint64_t& uint64_buffer_size,
+        const uint64_t& float32_buffer_size,
+        const uint64_t& var_length_uint8_buffer_size) {
+      this->char_buffer_size = char_buffer_size;
+      this->uint8_buffer_size = uint8_buffer_size;
+      this->int32_buffer_size = int32_buffer_size;
+      this->uint64_buffer_size = uint64_buffer_size;
+      this->float32_buffer_size = float32_buffer_size;
+      this->var_length_uint8_buffer_size = var_length_uint8_buffer_size;
+    }
+
+    BufferSizeByType() = default;
+
+    uint64_t char_buffer_size = 0;
+    uint64_t uint8_buffer_size = 0;
+    uint64_t int32_buffer_size = 0;
+    uint64_t uint64_buffer_size = 0;
+    uint64_t float32_buffer_size = 0;
+    uint64_t var_length_uint8_buffer_size = 0;
+  };
+
  public:
   explicit AttributeBufferSet(bool verbose = false);
 
@@ -53,8 +79,10 @@ class AttributeBufferSet {
    * @param mem_budget
    * @return size of buffers in bytes
    */
-  static uint64_t compute_buffer_size(
-      const std::unordered_set<std::string>& attr_names, uint64_t mem_budget);
+  static BufferSizeByType compute_buffer_size(
+      const std::unordered_set<std::string>& attr_names,
+      uint64_t mem_budget,
+      TileDBVCFDataset* dataset);
 
   /**
    * Resize buffers for the given set of attributes using the given allocation
@@ -70,7 +98,7 @@ class AttributeBufferSet {
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
       uint64_t memory_budget,
-      unsigned version);
+      TileDBVCFDataset* dataset);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size
@@ -191,7 +219,7 @@ class AttributeBufferSet {
    * all buffers see total_size()
    * @return size
    */
-  uint64_t size_per_buffer() const;
+  BufferSizeByType sizes_per_buffer() const;
 
   /**
    * Number of buffers allocated
@@ -255,7 +283,7 @@ class AttributeBufferSet {
   bool verbose_;
 
   /** size of allocated buffers in bytes */
-  uint64_t buffer_size_bytes_;
+  AttributeBufferSet::BufferSizeByType buffer_size_by_type_;
 
   /** Total number of buffers allocated */
   uint64_t number_of_buffers_;

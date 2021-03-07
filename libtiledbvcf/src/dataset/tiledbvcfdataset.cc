@@ -1496,6 +1496,16 @@ bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
          attr == AttrNames::V2::qual;
 }
 
+bool TileDBVCFDataset::attribute_is_nullable(const std::string& attr) {
+  // Nulls are not included in schema yet
+  return false;
+}
+
+bool TileDBVCFDataset::attribute_is_list(const std::string& attr) {
+  // Lists are not included in schema yet
+  return false;
+}
+
 std::set<std::string> TileDBVCFDataset::all_attributes() const {
   if (!open_)
     throw std::invalid_argument(
@@ -1942,6 +1952,30 @@ bool TileDBVCFDataset::is_info_field(const std::string& attr) const {
 
 bool TileDBVCFDataset::is_fmt_field(const std::string& attr) const {
   return attr.substr(0, 4) == "fmt_";
+}
+
+void TileDBVCFDataset::attribute_datatype_non_fmt_info(
+    const std::string& attribute,
+    tiledb_datatype_t* datatype,
+    bool* var_len,
+    bool* nullable,
+    bool* list) {
+  bool fixed_len = attribute_is_fixed_len(attribute);
+  *var_len = !fixed_len;
+  *var_len = !fixed_len;
+
+  *nullable = attribute_is_nullable(attribute);
+  *list = attribute_is_list(attribute);
+  *var_len = !fixed_len;
+
+  auto schema = data_array_->schema();
+  if (schema.has_attribute(attribute)) {
+    auto attr = schema.attribute(attribute);
+    *datatype = attr.type();
+  } else {
+    auto dimension = schema.domain().dimension(attribute);
+    *datatype = dimension.type();
+  }
 }
 }  // namespace vcf
 }  // namespace tiledb
