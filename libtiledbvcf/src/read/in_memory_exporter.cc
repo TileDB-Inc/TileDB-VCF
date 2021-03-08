@@ -470,6 +470,13 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::Filters: {
+        uint64_t size;
+        const char* contig = buffers->contig().value<char>(cell_idx, &size);
+        const uint32_t real_start_pos =
+            buffers->real_start_pos().value<uint32_t>(cell_idx) + 1;
+        std::cerr << "export filter for sample " << sample.sample_name
+                  << ", contig " << std::string(contig, size) << ":"
+                  << real_start_pos << std::endl;
         overflow = !copy_filters_list(hdr, cell_idx, &user_buff);
         break;
       }
@@ -883,6 +890,11 @@ bool InMemoryExporter::copy_filters_list(
         "Error copying filters list; no buffer set for offsets or list "
         "offsets.");
 
+  for (int j = 0; j < hdr->n[BCF_DT_ID]; j++) {
+    std::cerr << "hdr->id[BCF_DT_ID][" << j << "]=" << hdr->id[BCF_DT_ID][j].key
+              << std::endl;
+  }
+
   // Find the data and size
   const Buffer& src = curr_query_results_->buffers()->filter_ids();
   const uint64_t src_size = curr_query_results_->filter_ids_size().second;
@@ -899,6 +911,8 @@ bool InMemoryExporter::copy_filters_list(
   const int64_t index = dest->curr_sizes.num_offsets;
   const int64_t list_index = dest->curr_sizes.num_list_offsets;
   const bool is_null = num_filters == 0;
+  std::cerr << "num_filters=" << num_filters << ", is_null=" << is_null
+            << std::endl;
   if (is_null) {
     // To adhere to Arrow's offset semantics, a zero-length value still gets
     // an entry in the offsets buffer.
@@ -909,6 +923,8 @@ bool InMemoryExporter::copy_filters_list(
     for (int i = 0; i < num_filters; i++) {
       const char* filter_name = bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]);
       const uint64_t len = strlen(filter_name);
+      std::cerr << "filter_ids[" << i << "]=" << filter_ids[i]
+                << ", filter_name=" << filter_name << std::endl;
       if (!copy_cell_data(dest, filter_name, len, len, nullptr))
         return false;
     }
