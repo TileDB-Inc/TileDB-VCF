@@ -614,9 +614,12 @@ bool Reader::next_read_batch_v4() {
           read_state_.all_samples,
           false);
       std::cerr << "read_state_.all_samples: " << read_state_.all_samples
-                << ", read_state_.current_sample_batches.size(): "<< read_state_.current_sample_batches.size()
-                << ", read_state_.current_sample_batches[0].sample_name: " << read_state_.current_sample_batches[0].sample_name
-                << ", read_state_.current_hdrs_lookup.size(): " << read_state_.current_hdrs_lookup.size() << std::endl;
+                << ", read_state_.current_sample_batches.size(): "
+                << read_state_.current_sample_batches.size()
+                << ", read_state_.current_sample_batches[0].sample_name: "
+                << read_state_.current_sample_batches[0].sample_name
+                << ", read_state_.current_hdrs_lookup.size(): "
+                << read_state_.current_hdrs_lookup.size() << std::endl;
     }
   }
   std::cerr << "new_samples=" << new_samples << std::endl;
@@ -1325,17 +1328,22 @@ bool Reader::report_cell(
     auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
     if (hdr_iter == read_state_.current_hdrs.end()) {
       std::cerr << "hdr_index: " << hdr_index
-      << ", read_state_.current_hdrs.size(): "<< read_state_.current_hdrs.size()
-      << ", read_state_.current_hdrs_lookup.size(): " << read_state_.current_hdrs_lookup.size() << std::endl;
-      for (auto& hdr: read_state_.current_hdrs_lookup) {
-        std::cerr << "current_hdrs_lookup contains: " << hdr.first << ":" << hdr.second << std::endl;
+                << ", read_state_.current_hdrs.size(): "
+                << read_state_.current_hdrs.size()
+                << ", read_state_.current_hdrs_lookup.size(): "
+                << read_state_.current_hdrs_lookup.size() << std::endl;
+      for (auto& hdr : read_state_.current_hdrs_lookup) {
+        std::cerr << "current_hdrs_lookup contains: " << hdr.first << ":"
+                  << hdr.second << std::endl;
       }
-      for (auto& hdr: read_state_.current_hdrs) {
+      for (auto& hdr : read_state_.current_hdrs) {
         std::cerr << "current_headers contains: " << hdr.first << std::endl;
       }
       throw std::runtime_error(
-          "Could not find VCF header for " + sample.sample_name + "(index: " + std::to_string(hdr_index) + ")"
-                                                                                                           " in report_cell");
+          "Could not find VCF header for " + sample.sample_name +
+          "(index: " + std::to_string(hdr_index) +
+          ")"
+          " in report_cell");
     }
 
     const auto& hdr = read_state_.current_hdrs.at(hdr_index);
