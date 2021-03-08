@@ -894,6 +894,8 @@ bool InMemoryExporter::copy_filters_list(
     std::cerr << "hdr->id[BCF_DT_ID][" << j << "]=" << hdr->id[BCF_DT_ID][j].key
               << std::endl;
   }
+  std::cerr << "First sample name from header: " << hdr->samples[0]
+            << std::endl;
 
   // Find the data and size
   const Buffer& src = curr_query_results_->buffers()->filter_ids();
