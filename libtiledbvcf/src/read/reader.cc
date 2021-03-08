@@ -606,14 +606,20 @@ bool Reader::next_read_batch_v4() {
 
     // Fetch new headers for new sample batch
     if (read_state_.need_headers) {
+      std::cerr << "Clearing headers in next_read_batch_v4" << std::endl;
       read_state_.current_hdrs.clear();
       read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
           read_state_.current_sample_batches,
           &read_state_.current_hdrs_lookup,
           read_state_.all_samples,
           false);
+      std::cerr << "read_state_.all_samples: " << read_state_.all_samples
+                << ", read_state_.current_sample_batches.size(): "<< read_state_.current_sample_batches.size()
+                << ", read_state_.current_sample_batches[0].sample_name: " << read_state_.current_sample_batches[0].sample_name
+                << ", read_state_.current_hdrs_lookup.size(): " << read_state_.current_hdrs_lookup.size() << std::endl;
     }
   }
+  std::cerr << "new_samples=" << new_samples << std::endl;
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
@@ -1317,10 +1323,20 @@ bool Reader::report_cell(
   bcf_hdr_t* hdr_ptr = nullptr;
   if (read_state_.need_headers) {
     auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
-    if (hdr_iter == read_state_.current_hdrs.end())
+    if (hdr_iter == read_state_.current_hdrs.end()) {
+      std::cerr << "hdr_index: " << hdr_index
+      << ", read_state_.current_hdrs.size(): "<< read_state_.current_hdrs.size()
+      << ", read_state_.current_hdrs_lookup.size(): " << read_state_.current_hdrs_lookup.size() << std::endl;
+      for (auto& hdr: read_state_.current_hdrs_lookup) {
+        std::cerr << "current_hdrs_lookup contains: " << hdr.first << ":" << hdr.second << std::endl;
+      }
+      for (auto& hdr: read_state_.current_hdrs) {
+        std::cerr << "current_headers contains: " << hdr.first << std::endl;
+      }
       throw std::runtime_error(
-          "Could not find VCF header for " + sample.sample_name +
-          " in report_cell");
+          "Could not find VCF header for " + sample.sample_name + "(index: " + std::to_string(hdr_index) + ")"
+                                                                                                           " in report_cell");
+    }
 
     const auto& hdr = read_state_.current_hdrs.at(hdr_index);
     hdr_ptr = hdr.get();
