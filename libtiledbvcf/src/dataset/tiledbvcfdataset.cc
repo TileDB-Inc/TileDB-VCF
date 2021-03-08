@@ -757,6 +757,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
 #endif
 
+  std::cerr << "header_offset_element: " << header_offset_element
+            << ", header_data_element: " << header_data_element
+            << ", sample_offset_element: " << sample_offset_element
+            << ", sample_data_element: " << sample_data_element << std::endl;
+
   std::vector<uint64_t> offsets(header_offset_element);
   std::vector<char> data(header_data_element);
   std::vector<uint64_t> sample_offsets(sample_offset_element);
@@ -773,6 +778,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     query.set_buffer("sample", sample_offsets, sample_data);
 
     status = query.submit();
+    const char* status_str;
+    tiledb_query_status_t query_status;
+    tiledb_query_get_status(ctx_.ptr().get(), query.ptr().get(), &query_status);
+    tiledb_query_status_to_str(query_status, &status_str);
+    std::cerr << "Query Status: " << status_str << " (" << status << ")"
+              << std::endl;
 
     auto result_el = query.result_buffer_elements();
     uint64_t num_offsets = result_el["header"].first;
@@ -781,6 +792,10 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     uint64_t num_samples_chars = result_el["sample"].second;
 
     bool has_results = num_chars != 0;
+    std::cerr << "has_results: " << has_results << ", num_chars: " << num_chars
+              << ", num_offsets: " << num_offsets
+              << ", num_samples_chars: " << num_samples_chars
+              << ", num_samples_offsets: " << num_samples_offsets << std::endl;
     result_cells += num_offsets;
 
     if (status == Query::Status::INCOMPLETE && !has_results) {
