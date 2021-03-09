@@ -35,6 +35,7 @@
 #include <vector>
 
 #include <htslib/vcf.h>
+#include <future>
 #include <tiledb/tiledb>
 
 #include "utils/rwlock.h"
@@ -620,7 +621,7 @@ class TileDBVCFDataset {
 
   /** Pointer to hold an open vcf header array. This avoid opening the array
    * multiple times in multiple places */
-  std::unique_ptr<tiledb::Array> vcf_header_array_;
+  std::shared_ptr<tiledb::Array> vcf_header_array_;
 
   /** Pointer to hold an open data array. This avoid opening the array multiple
    * times in multiple places */
@@ -846,6 +847,22 @@ class TileDBVCFDataset {
    * Build list of materialized attributes
    */
   void build_materialized_attributes() const;
+
+  /**
+   * Preload the non empty domain async so that its available when needed later
+   * @return
+   */
+  std::future<void> preload_data_array_non_empty_domain();
+  std::future<void> preload_data_array_non_empty_domain_v2_v3();
+  std::future<void> preload_data_array_non_empty_domain_v4();
+
+  /**
+   * Preload the non empty domain async so that its available when needed later
+   * @return
+   */
+  std::future<void> preload_vcf_header_array_non_empty_domain();
+  std::future<void> preload_vcf_header_array_non_empty_domain_v2_v3();
+  std::future<void> preload_vcf_header_array_non_empty_domain_v4();
 };
 
 }  // namespace vcf
