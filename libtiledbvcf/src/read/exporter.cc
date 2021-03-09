@@ -72,6 +72,24 @@ void Exporter::recover_record(
   int* buff_filters =
       buffers->filter_ids().data<int32_t>() + filters_offset / sizeof(int32_t);
   int nflt = *buff_filters;
+
+  std::cerr << "num_filters=" << nflt << ", is_null=" << (nflt == 0)
+            << std::endl;
+  for (int j = 0; j < hdr->n[BCF_DT_ID]; j++) {
+    std::cerr << "hdr->id[BCF_DT_ID][" << j << "]=" << hdr->id[BCF_DT_ID][j].key
+              << std::endl;
+  }
+  std::cerr << "First sample name from header: " << hdr->samples[0]
+            << std::endl;
+
+  int* filter_ids = &buff_filters[1];
+  for (int i = 0; i < nflt; i++) {
+    const char* filter_name = bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]);
+    const uint64_t len = strlen(filter_name);
+    std::cerr << "filter_ids[" << i << "]=" << filter_ids[i]
+              << ", filter_name=" << filter_name << std::endl;
+  }
+
   st = bcf_update_filter(hdr, dst, buff_filters + 1, nflt);
   if (st < 0)
     throw std::runtime_error(
