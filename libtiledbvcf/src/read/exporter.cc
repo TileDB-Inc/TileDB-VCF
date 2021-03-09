@@ -87,7 +87,7 @@ void Exporter::recover_record(
     const char* filter_name = bcf_hdr_int2id(hdr, BCF_DT_ID, filter_ids[i]);
     const uint64_t len = strlen(filter_name);
     std::cerr << "filter_ids[" << i << "]=" << filter_ids[i]
-              << ", filter_name=" << filter_name << std::endl;
+              << ", filter_name=" << std::string(filter_name, len) << std::endl;
   }
 
   st = bcf_update_filter(hdr, dst, buff_filters + 1, nflt);
