@@ -555,6 +555,40 @@ class TileDBVCFDataset {
   /** Returns true if the dataset is tiledb cloud URI. */
   bool tiledb_cloud_dataset() const;
 
+  /**
+   * Gets the datatype of a particular exportable attribute that is not fmt or
+   * info
+   *
+   * @param dataset Dataset (for metadata)
+   * @param attribute Attribute name
+   * @param datatype Set to the datatype of the attribute
+   * @param var_len Set to true if the attribute is variable-length
+   * @param nullable Set to true if the attribute is nullable
+   * @param nullable Set to true if the attribute is var-len list
+   */
+  void attribute_datatype_non_fmt_info(
+      const std::string& attribute,
+      tiledb_datatype_t* datatype,
+      bool* var_len,
+      bool* nullable,
+      bool* list);
+
+  /**
+   * Gets if the attribute is nullable. Nulls are not currently included in
+   * schema but will be eventually
+   * @param attr
+   * @return true if nullable
+   */
+  static bool attribute_is_nullable(const std::string& attr);
+
+  /**
+   * Gets if the attribute is list. Lists are not currently included in schema
+   * but will be eventually
+   * @param attr
+   * @return true if a list
+   */
+  static bool attribute_is_list(const std::string& attr);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

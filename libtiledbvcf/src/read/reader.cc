@@ -2030,22 +2030,20 @@ void Reader::prepare_attribute_buffers() {
   uint64_t alloc_budget = params_.memory_budget_breakdown.buffers;
 
   // If the query buffers would be less than 100MB don't double buffer
-  if (AttributeBufferSet::compute_buffer_size(attrs, alloc_budget) >
-      params_.double_buffering_threshold) {
+  if (AttributeBufferSet::compute_buffer_size(
+          attrs, alloc_budget, dataset_.get())
+          .uint64_buffer_size > params_.double_buffering_threshold) {
     // If we are double buffering allocate half to each set of buffers
     alloc_budget = params_.memory_budget_breakdown.buffers / 2;
-    buffers_a->allocate_fixed(
-        attrs, alloc_budget, dataset_->metadata().version);
-    buffers_b->allocate_fixed(
-        attrs, alloc_budget, dataset_->metadata().version);
+    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
+    buffers_b->allocate_fixed(attrs, alloc_budget, dataset_.get());
     double_buffering_ = true;
     if (params_.verbose)
       std::cout << "double buffering enabled because buffers are above "
                    "threshold size of "
                 << params_.double_buffering_threshold << std::endl;
   } else {
-    buffers_a->allocate_fixed(
-        attrs, alloc_budget, dataset_->metadata().version);
+    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
     buffers_b.reset(nullptr);
     double_buffering_ = false;
     if (params_.verbose)
