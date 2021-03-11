@@ -679,11 +679,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
         "Cannot set all_samples and first_sample in same fetch vcf headers "
         "request");
 
-  if (all_samples && !samples.empty())
-    throw std::runtime_error(
-        "Cannot set all_samples and samples list in same fetch vcf headers "
-        "request");
-
   if (first_sample && !samples.empty())
     throw std::runtime_error(
         "Cannot set first_sample and samples list in same fetch vcf headers "
@@ -698,8 +693,15 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   Query query(ctx_, *vcf_header_array_);
 
   if (!samples.empty()) {
-    for (const auto& sample : samples) {
-      query.add_range(0, sample.sample_name, sample.sample_name);
+    // If all samples but we have a sample list we know its sorted and can use
+    // the min/max
+    if (all_samples) {
+      query.add_range(
+          0, samples[0].sample_name, samples[samples.size() - 1].sample_name);
+    } else {
+      for (const auto& sample : samples) {
+        query.add_range(0, sample.sample_name, sample.sample_name);
+      }
     }
   } else if (all_samples) {
     // When no samples are passed grab the first one
