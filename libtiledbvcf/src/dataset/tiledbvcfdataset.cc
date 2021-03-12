@@ -110,7 +110,7 @@ TileDBVCFDataset::TileDBVCFDataset()
 
 TileDBVCFDataset::~TileDBVCFDataset() {
   data_array_ = nullptr;
-  vcf_header_array_.reset(nullptr);
+  vcf_header_array_ = (nullptr);
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
@@ -328,6 +328,12 @@ void TileDBVCFDataset::open(
         " but only versions 2, 3 and 4 are supported.");
 
   open_ = true;
+
+  // Preloading runs on a background stl thread
+  // We can ignore the returns because the core TileDB library will cache the
+  // non-empty-domain after its loaded the first time
+  preload_data_array_non_empty_domain();
+  preload_vcf_header_array_non_empty_domain();
 
   // only v2/v3 arrays preload sample list
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
@@ -1978,6 +1984,53 @@ void TileDBVCFDataset::attribute_datatype_non_fmt_info(
     auto dimension = schema.domain().dimension(attribute);
     *datatype = dimension.type();
   }
+}
+
+std::future<void> TileDBVCFDataset::preload_data_array_non_empty_domain() {
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+    return preload_data_array_non_empty_domain_v2_v3();
+
+  assert(metadata_.version == Version::V4);
+  return preload_data_array_non_empty_domain_v4();
+}
+
+std::future<void>
+TileDBVCFDataset::preload_data_array_non_empty_domain_v2_v3() {
+  auto f = std::async(std::launch::async, [this]() {
+    data_array_->non_empty_domain<uint32_t>(0);
+  });
+  return f;
+}
+
+std::future<void> TileDBVCFDataset::preload_data_array_non_empty_domain_v4() {
+  auto f = std::async(
+      std::launch::async, [this]() { data_array_->non_empty_domain_var(0); });
+  return f;
+}
+
+std::future<void>
+TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+    return preload_vcf_header_array_non_empty_domain_v2_v3();
+
+  assert(metadata_.version == Version::V4);
+  return preload_vcf_header_array_non_empty_domain_v4();
+}
+
+std::future<void>
+TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v2_v3() {
+  auto f = std::async(std::launch::async, [this]() {
+    vcf_header_array_->non_empty_domain<uint32_t>(0);
+  });
+  return f;
+}
+
+std::future<void>
+TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v4() {
+  auto f = std::async(std::launch::async, [this]() {
+    vcf_header_array_->non_empty_domain_var(0);
+  });
+  return f;
 }
 }  // namespace vcf
 }  // namespace tiledb
