@@ -1,5 +1,9 @@
+import com.github.sherter.googlejavaformatgradleplugin.GoogleJavaFormat
+import com.github.sherter.googlejavaformatgradleplugin.VerifyGoogleJavaFormat
+
 plugins {
     id 'java'
+    id 'scala'
     id 'idea'
     id 'maven-publish'
     id 'com.github.sherter.google-java-format' version '0.8'
@@ -11,6 +15,13 @@ version '0.9.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+project.ext {
+    cachedBreezeVersion = null
+    sparkVersion = System.getProperty("spark.version", "2.4.5")
+    scalaVersion = System.getProperty("scala.version", "2.11.12")
+    scalaMajorVersion = (scalaVersion =~ /^\d+.\d+/)[0]
+}
 
 sourceSets {
     main {
@@ -31,12 +42,30 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.apache.spark:spark-sql_2.12:2.4.3'
-    compileOnly 'org.apache.spark:spark-core_2.12:2.4.3'
+    compile group: 'org.scalanlp', name: 'breeze_2.11', version: '1.0'
+    compile group: 'org.ow2.asm', name: 'asm-tree', version: '9.0'
+    compile group: 'org.ow2.asm', name: 'asm-util', version: '9.0'
+
+    implementation 'org.scala-lang:scala-library:' + scalaMajorVersion
+
+    testImplementation 'org.scala-lang:scala-library:' + scalaMajorVersion
+
+    compileOnly 'org.apache.spark:spark-sql_' + scalaMajorVersion + ':' + sparkVersion
+    compileOnly 'org.apache.spark:spark-mllib_' + scalaMajorVersion + ':' + sparkVersion
+    compileOnly 'org.apache.spark:spark-core_' + scalaMajorVersion + ':' + sparkVersion
+
     compile group: 'io.tiledb', name: 'tiledb-vcf-java', version: version
     compile 'com.amazonaws:aws-java-sdk:1.11.650'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    compile group: 'is.hail', name: 'hail', version: 'main'
+
+    testCompile group: 'org.scalatest', name: 'scalatest_2.11', version: '3.2.3'
+
+    testCompile 'org.testng:testng:6.8.21'
+
+    compile group: 'com.github.samtools', name: 'htsjdk', version: '2.23.0'
 }
 
 // Make sure all the compileOnly packagse (spark) are included for testing
@@ -46,7 +75,21 @@ configurations {
 
 test {
     testLogging {
-        showStandardStreams = true
+        events "passed", "skipped", "failed"
+        showStandardStreams true
+    }
+
+    finalizedBy('testNG')
+}
+
+task testNG(type: Test) {
+    useTestNG() {
+//        suites 'testng.xml'
+    }
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams true
     }
 }
 
@@ -61,9 +104,6 @@ tasks.jar.configure {
 tasks.shadowJar.configure {
     classifier = null
 }
-
-import com.github.sherter.googlejavaformatgradleplugin.GoogleJavaFormat
-import com.github.sherter.googlejavaformatgradleplugin.VerifyGoogleJavaFormat
 
 task pathConfig {
     ext.root = file("../..").absolutePath
