@@ -131,6 +131,28 @@ steps:
   displayName: 'Build and test TileDB-VCF Java API'
 
 - bash: |
+    set -e pipefail
+
+    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+      git clone -b victorgiannakouris/tiledbvcf-integration https://github.com/TileDB-Inc/hail.git
+      cd hail/hail && ./gradlew assemble && ./gradlew publishToMavenLocal && cd ../..
+
+      ./gradlew assemble
+
+      ./gradlew jar
+
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+
+      ./gradlew test
+
+      ./gradlew checkFormat
+    fi
+
+  displayName: 'Build and test TileDB-VCF Spark API'
+
+- bash: |
     set -ex pipefail
 
     if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
@@ -155,24 +177,6 @@ steps:
   displayName: 'Build and test TileDB-VCF Python API'
 
 - bash: |
-    set -e pipefail
-
-    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
-
-      ./gradlew assemble
-
-      ./gradlew jar
-
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-      ./gradlew test
-
-      ./gradlew checkFormat
-    fi
-
-  displayName: 'Build and test TileDB-VCF Spark API'
-
-- bash: |
       set -e pipefail
       # Display log files if the build failed
       echo "Dumping log files for failed build"
@@ -185,3 +189,10 @@ steps:
         done;
   condition: failed() # only run this job if the build step failed
   displayName: "Print log files (failed build only)"
+
+# Publish Test Results
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit' # Options: JUnit, NUnit, VSTest, xUnit, cTest
+    testResultsFiles: '**/TEST-*.xml'
+  condition: failed()
