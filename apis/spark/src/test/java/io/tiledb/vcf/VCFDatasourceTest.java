@@ -17,7 +17,7 @@ import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
 import org.junit.Assert;
 import org.junit.Test;
-import scala.collection.JavaConverters;
+import scala.collection.JavaConversions;
 import scala.collection.immutable.HashMap;
 import scala.collection.mutable.WrappedArray;
 
@@ -392,7 +392,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
           // so we can compare it with the attribute value.
           if (attributeValue instanceof WrappedArray) {
             WrappedArray array = (WrappedArray) attributeValue;
-            Object[] javaArray = JavaConverters.asJavaCollection(array).toArray();
+            Object[] javaArray = JavaConversions.asJavaCollection(array).toArray();
             String arrayStr = "";
 
             for (int i = 0; i < javaArray.length; ++i) {
