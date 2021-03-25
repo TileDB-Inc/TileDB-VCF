@@ -235,6 +235,7 @@ class BuildExtCmd(build_ext):
             ext.extra_link_args = link_opts
 
             import pyarrow
+
             # Strip version from pyarrow lib to avoid:
             # https://issues.apache.org/jira/browse/ARROW-5980
             ext.include_dirs.append(pyarrow.get_include())
