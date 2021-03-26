@@ -236,8 +236,12 @@ class BuildExtCmd(build_ext):
 
             import pyarrow
 
-            ext.include_dirs.append(pyarrow.get_include())
+            # unversioned symlinks to arrow libraries are required for wheels
+            # https://github.com/apache/arrow/blob/master/docs/source/python/extending.rst#building-extensions-against-pypi-wheels
+            pyarrow.create_library_symlinks()
             ext.libraries.extend(pyarrow.get_libraries())
+            ext.include_dirs.append(pyarrow.get_include())
+
             # don't overlink the arrow core library
             if "arrow" in ext.libraries:
                 ext.libraries.remove("arrow")
