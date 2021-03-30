@@ -45,40 +45,10 @@ else()
       message(STATUS "TileDB will be built WITHOUT S3 support")
     endif()
 
-    # Try to download prebuilt artifacts unless the user specifies to build from source
-    if(DOWNLOAD_TILEDB_PREBUILT)
-        if (WIN32) # Windows
-          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.2.6/tiledb-windows-2.2.6-b6926bc-full.zip")
-          SET(DOWNLOAD_SHA1 "700e5cdbaa77b00d31f498dbab353b06d4890ae7")
-        elseif(APPLE) # OSX
-          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.2.6/tiledb-macos-2.2.6-b6926bc-full.tar.gz")
-          SET(DOWNLOAD_SHA1 "348d56dede19a22e351571f1b5bdc5c1cba70684")
-        else() # Linux
-          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.2.6/tiledb-linux-2.2.6-b6926bc-full.tar.gz")
-          SET(DOWNLOAD_SHA1 "198c84e74638d46949aad63881902eff095282f9")
-        endif()
-
-        ExternalProject_Add(ep_tiledb
-                PREFIX "externals"
-                URL ${DOWNLOAD_URL}
-                URL_HASH SHA1=${DOWNLOAD_SHA1}
-                CONFIGURE_COMMAND ""
-                BUILD_COMMAND ""
-                UPDATE_COMMAND ""
-                PATCH_COMMAND ""
-                TEST_COMMAND ""
-                INSTALL_COMMAND
-                    ${CMAKE_COMMAND} -E copy_directory ${EP_BASE}/src/ep_tiledb ${EP_INSTALL_PREFIX}
-                LOG_DOWNLOAD TRUE
-                LOG_CONFIGURE FALSE
-                LOG_BUILD FALSE
-                LOG_INSTALL FALSE
-                )
-    else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/2.2.6.zip"
-          URL_HASH SHA1=ea484f87c7eca60714d52b31ecd4d9fd74e05c0c
+          URL "https://github.com/TileDB-Inc/TileDB/archive/jpm/partition-on-tile-overlap-size.zip"
+          #URL_HASH SHA1=ea484f87c7eca60714d52b31ecd4d9fd74e05c0c
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
@@ -97,7 +67,6 @@ else()
           LOG_BUILD TRUE
           LOG_INSTALL TRUE
         )
-    endif()
 
     list(APPEND FORWARD_EP_CMAKE_ARGS -DEP_TILEDB_BUILT=TRUE)
     list(APPEND EXTERNAL_PROJECTS ep_tiledb)
