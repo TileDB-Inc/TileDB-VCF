@@ -47,7 +47,7 @@ else()
 
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/ss/2.2-tile-overlap-test.zip"
+          URL "https://github.com/TileDB-Inc/TileDB/archive/ss/2.2-tile-overlap-test-memory-overflow.zip"
           #URL_HASH SHA1=ea484f87c7eca60714d52b31ecd4d9fd74e05c0c
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
