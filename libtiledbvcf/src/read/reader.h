@@ -493,6 +493,9 @@ class Reader {
 
     /** Does the export need headers to be fetched. */
     bool need_headers = false;
+
+    /** Buffers used on query */
+    std::unordered_set<std::string> attrs_;
   };
 
   /* ********************************* */

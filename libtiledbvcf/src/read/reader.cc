@@ -522,31 +522,29 @@ bool Reader::next_read_batch_v2_v3() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (params_.verbose) {
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
-      read_state_.query_estimated_num_records =
-          read_state_.query->est_result_size(
-              TileDBVCFDataset::DimensionNames::V2::end_pos) /
-          tiledb_datatype_size(
-              dataset_->data_array()
-                  ->schema()
-                  .domain()
-                  .dimension(TileDBVCFDataset::DimensionNames::V2::end_pos)
-                  .type());
-    } else {
-      read_state_.query_estimated_num_records =
-          read_state_.query->est_result_size(
-              TileDBVCFDataset::DimensionNames::V3::start_pos) /
-          tiledb_datatype_size(
-              dataset_->data_array()
-                  ->schema()
-                  .domain()
-                  .dimension(TileDBVCFDataset::DimensionNames::V3::start_pos)
-                  .type());
-    }
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    read_state_.query_estimated_num_records =
+        read_state_.query->est_result_size(
+            TileDBVCFDataset::DimensionNames::V2::end_pos) /
+        tiledb_datatype_size(
+            dataset_->data_array()
+                ->schema()
+                .domain()
+                .dimension(TileDBVCFDataset::DimensionNames::V2::end_pos)
+                .type());
+  } else {
+    read_state_.query_estimated_num_records =
+        read_state_.query->est_result_size(
+            TileDBVCFDataset::DimensionNames::V3::start_pos) /
+        tiledb_datatype_size(
+            dataset_->data_array()
+                ->schema()
+                .domain()
+                .dimension(TileDBVCFDataset::DimensionNames::V3::start_pos)
+                .type());
   }
 
-  return true;
+  return false;
 }
 
 bool Reader::next_read_batch_v4() {
@@ -682,19 +680,46 @@ bool Reader::next_read_batch_v4() {
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
 
-  if (params_.verbose) {
-    read_state_.query_estimated_num_records =
-        read_state_.query->est_result_size(
-            TileDBVCFDataset::DimensionNames::V4::start_pos) /
-        tiledb_datatype_size(
-            dataset_->data_array()
-                ->schema()
-                .domain()
-                .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
-                .type());
-  }
+  read_state_.query_estimated_num_records =
+      read_state_.query->est_result_size(
+          TileDBVCFDataset::DimensionNames::V4::start_pos) /
+      tiledb_datatype_size(
+          dataset_->data_array()
+              ->schema()
+              .domain()
+              .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
+              .type());
 
-  return true;
+  std::stringstream ss;
+  ss << "Estimated result sizes: " << std::endl;
+  for (const std::string& name : read_state_.attrs_) {
+    uint64_t data_size = 0;
+    uint64_t offset_size = 0;
+
+    bool var_len, nullable, list;
+    tiledb_datatype_t datatype;
+    dataset_->attribute_datatype_non_fmt_info(
+        name, &datatype, &var_len, &nullable, &list);
+
+    if (var_len) {
+      auto sizes = read_state_.query->est_result_size_var(name);
+      offset_size = sizes[0];
+      data_size = sizes[1];
+    } else {
+      data_size = read_state_.query->est_result_size(name);
+    }
+
+    ss << name << " data: " << data_size << " (" << std::setprecision(2)
+       << static_cast<double>(data_size) / (1024 * 1024) << "MB)";
+    if (offset_size > 0)
+      ss << ", offset: " << offset_size << " (" << std::setprecision(2)
+         << static_cast<double>(offset_size) / (1024 * 1024) << "MB)";
+
+    ss << std::endl;
+  }
+  std::cout << ss.str() << std::endl;
+
+  return false;
 }
 
 void Reader::init_exporter() {
@@ -1984,23 +2009,23 @@ void Reader::prepare_regions_v2(
 
 void Reader::prepare_attribute_buffers() {
   // This base set of attributes is required for the read algorithm to run.
-  std::unordered_set<std::string> attrs;
+  read_state_.attrs_.clear();
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
-    attrs = {
+    read_state_.attrs_ = {
         TileDBVCFDataset::DimensionNames::V4::sample,
         TileDBVCFDataset::DimensionNames::V4::contig,
         TileDBVCFDataset::DimensionNames::V4::start_pos,
         TileDBVCFDataset::AttrNames::V4::real_start_pos,
         TileDBVCFDataset::AttrNames::V4::end_pos};
   } else if (dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
-    attrs = {
+    read_state_.attrs_ = {
         TileDBVCFDataset::DimensionNames::V3::sample,
         TileDBVCFDataset::DimensionNames::V3::start_pos,
         TileDBVCFDataset::AttrNames::V3::real_start_pos,
         TileDBVCFDataset::AttrNames::V3::end_pos};
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V2);
-    attrs = {
+    read_state_.attrs_ = {
         TileDBVCFDataset::DimensionNames::V2::sample,
         TileDBVCFDataset::DimensionNames::V2::end_pos,
         TileDBVCFDataset::AttrNames::V2::pos,
@@ -2017,7 +2042,7 @@ void Reader::prepare_attribute_buffers() {
   } else if (exporter_ != nullptr) {
     // Exporters require different attribute sets.
     auto required = exporter_->array_attributes_required();
-    attrs.insert(required.begin(), required.end());
+    read_state_.attrs_.insert(required.begin(), required.end());
   } else {
     throw std::runtime_error(
         "Error preparing attribute buffers; unhandled attribute export "
@@ -2031,19 +2056,19 @@ void Reader::prepare_attribute_buffers() {
 
   // If the query buffers would be less than 100MB don't double buffer
   if (AttributeBufferSet::compute_buffer_size(
-          attrs, alloc_budget, dataset_.get())
+          read_state_.attrs_, alloc_budget, dataset_.get())
           .uint64_buffer_size > params_.double_buffering_threshold) {
     // If we are double buffering allocate half to each set of buffers
     alloc_budget = params_.memory_budget_breakdown.buffers / 2;
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
-    buffers_b->allocate_fixed(attrs, alloc_budget, dataset_.get());
+    buffers_a->allocate_fixed(read_state_.attrs_, alloc_budget, dataset_.get());
+    buffers_b->allocate_fixed(read_state_.attrs_, alloc_budget, dataset_.get());
     double_buffering_ = true;
     if (params_.verbose)
       std::cout << "double buffering enabled because buffers are above "
                    "threshold size of "
                 << params_.double_buffering_threshold << std::endl;
   } else {
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
+    buffers_a->allocate_fixed(read_state_.attrs_, alloc_budget, dataset_.get());
     buffers_b.reset(nullptr);
     double_buffering_ = false;
     if (params_.verbose)
