@@ -1491,10 +1491,15 @@ std::set<std::string> TileDBVCFDataset::builtin_attributes_v2() {
 }
 
 bool TileDBVCFDataset::attribute_is_fixed_len(const std::string& attr) {
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
+    if (attr == DimensionNames::V3::sample ||
+        attr == DimensionNames::V2::sample) {
+      return true;
+    }
+  }
+
   return attr == DimensionNames::V4::start_pos ||
-         attr == DimensionNames::V3::sample ||
          attr == DimensionNames::V3::start_pos ||
-         attr == DimensionNames::V2::sample ||
          attr == DimensionNames::V2::end_pos ||
          attr == AttrNames::V4::real_start_pos ||
          attr == AttrNames::V4::end_pos || attr == AttrNames::V4::qual ||
