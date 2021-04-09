@@ -4,7 +4,7 @@ import is.hail.annotations.BroadcastRow
 import is.hail.expr.ir.{ExecuteContext, LowerMatrixIR, MatrixHybridReader, TableRead, TableValue}
 import is.hail.rvd.{RVD, RVDType}
 import is.hail.sparkextras.ContextRDD
-import is.hail.types.physical.{PCanonicalCall, PCanonicalString, PField, PFloat32, PInt32, PStruct, PType}
+import is.hail.types.physical.{PCanonicalCall, PCanonicalSet, PCanonicalString, PCanonicalStruct, PField, PFloat32, PFloat64, PInt32, PStruct, PType}
 import is.hail.types.virtual._
 import is.hail.types.{MatrixType, TableType}
 import is.hail.utils.{FastIndexedSeq, toRichContextRDDRow, toRichIterable}
@@ -12,26 +12,20 @@ import is.hail.variant.{Call, Call2, Locus, ReferenceGenome}
 import org.apache.spark.sql.{Column, DataFrame, Row, functions}
 import org.json4s.JsonAST.JValue
 import org.json4s.{DefaultFormats, Formats}
+import io.tiledb.libvcfnative.VCFReader
+import io.tiledb.libvcfnative.VCFReader.AttributeDatatype
 
 import java.util.Optional
 import scala.collection.mutable
 
 
-class TileDBHailVCFReader() extends MatrixHybridReader {
+class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = Option.empty) extends MatrixHybridReader {
   override def pathsUsed: Seq[String] = Seq.empty
   override def columnCount: Option[Int] = None
   override def partitionCounts: Option[IndexedSeq[Long]] = None
 
   var df: DataFrame = null
-  var uri: String = null
-  var samples: Option[String] = Option.empty
 
-  //  val sampleList = {
-  //    if (samples.isDefined) samples.get.split(",")
-  //    else Array[String]()
-  //  }
-  //
-  //  val vcfReader: VCFReader = new VCFReader(uri, sampleList, Optional.empty(), Optional.empty())
   //  val fmt = vcfReader.fmtAttributes.keySet.toArray.map{ fmtAttr =>
   //    val key = fmtAttr.toString
   //    val dt = {
@@ -50,24 +44,44 @@ class TileDBHailVCFReader() extends MatrixHybridReader {
   //    (fmtAttr.toString.split("_")(1) -> dt.virtualType)
   //  }
   //
-  //  val info = vcfReader.infoAttributes.keySet.toArray.map{ infoAttr =>
-  //    val key = infoAttr.toString
-  //    val dt = {
-  //      if (key.contains("GT"))
-  //        PCanonicalCall(false)
-  //      else {
-  //        vcfReader.infoAttributes.get(key).datatype match {
-  //          case AttributeDatatype.UINT8 => PInt32()
-  //          case AttributeDatatype.INT32 => PInt32()
-  //          case AttributeDatatype.CHAR => PCanonicalString()
-  //          case AttributeDatatype.FLOAT32 => PFloat32()
-  //        }
-  //      }
-  //    }
-  //    (infoAttr.toString.split("_")(1) -> dt.virtualType)
-  //  }
 
-  val entryType = TStruct("DP" -> PInt32().virtualType, "GT" -> PCanonicalCall().virtualType, "PL" -> TArray(PInt32().virtualType))
+  val sampleList = {
+    if (samples.isDefined) samples.get.split(",")
+    else Array[String]()
+  }
+
+  val entryType = TStruct(
+    "AD" -> TArray(PInt32().virtualType),
+    "DP" -> PInt32().virtualType,
+    "GQ" -> PInt32().virtualType,
+    "GT" -> PCanonicalCall().virtualType,
+    "MIN_DP" -> PInt32().virtualType,
+    "PL" -> TArray(PInt32().virtualType),
+    "SB" -> TArray(PInt32().virtualType))
+
+  val vcfReader: VCFReader = new VCFReader(uri, sampleList, Optional.empty(), Optional.empty())
+
+  val info = vcfReader.infoAttributes.keySet.toArray.map{ infoAttr =>
+    val key = infoAttr.toString
+    val dt = {
+      if (key.contains("GT"))
+        PCanonicalCall(false)
+      else {
+        vcfReader.infoAttributes.get(key).datatype match {
+          case AttributeDatatype.UINT8 => PInt32()
+          case AttributeDatatype.INT32 => PInt32()
+          case AttributeDatatype.CHAR => PCanonicalString()
+          case AttributeDatatype.FLOAT32 => PFloat32()
+        }
+      }
+    }
+    (infoAttr.toString.split("_")(1) -> dt.virtualType)
+  }
+
+  val vaSignature = PCanonicalStruct(Array(
+    PField("rsid", PCanonicalString(), 0),
+    PField("qual", PFloat64(), 1),
+    PField("filters", PCanonicalSet(PCanonicalString(true)), 2)), true)
 
   val fullMatrixType: MatrixType = MatrixType(
     globalType = TStruct.empty,
@@ -75,7 +89,7 @@ class TileDBHailVCFReader() extends MatrixHybridReader {
     colKey = Array("s"),
     rowType = TStruct(
       "locus" -> TLocus(ReferenceGenome.GRCh37),
-      "alleles" -> TArray(TString)),
+      "alleles" -> TArray(TString)) ++ vaSignature.virtualType ++ (TStruct("info" -> TStruct(info:_*))),
     rowKey = Array("locus", "alleles"),
     entryType = entryType)
 
@@ -97,17 +111,52 @@ class TileDBHailVCFReader() extends MatrixHybridReader {
         .load()
     }
 
-    var projection = df.groupBy("contig","posStart", "alleles")
-      .agg(functions.collect_list("genotype").as("GT"),
-        functions.collect_list("fmt_DP").as("DP"),
-        functions.collect_list("fmt_PL").as("PL"))
+    //    var projection = df.groupBy("contig","posStart", "alleles")
+    //      .agg(functions.collect_list("genotype").as("GT"),
+    //        functions.collect_list("fmt_DP").as("DP"),
+    //        functions.collect_list("fmt_PL").as("PL"))
+
+    var projection = df
+      .withColumnRenamed("fmt_AD", "AD")
+      .withColumnRenamed("fmt_DP", "DP")
+      .withColumnRenamed("fmt_GQ", "GQ")
+      .withColumnRenamed("genotype", "GT")
+      .withColumnRenamed("fmt_MIN_DP", "MIN_DP")
+      .withColumnRenamed("fmt_PL", "PL")
+      .withColumnRenamed("fmt_SB", "SB")
+
 
     var columns = Seq[String]("contig", "posStart", "alleles")
 
-    val infoFields = Seq("GT", "DP", "PL")
+    // Construct a map of info fields and row indices
+    var idx = 3
+    val infoFieldIdx: mutable.HashMap[String, Int] = mutable.HashMap()
 
-    infoFields.foreach(infoField => if (entryType.hasField(infoField)) columns = columns :+ infoField)
+    // Check if the row has an "info" field
+    val hasInfo = rowType.hasField("info")
+    val infoFieldNames = info.map(_._1)
+    if (hasInfo) {
+      info.foreach { infoField =>
+        columns = columns :+ s"info_${infoField._1}"
+        infoFieldIdx.put(infoField._1, idx)
+        idx += 1
+      }
+    }
 
+    val hasRsid = rowType.hasField("rsid")
+    val hasQual = rowType.hasField("qual")
+    val hasFilter = rowType.hasField("filters")
+
+    // Parse info entry fields
+    val infoFields = Seq("AD", "DP", "GQ", "GT", "MIN_DP", "PL", "SB")
+    infoFields.foreach(infoField =>
+      if (entryType.hasField(infoField)){
+        columns = columns :+ infoField
+        infoFieldIdx.put(infoField, idx)
+        idx += 1
+      })
+
+    // Add all the columns
     projection = projection.select(columns.map(new Column(_)) :  _ *)
 
     val rdd = projection.rdd.map{
@@ -115,30 +164,39 @@ class TileDBHailVCFReader() extends MatrixHybridReader {
         val locus = Locus(row.getString(0), row.getInt(1))
         val alleles = row.get(2)
 
+        // Set locus and alleles
         var rowFields = Seq(locus, alleles)
 
+        if (hasRsid)
+          rowFields = rowFields :+ s"empty_rsid_${System.nanoTime()}"
+        if (hasQual)
+          rowFields = rowFields :+ 0.0
+        if (hasFilter)
+          rowFields = rowFields :+ Set.empty
+
+        if (hasInfo) {
+          rowFields = rowFields :+ Row(infoFieldNames.map { x =>
+            val idx = infoFieldIdx.get(x).get
+            val v = row.get(idx)
+            v
+          }.toSeq: _*)
+        }
+
         // Parse Entry fields (GT, DP and PL)
-        var idx = rowFields.size + 1
-        entryType.fieldNames.foreach { fieldName =>
+        val entryValues = entryType.fieldNames.map { fieldName =>
+          val rid = infoFieldIdx.get(fieldName).get
           fieldName match {
             case "GT" => {
-              val GT = row.get(idx).asInstanceOf[mutable.WrappedArray[mutable.WrappedArray[Int]]]
-                .map(x => Row(Call2(x(0), x(1))))
-              rowFields = rowFields :+ GT
+              val r = row.get(rid).asInstanceOf[mutable.WrappedArray[Int]]
+              val GT = Call2(r(0), r(1))
+              GT
             }
-            case "DP" => {
-              val DP = row.get(idx).asInstanceOf[mutable.WrappedArray[Int]]
-                .map(x => Row(x))
-              rowFields = rowFields :+ DP
-            }
-            case "PL" => {
-              val PL = row.get(idx).asInstanceOf[mutable.WrappedArray[mutable.WrappedArray[Int]]]
-                .map(x => Row(x))
-              rowFields = rowFields :+ PL
-            }
-            case _ => {}
+            case _ => row.get(rid)
           }
-          idx += 1
+        }
+
+        if (entryValues.nonEmpty) {
+          rowFields = rowFields :+ mutable.WrappedArray.make(Array(Row(entryValues :_* )))
         }
 
         Row(rowFields : _ *)
@@ -181,10 +239,7 @@ object TileDBHailVCFReader {
     implicit val formats: Formats = DefaultFormats
     val params = jv.extract[TileDBHail]
 
-    val reader = new TileDBHailVCFReader()
-
-    reader.uri = params.uri
-    reader.samples = Option(params.samples)
+    val reader = new TileDBHailVCFReader(params.uri, Option(params.samples))
 
     reader
   }
