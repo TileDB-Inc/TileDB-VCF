@@ -2081,6 +2081,13 @@ void Reader::init_tiledb() {
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(params_.tiledb_config);
+
+  std::stringstream ss;
+  ss << "TileDB-VCF version " << utils::TILEDB_VCF_COMMIT_HASH << "\n";
+  auto v = tiledb::version();
+  ss << "TileDB version " << std::get<0>(v) << "." << std::get<1>(v) << "."
+     << std::get<2>(v);
+  std::cout << ss.str() << std::endl;
 }
 
 void Reader::check_partitioning(
