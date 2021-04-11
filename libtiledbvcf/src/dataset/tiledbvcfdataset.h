@@ -270,7 +270,8 @@ class TileDBVCFDataset {
 
   void open(
       const std::string& uri,
-      const std::vector<std::string>& tiledb_config = {});
+      const std::vector<std::string>& tiledb_config = {},
+      const bool prefetch_data_array_fragment_info = false);
 
   void register_samples(const RegistrationParams& params);
 
@@ -428,6 +429,14 @@ class TileDBVCFDataset {
   std::vector<std::string> get_all_samples_from_vcf_headers() const;
 
   std::shared_ptr<tiledb::Array> data_array() const;
+
+  /**
+   * Returns the FragmentInfo for the data array. Fetches fragment info if it
+   * isn't loaded
+   *
+   * @return Data array FragmentInfo
+   */
+  std::shared_ptr<tiledb::FragmentInfo> data_array_fragment_info();
 
   /**
    * Returns if the core tiledb stats are enabled or not
@@ -590,6 +599,11 @@ class TileDBVCFDataset {
    */
   static bool attribute_is_list(const std::string& attr);
 
+  /**
+   * Load the data array fragment info as a background task
+   */
+  void preload_data_array_fragment_info();
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -626,6 +640,14 @@ class TileDBVCFDataset {
   /** Pointer to hold an open data array. This avoid opening the array multiple
    * times in multiple places */
   std::shared_ptr<tiledb::Array> data_array_;
+
+  /** Pointer to hold fragment info for the data array. This lets us fetch it
+   * async. */
+  std::shared_ptr<tiledb::FragmentInfo> data_array_fragment_info_;
+
+  bool data_array_fragment_info_loaded_;
+
+  std::mutex data_array_fragment_info_mtx_;
 
   /** TileDB config used for open dataset */
   tiledb::Config cfg_;
@@ -860,9 +882,14 @@ class TileDBVCFDataset {
    * Preload the non empty domain async so that its available when needed later
    * @return
    */
-  std::future<void> preload_vcf_header_array_non_empty_domain();
-  std::future<void> preload_vcf_header_array_non_empty_domain_v2_v3();
-  std::future<void> preload_vcf_header_array_non_empty_domain_v4();
+  void preload_vcf_header_array_non_empty_domain();
+  void preload_vcf_header_array_non_empty_domain_v2_v3();
+  void preload_vcf_header_array_non_empty_domain_v4();
+
+  /**
+   * Load the data array fragment info
+   */
+  void data_array_fragment_info_load();
 };
 
 }  // namespace vcf

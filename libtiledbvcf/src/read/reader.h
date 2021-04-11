@@ -580,7 +580,9 @@ class Reader {
    * @return vector of samples
    */
   std::vector<std::vector<SampleAndId>> prepare_sample_batches_v4(
-      bool* all_samples) const;
+      bool* all_samples,
+      std::unordered_map<std::string, std::vector<size_t>>*
+          regions_index_per_contig) const;
 
   /** Merges the list of sample names with the contents of the samples file. */
   std::vector<SampleAndId> prepare_sample_names() const;

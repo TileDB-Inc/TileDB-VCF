@@ -4958,3 +4958,236 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
 
   tiledb_vcf_reader_free(&reader);
 }
+
+TEST_CASE(
+    "C API: Reader submit (partitioned samples, sample batching, fetch headers)",
+    "[capi][reader]") {
+  tiledb_vcf_reader_t *reader0 = nullptr, *reader1 = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader0) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_alloc(&reader1) == TILEDB_VCF_OK);
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+  }
+  REQUIRE(
+      tiledb_vcf_reader_init(reader0, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_init(reader1, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  // Set up samples and ranges
+  const char* regions = "1:12100-13360,1:13500-17350,1:17485-17485";
+  REQUIRE(tiledb_vcf_reader_set_regions(reader0, regions) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_sample_partition(reader0, 0, 2) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_set_regions(reader1, regions) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_sample_partition(reader1, 1, 2) == TILEDB_VCF_OK);
+
+  REQUIRE(tiledb_vcf_reader_set_sample_batching(reader0, true) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_set_sample_batching(reader1, true) == TILEDB_VCF_OK);
+
+  std::vector<record> expected_records = {
+      record(
+          "HG00280", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12141, 12277, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 12546, 12771, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13354, 13374, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG01762", 13354, 13389, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13375, 13395, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13396, 13413, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17319, 17479, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 17480, 17486, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {})};
+
+  // Allocate and set buffers
+  const unsigned allocated_num_records = 10;
+  std::vector<uint32_t> pos_start0(allocated_num_records);
+  std::vector<uint32_t> pos_end0(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets0(allocated_num_records + 1);
+  std::vector<char> sample_name0(allocated_num_records * 10);
+  std::vector<uint32_t> pos_start1(allocated_num_records);
+  std::vector<uint32_t> pos_end1(allocated_num_records);
+  std::vector<int32_t> sample_name_offsets1(allocated_num_records + 1);
+  std::vector<char> sample_name1(allocated_num_records * 10);
+  std::vector<int> fmt_DP0(allocated_num_records);
+  std::vector<int> fmt_DP1(allocated_num_records);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "pos_start",
+          sizeof(uint32_t) * pos_start0.size(),
+          pos_start0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "pos_end",
+          sizeof(uint32_t) * pos_end0.size(),
+          pos_end0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "sample_name",
+          sizeof(char) * sample_name0.size(),
+          sample_name0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader0,
+          "sample_name",
+          sizeof(int32_t) * sample_name_offsets0.size(),
+          sample_name_offsets0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "pos_start",
+          sizeof(uint32_t) * pos_start1.size(),
+          pos_start1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "pos_end",
+          sizeof(uint32_t) * pos_end1.size(),
+          pos_end1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "sample_name",
+          sizeof(char) * sample_name1.size(),
+          sample_name1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_offsets(
+          reader1,
+          "sample_name",
+          sizeof(int32_t) * sample_name_offsets1.size(),
+          sample_name_offsets1.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader0,
+          "fmt_DP",
+          sizeof(int32_t) * fmt_DP0.size(),
+          pos_start0.data()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_buffer_values(
+          reader1,
+          "fmt_DP",
+          sizeof(int32_t) * fmt_DP1.size(),
+          fmt_DP1.data()) == TILEDB_VCF_OK);
+
+  int64_t num_records = ~0;
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 0);
+
+  tiledb_vcf_read_status_t status;
+  REQUIRE(tiledb_vcf_reader_get_status(reader0, &status) == TILEDB_VCF_OK);
+  REQUIRE(status == TILEDB_VCF_UNINITIALIZED);
+
+  // Submit queries
+  REQUIRE(tiledb_vcf_reader_read(reader0) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_read(reader1) == TILEDB_VCF_OK);
+
+  // Check result size
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 8);
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader1, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 3);
+
+  // Check status
+  REQUIRE(tiledb_vcf_reader_get_status(reader0, &status) == TILEDB_VCF_OK);
+  REQUIRE(status == TILEDB_VCF_COMPLETED);
+  REQUIRE(tiledb_vcf_reader_get_status(reader1, &status) == TILEDB_VCF_OK);
+  REQUIRE(status == TILEDB_VCF_COMPLETED);
+
+  // Check result size
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 8);
+  REQUIRE(
+      tiledb_vcf_reader_get_result_num_records(reader1, &num_records) ==
+      TILEDB_VCF_OK);
+  REQUIRE(num_records == 3);
+
+  // Check results
+  std::vector<record> records0 = build_records(
+      num_records,
+      sample_name0,
+      sample_name_offsets0,
+      pos_start0,
+      pos_end0,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
+
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records0));
+
+  std::vector<record> records1 = build_records(
+      num_records,
+      sample_name1,
+      sample_name_offsets1,
+      pos_start1,
+      pos_end1,
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {});
+
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records1));
+
+  tiledb_vcf_reader_free(&reader0);
+  tiledb_vcf_reader_free(&reader1);
+}

@@ -551,7 +551,7 @@ int main(int argc, char** argv) {
            "Disable validating that sample passed exist in dataset before "
            "executing "
            "query and error if any sample requested is not in the dataset",
-       option("--sample-batching").set(export_args.sample_batching, false) %
+       option("--sample-batching").set(export_args.sample_batching) %
            "Enable merging and batching of samples in query. This is a "
            "performance optimization for large queries.");
 

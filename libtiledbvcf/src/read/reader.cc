@@ -58,7 +58,7 @@ void Reader::open_dataset(const std::string& dataset_uri) {
   init_tiledb();
 
   dataset_.reset(new TileDBVCFDataset);
-  dataset_->open(dataset_uri, params_.tiledb_config);
+  dataset_->open(dataset_uri, params_.tiledb_config, params_.sample_batching);
   read_state_.array = dataset_->data_array();
 }
 
@@ -426,8 +426,6 @@ void Reader::init_for_reads_v3() {
 void Reader::init_for_reads_v4() {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   read_state_.batch_idx = 0;
-  read_state_.sample_batches =
-      prepare_sample_batches_v4(&read_state_.all_samples);
   read_state_.last_intersecting_region_idx_ = 0;
 
   init_exporter();
@@ -436,6 +434,15 @@ void Reader::init_for_reads_v4() {
       &read_state_.regions,
       &read_state_.regions_index_per_contig,
       &read_state_.query_regions_v4);
+
+  if (params_.verbose) {
+    std::cout << "sample_batching is "
+              << (params_.sample_batching ? "enabled" : "disabled")
+              << std::endl;
+  }
+
+  read_state_.sample_batches = prepare_sample_batches_v4(
+      &read_state_.all_samples, &read_state_.regions_index_per_contig);
   prepare_attribute_buffers();
 }
 
@@ -566,7 +573,7 @@ bool Reader::next_read_batch_v4() {
     read_state_.batch_idx = 0;
     read_state_.query_contig_batch_idx = 0;
   } else if (
-      read_state_.batch_idx + 1 < 1 ||
+      read_state_.batch_idx + 1 < read_state_.sample_batches.size() ||
       read_state_.query_contig_batch_idx + 1 <
           read_state_.query_regions_v4.size()) {
     // If we have query contig batches left for this sample batch only increment
@@ -607,6 +614,7 @@ bool Reader::next_read_batch_v4() {
     // Fetch new headers for new sample batch
     if (read_state_.need_headers) {
       read_state_.current_hdrs.clear();
+      read_state_.current_hdrs_lookup.clear();
       read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
           read_state_.current_sample_batches,
           &read_state_.current_hdrs_lookup,
@@ -1371,7 +1379,9 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches() const {
 }
 
 std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
-    bool* all_samples) const {
+    bool* all_samples,
+    std::unordered_map<std::string, std::vector<size_t>>*
+        regions_index_per_contig) const {
   assert(all_samples);
   // Get the list of all sample names and ID
   auto samples = prepare_sample_names_v4(all_samples);
@@ -1388,15 +1398,123 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
         return a.sample_name < b.sample_name;
       });
 
-  dataset_->data_array_fragment_info();
-
   // Apply sample partitioning
   utils::partition_vector(
       params_.sample_partitioning.partition_index,
       params_.sample_partitioning.num_partitions,
       &samples);
 
-  return {samples};
+  // If we are not batching, then we'll exit early with a single vector
+  if (!params_.sample_batching)
+    return {samples};
+
+  // If we are batching samples then we want to try to align the samples based
+  // on fragments.
+  auto fragment_info = dataset_->data_array_fragment_info();
+
+  auto cmp = [](const std::pair<std::string, std::string>& a,
+                const std::pair<std::string, std::string>& b) {
+    return a.first < b.first;
+  };
+  std::set<std::pair<std::string, std::string>, decltype(cmp)>
+      unique_fragment_sample_ranges(cmp);
+  for (uint64_t i = 0; i < fragment_info->fragment_num(); i++) {
+    // checking that contig is in regions
+
+    auto fragment_contig_range = fragment_info->non_empty_domain_var(i, 0);
+
+    // First check if the non empty domain is directly in the list of regions
+    // For most fragments which contain only a single contig this check is
+    // sufficient
+    if (regions_index_per_contig->find(fragment_contig_range.first) ==
+            regions_index_per_contig->end() &&
+        regions_index_per_contig->find(fragment_contig_range.second) ==
+            regions_index_per_contig->end()) {
+      // If the fragment only has on contig we know it doesn't overlap a region
+      // and we can skip it
+      if (fragment_contig_range.first == fragment_contig_range.second) {
+        continue;
+      }
+
+      // Else if the fragment has multiple contigs contained in it we must loop
+      // over all regions to check if they are lexicographically contained
+      bool found = false;
+      for (const auto& contig : *regions_index_per_contig) {
+        // If its not contained, skip it
+        if (contig.first >= fragment_contig_range.first &&
+            contig.first <= fragment_contig_range.second) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+        continue;
+    }
+
+    unique_fragment_sample_ranges.emplace(
+        fragment_info->non_empty_domain_var(i, 2));
+  }
+
+  // Merge fragment sample ranges into super ranges so we can compare to create
+  // largest overlaps
+  std::vector<std::pair<std::string, std::string>> fragment_sample_ranges;
+  for (const auto& fragment_sample_range : unique_fragment_sample_ranges) {
+    if (fragment_sample_ranges.empty()) {
+      fragment_sample_ranges.emplace_back(fragment_sample_range);
+      continue;
+    }
+
+    auto& vector_sample_range = fragment_sample_ranges.back();
+    if ((fragment_sample_range.first >= vector_sample_range.first &&
+         fragment_sample_range.first <= vector_sample_range.second) ||
+        (fragment_sample_range.second >= vector_sample_range.first &&
+         fragment_sample_range.second <= vector_sample_range.second) ||
+        (fragment_sample_range.first <= vector_sample_range.first &&
+         fragment_sample_range.second >= vector_sample_range.second)) {
+      vector_sample_range.first =
+          std::min(fragment_sample_range.first, vector_sample_range.first);
+      vector_sample_range.second =
+          std::min(fragment_sample_range.second, vector_sample_range.second);
+      continue;
+    }
+
+    fragment_sample_ranges.emplace_back(fragment_sample_range);
+  }
+
+  // Initialize a vector with the size of all possible batches
+  std::vector<std::vector<SampleAndId>> sample_batches(
+      fragment_sample_ranges.size());
+  for (const auto& sample : samples) {
+    bool found = false;
+    for (uint64_t i = 0; i < fragment_sample_ranges.size(); i++) {
+      const auto& range = fragment_sample_ranges[i];
+      if (sample.sample_name >= range.first &&
+          sample.sample_name <= range.second) {
+        sample_batches[i].emplace_back(sample);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      throw std::runtime_error(
+          "Unexpectedly sample " + sample.sample_name +
+          " not found in fragments, can't create sample bactches. Please "
+          "validate " +
+          sample.sample_name + " is a valid sample");
+    }
+  }
+
+  // remove any empty batches
+  for (uint64_t i = 0; i < sample_batches.size();) {
+    if (sample_batches[i].empty()) {
+      sample_batches.erase(sample_batches.begin() + i);
+    } else {
+      ++i;
+    }
+  }
+
+  return sample_batches;
 }
 
 std::vector<SampleAndId> Reader::prepare_sample_names() const {
@@ -2272,6 +2390,11 @@ void Reader::set_check_samples_exist(const bool check_samples_exist) {
 
 void Reader::set_sample_batching(const bool sample_batching) {
   params_.sample_batching = sample_batching;
+
+  // If the dataset is open go ahead and start the background task
+  // If the data array is already open this is a no-op
+  if (dataset_ != nullptr)
+    dataset_->preload_data_array_fragment_info();
 }
 
 }  // namespace vcf
