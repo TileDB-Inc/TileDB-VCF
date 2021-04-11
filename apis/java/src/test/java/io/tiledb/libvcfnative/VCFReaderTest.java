@@ -391,4 +391,11 @@ public class VCFReaderTest {
     Assert.assertTrue(reader.fmtAttributes.size() > 0);
     Assert.assertTrue(reader.infoAttributes.size() > 0);
   }
+
+  @Test
+  public void testSetSampleBatching() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+
+    reader.setSampleBatching(true);
+  }
 }

@@ -550,7 +550,10 @@ int main(int argc, char** argv) {
                .set(export_args.check_samples_exist, false) %
            "Disable validating that sample passed exist in dataset before "
            "executing "
-           "query and error if any sample requested is not in the dataset");
+           "query and error if any sample requested is not in the dataset",
+       option("--sample-batching").set(export_args.sample_batching, false) %
+           "Enable merging and batching of samples in query. This is a "
+           "performance optimization for large queries.");
 
   ListParams list_args;
   auto list_mode =

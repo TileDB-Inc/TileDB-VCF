@@ -104,6 +104,8 @@ struct ExportParams {
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
   bool check_samples_exist = true;
+
+  bool sample_batching = false;
 };
 
 /* ********************************* */
@@ -382,7 +384,13 @@ class Reader {
    * running the query
    * @param check_samples_exist
    */
-  void set_check_samples_exist(const bool check_samples_exist);
+  void set_check_samples_exist(bool check_samples_exist);
+
+  /**
+   * Set of the sample list should be merged and batched for query
+   * @param sample_batching
+   */
+  void set_sample_batching(bool sample_batching);
 
  private:
   /* ********************************* */

@@ -1388,6 +1388,8 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
         return a.sample_name < b.sample_name;
       });
 
+  dataset_->data_array_fragment_info();
+
   // Apply sample partitioning
   utils::partition_vector(
       params_.sample_partitioning.partition_index,
@@ -2266,6 +2268,10 @@ void Reader::set_tiledb_tile_cache_percentage(
 
 void Reader::set_check_samples_exist(const bool check_samples_exist) {
   params_.check_samples_exist = check_samples_exist;
+}
+
+void Reader::set_sample_batching(const bool sample_batching) {
+  params_.sample_batching = sample_batching;
 }
 
 }  // namespace vcf

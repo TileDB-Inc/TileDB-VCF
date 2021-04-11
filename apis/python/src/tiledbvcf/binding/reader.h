@@ -147,6 +147,9 @@ class Reader {
   /** Set to check if samples requested exist and error if not. */
   void set_check_samples_exist(bool check_samples_exist);
 
+  /** Set if sample should be merged and batched as a performance optimization for large queries. */
+  void set_sample_batching(bool sample_batching);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {

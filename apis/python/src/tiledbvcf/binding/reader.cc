@@ -574,4 +574,9 @@ void Reader::set_check_samples_exist(bool samples_exists) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_check_samples_exist(reader, samples_exists));
 }
+
+void Reader::set_sample_batching(bool sample_batching) {
+    auto reader = ptr.get();
+    check_error(reader, tiledb_vcf_reader_set_sample_batching(reader, sample_batching));
+}
 }  // namespace tiledbvcfpy

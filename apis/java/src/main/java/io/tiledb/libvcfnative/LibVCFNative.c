@@ -781,3 +781,18 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats(
   jstring result = (*env)->NewStringUTF(env, stats);
   return result;
 }
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1sample_1batching
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean sampleBatching) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const bool sample_batching = sampleBatching ? true : false;
+
+  int32_t rc = tiledb_vcf_reader_set_sample_batching(reader, sample_batching);
+
+  return rc;
+}

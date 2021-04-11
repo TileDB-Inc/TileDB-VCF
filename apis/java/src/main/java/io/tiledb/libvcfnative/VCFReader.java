@@ -556,6 +556,15 @@ public class VCFReader implements AutoCloseable {
     return stats;
   }
 
+  public VCFReader setSampleBatching(boolean sampleBatching) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_sample_batching(this.readerPtr, sampleBatching);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting sample batching: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {

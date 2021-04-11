@@ -778,6 +778,18 @@ int32_t tiledb_vcf_reader_set_check_samples_exist(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_sample_batching(
+    tiledb_vcf_reader_t* reader, bool sample_batching) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_sample_batching(sample_batching)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */
