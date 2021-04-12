@@ -438,7 +438,8 @@ void Reader::init_for_reads_v4() {
   if (params_.verbose) {
     std::cout << "sample_batching is "
               << (params_.sample_batching ? "enabled" : "disabled")
-              << std::endl;
+              << ", sample_merging is "
+              << (params_.sample_merging ? "enabled" : "disabled") << std::endl;
   }
 
   read_state_.sample_batches = prepare_sample_batches_v4(
@@ -648,6 +649,13 @@ bool Reader::next_read_batch_v4() {
                   [read_state_.current_sample_batches.size() - 1]
               .sample_name);
     }
+  } else if (params_.sample_merging) {
+    const auto& first_sample = read_state_.current_sample_batches[0];
+    const auto& last_sample =
+        read_state_
+            .current_sample_batches[read_state_.current_sample_batches.size() - 1];
+    read_state_.query->add_range(
+        2, first_sample.sample_name, last_sample.sample_name);
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
@@ -670,10 +678,12 @@ bool Reader::next_read_batch_v4() {
     ss << "Initialized TileDB query with "
        << read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
               .second.size()
-       << " start_pos ranges, ";
+       << " start_pos ranges,";
 
     if (read_state_.all_samples)
       ss << " all samples";
+    else if (params_.sample_merging)
+      ss << " 1 merged sample range";
     else
       ss << read_state_.current_sample_batches.size() << " samples";
 
@@ -993,6 +1003,22 @@ bool Reader::process_query_results_v4() {
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
+
+    if (params_.sample_merging) {
+      uint64_t size = 0;
+      const char* sample_name =
+          results.buffers()->sample_name().value<char>(i, &size);
+      bool found = false;
+      for (const auto& sample_id : read_state_.current_sample_batches) {
+        if (strncmp(sample_name, sample_id.sample_name.c_str(), size) == 0) {
+          found = true;
+          break;
+        }
+      }
+      // If sample doesn't match skip it
+      if (!found)
+        continue;
+    }
 
     // Get the start, real_start and end. We don't need the contig because we
     // know the query is limited to a single contig
