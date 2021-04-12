@@ -128,4 +128,7 @@ public class LibVCFNative {
 
   public static final native int tiledb_vcf_reader_set_sample_batching(
       long readerPtr, boolean sampleBatching);
+
+  public static final native int tiledb_vcf_reader_set_sample_merging(
+          long readerPtr, boolean sampleMerging);
 }

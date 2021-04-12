@@ -172,6 +172,17 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /**
+   * @return If sample merging is enabled for query. This is a performance optimization
+   *     for large queries with lots of samples in a sample list.
+   */
+  public Optional<Boolean> getSampleMerging() {
+    if (options.containsKey("sample_merging")) {
+      return Optional.of(Boolean.parseBoolean(options.get("sample_merging")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);

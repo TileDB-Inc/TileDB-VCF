@@ -2397,5 +2397,9 @@ void Reader::set_sample_batching(const bool sample_batching) {
     dataset_->preload_data_array_fragment_info();
 }
 
+void Reader::set_sample_merging(const bool sample_merging) {
+  params_.sample_merging = sample_merging;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

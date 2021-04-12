@@ -106,6 +106,7 @@ struct ExportParams {
   bool check_samples_exist = true;
 
   bool sample_batching = false;
+  bool sample_merging = false;
 };
 
 /* ********************************* */
@@ -387,10 +388,16 @@ class Reader {
   void set_check_samples_exist(bool check_samples_exist);
 
   /**
-   * Set of the sample list should be merged and batched for query
+   * Set of the sample list should be batched for query
    * @param sample_batching
    */
   void set_sample_batching(bool sample_batching);
+
+  /**
+   * Set of the sample list should be merged for query
+   * @param sample_batching
+   */
+  void set_sample_merging(bool sample_merging);
 
  private:
   /* ********************************* */

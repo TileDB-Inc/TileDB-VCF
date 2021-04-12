@@ -565,6 +565,15 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setSampleMerging(boolean sampleMerging) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_sample_merging(this.readerPtr, sampleMerging);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting sample merging: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {

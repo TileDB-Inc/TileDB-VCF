@@ -4960,7 +4960,8 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
 }
 
 TEST_CASE(
-    "C API: Reader submit (partitioned samples, sample batching, fetch headers)",
+    "C API: Reader submit (partitioned samples, sample batching, fetch "
+    "headers)",
     "[capi][reader]") {
   tiledb_vcf_reader_t *reader0 = nullptr, *reader1 = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader0) == TILEDB_VCF_OK);
@@ -4991,8 +4992,10 @@ TEST_CASE(
   REQUIRE(
       tiledb_vcf_reader_set_sample_partition(reader1, 1, 2) == TILEDB_VCF_OK);
 
-  REQUIRE(tiledb_vcf_reader_set_sample_batching(reader0, true) == TILEDB_VCF_OK);
-  REQUIRE(tiledb_vcf_reader_set_sample_batching(reader1, true) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_sample_batching(reader0, true) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_reader_set_sample_batching(reader1, true) == TILEDB_VCF_OK);
 
   std::vector<record> expected_records = {
       record(

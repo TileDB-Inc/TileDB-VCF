@@ -790,6 +790,18 @@ int32_t tiledb_vcf_reader_set_sample_batching(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_sample_merging(
+    tiledb_vcf_reader_t* reader, bool sample_merging) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_sample_merging(sample_merging)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */

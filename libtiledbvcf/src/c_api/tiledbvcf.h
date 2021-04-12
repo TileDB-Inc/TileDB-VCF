@@ -887,6 +887,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_batching(
     tiledb_vcf_reader_t* reader, bool sample_batching);
 
 /**
+ * Sets if the reader should merge  samples for query. This is a
+ * performance optimization
+ * @param reader VCF reader object
+ * @param sample_merging setting
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_sample_merging(
+    tiledb_vcf_reader_t* reader, bool sample_merging);
+
+/**
  * Returns the version number of the TileDB VCF dataset.
  *
  * @param reader VCF reader object

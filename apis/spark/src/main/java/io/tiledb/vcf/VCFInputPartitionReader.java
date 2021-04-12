@@ -309,6 +309,11 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setSampleBatching(sampleBatching.get());
     }
 
+    Optional<Boolean> sampleMerging = options.getSampleMerging();
+    if (sampleMerging.isPresent()) {
+      vcfReader.setSampleMerging(sampleMerging.get());
+    }
+
     // Set TileDB buffer percentage
     Optional<Float> tiledbBufferPercentage = options.getTileDBBufferPercentage();
     if (tiledbBufferPercentage.isPresent()) {

@@ -553,6 +553,9 @@ int main(int argc, char** argv) {
            "query and error if any sample requested is not in the dataset",
        option("--sample-batching").set(export_args.sample_batching) %
            "Enable merging and batching of samples in query. This is a "
+           "performance optimization for large queries.",
+       option("--sample-merging").set(export_args.sample_merging) %
+           "Enable  merging of samples in query. This is a "
            "performance optimization for large queries.");
 
   ListParams list_args;
