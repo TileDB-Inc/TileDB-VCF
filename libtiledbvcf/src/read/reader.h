@@ -98,7 +98,7 @@ struct ExportParams {
   MemoryBudgetBreakdown memory_budget_breakdown;
 
   // Size in bytes at which if the buffers are larger we will double buffer
-  uint64_t double_buffering_threshold = 200 * 1024 * 1024;
+  uint64_t double_buffering_threshold = 1024 * 1024 * 1024;
 
   // Should we check that the sample names passed for export exist in the array
   // and error out if not This can add latency which might not be cared about
