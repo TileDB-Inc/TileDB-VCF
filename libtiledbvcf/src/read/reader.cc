@@ -2064,6 +2064,9 @@ void Reader::init_tiledb() {
   cfg["sm.sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
+  // Disable estimated partition result size
+  cfg.set("sm.skip_est_size_partitioning", "true");
+
   // User overrides. We set it on the map and actual config
   utils::set_tiledb_config_map(
       params_.tiledb_config, &params_.tiledb_config_map);
@@ -2190,6 +2193,7 @@ void Reader::set_tiledb_query_config() {
   assert(buffers_a != nullptr);
 
   tiledb::Config cfg;
+  utils::set_tiledb_config(params_.tiledb_config, &cfg);
   if (params_.tiledb_config_map.find("sm.memory_budget") ==
       params_.tiledb_config_map.end())
     cfg["sm.memory_budget"] =
@@ -2201,6 +2205,10 @@ void Reader::set_tiledb_query_config() {
     cfg["sm.memory_budget_var"] =
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
+
+  if (params_.tiledb_config_map.find("sm.skip_est_size_partitioning") ==
+      params_.tiledb_config_map.end())
+    cfg["sm.skip_est_size_partitioning"] = "true";
 
   read_state_.query->set_config(cfg);
 }
