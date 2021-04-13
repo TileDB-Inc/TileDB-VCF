@@ -111,6 +111,9 @@ struct Region {
       const std::map<std::string, uint32_t>& contig_offsets,
       std::vector<Region>* regions);
 
+  /** string representation */
+  std::string region_str;
+
   /** Contig (sequence/chromosome) name */
   std::string seq_name;
 
