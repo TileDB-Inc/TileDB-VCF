@@ -1540,6 +1540,10 @@ std::vector<std::vector<SampleAndId>> Reader::prepare_sample_batches_v4(
     }
   }
 
+  if (params_.verbose) {
+    std::cout << "sample batches: " << sample_batches.size() << std::endl;
+  }
+
   return sample_batches;
 }
 
