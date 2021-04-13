@@ -522,7 +522,7 @@ bool Reader::next_read_batch_v2_v3() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (params_.verbose) {
+  /*if (params_.verbose) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       read_state_.query_estimated_num_records =
           read_state_.query->est_result_size(
@@ -544,7 +544,7 @@ bool Reader::next_read_batch_v2_v3() {
                   .dimension(TileDBVCFDataset::DimensionNames::V3::start_pos)
                   .type());
     }
-  }
+  }*/
 
   return true;
 }
@@ -682,17 +682,17 @@ bool Reader::next_read_batch_v4() {
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
 
-  if (params_.verbose) {
-    read_state_.query_estimated_num_records =
-        read_state_.query->est_result_size(
-            TileDBVCFDataset::DimensionNames::V4::start_pos) /
-        tiledb_datatype_size(
-            dataset_->data_array()
-                ->schema()
-                .domain()
-                .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
-                .type());
-  }
+  //  if (params_.verbose) {
+  //    read_state_.query_estimated_num_records =
+  //        read_state_.query->est_result_size(
+  //            TileDBVCFDataset::DimensionNames::V4::start_pos) /
+  //        tiledb_datatype_size(
+  //            dataset_->data_array()
+  //                ->schema()
+  //                .domain()
+  //                .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
+  //                .type());
+  //  }
 
   return true;
 }
