@@ -312,6 +312,9 @@ void TileDBVCFDataset::open(
   // stats it'll be disabled in the reader or writer
   tiledb::Stats::enable();
 
+  // Disable estimated partition result size
+  cfg_.set("sm.skip_est_size_partitioning", "true");
+
   utils::set_tiledb_config(tiledb_config, &cfg_);
   ctx_ = Context(cfg_);
 
