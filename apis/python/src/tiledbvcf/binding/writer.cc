@@ -212,4 +212,9 @@ std::string Writer::version() {
     return version_str;
 }
 
+void Writer::set_resume(const bool resume) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_resume_sample_partial_ingestion(writer, resume));
+}
+
 }  // namespace tiledbvcfpy

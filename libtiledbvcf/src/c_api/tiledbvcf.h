@@ -1228,6 +1228,16 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
     tiledb_vcf_writer_t* writer, uint64_t size);
 
+/**
+ * Set resume partial ingestion
+ *
+ * @param writer  VCF writer object
+ * @param resume whether to enable resumption
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_resume_sample_partial_ingestion(
+    tiledb_vcf_writer_t* writer, const bool resume);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

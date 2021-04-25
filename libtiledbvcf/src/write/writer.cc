@@ -84,7 +84,8 @@ void Writer::init(const IngestionParams& params) {
   dataset_->set_tiledb_stats_enabled_vcf_header(
       params.tiledb_stats_enabled_vcf_header_array);
 
-  dataset_->open(params.uri, params.tiledb_config);
+  dataset_->open(
+      params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
 
   tiledb_config_.reset(new Config);
   (*tiledb_config_)["vfs.s3.multipart_part_size"] =
@@ -191,7 +192,35 @@ void Writer::ingest_samples() {
     tiledb::Stats::reset();
   }
 
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    ingestion_params_.load_data_array_fragment_info = true;
+  }
+
   init(ingestion_params_);
+
+  if (ingestion_params_.resume_sample_partial_ingestion &&
+      (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+       dataset_->metadata().version == TileDBVCFDataset::Version::V3)) {
+    throw std::runtime_error(
+        "Resume support only support for v4 or higher datasets");
+  }
+
+  std::unordered_map<
+      std::pair<std::string, std::string>,
+      std::vector<std::pair<std::string, std::string>>,
+      tiledb::vcf::pair_hash>
+      existing_fragments;
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    if (ingestion_params_.verbose)
+      std::cout << "Starting fetching of contig to sample list for resumption "
+                   "checking"
+                << std::endl;
+    existing_fragments = dataset_->fragment_contig_sample_list();
+    if (ingestion_params_.verbose)
+      std::cout
+          << "Finished fetching of contig sample list for resumption checking"
+          << std::endl;
+  }
 
   // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
   std::vector<SampleAndIndex> samples;
@@ -269,7 +298,8 @@ void Writer::ingest_samples() {
       result = ingest_samples(ingestion_params_, local_samples, regions);
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      result = ingest_samples_v4(ingestion_params_, local_samples, regions);
+      result = ingest_samples_v4(
+          ingestion_params_, local_samples, regions, existing_fragments);
     }
     records_ingested += result.first;
     anchors_ingested += result.second;
@@ -303,7 +333,8 @@ void Writer::ingest_samples() {
     query_->finalize();
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    result = ingest_samples_v4(ingestion_params_, local_samples, regions);
+    result = ingest_samples_v4(
+        ingestion_params_, local_samples, regions, existing_fragments);
   }
   records_ingested += result.first;
   anchors_ingested += result.second;
@@ -470,7 +501,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples,
-    std::vector<Region>& regions) {
+    std::vector<Region>& regions,
+    std::unordered_map<
+        std::pair<std::string, std::string>,
+        std::vector<std::pair<std::string, std::string>>,
+        pair_hash> existing_sample_contig_fragments) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
@@ -490,6 +525,35 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   std::set<std::string> nonempty_contigs;
   std::map<std::string, std::string> sample_headers;
   std::vector<Region> regions_v4;
+
+  // Check for any existing sample contigs for this batch
+  std::unordered_set<std::pair<std::string, std::string>, pair_hash>
+      existing_contigs_in_array_for_sample_batch;
+  if (params.resume_sample_partial_ingestion &&
+      !existing_sample_contig_fragments.empty()) {
+    const std::string first_sample_name =
+        VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri)[0];
+    const std::string last_sample_name =
+        VCFUtils::get_sample_name_from_vcf(samples.back().sample_uri)[0];
+    try {
+      const auto& contigs = existing_sample_contig_fragments.at(
+          std::make_pair(first_sample_name, last_sample_name));
+      for (const auto& contig : contigs) {
+        existing_contigs_in_array_for_sample_batch.emplace(contig);
+        if (params.verbose) {
+          std::cout << "found existing for contigs [" << contig.first << ", "
+                    << contig.second << "]"
+                    << " for batch [" << first_sample_name << ", "
+                    << last_sample_name << "] - skipping ingestion"
+                    << std::endl;
+        }
+      }
+    } catch (const std::exception& e) {
+      //      std::cout << "sample batch [" << first_sample_name << ", " <<
+      //      last_sample_name << "] not found in existing array" << std::endl;
+    }
+  }
+
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -511,6 +575,28 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     // Loop over all contigs in the header, store the nonempty and also the
     // regions
     for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      // Check if the contig has already been ingested. If so we'll skip it.
+      // This first check only handles non-combined contigs
+      const bool contig_exists_in_array =
+          !existing_contigs_in_array_for_sample_batch.empty() &&
+          existing_contigs_in_array_for_sample_batch.find(
+              std::make_pair(contig_region.seq_name, contig_region.seq_name)) !=
+              existing_contigs_in_array_for_sample_batch.end();
+      if (contig_exists_in_array) {
+        if (params.resume_sample_partial_ingestion) {
+          if (params.verbose) {
+            std::cout << "skipping " << contig_region.seq_name
+                      << " as it was in existing contig list for batch"
+                      << std::endl;
+          }
+          continue;
+        } else {
+          throw std::runtime_error(
+              "batch for " + sample_name + " has already ingested " +
+              contig_region.seq_name + " aborting");
+        }
+      }
+
       nonempty_contigs.emplace(contig_region.seq_name);
 
       // regions
@@ -815,5 +901,8 @@ void Writer::set_sample_batch_size(const uint64_t size) {
   ingestion_params_.sample_batch_size = size;
 }
 
+void Writer::set_resume_sample_partial_ingestion(const bool resume) {
+  ingestion_params_.resume_sample_partial_ingestion = resume;
+}
 }  // namespace vcf
 }  // namespace tiledb

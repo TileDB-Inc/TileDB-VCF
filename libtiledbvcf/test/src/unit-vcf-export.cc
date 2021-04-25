@@ -1430,3 +1430,223 @@ TEST_CASE("TileDB-VCF: Test export with nulls", "[tiledbvcf][export]") {
   if (vfs.is_dir(output_dir))
     vfs.remove_dir(output_dir);
 }
+
+TEST_CASE("TileDB-VCF: Test Resume Ingest and Export", "[tiledbvcf][ingest]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset_resume";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest the sample
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there were 42 fragments created
+  // Then remove the last fragment
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+
+    // Get the last fragment
+    std::string uri = fragmentInfo.fragment_uri(41);
+    vfs.remove_dir(uri);
+    vfs.remove_file(uri + ".ok");
+  }
+
+  // Query for a record from the deleted fragment
+  {
+    Reader reader;
+
+    // Allocate some buffers to receive data
+    UserBuffer sample_name, pos, end, baseq, info_dp, fmt_dp;
+    sample_name.resize(3 * 1024);
+    sample_name.offsets().resize(3 * 100);
+    sample_name.bitmap().resize(3 * 100);
+    pos.resize(3 * 1024);
+    end.resize(3 * 1024);
+    baseq.resize(3 * 1024);
+    baseq.offsets().resize(3 * 100);
+    baseq.bitmap().resize(3 * 100);
+    info_dp.resize(3 * 1024);
+    info_dp.offsets().resize(3 * 100);
+    info_dp.bitmap().resize(3 * 100);
+    fmt_dp.resize(3 * 1024);
+    fmt_dp.bitmap().resize(3 * 100);
+
+    // Set buffers on the reader
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
+        "sample_name",
+        sample_name.offsets().data(),
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+    reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
+    reader.set_buffer_validity_bitmap(
+        "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.regions = {"chrX:9032893-9032893"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 0);
+  }
+
+  // Ingest the sample again, this should add only the missing data
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there are only 42 fragments created
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+  }
+
+  // Query for record that should now exist
+  {
+    Reader reader;
+
+    // Allocate some buffers to receive data
+    UserBuffer sample_name, pos, end, baseq, info_dp, fmt_dp;
+    sample_name.resize(3 * 1024);
+    sample_name.offsets().resize(3 * 100);
+    sample_name.bitmap().resize(3 * 100);
+    pos.resize(3 * 1024);
+    end.resize(3 * 1024);
+    baseq.resize(3 * 1024);
+    baseq.offsets().resize(3 * 100);
+    baseq.bitmap().resize(3 * 100);
+    info_dp.resize(3 * 1024);
+    info_dp.offsets().resize(3 * 100);
+    info_dp.bitmap().resize(3 * 100);
+    fmt_dp.resize(3 * 1024);
+    fmt_dp.bitmap().resize(3 * 100);
+
+    // Set buffers on the reader
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
+        "sample_name",
+        sample_name.offsets().data(),
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+    reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
+    reader.set_buffer_validity_bitmap(
+        "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.regions = {"chrX:9032893-9032893"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 1);
+    check_string_result(reader, "sample_name", sample_name, {"v2-DjrIAzkP"});
+    check_result<uint32_t>(reader, "pos_start", pos, {9032893});
+    check_result<uint32_t>(reader, "pos_end", end, {9032895});
+
+    check_result<int32_t>(reader, "fmt_DP", fmt_dp, {16});
+  }
+
+  // Ingest the sample again, there should be no detected missing data and
+  // nothing should be stored
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there are only 42 fragments
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+  }
+
+  // Query should still return a single record
+  {
+    Reader reader;
+
+    // Allocate some buffers to receive data
+    UserBuffer sample_name, pos, end, baseq, info_dp, fmt_dp;
+    sample_name.resize(3 * 1024);
+    sample_name.offsets().resize(3 * 100);
+    sample_name.bitmap().resize(3 * 100);
+    pos.resize(3 * 1024);
+    end.resize(3 * 1024);
+    baseq.resize(3 * 1024);
+    baseq.offsets().resize(3 * 100);
+    baseq.bitmap().resize(3 * 100);
+    info_dp.resize(3 * 1024);
+    info_dp.offsets().resize(3 * 100);
+    info_dp.bitmap().resize(3 * 100);
+    fmt_dp.resize(3 * 1024);
+    fmt_dp.bitmap().resize(3 * 100);
+
+    // Set buffers on the reader
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
+        "sample_name",
+        sample_name.offsets().data(),
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+    reader.set_buffer_values("pos_end", end.data<void>(), end.size());
+    reader.set_buffer_values("fmt_DP", fmt_dp.data<void>(), fmt_dp.size());
+    reader.set_buffer_validity_bitmap(
+        "fmt_DP", fmt_dp.bitmap().data(), fmt_dp.bitmap().size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.regions = {"chrX:9032893-9032893"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 1);
+    check_string_result(reader, "sample_name", sample_name, {"v2-DjrIAzkP"});
+    check_result<uint32_t>(reader, "pos_start", pos, {9032893});
+    check_result<uint32_t>(reader, "pos_end", end, {9032895});
+
+    check_result<int32_t>(reader, "fmt_DP", fmt_dp, {16});
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}

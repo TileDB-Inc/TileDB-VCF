@@ -420,7 +420,9 @@ int main(int argc, char** argv) {
            "Enable TileDB stats",
        option("--stats-vcf-header-array")
                .set(store_args.tiledb_stats_enabled_vcf_header_array) %
-           "Enable TileDB stats for vcf header array usage");
+           "Enable TileDB stats for vcf header array usage",
+       option("--resume").set(store_args.resume_sample_partial_ingestion) %
+           "Resume incomplete ingestion of sample batch");
 
   ExportParams export_args;
   export_args.export_to_disk = true;
