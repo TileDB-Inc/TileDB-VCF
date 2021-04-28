@@ -60,6 +60,7 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(HTSlib
   REQUIRED_VARS HTSLIB_LIBRARIES HTSLIB_INCLUDE_DIR
 )
 
+
 if (NOT HTSLIB_FOUND)
   if (SUPERBUILD)
     message(STATUS "Adding HTSlib as an external project")
@@ -74,6 +75,12 @@ if (NOT HTSLIB_FOUND)
     if (BUILD_TYPE STREQUAL "DEBUG")
       SET(CFLAGS "-g")
     endif()
+
+    # required to updated htslib configure.ac with autoconf 2.70
+    #   - see https://github.com/samtools/htslib/commit/680c0b8ef0ff133d3b572abc80fe66fc2ea965f0
+    #   - and https://github.com/samtools/htslib/pull/1198/commits/6821fc8ed88706e9282b561e74dfa45dac4d74c8
+    find_program(AUTORECONF NAMES autoreconf REQUIRED)
+
     ExternalProject_Add(ep_htslib
       PREFIX "externals"
       URL "https://github.com/samtools/htslib/archive/1.10.zip"
@@ -82,13 +89,15 @@ if (NOT HTSLIB_FOUND)
       CONFIGURE_COMMAND
           autoheader
         COMMAND
-          autoconf
+          ${AUTORECONF} -i
         COMMAND
           ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}
       BUILD_COMMAND
         $(MAKE)
       INSTALL_COMMAND
         $(MAKE) install
+      PATCH_COMMAND
+        patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-1.10-config.patch
       BUILD_IN_SOURCE TRUE
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
