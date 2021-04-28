@@ -5,7 +5,7 @@ ENV AWS_EC2_METADATA_DISABLED true
 # Install some dependencies
 RUN yum -y install cmake3 which wget git tar gzip unzip gcc-c++ zlib-devel \
        openssl-devel bzip2-devel libcurl-devel xz-devel make \
-       automake autoconf \
+       automake autoconf patch \
     && yum clean all
 
 WORKDIR /tmp
