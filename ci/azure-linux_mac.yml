@@ -22,18 +22,14 @@ steps:
     set -e pipefail
     # Install bcftools (only required for running the CLI tests)
     version=1.10.2
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        pushd /tmp
-        wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2
-        tar xfj bcftools-${version}.tar.bz2
-        cd bcftools-${version}
-        ./configure --prefix=/usr
-        make -j2
-        sudo make install
-        popd
-    else
-        brew install bcftools
-    fi
+    pushd /tmp
+    wget "https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2"
+    tar xfj "bcftools-${version}.tar.bz2"
+    cd "bcftools-${version}"
+    ./configure --prefix="/usr/local"
+    make -j2
+    sudo make install
+    popd
 
     # Install autoconf/automake (required for htslib)
     if [[ "$AGENT_OS" == "Linux" ]]; then
@@ -48,10 +44,10 @@ steps:
 
 - bash: |
     ulimit -c               # should output 0 if disabled
-    ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block) 
-    ulimit -c               # should output 'unlimited' now    
+    ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block)
+    ulimit -c               # should output 'unlimited' now
 
-  
+
     # azure bash does not treat intermediate failure as error
     # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
     set -e pipefail
@@ -73,7 +69,7 @@ steps:
     # cmake catches the segfault and blocks the core dump
     # sudo make check
     ./libtiledbvcf/test/tiledb_vcf_unit
-  
+
     ../test/run-cli-tests.sh . ../test/inputs
 
     make install-libtiledbvcf
@@ -85,18 +81,18 @@ steps:
 #     sudo chmod -R +rwx /var/crash/* # Enable access to core dumps (doesn't need to be in same run block)
 #   condition: and(failed(), eq(variables['Agent.OS'], 'Linux')) # only run this job if the build step failed
 #   displayName: "Enable Access to core dumps (failed checks only)"
-# 
+#
 # - bash: |
 #     sudo chmod -R +rwx /cores/* # Enable access to core dumps (doesn't need to be in same run block)
 #   condition: and(failed(), eq(variables['Agent.OS'], 'Darwin')) # only run this job if the build step failed
 #   displayName: "Enable Access to core dumps (failed checks only)"
-  
+
 - task: PublishBuildArtifacts@1
   inputs:
     pathtoPublish: 'libtiledbvcf/build/core'
     artifactName: '$(ARTIFACT_NAME)-coredump'
   condition: failed() # only run this job if the build step failed
-  
+
 - task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: '$(Build.Repository.LocalPath)'
@@ -107,13 +103,13 @@ steps:
     replaceExistingArchive: true
     verbose: true # Optional
   condition: or(failed(), succeeded()) # only run this job if the build step failed
-  
+
 - task: PublishBuildArtifacts@1
   inputs:
     pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
     artifactName: 'build-dirs'
   condition: or(failed(), succeeded()) # only run this job if the build step failed
-  
+
 - bash: |
     set -e pipefail
     if [[ "$BUILD_SPARK_API" == "ON" ]]; then
