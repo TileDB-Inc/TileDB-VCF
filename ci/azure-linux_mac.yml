@@ -32,7 +32,7 @@ steps:
         sudo make install
         popd
     else
-        brew install bcftools
+        brew install bcftools gettext
     fi
 
     # Install autoconf/automake (required for htslib)
