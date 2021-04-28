@@ -32,7 +32,10 @@ steps:
         sudo make install
         popd
     else
-        brew install bcftools gettext
+        # autoconf@2.69 pin is due to changes in autoconf 2.70, compat for which is fixed
+        #   in htlslib here: https://github.com/samtools/htslib/pull/1198
+        #   remove after updating to htslib>=1.12
+        brew install bcftools autoconf@2.69
     fi
 
     # Install autoconf/automake (required for htslib)
