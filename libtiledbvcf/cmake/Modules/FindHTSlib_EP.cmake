@@ -83,8 +83,8 @@ if (NOT HTSLIB_FOUND)
 
     ExternalProject_Add(ep_htslib
       PREFIX "externals"
-      URL "https://github.com/samtools/htslib/archive/1.12.zip"
-      URL_HASH SHA1=e772314d7543d20bffb08627d6e2daf17ab6450d
+      URL "https://github.com/samtools/htslib/releases/download/1.12/htslib-1.12.tar.bz2"
+      URL_HASH SHA1=8cab518f97bbdf43165320c3a4bdef1e9a42893a
       UPDATE_COMMAND ""
       CONFIGURE_COMMAND
           autoheader
