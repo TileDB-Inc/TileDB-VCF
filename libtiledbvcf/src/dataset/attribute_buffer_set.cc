@@ -138,7 +138,7 @@ void AttributeBufferSet::allocate_fixed(
   // Get count of number of query buffers being allocated
   number_of_buffers_ = 0;
   for (const auto& s : attr_names) {
-    bool fixed_len = TileDBVCFDataset::attribute_is_fixed_len(s);
+    bool fixed_len = dataset->attribute_is_fixed_len(s);
     number_of_buffers_ += fixed_len ? 1 : 2;
   }
 
