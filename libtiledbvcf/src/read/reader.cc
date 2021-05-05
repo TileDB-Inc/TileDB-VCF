@@ -592,10 +592,20 @@ bool Reader::next_read_batch_v4() {
     if (read_state_.all_samples &&
         params_.sample_partitioning.num_partitions == 1) {
       read_state_.current_sample_batches.clear();
+      std::cout << "no batching" << std::endl;
     } else {
+      std::cout << "batching with read_state_.batch_idx="
+                << read_state_.batch_idx
+                << ", read_state_.sample_batches.size()="
+                << read_state_.sample_batches.size() << std::endl;
       // Sample row range
       read_state_.current_sample_batches =
           read_state_.sample_batches[read_state_.batch_idx];
+
+      std::cout << "read_state_.current_sample_batches.size()="
+                << read_state_.current_sample_batches.size()
+                << ", read_state_.all_samples=" << read_state_.all_samples
+                << std::endl;
 
       // Sample handles
       read_state_.current_samples.clear();
