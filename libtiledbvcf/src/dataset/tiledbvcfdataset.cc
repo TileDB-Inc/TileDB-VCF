@@ -824,8 +824,19 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
           throw std::runtime_error(
               "Error fetching VCF header data; error allocating VCF header.");
 
-        bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()));
-        bcf_hdr_add_sample(hdr, sample.c_str());
+        if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
+          throw std::runtime_error(
+              "TileDBVCFDataset::fetch_vcf_headers_v4: Error parsing the BCF "
+              "header for sample " +
+              sample + ".");
+        }
+
+        if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
+          throw std::runtime_error(
+              "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample to "
+              "BCF header for sample " +
+              sample + ".");
+        }
 
         if (bcf_hdr_sync(hdr) < 0)
           throw std::runtime_error(
@@ -941,7 +952,10 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
               "Error fetching VCF header data; error allocating VCF header.");
 
         if (0 != bcf_hdr_parse(hdr, hdr_str)) {
-          throw std::runtime_error("Error parsing the BCF header.");
+          throw std::runtime_error(
+              "TileDBVCFDataset::fetch_vcf_headers: Error parsing the BCF "
+              "header for sample " +
+              std::to_string(sample) + ".");
         }
         std::free(hdr_str);
 
