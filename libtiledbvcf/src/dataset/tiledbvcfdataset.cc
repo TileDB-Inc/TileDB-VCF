@@ -778,6 +778,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   Query::Status status;
   uint32_t sample_idx = 0;
 
+  const auto& original_log_level = hts_get_log_level();
+  hts_set_log_level(HTS_LOG_TRACE);
   do {
     // Always reset buffer to avoid issue with core library and REST not using
     // original buffer sizes
@@ -868,6 +870,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     }
   } while (status == Query::Status::INCOMPLETE);
 
+  hts_set_log_level(original_log_level);
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();
   return result;
