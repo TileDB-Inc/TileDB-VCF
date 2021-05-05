@@ -96,8 +96,6 @@ if (NOT HTSLIB_FOUND)
         $(MAKE)
       INSTALL_COMMAND
         $(MAKE) install
-      PATCH_COMMAND
-        patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-1.10-config.patch
       BUILD_IN_SOURCE TRUE
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
