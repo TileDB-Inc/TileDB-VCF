@@ -342,6 +342,18 @@ uint64_t ceil(uint64_t x, uint64_t y) {
   return x / y + (x % y != 0);
 }
 
+uint32_t floor(uint32_t x, uint32_t y) {
+  if (y == 0)
+    return 0;
+  return x / y;
+}
+
+uint64_t floor(uint64_t x, uint64_t y) {
+  if (y == 0)
+    return 0;
+  return x / y;
+}
+
 // Mutexs to make htslib plugin initialization thread-safe
 std::mutex cfg_mutex;
 std::mutex init_mutex;

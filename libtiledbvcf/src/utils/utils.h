@@ -50,6 +50,12 @@ uint32_t ceil(uint32_t x, uint32_t y);
 /** Returns the value of x/y (integer division) rounded up. */
 uint64_t ceil(uint64_t x, uint64_t y);
 
+/** Returns the value of x/y (integer division) rounded down. */
+uint32_t floor(uint32_t x, uint32_t y);
+
+/** Returns the value of x/y (integer division) rounded down. */
+uint64_t floor(uint64_t x, uint64_t y);
+
 /**
  * Apply binary_op to each token in [in_begin,in_end], split by any element in
  * [d_begin, d_end]. Adapted from
@@ -149,11 +155,23 @@ void partition_vector(
         "Error partitioning vector; partition index " +
         std::to_string(partition_idx) + " >= num partitions " +
         std::to_string(num_partitions) + ".");
-  uint64_t elts_per_partition = utils::ceil(num_elements, num_partitions);
-  uint64_t idx_min =
-      std::min<uint64_t>(partition_idx * elts_per_partition, num_elements);
-  uint64_t idx_max =
-      std::min<uint64_t>(idx_min + elts_per_partition, num_elements);
+  uint64_t elts_per_partition = utils::floor(num_elements, num_partitions);
+
+  // Handle any left overs by giving them to the first n partitions
+  uint64_t left_overs = num_elements % num_partitions;
+  uint64_t start_offset = 0;
+  uint64_t end_offset = 0;
+  if (partition_idx < left_overs) {
+    if (partition_idx > 0)
+      start_offset = 1;
+
+    end_offset = 1;
+  }
+
+  uint64_t idx_min = std::min<uint64_t>(
+      (partition_idx * elts_per_partition + start_offset), num_elements);
+  uint64_t idx_max = std::min<uint64_t>(
+      idx_min + elts_per_partition + end_offset, num_elements);
 
   // Check for empty partition assignment.
   if (idx_min == idx_max) {
