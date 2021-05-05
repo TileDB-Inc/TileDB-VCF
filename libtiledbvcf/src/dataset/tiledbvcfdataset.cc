@@ -705,23 +705,34 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     // If all samples but we have a sample list we know its sorted and can use
     // the min/max
     if (all_samples) {
+      std::cout << "samples + all samples, setting range of ["
+                << samples[0].sample_name << ", "
+                << samples[samples.size() - 1].sample_name << "]" << std::endl;
       query.add_range(
           0, samples[0].sample_name, samples[samples.size() - 1].sample_name);
     } else {
       for (const auto& sample : samples) {
+        std::cout << "samples, setting range of [" << sample.sample_name << ", "
+                  << sample.sample_name << "]" << std::endl;
         query.add_range(0, sample.sample_name, sample.sample_name);
       }
     }
   } else if (all_samples) {
     // When no samples are passed grab the first one
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
-    if (!non_empty_domain.first.empty())
+    if (!non_empty_domain.first.empty()) {
       query.add_range(0, non_empty_domain.first, non_empty_domain.second);
+      std::cout << "all_samples, setting range of [" << non_empty_domain.first
+                << ", " << non_empty_domain.second << "]" << std::endl;
+    }
   } else if (first_sample) {
     // When no samples are passed grab the first one
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
-    if (!non_empty_domain.first.empty())
+    if (!non_empty_domain.first.empty()) {
       query.add_range(0, non_empty_domain.first, non_empty_domain.first);
+      std::cout << "first_sample, setting range of [" << non_empty_domain.first
+                << ", " << non_empty_domain.first << "]" << std::endl;
+    }
   }
   query.set_layout(TILEDB_ROW_MAJOR);
 
@@ -819,12 +830,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
         std::string hdr_str(beg_hdr, hdr_size);
 
+        std::cout
+            << "TileDBVCFDataset::fetch_vcf_headers_v4: Rebuilding header for "
+            << sample << std::endl;
         bcf_hdr_t* hdr = bcf_hdr_init("r");
         if (!hdr)
           throw std::runtime_error(
               "Error fetching VCF header data; error allocating VCF header.");
 
         if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
+          std::cout << "header:" << std::endl << hdr_str << std::endl;
           throw std::runtime_error(
               "TileDBVCFDataset::fetch_vcf_headers_v4: Error parsing the BCF "
               "header for sample " +
@@ -832,6 +847,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
         }
 
         if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
+          std::cout << "header:" << std::endl << hdr_str << std::endl;
           throw std::runtime_error(
               "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample to "
               "BCF header for sample " +
