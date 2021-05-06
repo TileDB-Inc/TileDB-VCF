@@ -127,4 +127,7 @@ public class LibVCFNative {
   public static final native String tiledb_vcf_reader_tiledb_stats(long readerPtr);
 
   public static final native String tiledb_vcf_version();
+
+  public static final native int tiledb_vcf_reader_set_disable_progress_estimation(
+      long readerPtr, boolean disable_progress_estimation);
 }

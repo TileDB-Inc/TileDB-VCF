@@ -540,7 +540,11 @@ int main(int argc, char** argv) {
                .set(export_args.check_samples_exist, false) %
            "Disable validating that sample passed exist in dataset before "
            "executing "
-           "query and error if any sample requested is not in the dataset");
+           "query and error if any sample requested is not in the dataset",
+       option("--disable-progress-estimation")
+               .set(export_args.disable_progress_estimation) %
+           "Disable progress estimation in verbose mode. Progress estimation "
+           "can sometimes cause a performance impact.");
 
   ListParams list_args;
   auto list_mode =

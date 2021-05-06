@@ -150,6 +150,9 @@ class Reader {
   /** Get Version info for TileDB VCF and TileDB. */
   std::string version();
 
+  /** Set disable progress estimation */
+  void set_disable_progress_estimation(const bool& disable_progress_estimation);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {
