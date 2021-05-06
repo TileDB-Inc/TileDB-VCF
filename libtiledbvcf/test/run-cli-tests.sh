@@ -185,6 +185,18 @@ $tilevcf export -u ingested_10_samples -Ov -fingested_10_samples.txt --sample-pa
 numvcfs=$(ls *.vcf | wc -l)
 test $numvcfs -eq 10 && exit 1
 rm *.vcf
+
+# each sample is uniquely assigned to a partition
+for i in {0..5}; do
+  $tilevcf export -u ingested_10_samples -Ov --sample-partition $i:6
+  ls *.vcf >> exported_samples.txt
+  rm *.vcf
+done
+
+numsamples=$(uniq exported_samples.txt | wc -l)
+test $numsamples -eq 10 || exit 1
+rm exported_samples.txt
+
 # Region export checks with output dir
 rm -f HG00280.vcf HG01762.vcf
 rm -f /tmp/HG00280.vcf /tmp/HG01762.vcf
