@@ -47,7 +47,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_buffer_percentage", &Reader::set_buffer_percentage)
       .def("set_tiledb_tile_cache_percentage", &Reader::set_tiledb_tile_cache_percentage)
       .def("set_check_samples_exist", &Reader::set_check_samples_exist)
-      .def("version", &Reader::version);
+      .def("version", &Reader::version)
+      .def("set_disable_progress_estimation", &Reader::set_disable_progress_estimation);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())

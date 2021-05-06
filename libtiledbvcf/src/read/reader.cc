@@ -522,7 +522,7 @@ bool Reader::next_read_batch_v2_v3() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (params_.verbose) {
+  if (params_.verbose && !params_.disable_progress_estimation) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       read_state_.query_estimated_num_records =
           read_state_.query->est_result_size(
@@ -682,7 +682,7 @@ bool Reader::next_read_batch_v4() {
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
 
-  if (params_.verbose) {
+  if (params_.verbose && !params_.disable_progress_estimation) {
     read_state_.query_estimated_num_records =
         read_state_.query->est_result_size(
             TileDBVCFDataset::DimensionNames::V4::start_pos) /
@@ -847,18 +847,21 @@ bool Reader::read_current_batch() {
       complete = process_query_results_v2();
     }
 
-    if (params_.verbose)
-      std::cout << "Processed " << read_state_.query_results.num_cells()
-                << " cells in " << utils::chrono_duration(t0)
-                << " sec. Reported "
-                << (read_state_.last_num_records_exported - old_num_exported)
-                << " cells. Approximately " << std::fixed
-                << std::setprecision(2)
-                << (read_state_.total_query_records_processed /
-                    static_cast<double>(
-                        read_state_.query_estimated_num_records) *
-                    100)
-                << "% completed with query cells." << std::endl;
+    if (params_.verbose) {
+      std::stringstream ss;
+      ss << "Processed " << read_state_.query_results.num_cells()
+         << " cells in " << utils::chrono_duration(t0) << " sec. Reported "
+         << (read_state_.last_num_records_exported - old_num_exported)
+         << " cells.";
+      if (!params_.disable_progress_estimation) {
+        ss << " Approximately " << std::fixed << std::setprecision(2)
+           << (read_state_.total_query_records_processed /
+               static_cast<double>(read_state_.query_estimated_num_records) *
+               100)
+           << "% completed with query cells.";
+      }
+      std::cout << ss.str() << std::endl;
+    }
 
     // Return early if we couldn't process all the results.
     if (!complete)
@@ -2267,6 +2270,11 @@ void Reader::set_tiledb_tile_cache_percentage(
 
 void Reader::set_check_samples_exist(const bool check_samples_exist) {
   params_.check_samples_exist = check_samples_exist;
+}
+
+void Reader::set_disable_progress_estimation(
+    const bool& disable_progress_estimation) {
+  params_.disable_progress_estimation = disable_progress_estimation;
 }
 
 }  // namespace vcf

@@ -104,6 +104,11 @@ struct ExportParams {
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
   bool check_samples_exist = true;
+
+  // Should we skip trying to estimate the number of records and percent
+  // complete? This is useful when you want verbose but not the performance
+  // impact.
+  bool disable_progress_estimation = false;
 };
 
 /* ********************************* */
@@ -364,6 +369,12 @@ class Reader {
    * @param verbose setting
    */
   void set_verbose(const bool& verbose);
+
+  /**
+   * Sets disabling of progress estimation in verbose mode
+   * @param disable_progress_estimation setting
+   */
+  void set_disable_progress_estimation(const bool& disable_progress_estimation);
 
   /**
    * Percentage of buffer size to tiledb memory budget
