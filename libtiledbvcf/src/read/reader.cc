@@ -597,6 +597,17 @@ bool Reader::next_read_batch_v4() {
       read_state_.current_sample_batches =
           read_state_.sample_batches[read_state_.batch_idx];
 
+      // Check to validate there are actually samples
+      // If we have no samples this means the partition is empty, which
+      // shouldn't happen. however it is better to exit than run on everything
+      if (read_state_.current_sample_batches.empty()) {
+        if (params_.verbose)
+          std::cout << "Sample batch is empty, this indicates an empty sample "
+                       "partition."
+                    << std::endl;
+        return false;
+      }
+
       // Sample handles
       read_state_.current_samples.clear();
       for (const auto& s : read_state_.current_sample_batches) {
