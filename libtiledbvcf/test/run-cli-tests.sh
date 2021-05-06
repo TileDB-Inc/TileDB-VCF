@@ -18,7 +18,8 @@ upload_dir=/tmp/tilevcf-upload-dir-$$
 # Clean up test outputs
 function clean_up {
     rm -rf ingested_1 ingested_2 ingested_3 ingested_3_attrs \
-           ingested_1_2 ingested_1_2_vcf ingested_3_samples ingested_comb ingested_append \
+           ingested_1_2 ingested_1_2_vcf ingested_3_samples ingested_10_samples \
+           ingested_comb ingested_append \
            ingested_from_file ingested_diff_order ingested_buffered \
            ingested_sep_indexes ingested_dupe_end_pos \
            ingested_dupe_start_pos errored_dupe_start_pos \
@@ -48,6 +49,7 @@ create_register_ingest ingested_3 ${input_dir}/small3.bcf
 create_register_ingest ingested_1_2 ${input_dir}/small2.bcf ${input_dir}/small.bcf
 create_register_ingest ingested_1_2_vcf ${input_dir}/small2.bcf ${input_dir}/small.vcf.gz
 create_register_ingest ingested_3_samples ${input_dir}/random_synthetic/G{1,2,3}.bcf
+create_register_ingest ingested_10_samples ${input_dir}/random_synthetic/G{1..10}.bcf
 create_register_ingest ingested_dupe_end_pos ${input_dir}/dupeEndPos.vcf.gz
 create_register_ingest ingested_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz
 
@@ -177,6 +179,23 @@ region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
 $tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v --sample-partition 1:2 -b 512
 test -e HG00280.vcf && exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
+
+# uneven division doesn't produce empty partitions
+$tilevcf export -u ingested_10_samples -Ov -fingested_10_samples.txt --sample-partition 5:6
+numvcfs=$(ls *.vcf | wc -l)
+test $numvcfs -eq 10 && exit 1
+rm *.vcf
+
+# each sample is uniquely assigned to a partition
+for i in {0..5}; do
+  $tilevcf export -u ingested_10_samples -Ov --sample-partition $i:6
+  ls *.vcf >> exported_samples.txt
+  rm *.vcf
+done
+
+numsamples=$(uniq exported_samples.txt | wc -l)
+test $numsamples -eq 10 || exit 1
+rm exported_samples.txt
 
 # Region export checks with output dir
 rm -f HG00280.vcf HG01762.vcf
