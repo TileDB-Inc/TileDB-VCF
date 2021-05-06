@@ -44,6 +44,8 @@ namespace utils {
 /** Commit hash of TileDB-VCF (#defined by CMake) */
 extern const std::string TILEDB_VCF_COMMIT_HASH;
 
+extern std::string version;
+
 /** Returns the value of x/y (integer division) rounded up. */
 uint32_t ceil(uint32_t x, uint32_t y);
 
@@ -396,6 +398,12 @@ bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs);
  * @return true if file is local path (file:// or no prefix), else false
  */
 bool is_local_uri(const std::string& uri);
+
+/**
+ * Returns TileDB-VCF and TileDB version information in string form.
+ * @return
+ */
+const std::string& version_info();
 
 }  // namespace utils
 }  // namespace vcf

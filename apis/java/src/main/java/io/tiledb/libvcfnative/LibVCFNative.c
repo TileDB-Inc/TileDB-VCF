@@ -781,3 +781,14 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats(
   jstring result = (*env)->NewStringUTF(env, stats);
   return result;
 }
+
+JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(
+  JNIEnv* env, jclass self) {
+  (void)self;
+
+    const char *version;
+    tiledb_vcf_version(&version);
+
+    jstring result = (*env)->NewStringUTF(env, version);
+    return result;
+}

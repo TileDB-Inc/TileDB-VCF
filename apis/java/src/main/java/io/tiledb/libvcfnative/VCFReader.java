@@ -556,6 +556,10 @@ public class VCFReader implements AutoCloseable {
     return stats;
   }
 
+  public String version() {
+    return LibVCFNative.tiledb_vcf_version();
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {

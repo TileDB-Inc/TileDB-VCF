@@ -46,7 +46,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_sample_names", &Reader::get_sample_names)
       .def("set_buffer_percentage", &Reader::set_buffer_percentage)
       .def("set_tiledb_tile_cache_percentage", &Reader::set_tiledb_tile_cache_percentage)
-      .def("set_check_samples_exist", &Reader::set_check_samples_exist);
+      .def("set_check_samples_exist", &Reader::set_check_samples_exist)
+      .def("version", &Reader::version);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())
@@ -71,5 +72,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_tiledb_config", &Writer::set_tiledb_config)
       .def("set_sample_batch_size", &Writer::set_sample_batch_size)
       .def("get_tiledb_stats_enabled", &Writer::get_tiledb_stats_enabled)
-      .def("get_tiledb_stats", &Writer::get_tiledb_stats);
+      .def("get_tiledb_stats", &Writer::get_tiledb_stats)
+      .def("version", &Writer::version);
 }
