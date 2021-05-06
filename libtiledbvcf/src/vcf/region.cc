@@ -39,14 +39,17 @@ namespace vcf {
 Region::Region()
     : min(0)
     , max(0)
-    , seq_offset(std::numeric_limits<uint32_t>::max() - 1) {
+    , seq_offset(std::numeric_limits<uint32_t>::max() - 1)
+    , line(0) {
 }
 
-Region::Region(const std::string& seq, unsigned min, unsigned max)
+Region::Region(
+    const std::string& seq, unsigned min, unsigned max, uint64_t line)
     : seq_name(seq)
     , min(min)
     , max(max)
-    , seq_offset(std::numeric_limits<uint32_t>::max() - 1) {
+    , seq_offset(std::numeric_limits<uint32_t>::max() - 1)
+    , line(line) {
 }
 
 Region::Region(const std::string& str, Type parse_from) {
@@ -55,6 +58,7 @@ Region::Region(const std::string& str, Type parse_from) {
   min = r.min;
   max = r.max;
   seq_offset = std::numeric_limits<uint32_t>::max() - 1;
+  line = 0;
 }
 
 std::string Region::to_str(Type type) const {
@@ -187,11 +191,14 @@ void Region::parse_bed_file_htslib(
     }
   } else {
     // If there is no index file just loop over the entire file
+    uint64_t line = 0;
     while (!bcf_sr_regions_next(regions_file.get())) {
       result->emplace_back(
           regions_file->seq_names[regions_file->iseq],
           regions_file->start,
-          regions_file->end);
+          regions_file->end,
+          line);
+      ++line;
     }
   }
 
