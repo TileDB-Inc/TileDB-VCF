@@ -228,6 +228,8 @@ bool TSVExporter::export_record(
           os << query_region.min + 1;
         } else if (field.name == "END") {
           os << query_region.max + 1;
+        } else if (field.name == "LINE") {
+          os << query_region.line;
         } else {
           throw std::runtime_error(
               "Error in TSV export: expected 'Q:' field to be 'POS' or 'END'; "

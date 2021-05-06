@@ -66,6 +66,7 @@ def test_retrieve_attributes(test_ds):
         "qual",
         "query_bed_end",
         "query_bed_start",
+        "query_bed_line",
     ]
     assert sorted(test_ds.attributes(attr_type="builtin")) == sorted(builtin_attrs)
 

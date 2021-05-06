@@ -165,6 +165,7 @@ class InMemoryExporter : public Exporter {
     Info,
     InfoOrFmt,
     Contig,
+    QueryBedLine,
   };
 
   /** Struct holding size info of user buffers. */

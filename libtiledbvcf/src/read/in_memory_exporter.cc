@@ -248,6 +248,7 @@ std::set<std::string> InMemoryExporter::array_attributes_required() const {
         }
       case ExportableAttribute::QueryBedStart:
       case ExportableAttribute::QueryBedEnd:
+      case ExportableAttribute::QueryBedLine:
         // No attribute required
         break;
       default:
@@ -450,6 +451,11 @@ bool InMemoryExporter::export_record(
         overflow = !copy_cell(&user_buff, &end, sizeof(end), 1, hdr);
         break;
       }
+      case ExportableAttribute::QueryBedLine: {
+        overflow = !copy_cell(
+            &user_buff, &query_region.line, sizeof(query_region.line), 1, hdr);
+        break;
+      }
       case ExportableAttribute::Alleles: {
         overflow = !copy_alleles_list(cell_idx, &user_buff);
         break;
@@ -536,6 +542,7 @@ InMemoryExporter::ExportableAttribute InMemoryExporter::attr_name_to_enum(
       {"pos_end", ExportableAttribute::PosEnd},
       {"query_bed_start", ExportableAttribute::QueryBedStart},
       {"query_bed_end", ExportableAttribute::QueryBedEnd},
+      {"query_bed_line", ExportableAttribute::QueryBedLine},
       {"alleles", ExportableAttribute::Alleles},
       {"id", ExportableAttribute::Id},
       {"filters", ExportableAttribute::Filters},
@@ -557,6 +564,7 @@ bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
       "pos_end",
       "query_bed_start",
       "query_bed_end",
+      "query_bed_line",
       "qual",
       "fmt_DP",
       "fmt_GQ",
@@ -612,8 +620,6 @@ void InMemoryExporter::attribute_datatype(
       *datatype = AttrDatatype::FLOAT32;
       break;
     case ExportableAttribute::Fmt:
-      *datatype = AttrDatatype::UINT8;
-      break;
     case ExportableAttribute::Info:
       *datatype = AttrDatatype::UINT8;
       break;
@@ -621,9 +627,8 @@ void InMemoryExporter::attribute_datatype(
       *datatype = AttrDatatype::CHAR;
       break;
     case ExportableAttribute::QueryBedStart:
-      *datatype = AttrDatatype::INT32;
-      break;
     case ExportableAttribute::QueryBedEnd:
+    case ExportableAttribute::QueryBedLine:
       *datatype = AttrDatatype::INT32;
       break;
     case ExportableAttribute::InfoOrFmt:

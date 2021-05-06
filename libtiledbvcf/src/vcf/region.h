@@ -55,7 +55,7 @@ struct Region {
 
   Region();
 
-  Region(const std::string& seq, unsigned min, unsigned max);
+  Region(const std::string& seq, unsigned min, unsigned max, uint64_t line = 0);
 
   Region(const std::string& str, Type parse_from);
 
@@ -122,6 +122,9 @@ struct Region {
 
   /** Optional field storing the global offset of the contig. */
   uint32_t seq_offset;
+
+  /** Optional line number from bed file. */
+  uint32_t line;
 };
 
 }  // namespace vcf

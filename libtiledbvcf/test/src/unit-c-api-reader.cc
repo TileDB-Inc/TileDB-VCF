@@ -81,6 +81,15 @@ static std::string INPUT_ARRAYS_DIR_V2 =
           sizeof(uint32_t) * query_bed_end.size(), \
           query_bed_end.data()) == TILEDB_VCF_OK);
 
+#define SET_BUFF_QUERY_BED_LINE(r, nr)              \
+  std::vector<uint32_t> query_bed_line((nr));       \
+  REQUIRE(                                          \
+      tiledb_vcf_reader_set_buffer_values(          \
+          reader,                                   \
+          "query_bed_line",                         \
+          sizeof(uint32_t) * query_bed_line.size(), \
+          query_bed_line.data()) == TILEDB_VCF_OK);
+
 #define SET_BUFF_SAMPLE_NAME(r, nr)                     \
   std::vector<int32_t> sample_name_offsets((nr) + 1);   \
   std::vector<char> sample_name((nr)*10);               \
@@ -252,7 +261,8 @@ std::vector<record> build_records(
     const std::vector<int32_t>& fmt_GT_offsets,
     std::vector<int> fmt_DP,
     const std::vector<int32_t>& fmt_PL = {},
-    const std::vector<int32_t>& fmt_PL_offsets = {}) {
+    const std::vector<int32_t>& fmt_PL_offsets = {},
+    const std::vector<uint32_t>& query_bed_line = {}) {
   std::vector<record> ret(num_records);
 
   for (size_t i = 0; i < num_records; i++) {
@@ -278,6 +288,10 @@ std::vector<record> build_records(
     uint32_t query_bed_end_val = 0;
     if (!query_bed_end.empty())
       query_bed_end_val = query_bed_end[i];
+
+    uint32_t query_bed_line_val = 0;
+    if (!query_bed_line.empty())
+      query_bed_line_val = query_bed_line[i];
 
     std::string contig_val;
     if (!contig.empty()) {
@@ -345,7 +359,8 @@ std::vector<record> build_records(
         fmt_val,              // fmt
         fmt_GT,               // fmt_GT
         fmt_DP_val,           // fmt_DP
-        fmt_PL_val            // fmt_PL_val
+        fmt_PL_val,           // fmt_PL_val
+        query_bed_line_val    // query_bed_line
     );
 
     ret[i] = std::move(vcf_record);
@@ -536,7 +551,7 @@ TEST_CASE("C API: Reader get materialized attributes", "[capi][reader]") {
       tiledb_vcf_reader_get_materialized_attribute_count(reader, &count) ==
       TILEDB_VCF_OK);
 
-  REQUIRE(count == 15);
+  REQUIRE(count == 16);
 
   for (int32_t i = 0; i < count; i++) {
     char* attribute_name;
@@ -1753,6 +1768,9 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_ALLELES(reader, expected_num_records);
   SET_BUFF_FMT_DP(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_START(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_END(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_LINE(reader, expected_num_records);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -1783,8 +1801,8 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           "HG00280",
           12141,
           12277,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"C", "<NON_REF>"},
           {},
@@ -1793,13 +1811,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {}),
+          {},
+          0),
       record(
           "HG01762",
           12141,
           12277,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"C", "<NON_REF>"},
           {},
@@ -1808,13 +1827,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {}),
+          {},
+          0),
       record(
           "HG00280",
           12546,
           12771,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"G", "<NON_REF>"},
           {},
@@ -1823,13 +1843,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {}),
+          {},
+          0),
       record(
           "HG01762",
           12546,
           12771,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"G", "<NON_REF>"},
           {},
@@ -1838,13 +1859,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {}),
+          {},
+          0),
       record(
           "HG00280",
           13354,
           13374,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"T", "<NON_REF>"},
           {},
@@ -1853,13 +1875,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           15,
-          {}),
+          {},
+          0),
       record(
           "HG01762",
           13354,
           13389,
-          0,
-          0,
+          12099,
+          13360,
           "",
           {"T", "<NON_REF>"},
           {},
@@ -1868,13 +1891,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           64,
-          {}),
+          {},
+          0),
       record(
           "HG00280",
           13452,
           13519,
-          0,
-          0,
+          13499,
+          17350,
           "",
           {"G", "<NON_REF>"},
           {},
@@ -1883,13 +1907,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           10,
-          {}),
+          {},
+          1),
       record(
           "HG00280",
           13520,
           13544,
-          0,
-          0,
+          13499,
+          17350,
           "",
           {"G", "<NON_REF>"},
           {},
@@ -1898,13 +1923,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           6,
-          {}),
+          {},
+          1),
       record(
           "HG00280",
           13545,
           13689,
-          0,
-          0,
+          13499,
+          17350,
           "",
           {"G", "<NON_REF>"},
           {},
@@ -1913,13 +1939,14 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {}),
+          {},
+          1),
       record(
           "HG00280",
           17319,
           17479,
-          0,
-          0,
+          13499,
+          17350,
           "",
           {"T", "<NON_REF>"},
           {},
@@ -1928,7 +1955,8 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
           {},
           {},
           0,
-          {})};
+          {},
+          1)};
 
   std::vector<record> records = build_records(
       num_records,
@@ -1936,8 +1964,8 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
       sample_name_offsets,
       pos_start,
       pos_end,
-      {},
-      {},
+      query_bed_start,
+      query_bed_end,
       {},
       {},
       alleles,
@@ -1955,7 +1983,8 @@ TEST_CASE("C API: Reader submit (BED file)", "[capi][reader]") {
       {},
       fmt_DP,
       {},
-      {});
+      {},
+      query_bed_line);
 
   REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
@@ -4726,8 +4755,8 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           "G16",
           10626,
           81854,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4736,13 +4765,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G14",
           10717,
           75204,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4751,13 +4781,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G17",
           10863,
           83686,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4766,13 +4797,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G10",
           10872,
           16376,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4781,13 +4813,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G15",
           11123,
           89409,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4796,13 +4829,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G11",
           12430,
           48068,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4811,13 +4845,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G13",
           13519,
           34681,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4826,13 +4861,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G100",
           13792,
           102213,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4841,13 +4877,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G12",
           14199,
           70699,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4856,13 +4893,14 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
       record(
           "G18",
           14563,
           102086,
-          0,
-          0,
+          10600,
+          540400,
           "1",
           {},
           {},
@@ -4871,7 +4909,8 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
           {},
           {1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1},
           0,
-          {}),
+          {},
+          184134),
   };
 
   // Allocate and set buffers, only set small buffers for a few records
@@ -4881,6 +4920,9 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
   SET_BUFF_SAMPLE_NAME(reader, expected_num_records);
   SET_BUFF_CONTIG(reader, expected_num_records);
   SET_BUFF_FMT_GT(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_START(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_END(reader, expected_num_records);
+  SET_BUFF_QUERY_BED_LINE(reader, expected_num_records);
 
   int64_t num_records = ~0;
   REQUIRE(
@@ -4933,8 +4975,8 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
       sample_name_offsets,
       pos_start,
       pos_end,
-      {},
-      {},
+      query_bed_start,
+      query_bed_end,
       contig,
       contig_offsets,
       {},
@@ -4952,7 +4994,8 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
       fmt_GT_offsets,
       {},
       {},
-      {});
+      {},
+      query_bed_line);
 
   REQUIRE_THAT(expected_records, Catch::Matchers::UnorderedEquals(records));
 
