@@ -156,22 +156,15 @@ void partition_vector(
         std::to_string(partition_idx) + " >= num partitions " +
         std::to_string(num_partitions) + ".");
   uint64_t elts_per_partition = utils::floor(num_elements, num_partitions);
+  uint64_t idx_min =
+      std::min<uint64_t>(partition_idx * elts_per_partition, num_elements);
+  uint64_t idx_max =
+      std::min<uint64_t>(idx_min + elts_per_partition, num_elements);
 
   // Handle any left overs by giving them to the first n partitions
   uint64_t left_overs = num_elements % num_partitions;
-  uint64_t start_offset = 0;
-  uint64_t end_offset = 0;
-  if (partition_idx < left_overs) {
-    if (partition_idx > 0)
-      start_offset = 1;
-
-    end_offset = 1;
-  }
-
-  uint64_t idx_min = std::min<uint64_t>(
-      (partition_idx * elts_per_partition + start_offset), num_elements);
-  uint64_t idx_max = std::min<uint64_t>(
-      idx_min + elts_per_partition + end_offset, num_elements);
+  idx_min += std::min<uint64_t>(partition_idx, left_overs);
+  idx_max += std::min<uint64_t>(partition_idx + 1, left_overs);
 
   // Check for empty partition assignment.
   if (idx_min == idx_max) {
