@@ -206,4 +206,10 @@ std::string Writer::get_tiledb_stats() {
   return std::string(stats);
 }
 
+std::string Writer::version() {
+    const char* version_str;
+    tiledb_vcf_version(&version_str);
+    return version_str;
+}
+
 }  // namespace tiledbvcfpy

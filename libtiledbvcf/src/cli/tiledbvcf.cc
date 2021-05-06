@@ -60,16 +60,6 @@ std::string defaulthelp(const std::string& msg, T default_value) {
   return msg + " [default " + std::to_string(default_value) + "]";
 }
 
-/** Returns TileDB-VCF and TileDB version information in string form. */
-std::string version_info() {
-  std::stringstream ss;
-  ss << "TileDB-VCF version " << utils::TILEDB_VCF_COMMIT_HASH << "\n";
-  auto v = tiledb::version();
-  ss << "TileDB version " << std::get<0>(v) << "." << std::get<1>(v) << "."
-     << std::get<2>(v);
-  return ss.str();
-}
-
 /** Prints a formatted help message for a command. */
 void print_command_usage(
     const std::string& name, const std::string& desc, const clipp::group& cli) {
@@ -152,7 +142,7 @@ void usage(
          "efficiently retrieve variant-call data in the TileDB storage format."
       << "\n\n"
       << "More information: TileDB <https://tiledb.io>\n"
-      << version_info() << "\n\n";
+      << utils::version_info() << "\n\n";
 
   std::cout << "Summary:\n" << usage_lines(cli, "tiledbvcf") << "\n\n\n";
   usage_create(create_mode);
@@ -651,7 +641,7 @@ int main(int argc, char** argv) {
 
   switch (opmode) {
     case Mode::Version:
-      std::cout << version_info() << "\n";
+      std::cout << utils::version_info() << "\n";
       break;
     case Mode::Create:
       do_create(create_args);

@@ -32,6 +32,7 @@
 
 #include "c_api/tiledbvcf.h"
 #include "read/reader.h"
+#include "utils/utils.h"
 #include "write/writer.h"
 
 #include <cassert>
@@ -112,6 +113,15 @@ inline int32_t sanity_check(const tiledb_vcf_writer_t* writer) {
     return TILEDB_VCF_ERR;
   }
   return TILEDB_VCF_OK;
+}
+
+/* ********************************* */
+/*              MISC                 */
+/* ********************************* */
+
+void tiledb_vcf_version(const char** version) {
+  const std::string& version_str = tiledb::vcf::utils::version_info();
+  *version = version_str.c_str();
 }
 
 /* ********************************* */

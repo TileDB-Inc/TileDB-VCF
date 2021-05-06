@@ -574,4 +574,10 @@ void Reader::set_check_samples_exist(bool samples_exists) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_check_samples_exist(reader, samples_exists));
 }
+
+std::string Reader::version() {
+    const char* version_str;
+    tiledb_vcf_version(&version_str);
+    return version_str;
+}
 }  // namespace tiledbvcfpy

@@ -200,20 +200,20 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   (JNIEnv *, jclass, jlong, jint, jbyteArray);
 
 /*
-* Class:     io_tiledb_libvcfnative_LibVCFNative
-* Method:    tiledb_vcf_reader_get_materialized_attribute_count
-* Signature: (J[I)I
-*/
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_materialized_attribute_count
+ * Signature: (J[I)I
+ */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1count
-(JNIEnv *, jclass, jlong, jintArray);
+  (JNIEnv *, jclass, jlong, jintArray);
 
 /*
-* Class:     io_tiledb_libvcfnative_LibVCFNative
-* Method:    tiledb_vcf_reader_get_materialized_attribute_name
-* Signature: (JI[B)I
-*/
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_materialized_attribute_name
+ * Signature: (JI[B)I
+ */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1name
-(JNIEnv *, jclass, jlong, jint, jbyteArray);
+  (JNIEnv *, jclass, jlong, jint, jbyteArray);
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
@@ -266,7 +266,7 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_buffer_percentage
- * Signature: (JZ)I
+ * Signature: (JF)I
  */
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1percentage
   (JNIEnv *, jclass, jlong, jfloat);
@@ -310,6 +310,14 @@ JNIEXPORT jboolean JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_
  */
 JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats
   (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_version
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

@@ -94,6 +94,17 @@ typedef struct tiledb_vcf_writer_t tiledb_vcf_writer_t;
 typedef struct tiledb_vcf_error_t tiledb_vcf_error_t;
 
 /* ********************************* */
+/*              MISC                 */
+/* ********************************* */
+
+/**
+ *  Retrieves the version of the TileDB VCF library currently being used.
+ *
+ *  @param version Will store the string representation
+ */
+TILEDBVCF_EXPORT void tiledb_vcf_version(const char** version);
+
+/* ********************************* */
 /*              READER               */
 /* ********************************* */
 

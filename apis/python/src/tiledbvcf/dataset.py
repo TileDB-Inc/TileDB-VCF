@@ -471,6 +471,12 @@ class Dataset(object):
             self.reader.set_samples("")
             self.reader.set_samples_file(samples_file)
 
+    def version(self):
+        if self.mode == "r":
+            return self.reader.version()
+
+        return self.writer.version()
+
 
 class TileDBVCFDataset(Dataset):
     """A handle on a TileDB-VCF dataset."""

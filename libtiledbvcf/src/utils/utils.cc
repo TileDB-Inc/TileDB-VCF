@@ -25,6 +25,7 @@
  */
 
 #include <htslib/vcf.h>
+#include <tiledb/version.h>
 #include <cerrno>
 #include <fstream>
 #include <mutex>
@@ -38,6 +39,8 @@ namespace utils {
 
 /** Commit hash of TileDB-VCF (#defined by CMake) */
 const std::string TILEDB_VCF_COMMIT_HASH = BUILD_COMMIT_HASH;
+
+std::string version;
 
 std::vector<std::string> split(
     const std::string& str, const std::string& delims, bool skip_empty) {
@@ -515,6 +518,22 @@ bool is_local_uri(const std::string& uri) {
     return false;
 
   return true;
+}
+
+static std::mutex version_creation_mtx_;
+const std::string& version_info() {
+  std::unique_lock<std::mutex> lck(version_creation_mtx_);
+  if (version.empty()) {
+    std::stringstream ss;
+    ss << "TileDB-VCF version " << utils::TILEDB_VCF_COMMIT_HASH << std::endl;
+    auto v = tiledb::version();
+    ss << "TileDB version " << std::get<0>(v) << "." << std::get<1>(v) << "."
+       << std::get<2>(v) << std::endl;
+    ss << "htslib version " << hts_version();
+    version = ss.str();
+  }
+
+  return version;
 }
 
 }  // namespace utils

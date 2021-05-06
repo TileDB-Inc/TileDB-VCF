@@ -147,6 +147,9 @@ class Reader {
   /** Set to check if samples requested exist and error if not. */
   void set_check_samples_exist(bool check_samples_exist);
 
+  /** Get Version info for TileDB VCF and TileDB. */
+  std::string version();
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {

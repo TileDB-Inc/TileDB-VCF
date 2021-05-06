@@ -140,6 +140,9 @@ class Writer {
   */
   std::string get_tiledb_stats();
 
+  /** Get Version info for TileDB VCF and TileDB. */
+  std::string version();
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

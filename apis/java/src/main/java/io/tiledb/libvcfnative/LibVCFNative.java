@@ -125,4 +125,6 @@ public class LibVCFNative {
   public static final native boolean tiledb_vcf_reader_tiledb_stats_enabled(long readerPtr);
 
   public static final native String tiledb_vcf_reader_tiledb_stats(long readerPtr);
+
+  public static final native String tiledb_vcf_version();
 }
