@@ -3576,13 +3576,16 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
       record(
           "HG01762", 13354, 13389, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
       record(
-          "HG00280", 13375, 13395, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
-      record(
-          "HG00280", 13396, 13413, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
-      record(
           "HG00280", 17319, 17479, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
       record(
-          "HG00280", 17480, 17486, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {})};
+          "HG00280", 17480, 17486, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13452, 13519, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13520, 13544, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+      record(
+          "HG00280", 13545, 13689, 0, 0, "", {}, {}, false, {}, {}, {}, 0, {}),
+  };
 
   // Allocate and set buffers
   const unsigned allocated_num_records = 10;
@@ -3643,11 +3646,12 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
           sizeof(int32_t) * sample_name_offsets1.size(),
           sample_name_offsets1.data()) == TILEDB_VCF_OK);
 
-  int64_t num_records = ~0;
+  int64_t num_records0 = ~0;
+  int64_t num_records1 = ~0;
   REQUIRE(
-      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records0) ==
       TILEDB_VCF_OK);
-  REQUIRE(num_records == 0);
+  REQUIRE(num_records0 == 0);
 
   tiledb_vcf_read_status_t status;
   REQUIRE(tiledb_vcf_reader_get_status(reader0, &status) == TILEDB_VCF_OK);
@@ -3665,17 +3669,17 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
 
   // Check result size
   REQUIRE(
-      tiledb_vcf_reader_get_result_num_records(reader0, &num_records) ==
+      tiledb_vcf_reader_get_result_num_records(reader0, &num_records0) ==
       TILEDB_VCF_OK);
-  REQUIRE(num_records == 10);
+  REQUIRE(num_records0 == 10);
   REQUIRE(
-      tiledb_vcf_reader_get_result_num_records(reader1, &num_records) ==
+      tiledb_vcf_reader_get_result_num_records(reader1, &num_records1) ==
       TILEDB_VCF_OK);
-  REQUIRE(num_records == 1);
+  REQUIRE(num_records1 == 1);
 
   // Check results
   std::vector<record> records0 = build_records(
-      num_records,
+      num_records0,
       sample_name0,
       sample_name_offsets0,
       pos_start0,
@@ -3701,10 +3705,8 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
       {},
       {});
 
-  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records0));
-
   std::vector<record> records1 = build_records(
-      num_records,
+      num_records1,
       sample_name1,
       sample_name_offsets1,
       pos_start1,
@@ -3729,6 +3731,8 @@ TEST_CASE("C API: Reader submit (partitioned)", "[capi][reader]") {
       {},
       {},
       {});
+
+  REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records0));
 
   REQUIRE_THAT(expected_records, Catch::Matchers::Contains(records1));
 
