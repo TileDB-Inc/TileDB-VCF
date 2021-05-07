@@ -151,7 +151,7 @@ class Reader {
   std::string version();
 
   /** Set disable progress estimation */
-  void set_disable_progress_estimation(const bool& disable_progress_estimation);
+  void set_enable_progress_estimation(const bool& enable_progress_estimation);
 
  private:
   /** Buffer struct to hold attribute data read from the dataset. */

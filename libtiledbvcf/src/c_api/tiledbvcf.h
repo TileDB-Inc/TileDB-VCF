@@ -867,8 +867,8 @@ tiledb_vcf_reader_set_verbose(tiledb_vcf_reader_t* reader, bool verbose);
  * @param reader VCF reader object
  * @param verbose setting
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_disable_progress_estimation(
-    tiledb_vcf_reader_t* reader, bool disable_progress_estimation);
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_enable_progress_estimation(
+    tiledb_vcf_reader_t* reader, bool enable_progress_estimation);
 
 /**
  * Sets the percentage of buffer size to tiledb memory budget

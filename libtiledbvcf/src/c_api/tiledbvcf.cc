@@ -750,15 +750,15 @@ int32_t tiledb_vcf_reader_set_verbose(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_set_disable_progress_estimation(
-    tiledb_vcf_reader_t* reader, bool disable_progress_estimation) {
+int32_t tiledb_vcf_reader_set_enable_progress_estimation(
+    tiledb_vcf_reader_t* reader, bool enable_progress_estimation) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(
           reader,
-          reader->reader_->set_disable_progress_estimation(
-              disable_progress_estimation)))
+          reader->reader_->set_enable_progress_estimation(
+              enable_progress_estimation)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
