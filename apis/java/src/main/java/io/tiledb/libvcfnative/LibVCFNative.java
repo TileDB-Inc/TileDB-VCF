@@ -6,16 +6,21 @@ import static io.tiledb.libvcfnative.NativeLibLoader.loadNativeTileDBVCF;
 import static io.tiledb.libvcfnative.NativeLibLoader.loadNativeTileDBVCFJNI;
 
 import java.nio.ByteBuffer;
+import java.util.logging.Logger;
 
 public class LibVCFNative {
 
   static {
     try {
+      final Logger logger = Logger.getLogger(LibVCFNative.class.getName());
+
       // Load native libraries in order
       loadNativeTileDB();
       loadNativeHTSLib();
       loadNativeTileDBVCF();
       loadNativeTileDBVCFJNI();
+      String tiledbVCFVersion = LibVCFNative.tiledb_vcf_version();
+      logger.info("Loaded libtiledbvcf library: " + tiledbVCFVersion);
     } catch (Exception e) {
       System.err.println("Native code library failed to load. \n");
       e.printStackTrace();

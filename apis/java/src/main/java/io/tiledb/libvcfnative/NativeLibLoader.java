@@ -70,7 +70,6 @@ public class NativeLibLoader {
   static void loadNativeTileDBVCF() {
     try {
       loadNativeLib("tiledbvcf", true);
-      logger.info("Loaded libtiledbvcf library: " + LibVCFNative.tiledb_vcf_version());
     } catch (java.lang.UnsatisfiedLinkError e) {
       // If a native library fails to link, we fall back to depending on the system
       // dynamic linker to satisfy the requirement. Therefore, we do nothing here
