@@ -307,9 +307,9 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     }
 
     // Set eableProgressEstimation
-    Optional<Boolean> ensableProgressEstimation = options.getEnableProgressEstimation();
-    if (ensableProgressEstimation.isPresent()) {
-      vcfReader.setEnableProgressEstimation(ensableProgressEstimation.get());
+    Optional<Boolean> enableProgressEstimation = options.getEnableProgressEstimation();
+    if (enableProgressEstimation.isPresent()) {
+      vcfReader.setEnableProgressEstimation(enableProgressEstimation.get());
     }
 
     // Set TileDB buffer percentage
