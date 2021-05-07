@@ -581,8 +581,8 @@ std::string Reader::version() {
     return version_str;
 }
 
-void Reader::set_disable_progress_estimation(const bool& disable_progress_estimation) {
+void Reader::set_enable_progress_estimation(const bool& enable_progress_estimation) {
   auto reader = ptr.get();
-  check_error(reader, tiledb_vcf_reader_set_disable_progress_estimation(reader, disable_progress_estimation));
+  check_error(reader, tiledb_vcf_reader_set_enable_progress_estimation(reader, enable_progress_estimation));
 }
 }  // namespace tiledbvcfpy
