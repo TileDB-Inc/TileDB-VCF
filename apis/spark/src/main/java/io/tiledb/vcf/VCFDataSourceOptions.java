@@ -213,4 +213,15 @@ public class VCFDataSourceOptions implements Serializable {
       return Optional.of(first.get().concat(",").concat(second.get()));
     }
   }
+
+  public String toString() {
+    StringBuilder s = new StringBuilder();
+    for (Map.Entry<String, String> kv : options.entrySet()) {
+      s.append(kv.getKey()).append(": ").append(kv.getValue());
+      s.append(", ");
+    }
+    s.delete(s.length() - 3, s.length() - 1);
+
+    return s.toString();
+  }
 }

@@ -562,7 +562,7 @@ public class VCFReader implements AutoCloseable {
 
   public VCFReader setDisableProgressEstimation(boolean disableProgressEstimation) {
     int rc =
-        LibVCFNative.tiledb_vcf_reader_set_disable_progress_estimation(
+        LibVCFNative.tiledb_vcf_reader_set_enable_progress_estimation(
             this.readerPtr, disableProgressEstimation);
     if (rc != 0) {
       String msg = getLastErrorMessage();
