@@ -65,45 +65,47 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 32l);
+    Assert.assertEquals(numColumns, 33l);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
-    List<String> colNames =
-        colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toList());
+    Set<String> colNames =
+        colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toSet());
     Assert.assertEquals(
-        Arrays.asList(
-            "fmt_SB",
-            "fmt_MIN_DP",
-            "info_DP",
-            "info_ClippingRankSum",
-            "info_ReadPosRankSum",
-            "fmt",
-            "queryBedStart",
-            "fmt_AD",
-            "posStart",
-            "info_BaseQRankSum",
-            "info_MLEAF",
-            "posEnd",
-            "fmt_GQ",
-            "info_MLEAC",
-            "genotype",
-            "id",
-            "alleles",
-            "info",
-            "sampleName",
-            "info_MQ",
-            "queryBedEnd",
-            "info_MQ0",
-            "fmt_PL",
-            "filter",
-            "info_HaplotypeScore",
-            "contig",
-            "info_DS",
-            "info_InbreedingCoeff",
-            "info_END",
-            "fmt_DP",
-            "info_MQRankSum",
-            "qual"),
+        new HashSet<>(
+            Arrays.asList(
+                "fmt_SB",
+                "fmt_MIN_DP",
+                "info_DP",
+                "info_ClippingRankSum",
+                "info_ReadPosRankSum",
+                "fmt",
+                "queryBedStart",
+                "fmt_AD",
+                "posStart",
+                "info_BaseQRankSum",
+                "info_MLEAF",
+                "posEnd",
+                "fmt_GQ",
+                "info_MLEAC",
+                "genotype",
+                "id",
+                "alleles",
+                "info",
+                "sampleName",
+                "info_MQ",
+                "queryBedEnd",
+                "queryBedLine",
+                "info_MQ0",
+                "fmt_PL",
+                "filter",
+                "info_HaplotypeScore",
+                "contig",
+                "info_DS",
+                "info_InbreedingCoeff",
+                "info_END",
+                "fmt_DP",
+                "info_MQRankSum",
+                "qual")),
         colNames);
   }
 
@@ -121,25 +123,27 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 12l);
+    Assert.assertEquals(numColumns, 13l);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
-    List<String> colNames =
-        colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toList());
+    Set<String> colNames =
+        colNameList.stream().map(r -> r.getString(0)).collect(Collectors.toSet());
     Assert.assertEquals(
-        Arrays.asList(
-            "queryBedStart",
-            "posStart",
-            "queryBedEnd",
-            "posEnd",
-            "qual",
-            "filter",
-            "id",
-            "fmt",
-            "alleles",
-            "contig",
-            "info",
-            "sampleName"),
+        new HashSet<>(
+            Arrays.asList(
+                "queryBedStart",
+                "posStart",
+                "queryBedEnd",
+                "queryBedLine",
+                "posEnd",
+                "qual",
+                "filter",
+                "id",
+                "fmt",
+                "alleles",
+                "contig",
+                "info",
+                "sampleName")),
         colNames);
   }
 
@@ -631,21 +635,25 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
   @Test
   public void testBedRanges() {
     Dataset<Row> dfRead = testSampleDataset();
-    List<Row> rows = dfRead.select("queryBedStart", "queryBedEnd").collectAsList();
+    List<Row> rows = dfRead.select("queryBedStart", "queryBedEnd", "queryBedLine").collectAsList();
     Assert.assertEquals(10, rows.size());
     int[] expectedStart =
         new int[] {12099, 12099, 12099, 12099, 12099, 12099, 13499, 13499, 13499, 13499};
     int[] expectedEnd =
         new int[] {13360, 13360, 13360, 13360, 13360, 13360, 17350, 17350, 17350, 17350};
+    int[] expectedLine = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     int[] resultStart = new int[rows.size()];
     int[] resultEnd = new int[rows.size()];
+    int[] resultLine = new int[rows.size()];
     for (int i = 0; i < rows.size(); i++) {
       resultStart[i] = rows.get(i).getInt(0);
       resultEnd[i] = rows.get(i).getInt(1);
+      resultLine[i] = rows.get(i).getInt(2);
     }
     Assert.assertArrayEquals(expectedStart, resultStart);
     Assert.assertArrayEquals(expectedEnd, resultEnd);
+    Assert.assertArrayEquals(expectedLine, resultLine);
   }
 
   // TODO(ttd) commenting out because AD is not in the default schema

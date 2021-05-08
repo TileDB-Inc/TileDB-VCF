@@ -97,6 +97,8 @@ public class VCFSparkSchema implements Serializable {
         return "query_bed_start";
       case "queryBedEnd":
         return "query_bed_end";
+      case "queryBedLine":
+        return "query_bed_line";
       case "qual":
         return "qual";
       case "id":
@@ -140,6 +142,8 @@ public class VCFSparkSchema implements Serializable {
         return "queryBedStart";
       case "query_bed_end":
         return "queryBedEnd";
+      case "query_bed_line":
+        return "queryBedLine";
       case "qual":
         return "qual";
       case "id":
@@ -312,6 +316,7 @@ public class VCFSparkSchema implements Serializable {
       return fieldPart.toUpperCase() + " field in INFO block of BCF";
     } else if (field.equals("queryBedStart")) return "BED start position (0-based) of query";
     else if (field.equals("queryBedEnd")) return "BED end position (1-based) of query";
+    else if (field.equals("queryBedLine")) return "BED file line number of query";
 
     return field;
   }

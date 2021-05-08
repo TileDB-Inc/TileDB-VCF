@@ -357,7 +357,11 @@ void TileDBVCFDataset::build_materialized_attributes() const {
     return;
   // Build queryable attribute and sample lists
   std::set<std::string> unique_queryable_attributes{
-      "sample_name", "query_bed_start", "query_bed_end", "contig"};
+      "sample_name",
+      "query_bed_start",
+      "query_bed_end",
+      "contig",
+      "query_bed_line"};
   for (auto s : this->all_attributes()) {
     if (s == "end_pos" || s == "real_end")
       s = "pos_end";
@@ -387,7 +391,11 @@ void TileDBVCFDataset::build_queryable_attributes() const {
     return;
   // Build queryable attribute and sample lists
   std::set<std::string> unique_queryable_attributes{
-      "sample_name", "query_bed_start", "query_bed_end", "contig"};
+      "sample_name",
+      "query_bed_start",
+      "query_bed_end",
+      "contig",
+      "query_bed_line"};
   for (auto s : this->all_attributes()) {
     if (s == "end_pos" || s == "real_end")
       s = "pos_end";

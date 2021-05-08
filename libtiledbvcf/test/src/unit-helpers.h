@@ -60,6 +60,7 @@ struct record {
   uint32_t end_pos = 0;
   uint32_t query_bed_start = 0;
   uint32_t query_bed_end = 0;
+  uint32_t query_bed_line = 0;
   std::string contig;
   std::vector<std::string> alleles;
   std::vector<std::string> filters;
@@ -84,12 +85,14 @@ struct record {
       std::string fmt = "",
       std::vector<int32_t> fmt_GT = {},
       int fmt_DP = 0,
-      std::vector<int> fmt_PL = {})
+      std::vector<int> fmt_PL = {},
+      uint32_t query_bed_line = 0)
       : sample(std::move(sample))
       , start_pos(start_pos)
       , end_pos(end_pos)
       , query_bed_start(query_bed_start)
       , query_bed_end(query_bed_end)
+      , query_bed_line(query_bed_line)
       , contig(std::move(contig))
       , alleles(std::move(alleles))
       , filters(std::move(filters))
@@ -115,6 +118,9 @@ struct record {
       return false;
 
     if (query_bed_end != b.query_bed_end)
+      return false;
+
+    if (query_bed_line != b.query_bed_line)
       return false;
 
     if (contig != b.contig)
@@ -177,7 +183,7 @@ struct record {
     std::stringstream out;
     out << this->sample << "-" << this->contig << "-" << this->start_pos << "-"
         << this->end_pos << "-" << this->query_bed_start << "-"
-        << this->query_bed_end << "-";
+        << this->query_bed_end << "-" << this->query_bed_line << "-";
     for (size_t i = 0; i < this->alleles.size(); i++) {
       out << this->alleles[i];
       if (i < this->alleles.size() - 1)

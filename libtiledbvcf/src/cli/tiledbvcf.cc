@@ -452,7 +452,8 @@ int main(int argc, char** argv) {
                "'ALT', 'QUAL', 'POS', 'CHR', 'FILTER'. Additionally, INFO "
                "fields can be specified by 'I:<name>' and FMT fields with "
                "'S:<name>'. To export the intersecting query region for each "
-               "row in the output, use the field names 'Q:POS' and 'Q:END'." &
+               "row in the output, use the field names 'Q:POS', 'Q:END' and "
+               "'Q:LINE'." &
            value("fields").call([&export_args](const std::string& s) {
              export_args.tsv_fields = utils::split(s, ',');
            }),
