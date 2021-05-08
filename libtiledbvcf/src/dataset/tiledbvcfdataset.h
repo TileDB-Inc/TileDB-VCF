@@ -660,6 +660,18 @@ class TileDBVCFDataset {
   /** flag for if materialized attributes have been computed or not */
   mutable bool materialized_attribute_loaded_;
 
+  /** RWLock for data array to prevent destruction if in use */
+  utils::RWLock data_array_lock_;
+
+  /** RWLock for vcf header array to prevent destruction if in use */
+  utils::RWLock vcf_header_array_lock_;
+
+  /** Thread for preloading non_empty_domain of data array */
+  std::thread data_array_preload_non_empty_domain_thread_;
+
+  /** Thread for preloading non_empty_domain of vcf header array */
+  std::thread vcf_header_array_preload_non_empty_domain_thread_;
+
   /* ********************************* */
   /*          STATIC METHODS           */
   /* ********************************* */
@@ -852,17 +864,17 @@ class TileDBVCFDataset {
    * Preload the non empty domain async so that its available when needed later
    * @return
    */
-  std::future<void> preload_data_array_non_empty_domain();
-  std::future<void> preload_data_array_non_empty_domain_v2_v3();
-  std::future<void> preload_data_array_non_empty_domain_v4();
+  void preload_data_array_non_empty_domain();
+  void preload_data_array_non_empty_domain_v2_v3();
+  void preload_data_array_non_empty_domain_v4();
 
   /**
    * Preload the non empty domain async so that its available when needed later
    * @return
    */
-  std::future<void> preload_vcf_header_array_non_empty_domain();
-  std::future<void> preload_vcf_header_array_non_empty_domain_v2_v3();
-  std::future<void> preload_vcf_header_array_non_empty_domain_v4();
+  void preload_vcf_header_array_non_empty_domain();
+  void preload_vcf_header_array_non_empty_domain_v2_v3();
+  void preload_vcf_header_array_non_empty_domain_v4();
 };
 
 }  // namespace vcf
