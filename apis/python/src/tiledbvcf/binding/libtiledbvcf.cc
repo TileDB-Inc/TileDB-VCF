@@ -78,5 +78,8 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_tiledb_stats_enabled", &Writer::get_tiledb_stats_enabled)
       .def("get_tiledb_stats", &Writer::get_tiledb_stats)
       .def("version", &Writer::version)
-      .def("set_resume", &Writer::set_resume);
+      .def("set_resume", &Writer::set_resume)
+      .def("set_contig_fragment_merging", &Writer::set_contig_fragment_merging)
+      .def("set_contigs_to_keep_separate", &Writer::set_contigs_to_keep_separate)
+      .def("set_contigs_to_allow_merging", &Writer::set_contigs_to_allow_merging);
 }
