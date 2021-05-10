@@ -108,7 +108,7 @@ struct ExportParams {
   // Should we skip trying to estimate the number of records and percent
   // complete? This is useful when you want verbose but not the performance
   // impact.
-  bool disable_progress_estimation = false;
+  bool enable_progress_estimation = false;
 };
 
 /* ********************************* */
@@ -372,9 +372,9 @@ class Reader {
 
   /**
    * Sets disabling of progress estimation in verbose mode
-   * @param disable_progress_estimation setting
+   * @param enable_progress_estimation setting
    */
-  void set_disable_progress_estimation(const bool& disable_progress_estimation);
+  void set_enable_progress_estimation(const bool& enable_progress_estimation);
 
   /**
    * Percentage of buffer size to tiledb memory budget

@@ -793,15 +793,15 @@ JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1
     return result;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1disable_1progress_1estimation
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean disableProgressEstimation) {
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1enable_1progress_1estimation
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean enableProgressEstimation) {
     (void)self;
     tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
     if (reader == 0) {
       return TILEDB_VCF_ERR;
     }
 
-    int32_t rc = tiledb_vcf_reader_set_disable_progress_estimation(reader, disableProgressEstimation);
+    int32_t rc = tiledb_vcf_reader_set_enable_progress_estimation(reader, enableProgressEstimation);
 
     return rc;
 }

@@ -162,9 +162,9 @@ public class VCFDataSourceOptions implements Serializable {
   }
 
   /** @return If progress estimation in verbose mode should be disabled */
-  public Optional<Boolean> getDisableProgressEstimation() {
-    if (options.containsKey("disable_progress_estimation")) {
-      return Optional.of(Boolean.parseBoolean(options.get("disable_progress_estimation")));
+  public Optional<Boolean> getEnableProgressEstimation() {
+    if (options.containsKey("enable_progress_estimation")) {
+      return Optional.of(Boolean.parseBoolean(options.get("enable_progress_estimation")));
     }
     return Optional.empty();
   }

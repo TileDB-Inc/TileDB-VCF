@@ -140,7 +140,7 @@ class Dataset(object):
         samples_file=None,
         bed_file=None,
         skip_check_samples=False,
-        disable_progress_estimation=False,
+        enable_progress_estimation=False,
     ):
         """Reads data from a TileDB-VCF dataset into Arrow table.
 
@@ -158,7 +158,7 @@ class Dataset(object):
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
         :param bool skip_check_samples: Should checking the samples requested exist in the array
-        :param bool disable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
+        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -171,7 +171,7 @@ class Dataset(object):
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
-        self.reader.set_disable_progress_estimation(disable_progress_estimation)
+        self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -186,7 +186,7 @@ class Dataset(object):
         samples_file=None,
         bed_file=None,
         skip_check_samples=False,
-        disable_progress_estimation=False,
+        enable_progress_estimation=False,
     ):
         """Reads data from a TileDB-VCF dataset into Pandas dataframe.
 
@@ -204,7 +204,7 @@ class Dataset(object):
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
         :param bool skip_check_samples: Should checking the samples requested exist in the array
-        :param bool disable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
+        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -217,7 +217,7 @@ class Dataset(object):
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
-        self.reader.set_disable_progress_estimation(disable_progress_estimation)
+        self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)

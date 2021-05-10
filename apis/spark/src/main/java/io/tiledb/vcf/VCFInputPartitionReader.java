@@ -306,10 +306,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setVerbose(verbose.get());
     }
 
-    // Set DisableProgressEstimation
-    Optional<Boolean> disableProgressEstimation = options.getDisableProgressEstimation();
-    if (disableProgressEstimation.isPresent()) {
-      vcfReader.setDisableProgressEstimation(disableProgressEstimation.get());
+    // Set eableProgressEstimation
+    Optional<Boolean> enableProgressEstimation = options.getEnableProgressEstimation();
+    if (enableProgressEstimation.isPresent()) {
+      vcfReader.setEnableProgressEstimation(enableProgressEstimation.get());
     }
 
     // Set TileDB buffer percentage
