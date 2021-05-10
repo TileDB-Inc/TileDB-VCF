@@ -155,6 +155,8 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
                   + partitionId
                   + " completed");
         });
+
+    log.info("options set: " + options.toString());
   }
 
   @Override
