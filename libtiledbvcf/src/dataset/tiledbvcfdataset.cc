@@ -109,6 +109,19 @@ TileDBVCFDataset::TileDBVCFDataset()
 }
 
 TileDBVCFDataset::~TileDBVCFDataset() {
+  // Grabbing a lock makes sure we don't delete the array in the middle of any
+  // usage (i.e. preloading)
+  utils::UniqueWriteLock data_array_lck_(
+      const_cast<utils::RWLock*>(&data_array_lock_));
+  utils::UniqueWriteLock vcf_header_array_lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
+  // Block if the non empty domain threads have not completed.
+  if (data_array_preload_non_empty_domain_thread_.joinable())
+    data_array_preload_non_empty_domain_thread_.join();
+  if (vcf_header_array_preload_non_empty_domain_thread_.joinable())
+    vcf_header_array_preload_non_empty_domain_thread_.join();
+
   data_array_ = nullptr;
   vcf_header_array_ = (nullptr);
 }
@@ -688,6 +701,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     std::unordered_map<std::string, size_t>* lookup_map,
     const bool all_samples,
     const bool first_sample) const {
+  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
+  // during fetching
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -867,6 +885,11 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     const std::vector<SampleAndId>& samples) const {
+  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
+  // during fetching
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -1108,6 +1131,10 @@ void TileDBVCFDataset::read_metadata_v4() {
         "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
 
+  // Grab a read lock of concurrency so we don't destroy the data_array during
+  // fetching
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&data_array_lock_));
+
   Metadata metadata;
   std::shared_ptr<tiledb::Array>& data_array = data_array_;
 
@@ -1160,6 +1187,10 @@ void TileDBVCFDataset::read_metadata() {
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
+
+  // Grab a read lock of concurrency so we don't destroy the data_array during
+  // fetching
+  utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&data_array_lock_));
 
   Metadata metadata;
   std::shared_ptr<tiledb::Array>& data_array = data_array_;
@@ -1745,6 +1776,11 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
 
 std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
     const {
+  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
+  // during fetching
+  utils::UniqueReadLock lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
@@ -2016,7 +2052,7 @@ void TileDBVCFDataset::attribute_datatype_non_fmt_info(
   }
 }
 
-std::future<void> TileDBVCFDataset::preload_data_array_non_empty_domain() {
+void TileDBVCFDataset::preload_data_array_non_empty_domain() {
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
     return preload_data_array_non_empty_domain_v2_v3();
 
@@ -2024,22 +2060,17 @@ std::future<void> TileDBVCFDataset::preload_data_array_non_empty_domain() {
   return preload_data_array_non_empty_domain_v4();
 }
 
-std::future<void>
-TileDBVCFDataset::preload_data_array_non_empty_domain_v2_v3() {
-  auto f = std::async(std::launch::async, [this]() {
-    data_array_->non_empty_domain<uint32_t>(0);
-  });
-  return f;
+void TileDBVCFDataset::preload_data_array_non_empty_domain_v2_v3() {
+  data_array_preload_non_empty_domain_thread_ =
+      std::thread([this]() { data_array_->non_empty_domain<uint32_t>(0); });
 }
 
-std::future<void> TileDBVCFDataset::preload_data_array_non_empty_domain_v4() {
-  auto f = std::async(
-      std::launch::async, [this]() { data_array_->non_empty_domain_var(0); });
-  return f;
+void TileDBVCFDataset::preload_data_array_non_empty_domain_v4() {
+  data_array_preload_non_empty_domain_thread_ =
+      std::thread([this]() { data_array_->non_empty_domain_var(0); });
 }
 
-std::future<void>
-TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
+void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
     return preload_vcf_header_array_non_empty_domain_v2_v3();
 
@@ -2047,20 +2078,14 @@ TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
   return preload_vcf_header_array_non_empty_domain_v4();
 }
 
-std::future<void>
-TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v2_v3() {
-  auto f = std::async(std::launch::async, [this]() {
-    vcf_header_array_->non_empty_domain<uint32_t>(0);
-  });
-  return f;
+void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v2_v3() {
+  vcf_header_array_preload_non_empty_domain_thread_ = std::thread(
+      [this]() { vcf_header_array_->non_empty_domain<uint32_t>(0); });
 }
 
-std::future<void>
-TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v4() {
-  auto f = std::async(std::launch::async, [this]() {
-    vcf_header_array_->non_empty_domain_var(0);
-  });
-  return f;
+void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v4() {
+  vcf_header_array_preload_non_empty_domain_thread_ =
+      std::thread([this]() { vcf_header_array_->non_empty_domain_var(0); });
 }
 }  // namespace vcf
 }  // namespace tiledb
