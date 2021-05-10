@@ -83,7 +83,6 @@ else()
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
             -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
-            -DCMAKE_BUILD_TYPE=Release
             -DTILEDB_S3=${TILEDB_S3}
             -DTILEDB_VERBOSE=ON
             -DTILEDB_SERIALIZATION=ON
