@@ -76,6 +76,14 @@ struct IngestionParams {
 
   // Number of samples per batch for ingestion
   uint64_t sample_batch_size = 10;
+
+  // Should the fragment info of data be loaded
+  // This is used for resuming partial ingestions
+  bool load_data_array_fragment_info = false;
+
+  // Should we check if the samples have been partial ingested?
+  // This might have a significant performance penalty on large arrays
+  bool resume_sample_partial_ingestion = false;
 };
 
 /* ********************************* */
@@ -227,6 +235,9 @@ class Writer {
   /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
 
+  /** Set resume support for partial ingestion. */
+  void set_resume_sample_partial_ingestion(const bool);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -315,7 +326,11 @@ class Writer {
   std::pair<uint64_t, uint64_t> ingest_samples_v4(
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
-      std::vector<Region>& regions);
+      std::vector<Region>& regions,
+      std::unordered_map<
+          std::pair<std::string, std::string>,
+          std::vector<std::pair<std::string, std::string>>,
+          pair_hash> map);
 
   static void finalize_query(std::unique_ptr<tiledb::Query> query);
 };

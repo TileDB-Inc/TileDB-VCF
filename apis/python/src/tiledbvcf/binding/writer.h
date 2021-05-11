@@ -143,6 +143,11 @@ class Writer {
   /** Get Version info for TileDB VCF and TileDB. */
   std::string version();
 
+  /**
+    [Store only] Sets whether to enable resuming partial sample ingestion
+  */
+  void set_resume(const bool resume);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

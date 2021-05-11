@@ -1140,6 +1140,18 @@ int32_t tiledb_vcf_writer_set_sample_batch_size(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_resume_sample_partial_ingestion(
+    tiledb_vcf_writer_t* writer, const bool resume) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_resume_sample_partial_ingestion(resume)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

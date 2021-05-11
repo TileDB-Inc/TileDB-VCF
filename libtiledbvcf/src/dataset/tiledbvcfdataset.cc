@@ -99,6 +99,7 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 
 TileDBVCFDataset::TileDBVCFDataset()
     : open_(false)
+    , data_array_fragment_info_loaded_(false)
     , tiledb_stats_enabled_(true)
     , tiledb_stats_enabled_vcf_header_(true)
     , sample_names_loaded_(false)
@@ -315,7 +316,9 @@ void TileDBVCFDataset::create_sample_header_array(
 }
 
 void TileDBVCFDataset::open(
-    const std::string& uri, const std::vector<std::string>& tiledb_config) {
+    const std::string& uri,
+    const std::vector<std::string>& tiledb_config,
+    const bool prefetch_data_array_fragment_info) {
   if (open_)
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset already open.");
@@ -330,6 +333,9 @@ void TileDBVCFDataset::open(
 
   utils::set_tiledb_config(tiledb_config, &cfg_);
   ctx_ = Context(cfg_);
+
+  if (prefetch_data_array_fragment_info)
+    preload_data_array_fragment_info();
 
   data_array_ = open_data_array(TILEDB_READ);
   vcf_header_array_ = open_vcf_array(TILEDB_READ);
@@ -2086,6 +2092,76 @@ void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v2_v3() {
 void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v4() {
   vcf_header_array_preload_non_empty_domain_thread_ =
       std::thread([this]() { vcf_header_array_->non_empty_domain_var(0); });
+}
+
+void TileDBVCFDataset::data_array_fragment_info_load() {
+  std::unique_lock<std::mutex> lck(data_array_fragment_info_mtx_);
+  if (data_array_fragment_info_loaded_)
+    return;
+
+  data_array_fragment_info_ =
+      std::make_shared<tiledb::FragmentInfo>(ctx_, data_uri());
+  data_array_fragment_info_->load();
+  data_array_fragment_info_loaded_ = true;
+}
+
+void TileDBVCFDataset::preload_data_array_fragment_info() {
+  std::thread([this]() { data_array_fragment_info_load(); }).detach();
+}
+
+std::shared_ptr<tiledb::FragmentInfo>
+TileDBVCFDataset::data_array_fragment_info() {
+  std::unique_lock<std::mutex> lck(data_array_fragment_info_mtx_);
+  if (!data_array_fragment_info_loaded_) {
+    lck.unlock();
+    data_array_fragment_info_load();
+    lck.lock();
+  }
+
+  return data_array_fragment_info_;
+}
+
+std::unordered_map<
+    std::pair<std::string, std::string>,
+    std::vector<std::pair<std::string, std::string>>,
+    tiledb::vcf::pair_hash>
+TileDBVCFDataset::fragment_contig_sample_list() {
+  if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
+    throw std::runtime_error(
+        "Fragment contig sample listing not supported for v2/v3 datasets");
+
+  assert(metadata_.version == Version::V4);
+  return fragment_contig_sample_list_v4();
+}
+
+std::unordered_map<
+    std::pair<std::string, std::string>,
+    std::vector<std::pair<std::string, std::string>>,
+    tiledb::vcf::pair_hash>
+TileDBVCFDataset::fragment_contig_sample_list_v4() {
+  const auto fragment_info = data_array_fragment_info();
+  std::unordered_map<
+      std::pair<std::string, std::string>,
+      std::vector<std::pair<std::string, std::string>>,
+      tiledb::vcf::pair_hash>
+      results;
+  for (uint64_t i = 0; i < fragment_info->fragment_num(); i++) {
+    auto fragment_contig_range = fragment_info->non_empty_domain_var(i, 0);
+    auto fragment_sample_range = fragment_info->non_empty_domain_var(i, 2);
+    auto samples = std::make_pair(
+        fragment_sample_range.first, fragment_sample_range.second);
+    auto contigs = std::make_pair(
+        fragment_contig_range.first, fragment_contig_range.second);
+    if (results.find(samples) == results.end()) {
+      results.emplace(
+          samples, std::vector<std::pair<std::string, std::string>>{contigs});
+    } else {
+      auto& vec = results.at(samples);
+      vec.emplace_back(contigs);
+    }
+  }
+
+  return results;
 }
 }  // namespace vcf
 }  // namespace tiledb

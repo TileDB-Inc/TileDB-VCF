@@ -349,3 +349,173 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
 }
+
+TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset_resume";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest the sample
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there were 42 fragments created
+  // Then remove the last fragment
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+
+    // Get the last fragment
+    std::string uri = fragmentInfo.fragment_uri(41);
+    vfs.remove_dir(uri);
+    vfs.remove_file(uri + ".ok");
+  }
+
+  // Ingest the sample again, this should add only the missing data
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there are only 42 fragments created
+  // Then remove the middle fragments (21-23)
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+
+    // Remove fragment 21
+    std::string uri = fragmentInfo.fragment_uri(21);
+    vfs.remove_dir(uri);
+    vfs.remove_file(uri + ".ok");
+
+    // Remove fragment 22
+    uri = fragmentInfo.fragment_uri(22);
+    vfs.remove_dir(uri);
+    vfs.remove_file(uri + ".ok");
+
+    // Remove fragment 23
+    uri = fragmentInfo.fragment_uri(23);
+    vfs.remove_dir(uri);
+    vfs.remove_file(uri + ".ok");
+  }
+
+  // Ingest the sample again, this should add only the missing data
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there are only 42 fragments created
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+  }
+
+  // Ingest the sample one last time, this should result in no fragment changes
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = true;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there are only 42 fragments created
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
+TEST_CASE("TileDB-VCF: Test Resume Disabled", "[tiledbvcf][ingest]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset_resume_disabled";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest the sample
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = false;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there were 42 fragments created
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 42);
+  }
+
+  // Ingest the sample a second time, we should get 84 fragments
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
+    params.resume_sample_partial_ingestion = false;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check that there were 84 fragments created
+  {
+    tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
+    fragmentInfo.load();
+
+    REQUIRE(fragmentInfo.fragment_num() == 84);
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}

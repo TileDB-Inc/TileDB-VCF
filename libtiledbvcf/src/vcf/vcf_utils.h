@@ -90,6 +90,16 @@ class VCFUtils {
   static bcf_hdr_t* hdr_read_header(const std::string& path);
 
   /**
+   * Helper function that returns the sample name by passing in the sample uri
+   * which it will read the header from
+   *
+   * @param path Path of VCF file
+   * @return Sample names in the header.
+   */
+  static std::vector<std::string> get_sample_name_from_vcf(
+      const std::string& path);
+
+  /**
    * Helper function that returns the normalized sample names from a header
    * instance.
    *

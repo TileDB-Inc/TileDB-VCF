@@ -87,6 +87,21 @@ struct UtilsParams {
   std::vector<std::string> tiledb_config;
 };
 
+// Only for pairs of std::hash-able types for simplicity.
+// You can of course template this struct to allow other hash functions
+// inspired by https://stackoverflow.com/a/32685618/11562375
+struct pair_hash {
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& p) const {
+    auto h1 = std::hash<T1>{}(p.first);
+    auto h2 = std::hash<T2>{}(p.second);
+
+    // Mainly for demonstration purposes, i.e. works but is overly simple
+    // In the real world, use sth. like boost.hash_combine
+    return h1 ^ h2;
+  }
+};
+
 /* ********************************* */
 /*         TILEDBVCFDATASET          */
 /* ********************************* */
@@ -270,7 +285,8 @@ class TileDBVCFDataset {
 
   void open(
       const std::string& uri,
-      const std::vector<std::string>& tiledb_config = {});
+      const std::vector<std::string>& tiledb_config = {},
+      const bool prefetch_data_array_fragment_info = false);
 
   void register_samples(const RegistrationParams& params);
 
@@ -427,7 +443,19 @@ class TileDBVCFDataset {
    */
   std::vector<std::string> get_all_samples_from_vcf_headers() const;
 
+  /**
+   * Get open data array
+   * @return shared_pointer to opened data array
+   */
   std::shared_ptr<tiledb::Array> data_array() const;
+
+  /**
+   * Returns the FragmentInfo for the data array. Fetches fragment info if it
+   * isn't loaded
+   *
+   * @return Data array FragmentInfo
+   */
+  std::shared_ptr<tiledb::FragmentInfo> data_array_fragment_info();
 
   /**
    * Returns if the core tiledb stats are enabled or not
@@ -590,6 +618,26 @@ class TileDBVCFDataset {
    */
   static bool attribute_is_list(const std::string& attr);
 
+  /**
+   * Load the data array fragment info as a background task
+   */
+  void preload_data_array_fragment_info();
+
+  /**
+   *
+   * @return vector of contig and sample start/end list
+   */
+  std::unordered_map<
+      std::pair<std::string, std::string>,
+      std::vector<std::pair<std::string, std::string>>,
+      tiledb::vcf::pair_hash>
+  fragment_contig_sample_list();
+  std::unordered_map<
+      std::pair<std::string, std::string>,
+      std::vector<std::pair<std::string, std::string>>,
+      tiledb::vcf::pair_hash>
+  fragment_contig_sample_list_v4();
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -626,6 +674,16 @@ class TileDBVCFDataset {
   /** Pointer to hold an open data array. This avoid opening the array multiple
    * times in multiple places */
   std::shared_ptr<tiledb::Array> data_array_;
+
+  /** Pointer to hold fragment info for the data array. This lets us fetch it
+   * async. */
+  std::shared_ptr<tiledb::FragmentInfo> data_array_fragment_info_;
+
+  /** Is the fragment info for data array loaded */
+  bool data_array_fragment_info_loaded_;
+
+  /** Mutex for loading data array fragment info */
+  std::mutex data_array_fragment_info_mtx_;
 
   /** TileDB config used for open dataset */
   tiledb::Config cfg_;
@@ -875,6 +933,11 @@ class TileDBVCFDataset {
   void preload_vcf_header_array_non_empty_domain();
   void preload_vcf_header_array_non_empty_domain_v2_v3();
   void preload_vcf_header_array_non_empty_domain_v4();
+
+  /**
+   * Load the data array fragment info
+   */
+  void data_array_fragment_info_load();
 };
 
 }  // namespace vcf

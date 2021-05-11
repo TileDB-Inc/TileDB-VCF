@@ -341,6 +341,7 @@ class Dataset(object):
         scratch_space_size=None,
         record_limit=None,
         sample_batch_size=None,
+        resume=False,
     ):
         """Ingest samples
 
@@ -356,8 +357,9 @@ class Dataset(object):
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
             for downloading remote samples (MB).
-        :param int record_limit Limit the number of VCF records read into memory
+        :param int record_limit: Limit the number of VCF records read into memory
             per file (default 50000)
+        :param bool resume: Whether to check and attempt to resume a partial completed ingestion
         """
 
         if self.mode != "w":
@@ -387,6 +389,9 @@ class Dataset(object):
 
         if sample_batch_size is not None:
             self.writer.set_sample_batch_size(sample_batch_size)
+
+        # set whether to attempt partial sample ingestion resumption
+        self.writer.set_resume(resume)
 
         self.writer.set_samples(",".join(sample_uris))
 
