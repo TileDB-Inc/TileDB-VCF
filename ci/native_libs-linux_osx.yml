@@ -46,7 +46,6 @@ steps:
 
         make -j4
         make -j4 -C libtiledbvcf tiledb_vcf_unit
-        make check
 
         make install-libtiledbvcf
 
