@@ -108,6 +108,10 @@ public class VCFDataSourceReader
       }
     }
 
+    // Check for range/sample indexes
+    Optional<Integer> optionRangePartitionIndex = options.getRangePartitionIndex();
+    Optional<Integer> optionSamplePartitionIndex = options.getSamplePartitionIndex();
+
     // Get number of range partitions (if specified)
     List<String> samples = new ArrayList<>(dedupSamples);
     Optional<Integer> optionRangePartitions = options.getRangePartitions();
@@ -174,11 +178,38 @@ public class VCFDataSourceReader
       }
     }
 
-    // Create Spark input partitions
     List<InputPartition<ColumnarBatch>> inputPartitions =
         new ArrayList<>(numRangePartitions * numSamplePartitions);
-    for (int r = 0; r < numRangePartitions; r++) {
-      for (int s = 0; s < numSamplePartitions; s++) {
+
+    // Initial variables
+    int ranges_start = 0;
+    int samples_start = 0;
+    int ranges_end = numRangePartitions;
+    int samples_end = numSamplePartitions;
+    // If the user sets both the optionRangePartitionIndex and optionSamplePartitionIndex we only
+    // have a single partition
+    if (optionRangePartitionIndex.isPresent() && optionSamplePartitionIndex.isPresent()) {
+      inputPartitions.add(
+          new VCFInputPartition(
+              uri,
+              schema,
+              options,
+              samples,
+              new VCFPartitionInfo(optionRangePartitionIndex.get(), numRangePartitions),
+              new VCFPartitionInfo(optionSamplePartitionIndex.get(), numSamplePartitions)));
+      // Exit early, its only 1 partition
+      return inputPartitions;
+    } else if (optionRangePartitionIndex.isPresent()) {
+      ranges_start = optionRangePartitionIndex.get();
+      ranges_end = optionRangePartitionIndex.get() + 1;
+    } else if (optionSamplePartitionIndex.isPresent()) {
+      samples_start = optionSamplePartitionIndex.get();
+      samples_end = optionSamplePartitionIndex.get() + 1;
+    }
+
+    // Create Spark input partitions
+    for (int r = ranges_start; r < ranges_end; r++) {
+      for (int s = samples_start; s < samples_end; s++) {
         inputPartitions.add(
             new VCFInputPartition(
                 uri,

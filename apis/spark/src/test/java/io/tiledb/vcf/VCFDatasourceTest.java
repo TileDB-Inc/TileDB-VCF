@@ -39,17 +39,15 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
   }
 
   private Dataset<Row> testSampleDataset() {
-    Dataset<Row> dfRead =
-        session()
-            .read()
-            .format("io.tiledb.vcf")
-            .option("uri", testSampleGroupURI("ingested_2samples"))
-            .option("samples", "HG01762,HG00280")
-            .option("ranges", "1:12100-13360,1:13500-17350")
-            .option("tiledb.vfs.num_threads", 1)
-            .option("tiledb_stats_log_level", Level.INFO.toString())
-            .load();
-    return dfRead;
+    return session()
+        .read()
+        .format("io.tiledb.vcf")
+        .option("uri", testSampleGroupURI("ingested_2samples"))
+        .option("samples", "HG01762,HG00280")
+        .option("ranges", "1:12100-13360,1:13500-17350")
+        .option("tiledb.vfs.num_threads", 1)
+        .option("tiledb_stats_log_level", Level.INFO.toString())
+        .load();
   }
 
   @Test
@@ -65,7 +63,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 33l);
+    Assert.assertEquals(numColumns, 33L);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
     Set<String> colNames =
@@ -123,7 +121,7 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead.createOrReplaceTempView("vcf");
 
     long numColumns = spark.sql("SHOW COLUMNS FROM vcf").count();
-    Assert.assertEquals(numColumns, 13l);
+    Assert.assertEquals(numColumns, 13L);
 
     List<Row> colNameList = spark.sql("SHOW COLUMNS FROM vcf").collectAsList();
     Set<String> colNames =
@@ -177,6 +175,80 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     List<Row> rows = dfRead.select("sampleName").collectAsList();
     Assert.assertEquals(10, rows.size());
     Dataset<Row> dfExpected = testSampleDataset();
+    List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
+    for (int i = 0; i < rows.size(); i++) {
+      Assert.assertEquals(rows.get(i).getString(0), expectedRows.get(i).getString(0));
+    }
+  }
+
+  @Test
+  public void testSamplePartitionIndex() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samples", "HG01762,HG00280")
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("sample_partitions", 2)
+            .option("sample_partition_index", 0)
+            .load();
+    Assert.assertEquals(1, dfRead.select("sampleName").rdd().getNumPartitions());
+    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    Assert.assertEquals(7, rows.size());
+    Dataset<Row> dfExpected = testSampleDataset();
+    List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
+    // This works because partitioning size we are grabing the first set of data, so it works to
+    // generically compared to expectedRows which is ALL partitions
+    for (int i = 0; i < rows.size(); i++) {
+      Assert.assertEquals(rows.get(i).getString(0), expectedRows.get(i).getString(0));
+    }
+  }
+
+  @Test
+  public void testRangePartitionIndex() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samples", "HG01762,HG00280")
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("range_partitions", 2)
+            .option("range_partition_index", 0)
+            .load();
+    Assert.assertEquals(1, dfRead.select("sampleName").rdd().getNumPartitions());
+    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    Assert.assertEquals(6, rows.size());
+    Dataset<Row> dfExpected = testSampleDataset();
+    // This works because partitioning size we are grabing the first set of data, so it works to
+    // generically compared to expectedRows which is ALL partitions
+    List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
+    for (int i = 0; i < rows.size(); i++) {
+      Assert.assertEquals(rows.get(i).getString(0), expectedRows.get(i).getString(0));
+    }
+  }
+
+  @Test
+  public void testRangeAndSamplePartitionIndex() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samples", "HG01762,HG00280")
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("range_partitions", 2)
+            .option("range_partition_index", 0)
+            .option("sample_partitions", 2)
+            .option("sample_partition_index", 0)
+            .load();
+    Assert.assertEquals(1, dfRead.select("sampleName").rdd().getNumPartitions());
+    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    Assert.assertEquals(3, rows.size());
+    Dataset<Row> dfExpected = testSampleDataset();
+    // This works because partitioning size we are grabing the first set of data, so it works to
+    // generically compared to expectedRows which is ALL partitions
     List<Row> expectedRows = dfRead.select("sampleName").collectAsList();
     for (int i = 0; i < rows.size(); i++) {
       Assert.assertEquals(rows.get(i).getString(0), expectedRows.get(i).getString(0));

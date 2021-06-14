@@ -100,10 +100,26 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Optional range partition index for running single partition */
+  public Optional<Integer> getRangePartitionIndex() {
+    if (options.containsKey("range_partition_index")) {
+      return Optional.of(Integer.parseInt(options.get("range_partition_index")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional number of sample partitions */
   public Optional<Integer> getSamplePartitions() {
     if (options.containsKey("sample_partitions")) {
       return Optional.of(Integer.parseInt(options.get("sample_partitions")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return Optional sample partition index for running single partition */
+  public Optional<Integer> getSamplePartitionIndex() {
+    if (options.containsKey("sample_partition_index")) {
+      return Optional.of(Integer.parseInt(options.get("sample_partition_index")));
     }
     return Optional.empty();
   }
