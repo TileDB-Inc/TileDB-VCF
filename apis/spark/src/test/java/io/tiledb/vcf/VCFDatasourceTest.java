@@ -679,4 +679,28 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     dfRead = dfRead.withColumn("fmt_map", callUDF("fmt_to_map", dfRead.col("fmt")));
     dfRead.select("fmt_map").show(10, false);
   }
+
+  @Test
+  public void testDebugOptions() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("tiledb.vfs.num_threads", 1)
+            .option("debug.print_vcf_regions", true)
+            .option("debug.print_sample_list", true)
+            .option("debug.print_tiledb_query_ranges", true)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
+    Assert.assertEquals(3, rows.size());
+    Assert.assertEquals(rows.get(0).getString(0), "HG01762");
+    Assert.assertEquals(rows.get(1).getString(0), "HG01762");
+    Assert.assertEquals(rows.get(2).getString(0), "HG01762");
+  }
 }

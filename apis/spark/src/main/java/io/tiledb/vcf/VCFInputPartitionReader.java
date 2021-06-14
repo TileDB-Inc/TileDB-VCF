@@ -306,7 +306,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setVerbose(verbose.get());
     }
 
-    // Set eableProgressEstimation
+    // Set enableProgressEstimation
     Optional<Boolean> enableProgressEstimation = options.getEnableProgressEstimation();
     if (enableProgressEstimation.isPresent()) {
       vcfReader.setEnableProgressEstimation(enableProgressEstimation.get());
@@ -322,6 +322,24 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     Optional<Float> tiledbTileCachePercentage = options.getTileDBTileCachePercentage();
     if (tiledbTileCachePercentage.isPresent()) {
       vcfReader.setTileDBTileCachePercentage(tiledbTileCachePercentage.get());
+    }
+
+    // Set debugPrintVCFRegions
+    Optional<Boolean> debugPrintVCFRegions = options.getDebugPrintVCFRegions();
+    if (debugPrintVCFRegions.isPresent()) {
+      vcfReader.setDebugPrintVCFRegions(debugPrintVCFRegions.get());
+    }
+
+    // Set debugPrintSampleList
+    Optional<Boolean> debugPrintSampleList = options.getDebugPrintSampleList();
+    if (debugPrintSampleList.isPresent()) {
+      vcfReader.setDebugPrintSampleList(debugPrintSampleList.get());
+    }
+
+    // Set debugPrintTileDBQueryRanges
+    Optional<Boolean> debugPrintTileDBQueryRanges = options.getDebugPrintTileDBQueryRanges();
+    if (debugPrintTileDBQueryRanges.isPresent()) {
+      vcfReader.setDebugPrintTileDBQueryRanges(debugPrintTileDBQueryRanges.get());
     }
 
     // Enable VCFReader stats

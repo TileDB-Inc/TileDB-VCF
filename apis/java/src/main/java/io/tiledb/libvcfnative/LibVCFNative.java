@@ -134,5 +134,14 @@ public class LibVCFNative {
   public static final native String tiledb_vcf_version();
 
   public static final native int tiledb_vcf_reader_set_enable_progress_estimation(
-      long readerPtr, boolean enable_progress_estimation);
+      long readerPtr, boolean enableProgressEstimation);
+
+  public static final native int tiledb_vcf_reader_set_debug_print_vcf_regions(
+      long readerPtr, boolean printVCFRegions);
+
+  public static final native int tiledb_vcf_reader_set_debug_print_sample_list(
+      long readerPtr, boolean printSampleList);
+
+  public static final native int tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
+      long readerPtr, boolean printTileDBQueryRanges);
 }

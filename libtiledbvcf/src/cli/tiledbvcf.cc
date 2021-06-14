@@ -548,7 +548,19 @@ int main(int argc, char** argv) {
                .set(export_args.enable_progress_estimation) %
            "Enable progress estimation in verbose mode. Progress estimation "
            "can sometimes cause a performance impact, so enable this with "
-           "consideration.");
+           "consideration.",
+       option("--debug-print-vcf-regions")
+               .set(export_args.debug_params.print_vcf_regions) %
+           "Enable debug printing of vcf region passed by user or bed file. "
+           "Requires verbose mode",
+       option("--debug-print-sample-list")
+               .set(export_args.debug_params.print_sample_list) %
+           "Enable debug printing of sample list used in read. Requires "
+           "verbose mode",
+       option("--debug-print-tiledb-query-ranges")
+               .set(export_args.debug_params.print_tiledb_query_ranges) %
+           "Enable debug printing of tiledb query ranges used in read. "
+           "Requires verbose mode");
 
   ListParams list_args;
   auto list_mode =

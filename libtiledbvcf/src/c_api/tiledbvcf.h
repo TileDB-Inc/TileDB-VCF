@@ -928,6 +928,30 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_reset_buffers(tiledb_vcf_reader_t* reader);
 
 /**
+ * Sets if the reader print vcf regions in verbose mode
+ * @param reader VCF reader object
+ * @param print_vcf_regions setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_debug_print_vcf_regions(
+    tiledb_vcf_reader_t* reader, bool print_vcf_regions);
+
+/**
+ * Sets if the reader print sample list in verbose mode
+ * @param reader VCF reader object
+ * @param print_sample_list setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_debug_print_sample_list(
+    tiledb_vcf_reader_t* reader, bool print_sample_list);
+
+/**
+ * Sets if the reader print TileDB query ranges in verbose mode
+ * @param reader VCF reader object
+ * @param print_vcf_regions setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
+    tiledb_vcf_reader_t* reader, bool print_tiledb_query_ranges);
+
+/**
  * Gets the last error from the reader object. Don't forget to free the error
  * object.
  *

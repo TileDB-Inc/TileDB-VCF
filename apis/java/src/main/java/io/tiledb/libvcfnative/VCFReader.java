@@ -571,6 +571,38 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setDebugPrintVCFRegions(boolean debugPrintVCFRegions) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_debug_print_vcf_regions(
+            this.readerPtr, debugPrintVCFRegions);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting debugPrintVCFRegions: " + msg);
+    }
+    return this;
+  }
+
+  public VCFReader setDebugPrintSampleList(boolean printSampleList) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_debug_print_sample_list(this.readerPtr, printSampleList);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting printSampleList: " + msg);
+    }
+    return this;
+  }
+
+  public VCFReader setDebugPrintTileDBQueryRanges(boolean printTileDBQueryRanges) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
+            this.readerPtr, printTileDBQueryRanges);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting printTileDBQueryRanges: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {

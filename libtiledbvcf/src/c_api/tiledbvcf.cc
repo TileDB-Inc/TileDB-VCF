@@ -802,6 +802,46 @@ int32_t tiledb_vcf_reader_set_check_samples_exist(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_debug_print_vcf_regions(
+    tiledb_vcf_reader_t* reader, const bool print_vcf_regions) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_debug_print_vcf_regions(print_vcf_regions)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_debug_print_sample_list(
+    tiledb_vcf_reader_t* reader, const bool print_sample_list) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_debug_print_sample_list(print_sample_list)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
+    tiledb_vcf_reader_t* reader, const bool print_tiledb_query_ranges) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_debug_print_tiledb_query_ranges(
+              print_tiledb_query_ranges)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */

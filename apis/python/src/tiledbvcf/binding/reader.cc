@@ -585,4 +585,19 @@ void Reader::set_enable_progress_estimation(const bool& enable_progress_estimati
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_enable_progress_estimation(reader, enable_progress_estimation));
 }
+
+void Reader::set_debug_print_vcf_regions(const bool& print_vcf_regions) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_debug_print_vcf_regions(reader, print_vcf_regions));
+}
+
+void Reader::set_debug_print_sample_list(const bool& print_sample_list) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_debug_print_sample_list(reader, print_sample_list));
+}
+
+void Reader::set_debug_print_tiledb_query_ranges(const bool& tiledb_query_ranges) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(reader, tiledb_query_ranges));
+}
 }  // namespace tiledbvcfpy
