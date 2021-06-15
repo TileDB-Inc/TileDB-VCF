@@ -408,6 +408,45 @@ void Reader::init_for_reads_v2() {
   prepare_regions_v2(&read_state_.regions, &read_state_.query_regions);
 
   prepare_attribute_buffers();
+
+  if (params_.verbose) {
+    if (params_.debug_params.print_vcf_regions) {
+      std::stringstream debug_region_list;
+      debug_region_list << "[";
+      for (uint64_t i = 0; i < read_state_.regions.size(); i++) {
+        const auto& region = read_state_.regions[i];
+        debug_region_list << '"' << region.seq_name << ":" << region.min << "-"
+                          << region.max << '"';
+        if (i < read_state_.regions.size() - 1)
+          debug_region_list << ", ";
+      }
+      debug_region_list << "]";
+      std::cout << "vcf regions:" << std::endl
+                << debug_region_list.str() << std::endl;
+    }
+    // If debug build json list of list of samples batches
+    if (params_.debug_params.print_sample_list) {
+      std::stringstream debug_sample_list;
+      debug_sample_list << "[";
+      for (unsigned i = 0; i < read_state_.sample_batches.size(); i++) {
+        std::stringstream val_strstr;
+        val_strstr << "[";
+        for (unsigned j = 0; j < read_state_.sample_batches[i].size(); j++) {
+          val_strstr << '"' << read_state_.sample_batches[i][j].sample_id
+                     << '"';
+          if (i < read_state_.sample_batches[i].size() - 1)
+            val_strstr << ", ";
+        }
+        val_strstr << "]";
+        debug_sample_list << val_strstr.str();
+        if (i < read_state_.sample_batches.size() - 1)
+          debug_sample_list << ", ";
+      }
+      debug_sample_list << "]";
+      std::cout << "sample list:" << std::endl
+                << debug_sample_list.str() << std::endl;
+    }
+  }
 }
 
 void Reader::init_for_reads_v3() {
@@ -421,6 +460,45 @@ void Reader::init_for_reads_v3() {
   prepare_regions_v3(&read_state_.regions, &read_state_.query_regions);
 
   prepare_attribute_buffers();
+
+  if (params_.verbose) {
+    if (params_.debug_params.print_vcf_regions) {
+      std::stringstream debug_region_list;
+      debug_region_list << "[";
+      for (uint64_t i = 0; i < read_state_.regions.size(); i++) {
+        const auto& region = read_state_.regions[i];
+        debug_region_list << '"' << region.seq_name << ":" << region.min << "-"
+                          << region.max << '"';
+        if (i < read_state_.regions.size() - 1)
+          debug_region_list << ", ";
+      }
+      debug_region_list << "]";
+      std::cout << "vcf regions:" << std::endl
+                << debug_region_list.str() << std::endl;
+    }
+    // If debug build json list of list of samples batches
+    if (params_.debug_params.print_sample_list) {
+      std::stringstream debug_sample_list;
+      debug_sample_list << "[";
+      for (unsigned i = 0; i < read_state_.sample_batches.size(); i++) {
+        std::stringstream val_strstr;
+        val_strstr << "[";
+        for (unsigned j = 0; j < read_state_.sample_batches[i].size(); j++) {
+          val_strstr << '"' << read_state_.sample_batches[i][j].sample_id
+                     << '"';
+          if (i < read_state_.sample_batches[i].size() - 1)
+            val_strstr << ", ";
+        }
+        val_strstr << "]";
+        debug_sample_list << val_strstr.str();
+        if (i < read_state_.sample_batches.size() - 1)
+          debug_sample_list << ", ";
+      }
+      debug_sample_list << "]";
+      std::cout << "sample list:" << std::endl
+                << debug_sample_list.str() << std::endl;
+    }
+  }
 }
 
 void Reader::init_for_reads_v4() {
@@ -437,6 +515,45 @@ void Reader::init_for_reads_v4() {
       &read_state_.regions_index_per_contig,
       &read_state_.query_regions_v4);
   prepare_attribute_buffers();
+
+  if (params_.verbose) {
+    if (params_.debug_params.print_vcf_regions) {
+      std::stringstream debug_region_list;
+      debug_region_list << "[";
+      for (uint64_t i = 0; i < read_state_.regions.size(); i++) {
+        const auto& region = read_state_.regions[i];
+        debug_region_list << '"' << region.seq_name << ":" << region.min << "-"
+                          << region.max << '"';
+        if (i < read_state_.regions.size() - 1)
+          debug_region_list << ", ";
+      }
+      debug_region_list << "]";
+      std::cout << "vcf regions:" << std::endl
+                << debug_region_list.str() << std::endl;
+    }
+    // If debug build json list of list of samples batches
+    if (params_.debug_params.print_sample_list) {
+      std::stringstream debug_sample_list;
+      debug_sample_list << "[";
+      for (unsigned i = 0; i < read_state_.sample_batches.size(); i++) {
+        std::stringstream val_strstr;
+        val_strstr << "[";
+        for (unsigned j = 0; j < read_state_.sample_batches[i].size(); j++) {
+          val_strstr << '"' << read_state_.sample_batches[i][j].sample_name
+                     << '"';
+          if (i < read_state_.sample_batches[i].size() - 1)
+            val_strstr << ',';
+        }
+        val_strstr << "]";
+        debug_sample_list << val_strstr.str();
+        if (i < read_state_.sample_batches.size() - 1)
+          debug_sample_list << ", ";
+      }
+      debug_sample_list << "]";
+      std::cout << "sample list:" << std::endl
+                << debug_sample_list.str() << std::endl;
+    }
+  }
 }
 
 bool Reader::next_read_batch() {
@@ -507,12 +624,34 @@ bool Reader::next_read_batch_v2_v3() {
   set_tiledb_query_config();
 
   // Set ranges
-  for (const auto& sample : read_state_.current_sample_batches)
+  std::stringstream debug_ranges;
+  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    debug_ranges << std::endl << "sample ids:" << std::endl;
+  }
+  for (const auto& sample : read_state_.current_sample_batches) {
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-  for (const auto& query_region : read_state_.query_regions)
+    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      debug_ranges << "[" << sample.sample_id << ", " << sample.sample_id << "]"
+                   << std::endl;
+    }
+  }
+  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    debug_ranges << std::endl << "regions:" << std::endl;
+  }
+  for (const auto& query_region : read_state_.query_regions) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      debug_ranges << "[" << query_region.col_min << ", "
+                   << query_region.col_max << "]" << std::endl;
+    }
+  }
+
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
+    if (params_.debug_params.print_tiledb_query_ranges) {
+      std::cout << "query_ranges:" << std::endl
+                << debug_ranges.str() << std::endl;
+    }
     std::cout << "Initialized TileDB query with "
               << read_state_.query_regions.size() << " start_pos ranges, "
               << read_state_.current_sample_batches.size() << " sample ranges."
@@ -631,6 +770,11 @@ bool Reader::next_read_batch_v4() {
   set_tiledb_query_config();
 
   // Set ranges
+  std::stringstream debug_ranges;
+  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    debug_ranges << std::endl << "samples:" << std::endl;
+  }
+
   // For samples we special case when we are looking at all samples. If so we
   // just need to set one range with the start/end sample id
   if (read_state_.all_samples) {
@@ -639,6 +783,10 @@ bool Reader::next_read_batch_v4() {
           TileDBVCFDataset::DimensionNames::V4::sample);
       read_state_.query->add_range(
           2, non_empty_domain.first, non_empty_domain.second);
+      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+        debug_ranges << "[" << non_empty_domain.first << ", "
+                     << non_empty_domain.second << "]" << std::endl;
+      }
     } else {
       // if we have all samples but are partitioning we need to only use the
       // first/last sample of the partition partitions are sorted both globally
@@ -650,25 +798,65 @@ bool Reader::next_read_batch_v4() {
               .current_sample_batches
                   [read_state_.current_sample_batches.size() - 1]
               .sample_name);
+      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+        debug_ranges << "[" << read_state_.current_sample_batches[0].sample_name
+                     << ", "
+                     << read_state_
+                            .current_sample_batches
+                                [read_state_.current_sample_batches.size() - 1]
+                            .sample_name
+                     << "]" << std::endl;
+      }
     }
   } else {
     // If we are not exporting all samples add the current partition/batch's
     // list
-    for (const auto& sample : read_state_.current_sample_batches)
+    for (const auto& sample : read_state_.current_sample_batches) {
       read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+        debug_ranges << "[" << sample.sample_name << ", " << sample.sample_name
+                     << "]" << std::endl;
+      }
+    }
   }
 
+  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    debug_ranges << std::endl << "regions:" << std::endl;
+  }
   for (const auto& query_region :
-       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].second)
+       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+           .second) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      debug_ranges << "[" << query_region.col_min << ", "
+                   << query_region.col_max << "]" << std::endl;
+    }
+  }
 
   read_state_.query->add_range(
       0,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
+  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    debug_ranges << std::endl << "contigs:" << std::endl;
+    debug_ranges << "["
+                 << read_state_
+                        .query_regions_v4[read_state_.query_contig_batch_idx]
+                        .first
+                 << ", "
+                 << read_state_
+                        .query_regions_v4[read_state_.query_contig_batch_idx]
+                        .first
+                 << "]" << std::endl;
+  }
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (params_.verbose) {
+    if (params_.debug_params.print_tiledb_query_ranges) {
+      std::cout << "query_ranges:" << std::endl
+                << debug_ranges.str() << std::endl;
+    }
+
     std::stringstream ss;
     ss << "Initialized TileDB query with "
        << read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
@@ -2288,6 +2476,19 @@ void Reader::set_enable_progress_estimation(
   std::cout << "setting enable_progress_estimation to "
             << enable_progress_estimation << std::endl;
   params_.enable_progress_estimation = enable_progress_estimation;
+}
+
+void Reader::set_debug_print_vcf_regions(const bool print_vcf_regions) {
+  params_.debug_params.print_vcf_regions = print_vcf_regions;
+}
+
+void Reader::set_debug_print_sample_list(const bool print_sample_list) {
+  params_.debug_params.print_sample_list = print_sample_list;
+}
+
+void Reader::set_debug_print_tiledb_query_ranges(
+    const bool print_tiledb_query_ranges) {
+  params_.debug_params.print_tiledb_query_ranges = print_tiledb_query_ranges;
 }
 
 }  // namespace vcf

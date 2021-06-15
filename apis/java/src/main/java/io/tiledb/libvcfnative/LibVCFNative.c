@@ -805,3 +805,42 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
     return rc;
 }
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1vcf_1regions
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printVCFRegions) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int32_t rc = tiledb_vcf_reader_set_debug_print_vcf_regions(reader, printVCFRegions);
+
+    return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1sample_1list
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printSampleList) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int32_t rc = tiledb_vcf_reader_set_debug_print_sample_list(reader, printSampleList);
+
+    return rc;
+}
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1tiledb_1query_1ranges
+  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printTileDBQueryRanges) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int32_t rc = tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(reader, printTileDBQueryRanges);
+
+    return rc;
+}

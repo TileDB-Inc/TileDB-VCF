@@ -67,6 +67,17 @@ struct MemoryBudgetBreakdown {
   float tile_cache_percentage = 10;
 };
 
+struct DebugParams {
+  // Print out tiledb query range
+  bool print_tiledb_query_ranges = false;
+
+  // Print regions from bedfile or user passed
+  bool print_vcf_regions = false;
+
+  // Print user set sample list
+  bool print_sample_list = false;
+};
+
 /** Arguments/params for export. */
 struct ExportParams {
   // Basic export params:
@@ -109,6 +120,9 @@ struct ExportParams {
   // complete? This is useful when you want verbose but not the performance
   // impact.
   bool enable_progress_estimation = false;
+
+  // Debug parameters for optional debug information
+  struct DebugParams debug_params;
 };
 
 /* ********************************* */
@@ -394,6 +408,24 @@ class Reader {
    * @param check_samples_exist
    */
   void set_check_samples_exist(const bool check_samples_exist);
+
+  /**
+   * Set if vcf regions should be printed in verbose mode
+   * @param print_vcf_regions
+   */
+  void set_debug_print_vcf_regions(bool print_vcf_regions);
+
+  /**
+   * Set if sample list should be printed in verbose mode
+   * @param print_sample_list
+   */
+  void set_debug_print_sample_list(bool print_sample_list);
+
+  /**
+   * Set if TileDB query ranges should be printed in verbose mode
+   * @param print_tiledb_query_ranges
+   */
+  void set_debug_print_tiledb_query_ranges(bool print_tiledb_query_ranges);
 
  private:
   /* ********************************* */

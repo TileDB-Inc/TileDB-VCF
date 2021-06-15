@@ -177,10 +177,34 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
-  /** @return If progress estimation in verbose mode should be disabled */
+  /** @return If progress estimation in verbose mode should be enabled */
   public Optional<Boolean> getEnableProgressEstimation() {
     if (options.containsKey("enable_progress_estimation")) {
       return Optional.of(Boolean.parseBoolean(options.get("enable_progress_estimation")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return If reader should print vcf regions in verbose mode */
+  public Optional<Boolean> getDebugPrintVCFRegions() {
+    if (options.containsKey("debug.print_vcf_regions")) {
+      return Optional.of(Boolean.parseBoolean(options.get("debug.print_vcf_regions")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return If reader should print vcf sample list in verbose mode */
+  public Optional<Boolean> getDebugPrintSampleList() {
+    if (options.containsKey("debug.print_sample_list")) {
+      return Optional.of(Boolean.parseBoolean(options.get("debug.print_sample_list")));
+    }
+    return Optional.empty();
+  }
+
+  /** @return If reader should print TileDB query ranges in verbose mode */
+  public Optional<Boolean> getDebugPrintTileDBQueryRanges() {
+    if (options.containsKey("debug.print_tiledb_query_ranges")) {
+      return Optional.of(Boolean.parseBoolean(options.get("debug.print_tiledb_query_ranges")));
     }
     return Optional.empty();
   }

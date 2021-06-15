@@ -153,6 +153,15 @@ class Reader {
   /** Set disable progress estimation */
   void set_enable_progress_estimation(const bool& enable_progress_estimation);
 
+  /** Set print vcf regions in verbose mode */
+  void set_debug_print_vcf_regions(const bool& print_vcf_regions);
+
+  /** Set print sample list in verbose mode */
+  void set_debug_print_sample_list(const bool& print_sample_list);
+
+  /** Set print TileDB query ranges in verbose mode */
+  void set_debug_print_tiledb_query_ranges(const bool& tiledb_query_ranges);
+
  private:
   /** Buffer struct to hold attribute data read from the dataset. */
   struct BufferInfo {
