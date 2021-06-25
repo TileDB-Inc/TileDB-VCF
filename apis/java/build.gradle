@@ -112,6 +112,7 @@ task cmakeNativeLibTask(type: Exec) {
     if (project.hasProperty("DOWNLOAD_TILEDB_PREBUILT")) {
         buildArgs.add("-DDOWNLOAD_TILEDB_PREBUILT=${project.property('DOWNLOAD_TILEDB_PREBUILT')}")
     }
+    buildArgs.add("-DCMAKE_BUILD_TYPE=${project.property('CMAKE_BUILD_TYPE')}")
     buildArgs.add("..")
 
     args buildArgs
