@@ -108,9 +108,6 @@ struct ExportParams {
   uint64_t memory_budget_mb = 2 * 1024;
   MemoryBudgetBreakdown memory_budget_breakdown;
 
-  // Size in bytes at which if the buffers are larger we will double buffer
-  uint64_t double_buffering_threshold = 200 * 1024 * 1024;
-
   // Should we check that the sample names passed for export exist in the array
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
@@ -521,9 +518,6 @@ class Reader {
     /** Struct containing query results from last TileDB query. */
     ReadQueryResults query_results;
 
-    /** Future status, used for making the TileDB queries asynchronously. */
-    std::future<tiledb::Query::Status> async_query;
-
     /**
      * Current index of cell being processed in query results. Used to support
      * resuming incomplete reads.
@@ -562,12 +556,6 @@ class Reader {
 
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_a;
-
-  /** Set of attribute buffers holding TileDB query results. */
-  std::unique_ptr<AttributeBufferSet> buffers_b;
-
-  /** Indicates if we are double buffering or not. */
-  bool double_buffering_ = true;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */
