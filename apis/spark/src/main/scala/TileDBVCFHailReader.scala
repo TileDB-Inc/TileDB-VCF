@@ -50,6 +50,7 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     else Array[String]()
   }
 
+  // The default record type (schema).
   val entryType = TStruct(
     "AD" -> TArray(PInt32().virtualType),
     "DP" -> PInt32().virtualType,
@@ -61,6 +62,7 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
 
   val vcfReader: VCFReader = new VCFReader(uri, sampleList, Optional.empty(), Optional.empty())
 
+  // Parse the INFO attributes from the TileDB VCF Reader and map to Hail data types
   val info = vcfReader.infoAttributes.keySet.toArray.map{ infoAttr =>
     val key = infoAttr.toString
     val dt = {
@@ -83,6 +85,7 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     PField("qual", PFloat64(), 1),
     PField("filters", PCanonicalSet(PCanonicalString(true)), 2)), true)
 
+  // Defines the full (default) matrix type
   val fullMatrixType: MatrixType = MatrixType(
     globalType = TStruct.empty,
     colType = TStruct("s" -> TString),
@@ -93,15 +96,26 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     rowKey = Array("locus", "alleles"),
     entryType = entryType)
 
+  /***
+   * Transforms an input [[TableRead]] to the corresponding [[TableValue]]
+   * @param tr The input [[TableRead]] instalce
+   * @param ctx The Hail [[ExecuteContext]]
+   * @return The output [[TableValue]] instance
+   */
   override def apply(tr: TableRead, ctx: ExecuteContext): TableValue = {
+    println("\n\n\nI am calling apply now!!!!\n\n\n")
+    // The requested type defines the requested row schema
     val requestedType = tr.typ
-    val rowType = tr.typ.rowType
+    val rowType = requestedType.rowType
 
+    // Based on the rquested rowType we contruct the corresponding entryType (output record schema)
     val entryType: TStruct = rowType.fieldOption(LowerMatrixIR.entriesFieldName) match {
       case Some(entriesArray) => entriesArray.typ.asInstanceOf[TArray].elementType.asInstanceOf[TStruct]
       case None => TStruct.empty
     }
 
+    // Check if a Spark Dataframe is provided by the user. If not, create one based on the
+    // uri and the input sample list
     if (df == null) {
       df = ctx.backend.asSpark("spark")
         .sparkSession.read
@@ -116,6 +130,8 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     //        functions.collect_list("fmt_DP").as("DP"),
     //        functions.collect_list("fmt_PL").as("PL"))
 
+
+    // Transform the input Dataframe column names (FORMAT fields) to match Hail field names
     var projection = df
       .withColumnRenamed("fmt_AD", "AD")
       .withColumnRenamed("fmt_DP", "DP")
@@ -125,14 +141,15 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
       .withColumnRenamed("fmt_PL", "PL")
       .withColumnRenamed("fmt_SB", "SB")
 
-
+    // Those are the minimum TileDB-VCF columns that we need, in order to construct the
+    // loci and alleles columns of the output table. Each locus is a (contig, posStart) pair.
     var columns = Seq[String]("contig", "posStart", "alleles")
 
     // Construct a map of info fields and row indices
     var idx = 3
     val infoFieldIdx: mutable.HashMap[String, Int] = mutable.HashMap()
 
-    // Check if the row has an "info" field
+    // Check if the row has any "info" fields
     val hasInfo = rowType.hasField("info")
     val infoFieldNames = info.map(_._1)
     if (hasInfo) {
