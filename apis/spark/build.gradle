@@ -85,6 +85,9 @@ task makeVCFJava(type: Exec) {
     if (project.hasProperty("DOWNLOAD_TILEDB_PREBUILT")) {
         args "-PDOWNLOAD_TILEDB_PREBUILT=${project.property('DOWNLOAD_TILEDB_PREBUILT')}"
     }
+    if (project.hasProperty("CMAKE_BUILD_TYPE")) {
+        args "-PCMAKE_BUILD_TYPE=${project.property('CMAKE_BUILD_TYPE')}"
+    }
 }
 
 task format(type: GoogleJavaFormat) {
