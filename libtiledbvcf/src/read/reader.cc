@@ -988,6 +988,9 @@ bool Reader::read_current_batch() {
 
   do {
     // Block on query completion.
+    if (!read_state_.async_query.valid()) {
+      throw std::runtime_error("TileDB Query future unexpectedly not valid");
+    }
     auto query_status = read_state_.async_query.get();
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
 
