@@ -198,6 +198,9 @@ void do_register(const RegistrationParams& args) {
 
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
+  if (args.verbose) {
+    std::cout << utils::version_info() << std::endl;
+  }
   Writer writer;
   writer.set_all_params(args);
   writer.ingest_samples();
@@ -212,6 +215,9 @@ void do_store(const IngestionParams& args) {
 
 /** Export. */
 void do_export(const ExportParams& args) {
+  if (args.verbose) {
+    std::cout << utils::version_info() << std::endl;
+  }
   Reader reader;
   reader.set_all_params(args);
   reader.open_dataset(args.uri);
