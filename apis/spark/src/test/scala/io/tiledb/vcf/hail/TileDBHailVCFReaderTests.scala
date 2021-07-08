@@ -33,7 +33,7 @@ class TileDBHailVCFReaderTests {
   val ctx = new ExecuteContext("/tmp", "file:///tmp", hc.backend,
     new HadoopFS(new SerializableHadoopConfiguration(new Configuration)),
     Region.apply(Region.REGULAR, RegionPool.apply(false)),
-    new ExecutionTimer("HailSuite"))
+    new ExecutionTimer("HailSuite"), null)
 
   private def testTileDBVCFURI(sampleGroupName: String) = {
     val arraysPath = Paths.get("src", "test", "resources", sampleGroupName)

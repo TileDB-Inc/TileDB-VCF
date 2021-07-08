@@ -68,7 +68,7 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
             hc.backend(),
             new HadoopFS(new SerializableHadoopConfiguration(new Configuration())),
             Region.apply(Region.REGULAR(), RegionPool.apply(false)),
-            new ExecutionTimer("HailSuite"));
+            new ExecutionTimer("HailSuite"), null);
 
     // Test with sample HG01762
     String sample = "HG01762";
