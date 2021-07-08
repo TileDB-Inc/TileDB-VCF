@@ -143,7 +143,7 @@ steps:
     if [[ "$BUILD_SPARK_API" == "ON" ]]; then
       pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
 
-      git clone -b victorgiannakouris/tiledbvcf-integration https://github.com/TileDB-Inc/hail.git
+      git clone -b victorgiannakouris/hail-0.2.64-maven-local https://github.com/TileDB-Inc/hail.git
       cd hail/hail && ./gradlew assemble && ./gradlew publishToMavenLocal && cd ../..
 
       ./gradlew assemble
