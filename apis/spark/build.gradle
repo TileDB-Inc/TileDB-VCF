@@ -81,6 +81,8 @@ test {
         showStandardStreams true
     }
 
+    maxHeapSize = "4g"
+
     finalizedBy('testNG')
 }
 
