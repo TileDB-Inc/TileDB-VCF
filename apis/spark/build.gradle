@@ -81,14 +81,13 @@ test {
         showStandardStreams true
     }
 
-    maxHeapSize = "4g"
+    maxHeapSize = "8g"
 
     finalizedBy('testNG')
 }
 
 task testNG(type: Test) {
     useTestNG() {
-//        suites 'testng.xml'
     }
 
     testLogging {
