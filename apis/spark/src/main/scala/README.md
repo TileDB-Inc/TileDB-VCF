@@ -11,7 +11,20 @@ Given a `TableReader` instance, this is the method that Hail invokes in order to
 and then return the corresponding `TableValue`. The `TableRead`, contains the VCF file and its requested schema 
 (i.e. which INFO/FORMAT fields are requested).
 
+### The `appy()` method
+The `apply()` method is the most important part of our implementation, as it takes as input a `TableRead`, does the
+required transformations according to the input requested schema. Based on the input `TableRead`, we extract and store
+the requested row type in the `rowType` variable.
 
+Next, we load the input TileDB-VCF array using TileDB-VCF Spark. We load the input VCF TileDB array into the `df` 
+variable as a Spark Dataframe. Next, we transform the Dataframe's column names of all the format (`fmt_*`) attributes
+using aliases (`withColumnRenamed()` method). For example, the `fmt_DP` attribute becomes `DP`, the `fmt_PL` becomes
+`PL` and so on. We do that in order to match Hail's attribute names and project the only requested attributes included
+in the input `TableRead`.
+
+#### Reading the basic attributes (locus, alleles)
+Next, we read the basic TileDB attributes, namely `contig`, `posStart` and `alleles`. We read those three in order to
+construct the locus (a `(contig, postStart)` pair) alleles fields in the Matirx Table.
 
 
 ## Python End-to-End Example

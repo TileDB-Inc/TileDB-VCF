@@ -80,6 +80,9 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     (infoAttr.toString.split("_")(1) -> dt.virtualType)
   }
 
+  // Close the VCFReader
+  vcfReader.close()
+
   val vaSignature = PCanonicalStruct(Array(
     PField("rsid", PCanonicalString(), 0),
     PField("qual", PFloat64(), 1),
@@ -103,7 +106,6 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
    * @return The output [[TableValue]] instance
    */
   override def apply(tr: TableRead, ctx: ExecuteContext): TableValue = {
-    println("\n\n\nI am calling apply now!!!!\n\n\n")
     // The requested type defines the requested row schema
     val requestedType = tr.typ
     val rowType = requestedType.rowType
