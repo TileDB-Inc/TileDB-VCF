@@ -168,7 +168,7 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
         var rowFields = Seq(locus, alleles)
 
         if (hasRsid)
-          rowFields = rowFields :+ s"empty_rsid_${System.nanoTime()}"
+          rowFields = rowFields :+ ""
         if (hasQual)
           rowFields = rowFields :+ 0.0
         if (hasFilter)
@@ -245,15 +245,13 @@ object TileDBHailVCFReader {
   }
 
   def build(uri: String, samples: Option[String]): TileDBHailVCFReader = {
-    val reader = new TileDBHailVCFReader
-    reader.uri = uri
-    reader.samples = samples
+    val reader = new TileDBHailVCFReader(uri, samples)
 
     reader
   }
 
-  def build(df: DataFrame): TileDBHailVCFReader = {
-    val reader = new TileDBHailVCFReader()
+  def build(df: DataFrame, uri: String, samples: Option[String]): TileDBHailVCFReader = {
+    val reader = new TileDBHailVCFReader(uri, samples)
     reader.df = df
 
     reader
