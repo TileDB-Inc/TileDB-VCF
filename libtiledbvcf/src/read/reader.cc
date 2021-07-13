@@ -43,12 +43,11 @@ Reader::Reader() {
 }
 
 Reader::~Reader() {
-  if (read_state_.async_query.valid()) {
+  if (ctx_ != nullptr) {
     // We must wait for the inflight query to finish before we destroy
     // everything. If we don't its possible to delete the buffers in the middle
     // of an active query
     ctx_->cancel_tasks();
-    read_state_.async_query.wait();
   }
 
   utils::free_htslib_tiledb_context();
@@ -337,7 +336,6 @@ void Reader::read() {
     case ReadStatus::FAILED:
       // Reset buffers as the are no longer needed
       buffers_a.reset(nullptr);
-      buffers_b.reset(nullptr);
       return;
     case ReadStatus::INCOMPLETE:
       // Do nothing; read will resume.
@@ -970,25 +968,32 @@ bool Reader::read_current_batch() {
   // If a past TileDB query was in-flight (from incomplete reads) and  B buffers
   // are not null indicating we are double buffers, it was using the B buffers,
   // so start off with that. Otherwise, submit a new async query.
-  if (double_buffering_ && read_state_.async_query.valid()) {
-    std::swap(buffers_a, buffers_b);
-  } else {
-    buffers_a->set_buffers(query, dataset_->metadata().version);
-    read_state_.async_query =
-        std::async(std::launch::async, [query, verbose]() {
-          auto t0 = std::chrono::steady_clock::now();
-          auto st = query->submit();
-          if (verbose) {
-            std::cout << "query completed in " << utils::chrono_duration(t0)
-                      << " sec." << std::endl;
-          }
-          return st;
-        });
-  }
+  buffers_a->set_buffers(query, dataset_->metadata().version);
 
   do {
-    // Block on query completion.
-    auto query_status = read_state_.async_query.get();
+    // Run query and get status
+    auto query_start_timer = std::chrono::steady_clock::now();
+    if (verbose) {
+      std::time_t start_time = std::chrono::system_clock::to_time_t(
+          std::chrono::system_clock::now());
+      std::string start_time_str = std::ctime(&start_time);
+      std::cout << "[ " << start_time_str.substr(0, start_time_str.length() - 1)
+                << " ] "
+                << "reader.cc"
+                << ":" << __LINE__ << ": query started" << std::endl;
+    }
+    auto query_status = query->submit();
+    if (verbose) {
+      std::time_t end_time = std::chrono::system_clock::to_time_t(
+          std::chrono::system_clock::now());
+      std::string end_time_str = std::ctime(&end_time);
+      std::cout << "[ " << end_time_str.substr(0, end_time_str.length() - 1)
+                << " ] "
+                << "reader.cc"
+                << ":" << __LINE__ << ": query completed "
+                << " in " << utils::chrono_duration(query_start_timer)
+                << " sec." << std::endl;
+    }
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
 
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
@@ -1013,28 +1018,11 @@ bool Reader::read_current_batch() {
           std::to_string(read_state_.sample_max) +
           "; incomplete TileDB query with 0 results.");
 
-    // If the query was incomplete, submit it again while processing the
-    // current results.
-    if (query_status == tiledb::Query::Status::INCOMPLETE &&
-        double_buffering_) {
-      buffers_b->set_buffers(query, dataset_->metadata().version);
-      read_state_.async_query =
-          std::async(std::launch::async, [query, verbose]() {
-            auto t0 = std::chrono::steady_clock::now();
-            auto st = query->submit();
-            if (verbose) {
-              std::cout << "query completed in " << utils::chrono_duration(t0)
-                        << " sec." << std::endl;
-            }
-            return st;
-          });
-    }
-
     // Process the query results.
     auto old_num_exported = read_state_.last_num_records_exported;
     read_state_.total_query_records_processed +=
         read_state_.query_results.num_cells();
-    auto t0 = std::chrono::steady_clock::now();
+    auto processing_start_timer = std::chrono::steady_clock::now();
 
     bool complete;
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V4) {
@@ -1049,7 +1037,8 @@ bool Reader::read_current_batch() {
     if (params_.verbose) {
       std::stringstream ss;
       ss << "Processed " << read_state_.query_results.num_cells()
-         << " cells in " << utils::chrono_duration(t0) << " sec. Reported "
+         << " cells in " << utils::chrono_duration(processing_start_timer)
+         << " sec. Reported "
          << (read_state_.last_num_records_exported - old_num_exported)
          << " cells.";
       if (params_.enable_progress_estimation) {
@@ -1066,24 +1055,10 @@ bool Reader::read_current_batch() {
     if (!complete)
       return false;
 
-    // Swap the buffers if we are double buffering
-    if (double_buffering_) {
-      std::swap(buffers_a, buffers_b);
-    } else if (
-        query_status ==
+    if (query_status ==
         tiledb::Query::Status::INCOMPLETE) {  // resubmit existing buffers_a if
                                               // not double buffering
       buffers_a->set_buffers(query, dataset_->metadata().version);
-      read_state_.async_query =
-          std::async(std::launch::async, [query, verbose]() {
-            auto t0 = std::chrono::steady_clock::now();
-            auto st = query->submit();
-            if (verbose) {
-              std::cout << "query completed in " << utils::chrono_duration(t0)
-                        << " sec." << std::endl;
-            }
-            return st;
-          });
     }
   } while (read_state_.query_results.query_status() ==
                tiledb::Query::Status::INCOMPLETE &&
@@ -2210,7 +2185,6 @@ void Reader::prepare_attribute_buffers() {
   }
 
   buffers_a.reset(new AttributeBufferSet(params_.verbose));
-  buffers_b.reset(new AttributeBufferSet(params_.verbose));
 
   const auto* user_exp = dynamic_cast<const InMemoryExporter*>(exporter_.get());
   if (params_.cli_count_only || exporter_ == nullptr ||
@@ -2231,28 +2205,7 @@ void Reader::prepare_attribute_buffers() {
   // `sm.memory_budget_var`
   uint64_t alloc_budget = params_.memory_budget_breakdown.buffers;
 
-  // If the query buffers would be less than 100MB don't double buffer
-  if (AttributeBufferSet::compute_buffer_size(
-          attrs, alloc_budget, dataset_.get())
-          .uint64_buffer_size > params_.double_buffering_threshold) {
-    // If we are double buffering allocate half to each set of buffers
-    alloc_budget = params_.memory_budget_breakdown.buffers / 2;
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
-    buffers_b->allocate_fixed(attrs, alloc_budget, dataset_.get());
-    double_buffering_ = true;
-    if (params_.verbose)
-      std::cout << "double buffering enabled because buffers are above "
-                   "threshold size of "
-                << params_.double_buffering_threshold << std::endl;
-  } else {
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
-    buffers_b.reset(nullptr);
-    double_buffering_ = false;
-    if (params_.verbose)
-      std::cout << "double buffering disabled because buffers are below "
-                   "threshold size of "
-                << params_.double_buffering_threshold << std::endl;
-  }
+  buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
 }
 
 void Reader::init_tiledb() {
