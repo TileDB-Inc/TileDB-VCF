@@ -24,11 +24,12 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.GenericRow;
 import org.junit.Assert;
 import org.junit.Test;
+import scala.Option;
 
 public class TileDBHailReaderTest extends SharedJavaSparkSession {
 
-  private String testSampleGroupURI(String sampleGroupName) {
-    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v3", sampleGroupName);
+  private String testVCFUri(String sampleGroupName) {
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v4", sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
@@ -47,7 +48,7 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
         session()
             .read()
             .format("io.tiledb.vcf")
-            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("uri", testVCFUri("ingested_2samples"))
             .option("samples", samples)
             .option("ranges", "1:12100-13360,1:13500-17350")
             .option("tiledb.vfs.num_threads", 1)
@@ -74,14 +75,24 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
     // Test with sample HG01762
     String sample = "HG01762";
 
-    TileDBHailVCFReader reader = TileDBHailVCFReader.build(testSampleDataset(sample));
+    TileDBHailVCFReader reader =
+        TileDBHailVCFReader.build(
+            testSampleDataset(sample), testVCFUri("ingested_2samples"), Option.apply(sample));
 
     MatrixRead r = new MatrixRead(reader.fullMatrixType(), false, false, reader);
     TableIR mt = new MatrixRowsTable(r);
 
     TableValue tv = Interpret.apply(mt, ctx);
 
-    Row[] rows = (Row[]) tv.rvd().toRows().collect();
+    List<GenericRow> rows =
+        tv.rvd()
+            .toRows()
+            .toJavaRDD()
+            .map(
+                x -> {
+                  return new GenericRow(new Object[] {x.get(0), x.get(1)});
+                })
+            .collect();
 
     List<GenericRow> expectedRows =
         testSampleDataset(sample)
@@ -94,19 +105,29 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
                 })
             .collect();
 
-    Assert.assertArrayEquals(expectedRows.toArray(), rows);
+    Assert.assertArrayEquals(expectedRows.toArray(), rows.toArray());
 
     // Test sample HG00280
     sample = "HG00280";
 
-    reader = TileDBHailVCFReader.build(testSampleDataset(sample));
+    reader =
+        TileDBHailVCFReader.build(
+            testSampleDataset(sample), testVCFUri("ingested_2samples"), Option.apply(sample));
 
     r = new MatrixRead(reader.fullMatrixType(), false, false, reader);
     mt = new MatrixRowsTable(r);
 
     tv = Interpret.apply(mt, ctx);
 
-    rows = (Row[]) tv.rvd().toRows().collect();
+    rows =
+        tv.rvd()
+            .toRows()
+            .toJavaRDD()
+            .map(
+                x -> {
+                  return new GenericRow(new Object[] {x.get(0), x.get(1)});
+                })
+            .collect();
 
     expectedRows =
         testSampleDataset(sample)
@@ -119,6 +140,6 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
                 })
             .collect();
 
-    Assert.assertArrayEquals(expectedRows.toArray(), rows);
+    Assert.assertArrayEquals(expectedRows.toArray(), rows.toArray());
   }
 }

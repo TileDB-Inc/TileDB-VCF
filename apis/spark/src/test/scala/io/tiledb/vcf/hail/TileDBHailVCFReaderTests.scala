@@ -110,7 +110,7 @@ class TileDBHailVCFReaderTests {
 
     val expected = tv1.rvd.toRows.collect().map(x =>
       new GenericRow(Array(x.get(0), x.get(1))))
-    val actual = tileDBTV.rvd.toRows.collect()
+    val actual = tileDBTV.rvd.toRows.collect().map(x => new GenericRow(Array(x.get(0), x.get(1))))
 
     assertResult(expected.size)(actual.size)
     assertResult(expected)(actual)
@@ -130,7 +130,7 @@ class TileDBHailVCFReaderTests {
     val expected = tv1.rvd.toRows.collect().map(x =>
       new GenericRow(Array(x.get(0), x.get(1))))
 
-    val actual = tileDBTV.rvd.toRows.collect()
+    val actual = tileDBTV.rvd.toRows.collect().map(x => new GenericRow(Array(x.get(0), x.get(1))))
 
     assertResult(expected.size)(actual.size)
     assertResult(expected)(actual)
