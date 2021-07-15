@@ -26,25 +26,6 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
 
   var df: DataFrame = null
 
-  //  val fmt = vcfReader.fmtAttributes.keySet.toArray.map{ fmtAttr =>
-  //    val key = fmtAttr.toString
-  //    val dt = {
-  //      if (key.contains("GT")) {
-  //        PCanonicalCall()
-  //      }
-  //      else {
-  //        vcfReader.fmtAttributes.get(key).datatype match {
-  //          case AttributeDatatype.UINT8 => PInt32()
-  //          case AttributeDatatype.INT32 => PInt32()
-  //          case AttributeDatatype.CHAR => PCanonicalString()
-  //          case AttributeDatatype.FLOAT32 => PFloat32()
-  //        }
-  //      }
-  //    }
-  //    (fmtAttr.toString.split("_")(1) -> dt.virtualType)
-  //  }
-  //
-
   val sampleList = {
     if (samples.isDefined) samples.get.split(",")
     else Array[String]()
@@ -111,21 +92,17 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
         .load()
     }
 
-    //    var projection = df.groupBy("contig","posStart", "alleles")
-    //      .agg(functions.collect_list("genotype").as("GT"),
-    //        functions.collect_list("fmt_DP").as("DP"),
-    //        functions.collect_list("fmt_PL").as("PL"))
-
     var projection = df
-      .withColumnRenamed("fmt_AD", "AD")
-      .withColumnRenamed("fmt_DP", "DP")
-      .withColumnRenamed("fmt_GQ", "GQ")
-      .withColumnRenamed("genotype", "GT")
-      .withColumnRenamed("fmt_MIN_DP", "MIN_DP")
-      .withColumnRenamed("fmt_PL", "PL")
-      .withColumnRenamed("fmt_SB", "SB")
 
+    entryType.fieldNames.foreach { fieldName =>
+      fieldName match {
+        case "genotype" => projection = projection.withColumnRenamed("genotype", "GT")
+        case _ => projection = projection.withColumnRenamed(s"info_${fieldName}", fieldName)
+      }
+    }
 
+    // We extract contig and posStart in order to construct the locus field as a pair of the first two
+    // The alleles field is also required to execute the basic operations in a matrix table
     var columns = Seq[String]("contig", "posStart", "alleles")
 
     // Construct a map of info fields and row indices
@@ -148,8 +125,7 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
     val hasFilter = rowType.hasField("filters")
 
     // Parse info entry fields
-    val infoFields = Seq("AD", "DP", "GQ", "GT", "MIN_DP", "PL", "SB")
-    infoFields.foreach(infoField =>
+    infoFieldNames.foreach(infoField =>
       if (entryType.hasField(infoField)){
         columns = columns :+ infoField
         infoFieldIdx.put(infoField, idx)
