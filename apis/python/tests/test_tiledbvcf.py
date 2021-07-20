@@ -941,3 +941,74 @@ def test_incremental_ingest(tmp_path):
     assert ds.count() == 14
     assert ds.count(regions=["1:12700-13400"]) == 6
     assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+
+
+def test_ingest_disable_merging(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_disable_merging")
+
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=1024)
+    attrs = ["sample_name", "contig", "pos_start", "pos_end"]
+
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds.create_dataset()
+    ds.ingest_samples(samples, contig_fragment_merging=False)
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=False)
+    df = ds.read(attrs=attrs)
+    assert ds.count() == 246
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 1
+
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_merging_separate")
+    ds2 = tiledbvcf.Dataset(uri, mode="w", verbose=True)
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds2.create_dataset()
+    ds2.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
+
+    # Open it back in read mode and check some queries
+    ds2 = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=True)
+    df2 = ds2.read(attrs=attrs)
+    print(df.equals(df2))
+    assert df.equals(df2)
+
+    assert ds.count() == 246
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 1
+
+
+def test_ingest_merging_separate(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_merging_separate")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds.create_dataset()
+    ds.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 246
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 1
+
+
+def test_ingest_merging(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_merging")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds.create_dataset()
+    ds.ingest_samples(samples, contigs_to_allow_merging=["chr1", "chr2"])
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 246
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 1

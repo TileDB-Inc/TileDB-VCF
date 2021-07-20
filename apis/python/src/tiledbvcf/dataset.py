@@ -342,6 +342,9 @@ class Dataset(object):
         record_limit=None,
         sample_batch_size=None,
         resume=False,
+        contig_fragment_merging=True,
+        contigs_to_keep_separate=None,
+        contigs_to_allow_merging=None,
     ):
         """Ingest samples
 
@@ -360,6 +363,9 @@ class Dataset(object):
         :param int record_limit: Limit the number of VCF records read into memory
             per file (default 50000)
         :param bool resume: Whether to check and attempt to resume a partial completed ingestion
+        :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
+        :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.
+        :param list contigs_to_allow_merging: List of contigs that should be allowed to be merged into combined fragments.
         """
 
         if self.mode != "w":
@@ -392,6 +398,20 @@ class Dataset(object):
 
         # set whether to attempt partial sample ingestion resumption
         self.writer.set_resume(resume)
+
+        self.writer.set_contig_fragment_merging(contig_fragment_merging)
+
+        if contigs_to_keep_separate is not None:
+            if not isinstance(contigs_to_keep_separate, list):
+                raise Exception("contigs_to_keep_separate must be a list")
+
+            self.writer.set_contigs_to_keep_separate(contigs_to_keep_separate)
+
+        if contigs_to_allow_merging is not None:
+            if not isinstance(contigs_to_allow_merging, list):
+                raise Exception("contigs_to_allow_merging must be a list")
+
+            self.writer.set_contigs_to_allow_merging(contigs_to_allow_merging)
 
         self.writer.set_samples(",".join(sample_uris))
 

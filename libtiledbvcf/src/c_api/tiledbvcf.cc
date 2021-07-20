@@ -1192,6 +1192,54 @@ int32_t tiledb_vcf_writer_set_resume_sample_partial_ingestion(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_contig_fragment_merging(
+    tiledb_vcf_writer_t* writer, const bool contig_fragment_merging) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_contig_fragment_merging(
+              contig_fragment_merging)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_contigs_to_keep_separate(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  // Build set from c-style string array
+  std::set<std::string> contig_set;
+  for (uint64_t i = 0; i < len; i++)
+    contig_set.emplace(contigs[i]);
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_contigs_to_keep_separate(contig_set)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  // Build set from c-style string array
+  std::set<std::string> contig_set;
+  for (uint64_t i = 0; i < len; i++)
+    contig_set.emplace(contigs[i]);
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_contigs_to_allow_merging(contig_set)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

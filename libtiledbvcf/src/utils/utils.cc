@@ -75,6 +75,15 @@ std::vector<std::string> split(const std::string& s, char delim) {
   return split(s, std::string(1, delim));
 }
 
+std::set<std::string> split_set(const std::string& s, char delim) {
+  std::set<std::string> results;
+  for (const auto& string : split(s, std::string(1, delim))) {
+    results.emplace(string);
+  }
+
+  return results;
+}
+
 bool starts_with(const std::string& value, const std::string& prefix) {
   if (prefix.size() > value.size())
     return false;

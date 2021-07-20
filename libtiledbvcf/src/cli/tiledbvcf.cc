@@ -422,7 +422,30 @@ int main(int argc, char** argv) {
                .set(store_args.tiledb_stats_enabled_vcf_header_array) %
            "Enable TileDB stats for vcf header array usage",
        option("--resume").set(store_args.resume_sample_partial_ingestion) %
-           "Resume incomplete ingestion of sample batch");
+           "Resume incomplete ingestion of sample batch",
+       one_of(
+           option("--disable-contig-fragment-merging")
+                   .set(store_args.contig_fragment_merging, false) %
+               "Disable merging of contigs into fragments. This overrides the "
+               "contigs-to-keep-separate/contigs-to-allow-mering options. "
+               "Generally contig fragment merging "
+               "is good, this is a performance optimization to reduce the "
+               "prefixes on a s3/azure/gcs bucket when there is a large number "
+               "of pseduo contigs which are small in size.",
+           option("--contigs-to-keep-separate") %
+                   "comma-separated list of contigs that should not be merged "
+                   "into combined fragments. The default list includes all "
+                   "standard human chromosomes in both UCSC (e.g., chr1) and "
+                   "Ensembl (e.g., 1) formats." &
+               value("params").call([&store_args](const std::string& s) {
+                 store_args.contigs_to_keep_separate = utils::split_set(s, ',');
+               }),
+           option("--contigs-to-allow-merging") %
+                   "comma-separated list of contigs that should be allowed to "
+                   "be merged into combined fragments." &
+               value("params").call([&store_args](const std::string& s) {
+                 store_args.contigs_to_allow_merging = utils::split_set(s, ',');
+               })));
 
   ExportParams export_args;
   export_args.export_to_disk = true;
