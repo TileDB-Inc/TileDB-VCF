@@ -603,6 +603,17 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setLargeAttributeBufferFactor(long largeAttributeBufferFactor) {
+    int rc =
+        LibVCFNative.tiledb_vcf_reader_set_large_attribute_buffer_factor(
+            this.readerPtr, largeAttributeBufferFactor);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting largeAttributeBufferFactor: " + msg);
+    }
+    return this;
+  }
+
   public VCFReader resetBuffers() {
     Iterator it = buffers.entrySet().iterator();
     while (it.hasNext()) {
