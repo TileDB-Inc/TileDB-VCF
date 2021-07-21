@@ -90,6 +90,7 @@ target_include_directories(LIBTILEDBVCF_JNI_OBJECTS
     "${TILEDBVCF_INCLUDE_DIR}"
     "${JAVA_INCLUDE_PATH}"
     "${JAVA_INCLUDE_PATH2}"
+    "${JNI_INCLUDE_DIRS}"
 )
 
 add_library(tiledbvcfjni SHARED

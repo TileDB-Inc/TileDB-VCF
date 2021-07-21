@@ -962,6 +962,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_last_error(
     tiledb_vcf_reader_t* reader, tiledb_vcf_error_t** error);
 
+/**
+ * Set the large attribute factor for how much larger the fmt/info field buffer
+ * should be set too
+ * @param uint64_t
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_large_attribute_buffer_factor(
+    tiledb_vcf_reader_t* reader, const uint64_t large_attribute_buffer_factor);
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */

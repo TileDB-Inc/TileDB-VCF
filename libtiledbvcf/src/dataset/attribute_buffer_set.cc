@@ -11,7 +11,8 @@ AttributeBufferSet::AttributeBufferSet(bool verbose)
 AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
     const std::unordered_set<std::string>& attr_names,
     uint64_t mem_budget,
-    TileDBVCFDataset* dataset) {
+    TileDBVCFDataset* dataset,
+    const uint64_t& large_attribute_factor) {
   assert(dataset != nullptr);
   // Get count of number of query buffers being allocated
   size_t num_weighted_buffers = 0;
@@ -21,6 +22,7 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
   uint64_t num_uint64_buffers = 0;
   uint64_t num_float32_buffers = 0;
   uint64_t num_var_length_uint8_buffers = 0;
+  uint64_t num_large_var_length_uint8_buffers = 0;
   for (const auto& s : attr_names) {
     bool var_len, nullable, list;
     tiledb_datatype_t datatype;
@@ -29,7 +31,16 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
 
     if (var_len) {
       num_uint64_buffers += 1;
-      num_var_length_uint8_buffers += 1;
+      if (s == TileDBVCFDataset::AttrNames::V2::fmt ||
+          s == TileDBVCFDataset::AttrNames::V2::info ||
+          s == TileDBVCFDataset::AttrNames::V3::fmt ||
+          s == TileDBVCFDataset::AttrNames::V3::info ||
+          s == TileDBVCFDataset::AttrNames::V4::fmt ||
+          s == TileDBVCFDataset::AttrNames::V4::info) {
+        num_large_var_length_uint8_buffers += 1;
+      } else {
+        num_var_length_uint8_buffers += 1;
+      }
     }
 
     // Currently we don't support list buffers in TileDB schema but this will
@@ -109,7 +120,9 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
                          (num_int32_buffers * sizeof(int32_t)) +
                          (num_float32_buffers * sizeof(float)) +
                          (num_uint64_buffers * sizeof(uint64_t)) +
-                         (num_var_length_uint8_buffers * sizeof(uint64_t));
+                         (num_var_length_uint8_buffers * sizeof(uint64_t)) +
+                         (num_large_var_length_uint8_buffers *
+                          sizeof(uint64_t) * large_attribute_factor);
 
   // Every buffer alloc gets the same size.
   uint64_t nbytes = mem_budget / num_weighted_buffers;
@@ -126,7 +139,8 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
       nbytes * sizeof(int32_t),
       nbytes * sizeof(uint64_t),
       nbytes * sizeof(float),
-      nbytes * sizeof(uint64_t));
+      nbytes * sizeof(uint64_t),
+      nbytes * sizeof(uint64_t) * large_attribute_factor);
 
   return sizes;
 }
@@ -134,13 +148,14 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
 void AttributeBufferSet::allocate_fixed(
     const std::unordered_set<std::string>& attr_names,
     uint64_t memory_budget,
-    TileDBVCFDataset* dataset) {
+    TileDBVCFDataset* dataset,
+    const uint64_t& large_attribute_factor) {
   clear();
   fixed_alloc_.clear();
   auto version = dataset->metadata().version;
 
-  buffer_size_by_type_ =
-      compute_buffer_size(attr_names, memory_budget, dataset);
+  buffer_size_by_type_ = compute_buffer_size(
+      attr_names, memory_budget, dataset, large_attribute_factor);
   uint64_t num_offsets =
       buffer_size_by_type_.uint64_buffer_size / sizeof(uint64_t);
 
@@ -200,6 +215,15 @@ void AttributeBufferSet::allocate_fixed(
          << "var length fields size of "
          << buffer_size_by_type_.var_length_uint8_buffer_size << " bytes ("
          << buffer_size_by_type_.var_length_uint8_buffer_size /
+                (1024.0f * 1024.0f)
+         << "MB)" << std::endl;
+    }
+    if (buffer_size_by_type_.large_var_length_uint8_buffer_size > 0) {
+      ss << "\t"
+         << "large var length fields size of "
+         << buffer_size_by_type_.large_var_length_uint8_buffer_size
+         << " bytes ("
+         << buffer_size_by_type_.large_var_length_uint8_buffer_size /
                 (1024.0f * 1024.0f)
          << "MB)" << std::endl;
     }
@@ -272,13 +296,13 @@ void AttributeBufferSet::allocate_fixed(
     } else if (
         s == attrNamesV4::info || s == attrNamesV3::info ||
         s == attrNamesV2::info) {
-      info_.resize(buffer_size_by_type_.var_length_uint8_buffer_size);
+      info_.resize(buffer_size_by_type_.large_var_length_uint8_buffer_size);
       info_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &info_, sizeof(char));
     } else if (
         s == attrNamesV4::fmt || s == attrNamesV3::fmt ||
         s == attrNamesV2::fmt) {
-      fmt_.resize(buffer_size_by_type_.var_length_uint8_buffer_size);
+      fmt_.resize(buffer_size_by_type_.large_var_length_uint8_buffer_size);
       fmt_.offsets().resize(num_offsets);
       fixed_alloc_.emplace_back(true, s, &fmt_, sizeof(char));
     } else {

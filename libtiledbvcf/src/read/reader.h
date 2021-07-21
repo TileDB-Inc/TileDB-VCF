@@ -123,6 +123,10 @@ struct ExportParams {
 
   // Debug parameters for optional debug information
   struct DebugParams debug_params;
+
+  // Sets how many x times larger the "large" var length fields, such as
+  // fmt/info should be
+  uint64_t large_attribute_buffer_factor = 5;
 };
 
 /* ********************************* */
@@ -426,6 +430,14 @@ class Reader {
    * @param print_tiledb_query_ranges
    */
   void set_debug_print_tiledb_query_ranges(bool print_tiledb_query_ranges);
+
+  /**
+   * Set the large attribute factor for how much larger the fmt/info field
+   * buffer should be set too
+   * @param uint64_t
+   */
+  void set_large_attribute_buffer_factor(
+      const uint64_t& large_attribute_buffer_factor);
 
  private:
   /* ********************************* */

@@ -144,4 +144,7 @@ public class LibVCFNative {
 
   public static final native int tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
       long readerPtr, boolean printTileDBQueryRanges);
+
+  public static final native int tiledb_vcf_reader_set_large_attribute_buffer_factor(
+      long readerPtr, long factor);
 }

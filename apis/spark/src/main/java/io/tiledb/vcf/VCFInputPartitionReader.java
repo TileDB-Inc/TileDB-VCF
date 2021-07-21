@@ -342,6 +342,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setDebugPrintTileDBQueryRanges(debugPrintTileDBQueryRanges.get());
     }
 
+    // Set largeAttributeBufferFactor
+    Optional<Long> largeAttributeBufferFactor = options.getLargeAttributeBufferFactor();
+    if (largeAttributeBufferFactor.isPresent()) {
+      vcfReader.setLargeAttributeBufferFactor(largeAttributeBufferFactor.get());
+    }
+
     // Enable VCFReader stats
     if (!this.enableStatsLogLevel.equals(Level.OFF)) this.vcfReader.setStatsEnabled(true);
 

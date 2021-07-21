@@ -209,6 +209,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return If reader should set the large attribute buffer factor */
+  public Optional<Long> getLargeAttributeBufferFactor() {
+    if (options.containsKey("large_attribute_buffer_factor")) {
+      return Optional.of(Long.parseLong(options.get("large_attribute_buffer_factor")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional CSV String of config parameters */
   public Optional<String> getConfigCSV() {
     return getConfigCSV(options);

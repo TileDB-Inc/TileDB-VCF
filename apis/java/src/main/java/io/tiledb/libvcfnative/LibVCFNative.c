@@ -844,3 +844,16 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 
     return rc;
 }
+
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1large_1attribute_1buffer_1factor
+  (JNIEnv* env, jclass self, jlong readerPtr, jlong largeAttrbuteBufferFactor) {
+    (void)self;
+    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+    if (reader == 0) {
+      return TILEDB_VCF_ERR;
+    }
+
+    int32_t rc = tiledb_vcf_reader_set_large_attribute_buffer_factor(reader, largeAttrbuteBufferFactor);
+
+    return rc;
+}

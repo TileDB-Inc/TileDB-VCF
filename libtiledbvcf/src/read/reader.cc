@@ -2233,19 +2233,34 @@ void Reader::prepare_attribute_buffers() {
 
   // If the query buffers would be less than 100MB don't double buffer
   if (AttributeBufferSet::compute_buffer_size(
-          attrs, alloc_budget, dataset_.get())
+          attrs,
+          alloc_budget,
+          dataset_.get(),
+          params_.large_attribute_buffer_factor)
           .uint64_buffer_size > params_.double_buffering_threshold) {
     // If we are double buffering allocate half to each set of buffers
     alloc_budget = params_.memory_budget_breakdown.buffers / 2;
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
-    buffers_b->allocate_fixed(attrs, alloc_budget, dataset_.get());
+    buffers_a->allocate_fixed(
+        attrs,
+        alloc_budget,
+        dataset_.get(),
+        params_.large_attribute_buffer_factor);
+    buffers_b->allocate_fixed(
+        attrs,
+        alloc_budget,
+        dataset_.get(),
+        params_.large_attribute_buffer_factor);
     double_buffering_ = true;
     if (params_.verbose)
       std::cout << "double buffering enabled because buffers are above "
                    "threshold size of "
                 << params_.double_buffering_threshold << std::endl;
   } else {
-    buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
+    buffers_a->allocate_fixed(
+        attrs,
+        alloc_budget,
+        dataset_.get(),
+        params_.large_attribute_buffer_factor);
     buffers_b.reset(nullptr);
     double_buffering_ = false;
     if (params_.verbose)
@@ -2489,6 +2504,11 @@ void Reader::set_debug_print_sample_list(const bool print_sample_list) {
 void Reader::set_debug_print_tiledb_query_ranges(
     const bool print_tiledb_query_ranges) {
   params_.debug_params.print_tiledb_query_ranges = print_tiledb_query_ranges;
+}
+
+void Reader::set_large_attribute_buffer_factor(
+    const uint64_t& large_attribute_buffer_factor) {
+  params_.large_attribute_buffer_factor = large_attribute_buffer_factor;
 }
 
 }  // namespace vcf
