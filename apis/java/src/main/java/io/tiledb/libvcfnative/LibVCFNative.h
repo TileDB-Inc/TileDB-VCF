@@ -351,6 +351,14 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
 JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1tiledb_1query_1ranges
   (JNIEnv *, jclass, jlong, jboolean);
 
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_large_attribute_buffer_factor
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1large_1attribute_1buffer_1factor
+  (JNIEnv *, jclass, jlong, jlong);
+
 #ifdef __cplusplus
 }
 #endif
