@@ -1246,7 +1246,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
  * Set sample batch size for ingestion
  *
  * @param writer VCF writer object
- * @param size number of samples to ingest per batch
+ * @param size number of samples to ingest per batch (default: 10)
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(

@@ -413,7 +413,7 @@ int main(int argc, char** argv) {
             "Argument list of VCF files to ingest"),
        option("-e", "--sample-batch-size") %
                defaulthelp(
-                   "Number of samples per batch for ingestion",
+                   "Number of samples per batch for ingestion (default: 10)",
                    store_args.sample_batch_size) &
            value("N", store_args.sample_batch_size),
        option("--stats").set(store_args.tiledb_stats_enabled) %
