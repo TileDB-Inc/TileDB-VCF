@@ -74,7 +74,7 @@ struct IngestionParams {
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
 
-  // Number of samples per batch for ingestion
+  // Number of samples per batch for ingestion (default: 10).
   uint64_t sample_batch_size = 10;
 
   // Should the fragment info of data be loaded

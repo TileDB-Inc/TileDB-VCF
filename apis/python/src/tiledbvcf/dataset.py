@@ -362,7 +362,7 @@ class Dataset(object):
             for downloading remote samples (MB).
         :param int record_limit: Limit the number of VCF records read into memory
             per file (default 50000)
-        :param int sample_batch_size: Number of samples per batch for ingestion.
+        :param int sample_batch_size: Number of samples per batch for ingestion (default 10).
         :param bool resume: Whether to check and attempt to resume a partial completed ingestion
         :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
         :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.
