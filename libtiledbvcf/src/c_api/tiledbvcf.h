@@ -1262,6 +1262,44 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_resume_sample_partial_ingestion(
     tiledb_vcf_writer_t* writer, const bool resume);
 
+/**
+ * Set contig fragment merging enabled or not
+ *
+ * @param writer VCF writer object
+ * @param contig_fragment_merging whether to enable contig merging or not on
+ * ingestion
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contig_fragment_merging(
+    tiledb_vcf_writer_t* writer, const bool contig_fragment_merging);
+
+/**
+ * Set list of contigs to force keeping separate and not allow merging. If none
+ * are set, then the merging is based on only including those from
+ * "set_contigs_to_allow_merging". If neither option is set, all contigs will be
+ * considered for merging.
+ *
+ * @param writer VCF writer object
+ * @param contigs array of contig strings
+ * @param len length of array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_keep_separate(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len);
+
+/**
+ * Set list of contigs to allow merging. If none are set, then the merging is
+ * based on only restricting those from "contigs_to_keep_separate". If neither
+ * option is set, all contigs will be considered for merging.
+ *
+ * @param writer VCF writer object
+ * @param contigs array of contig strings
+ * @param len length of array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

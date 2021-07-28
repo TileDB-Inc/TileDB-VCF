@@ -217,4 +217,33 @@ void Writer::set_resume(const bool resume) {
   check_error(writer, tiledb_vcf_writer_set_resume_sample_partial_ingestion(writer, resume));
 }
 
+void Writer::set_contig_fragment_merging(const bool contig_fragment_merging) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_contig_fragment_merging(writer, contig_fragment_merging));
+}
+
+void Writer::set_contigs_to_keep_separate(const std::vector<std::string>& contigs_to_keep_separate) {
+  auto writer = ptr.get();
+
+  // Convert vector to char**
+  std::vector<const char*> contigs;
+
+  for (const auto& contig : contigs_to_keep_separate)
+    contigs.push_back(contig.c_str());
+
+  check_error(writer, tiledb_vcf_writer_set_contigs_to_keep_separate(writer, contigs.data(), contigs.size()));
+}
+
+void Writer::set_contigs_to_allow_merging(const std::vector<std::string>& contigs_to_allow_merging) {
+  auto writer = ptr.get();
+
+  // Convert vector to char**
+  std::vector<const char*> contigs;
+
+  for (const auto& contig : contigs_to_allow_merging)
+    contigs.push_back(contig.c_str());
+
+  check_error(writer, tiledb_vcf_writer_set_contigs_to_allow_merging(writer, contigs.data(), contigs.size()));
+}
+
 }  // namespace tiledbvcfpy
