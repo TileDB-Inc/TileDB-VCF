@@ -455,7 +455,7 @@ class Dataset(object):
         :param str type: The subset of attributes to retrieve; "info" or "fmt"
             will only retrieve attributes ingested from the VCF INFO and FORMAT
             fields, respectively, "builtin" retrieves the static attributes
-            defiend in TileDB-VCF's schema, "all" (the default) returns all
+            defined in TileDB-VCF's schema, "all" (the default) returns all
             queryable attributes
         :returns: a list of strings representing the attribute names
         """
