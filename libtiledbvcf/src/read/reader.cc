@@ -2263,7 +2263,7 @@ void Reader::init_tiledb() {
   compute_memory_budget_details();
   cfg["sm.tile_cache_size"] = params_.memory_budget_breakdown.tiledb_tile_cache;
 
-  cfg["sm.sm.compute_concurrency_level"] =
+  cfg["sm.compute_concurrency_level"] =
       uint64_t(std::thread::hardware_concurrency() * 1.5f);
 
   // Disable estimated partition result size
