@@ -50,13 +50,16 @@ class AttributeBufferSet {
         const uint64_t& int32_buffer_size,
         const uint64_t& uint64_buffer_size,
         const uint64_t& float32_buffer_size,
-        const uint64_t& var_length_uint8_buffer_size) {
+        const uint64_t& var_length_uint8_buffer_size,
+        const uint64_t& large_var_length_uint8_buffer_size) {
       this->char_buffer_size = char_buffer_size;
       this->uint8_buffer_size = uint8_buffer_size;
       this->int32_buffer_size = int32_buffer_size;
       this->uint64_buffer_size = uint64_buffer_size;
       this->float32_buffer_size = float32_buffer_size;
       this->var_length_uint8_buffer_size = var_length_uint8_buffer_size;
+      this->large_var_length_uint8_buffer_size =
+          large_var_length_uint8_buffer_size;
     }
 
     BufferSizeByType() = default;
@@ -67,6 +70,7 @@ class AttributeBufferSet {
     uint64_t uint64_buffer_size = 0;
     uint64_t float32_buffer_size = 0;
     uint64_t var_length_uint8_buffer_size = 0;
+    uint64_t large_var_length_uint8_buffer_size = 0;
   };
 
  public:
@@ -77,12 +81,15 @@ class AttributeBufferSet {
    * attributes to select
    * @param attr_names
    * @param mem_budget
+   * @param dataset
+   * @param large_attribute_factor
    * @return size of buffers in bytes
    */
   static BufferSizeByType compute_buffer_size(
       const std::unordered_set<std::string>& attr_names,
       uint64_t mem_budget,
-      TileDBVCFDataset* dataset);
+      TileDBVCFDataset* dataset,
+      const uint64_t& large_attribute_factor);
 
   /**
    * Resize buffers for the given set of attributes using the given allocation
@@ -92,13 +99,15 @@ class AttributeBufferSet {
    *
    * @param extra List of attributes to allocate buffers for.
    * @param memory_budget Memory budget (MB) of sum of allocations.
-   * @param version dataset version
+   * @param dataset
+   * @param large_attribute_factor
    * @return size of buffers allocated in bytes
    */
   void allocate_fixed(
       const std::unordered_set<std::string>& attr_names,
       uint64_t memory_budget,
-      TileDBVCFDataset* dataset);
+      TileDBVCFDataset* dataset,
+      const uint64_t& large_attribute_factor);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes). This includes the size

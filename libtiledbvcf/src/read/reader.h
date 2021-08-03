@@ -108,9 +108,6 @@ struct ExportParams {
   uint64_t memory_budget_mb = 2 * 1024;
   MemoryBudgetBreakdown memory_budget_breakdown;
 
-  // Size in bytes at which if the buffers are larger we will double buffer
-  uint64_t double_buffering_threshold = 200 * 1024 * 1024;
-
   // Should we check that the sample names passed for export exist in the array
   // and error out if not This can add latency which might not be cared about
   // because we have to fetch the list of samples from the VCF header array
@@ -123,6 +120,10 @@ struct ExportParams {
 
   // Debug parameters for optional debug information
   struct DebugParams debug_params;
+
+  // Sets how many x times larger the "large" var length fields, such as
+  // fmt/info should be
+  uint64_t large_attribute_buffer_factor = 5;
 };
 
 /* ********************************* */
@@ -427,6 +428,14 @@ class Reader {
    */
   void set_debug_print_tiledb_query_ranges(bool print_tiledb_query_ranges);
 
+  /**
+   * Set the large attribute factor for how much larger the fmt/info field
+   * buffer should be set too
+   * @param uint64_t
+   */
+  void set_large_attribute_buffer_factor(
+      const uint64_t& large_attribute_buffer_factor);
+
  private:
   /* ********************************* */
   /*           PRIVATE DATATYPES       */
@@ -521,9 +530,6 @@ class Reader {
     /** Struct containing query results from last TileDB query. */
     ReadQueryResults query_results;
 
-    /** Future status, used for making the TileDB queries asynchronously. */
-    std::future<tiledb::Query::Status> async_query;
-
     /**
      * Current index of cell being processed in query results. Used to support
      * resuming incomplete reads.
@@ -562,12 +568,6 @@ class Reader {
 
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_a;
-
-  /** Set of attribute buffers holding TileDB query results. */
-  std::unique_ptr<AttributeBufferSet> buffers_b;
-
-  /** Indicates if we are double buffering or not. */
-  bool double_buffering_ = true;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */

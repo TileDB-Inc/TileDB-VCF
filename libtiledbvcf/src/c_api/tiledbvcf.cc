@@ -842,6 +842,20 @@ int32_t tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_large_attribute_buffer_factor(
+    tiledb_vcf_reader_t* reader, const uint64_t large_attribute_buffer_factor) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->set_large_attribute_buffer_factor(
+              large_attribute_buffer_factor)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*              WRITER               */
 /* ********************************* */
