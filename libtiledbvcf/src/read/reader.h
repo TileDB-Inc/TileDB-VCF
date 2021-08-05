@@ -93,7 +93,9 @@ struct ExportParams {
   PartitionInfo sample_partitioning;
   PartitionInfo region_partitioning;
   ExportFormat format = ExportFormat::CompressedBCF;
+  // TODO: change to verbosity
   bool verbose = false;
+  //  int verbosity = 0;
   bool export_to_disk = false;
   bool cli_count_only = false;
   bool sort_regions = true;

@@ -35,6 +35,9 @@
 #include "read/read_query_results.h"
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
+#include "utils/logger.h"
+
+using namespace tiledb::common;
 
 namespace tiledb {
 namespace vcf {
@@ -376,12 +379,13 @@ void Reader::read() {
 
   if (params_.cli_count_only) {
     std::cout << read_state_.last_num_records_exported << std::endl;
-  } else if (params_.verbose) {
+  } else {
     auto old_locale = std::cout.getloc();
     utils::enable_pretty_print_numbers(std::cout);
-    std::cout << "Done. Exported " << read_state_.last_num_records_exported
-              << " records in " << utils::chrono_duration(start_all)
-              << " seconds." << std::endl;
+    LOG_INFO(
+        "Done. Exported {} records in {} seconds.",
+        read_state_.last_num_records_exported,
+        utils::chrono_duration(start_all));
     std::cout.imbue(old_locale);
   }
 }

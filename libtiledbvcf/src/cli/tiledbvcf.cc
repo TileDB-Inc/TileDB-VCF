@@ -31,11 +31,13 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read/reader.h"
+#include "utils/logger.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
 #include "write/writer.h"
 
 using namespace tiledb::vcf;
+using namespace tiledb::common;
 
 namespace {
 /** TileDBVCF operation mode */
@@ -198,6 +200,8 @@ void do_register(const RegistrationParams& args) {
 
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
+  LOG_SET_LEVEL(args.verbosity);
+
   Writer writer;
   writer.set_all_params(args);
   writer.ingest_samples();
@@ -212,6 +216,9 @@ void do_store(const IngestionParams& args) {
 
 /** Export. */
 void do_export(const ExportParams& args) {
+  // TODO: change to verbosity
+  // LOG_SET_LEVEL(args.verbosity);
+
   Reader reader;
   reader.set_all_params(args);
   reader.open_dataset(args.uri);
@@ -393,8 +400,11 @@ int main(int argc, char** argv) {
                    "queries.",
                    store_args.max_tiledb_buffer_size_mb) &
            value("MB", store_args.max_tiledb_buffer_size_mb),
-       option("-v", "--verbose").set(store_args.verbose) %
-           "Enable verbose output",
+       option("-v", "--verbosity") %
+               defaulthelp(
+                   "Verbosity level for logging messages.",
+                   store_args.verbosity) &
+           value("N", store_args.verbosity),
        option("--remove-sample-file").set(store_args.remove_samples_file) %
            "If specified, the samples file ('-f' argument) is deleted after "
            "successful ingestion",

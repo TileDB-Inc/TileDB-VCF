@@ -69,6 +69,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindClipp_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindHTSlib_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindTileDB_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog_EP.cmake)
 
 ############################################################
 # 'make format' target

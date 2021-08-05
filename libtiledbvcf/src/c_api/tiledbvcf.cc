@@ -1075,12 +1075,12 @@ int32_t tiledb_vcf_writer_set_max_num_records(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_writer_set_verbose(
-    tiledb_vcf_writer_t* writer, const bool verbose) {
+int32_t tiledb_vcf_writer_set_verbosity(
+    tiledb_vcf_writer_t* writer, const int verbosity) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbose(verbose)))
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbosity(verbosity)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
