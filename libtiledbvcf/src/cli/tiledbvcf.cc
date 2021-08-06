@@ -216,8 +216,7 @@ void do_store(const IngestionParams& args) {
 
 /** Export. */
 void do_export(const ExportParams& args) {
-  // TODO: change to verbosity
-  // LOG_SET_LEVEL(args.verbosity);
+  LOG_SET_LEVEL(args.verbosity);
 
   Reader reader;
   reader.set_all_params(args);
@@ -534,8 +533,11 @@ int main(int argc, char** argv) {
            value("params").call([&export_args](const std::string& s) {
              export_args.tiledb_config = utils::split(s, ',');
            }),
-       option("-v", "--verbose").set(export_args.verbose) %
-           "Enable verbose output",
+       option("-v", "--verbosity") %
+               defaulthelp(
+                   "Verbosity level for logging messages.",
+                   export_args.verbosity) &
+           value("N", export_args.verbosity),
        option("-c", "--count-only").call([&export_args]() {
          export_args.export_to_disk = false;
          export_args.cli_count_only = true;

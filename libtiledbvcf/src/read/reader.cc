@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -413,7 +413,7 @@ void Reader::init_for_reads_v2() {
 
   prepare_attribute_buffers();
 
-  if (params_.verbose) {
+  if (LOG_DEBUG_ENABLED()) {
     if (params_.debug_params.print_vcf_regions) {
       std::stringstream debug_region_list;
       debug_region_list << "[";
@@ -425,8 +425,7 @@ void Reader::init_for_reads_v2() {
           debug_region_list << ", ";
       }
       debug_region_list << "]";
-      std::cout << "vcf regions:" << std::endl
-                << debug_region_list.str() << std::endl;
+      LOG_DEBUG("vcf regions:\n{}", debug_region_list.str());
     }
     // If debug build json list of list of samples batches
     if (params_.debug_params.print_sample_list) {
@@ -447,8 +446,7 @@ void Reader::init_for_reads_v2() {
           debug_sample_list << ", ";
       }
       debug_sample_list << "]";
-      std::cout << "sample list:" << std::endl
-                << debug_sample_list.str() << std::endl;
+      LOG_DEBUG("sample list:\n{}", debug_sample_list.str());
     }
   }
 }
@@ -465,7 +463,7 @@ void Reader::init_for_reads_v3() {
 
   prepare_attribute_buffers();
 
-  if (params_.verbose) {
+  if (LOG_DEBUG_ENABLED()) {
     if (params_.debug_params.print_vcf_regions) {
       std::stringstream debug_region_list;
       debug_region_list << "[";
@@ -477,8 +475,7 @@ void Reader::init_for_reads_v3() {
           debug_region_list << ", ";
       }
       debug_region_list << "]";
-      std::cout << "vcf regions:" << std::endl
-                << debug_region_list.str() << std::endl;
+      LOG_DEBUG("vcf regions:\n{}", debug_region_list.str());
     }
     // If debug build json list of list of samples batches
     if (params_.debug_params.print_sample_list) {
@@ -499,8 +496,7 @@ void Reader::init_for_reads_v3() {
           debug_sample_list << ", ";
       }
       debug_sample_list << "]";
-      std::cout << "sample list:" << std::endl
-                << debug_sample_list.str() << std::endl;
+      LOG_DEBUG("sample list:\n{}", debug_sample_list.str());
     }
   }
 }
@@ -520,7 +516,7 @@ void Reader::init_for_reads_v4() {
       &read_state_.query_regions_v4);
   prepare_attribute_buffers();
 
-  if (params_.verbose) {
+  if (LOG_DEBUG_ENABLED()) {
     if (params_.debug_params.print_vcf_regions) {
       std::stringstream debug_region_list;
       debug_region_list << "[";
@@ -532,8 +528,7 @@ void Reader::init_for_reads_v4() {
           debug_region_list << ", ";
       }
       debug_region_list << "]";
-      std::cout << "vcf regions:" << std::endl
-                << debug_region_list.str() << std::endl;
+      LOG_DEBUG("vcf regions:\n{}", debug_region_list.str());
     }
     // If debug build json list of list of samples batches
     if (params_.debug_params.print_sample_list) {
@@ -554,8 +549,7 @@ void Reader::init_for_reads_v4() {
           debug_sample_list << ", ";
       }
       debug_sample_list << "]";
-      std::cout << "sample list:" << std::endl
-                << debug_sample_list.str() << std::endl;
+      LOG_DEBUG("sample list:\n{}", debug_sample_list.str());
     }
   }
 }
@@ -629,43 +623,42 @@ bool Reader::next_read_batch_v2_v3() {
 
   // Set ranges
   std::stringstream debug_ranges;
-  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "sample ids:" << std::endl;
   }
   for (const auto& sample : read_state_.current_sample_batches) {
     read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
-    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << sample.sample_id << ", " << sample.sample_id << "]"
                    << std::endl;
     }
   }
-  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "regions:" << std::endl;
   }
   for (const auto& query_region : read_state_.query_regions) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
-    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
     }
   }
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
-  if (params_.verbose) {
+  if (LOG_DEBUG_ENABLED()) {
     if (params_.debug_params.print_tiledb_query_ranges) {
-      std::cout << "query_ranges:" << std::endl
-                << debug_ranges.str() << std::endl;
+      LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
     }
-    std::cout << "Initialized TileDB query with "
-              << read_state_.query_regions.size() << " start_pos ranges, "
-              << read_state_.current_sample_batches.size() << " sample ranges."
-              << std::endl;
+    LOG_DEBUG(
+        "Initialized TileDB query with {} start_pos ranges, {} sample ranges.",
+        read_state_.query_regions.size(),
+        read_state_.current_sample_batches.size());
   }
 
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (params_.verbose && params_.enable_progress_estimation) {
+  if (LOG_DEBUG_ENABLED() && params_.enable_progress_estimation) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       read_state_.query_estimated_num_records =
           read_state_.query->est_result_size(
@@ -744,10 +737,8 @@ bool Reader::next_read_batch_v4() {
       // If we have no samples this means the partition is empty, which
       // shouldn't happen. however it is better to exit than run on everything
       if (read_state_.current_sample_batches.empty()) {
-        if (params_.verbose)
-          std::cout << "Sample batch is empty, this indicates an empty sample "
-                       "partition."
-                    << std::endl;
+        LOG_DEBUG(
+            "Sample batch is empty, this indicates an empty sample partition.");
         return false;
       }
 
@@ -775,7 +766,7 @@ bool Reader::next_read_batch_v4() {
 
   // Set ranges
   std::stringstream debug_ranges;
-  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "samples:" << std::endl;
   }
 
@@ -787,7 +778,8 @@ bool Reader::next_read_batch_v4() {
           TileDBVCFDataset::DimensionNames::V4::sample);
       read_state_.query->add_range(
           2, non_empty_domain.first, non_empty_domain.second);
-      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      if (params_.debug_params.print_tiledb_query_ranges &&
+          LOG_DEBUG_ENABLED()) {
         debug_ranges << "[" << non_empty_domain.first << ", "
                      << non_empty_domain.second << "]" << std::endl;
       }
@@ -802,7 +794,8 @@ bool Reader::next_read_batch_v4() {
               .current_sample_batches
                   [read_state_.current_sample_batches.size() - 1]
               .sample_name);
-      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      if (params_.debug_params.print_tiledb_query_ranges &&
+          LOG_DEBUG_ENABLED()) {
         debug_ranges << "[" << read_state_.current_sample_batches[0].sample_name
                      << ", "
                      << read_state_
@@ -817,21 +810,22 @@ bool Reader::next_read_batch_v4() {
     // list
     for (const auto& sample : read_state_.current_sample_batches) {
       read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
-      if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+      if (params_.debug_params.print_tiledb_query_ranges &&
+          LOG_DEBUG_ENABLED()) {
         debug_ranges << "[" << sample.sample_name << ", " << sample.sample_name
                      << "]" << std::endl;
       }
     }
   }
 
-  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "regions:" << std::endl;
   }
   for (const auto& query_region :
        read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
            .second) {
     read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
-    if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+    if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
     }
@@ -841,7 +835,7 @@ bool Reader::next_read_batch_v4() {
       0,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
-  if (params_.debug_params.print_tiledb_query_ranges && params_.verbose) {
+  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "contigs:" << std::endl;
     debug_ranges << "["
                  << read_state_
@@ -855,10 +849,9 @@ bool Reader::next_read_batch_v4() {
   }
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
-  if (params_.verbose) {
+  if (LOG_DEBUG_ENABLED()) {
     if (params_.debug_params.print_tiledb_query_ranges) {
-      std::cout << "query_ranges:" << std::endl
-                << debug_ranges.str() << std::endl;
+      LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
     }
 
     std::stringstream ss;
@@ -877,15 +870,15 @@ bool Reader::next_read_batch_v4() {
        << " (contig batch " << read_state_.query_contig_batch_idx + 1 << "/"
        << read_state_.query_regions_v4.size() << ", sample batch "
        << read_state_.batch_idx + 1 << "/" << read_state_.sample_batches.size()
-       << ")." << std::endl;
-    std::cout << ss.str();
+       << ").";
+    LOG_DEBUG(ss.str());
   }
 
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
 
-  if (params_.verbose && params_.enable_progress_estimation) {
+  if (LOG_DEBUG_ENABLED() && params_.enable_progress_estimation) {
     read_state_.query_estimated_num_records =
         read_state_.query->est_result_size(
             TileDBVCFDataset::DimensionNames::V4::start_pos) /
@@ -935,7 +928,7 @@ void Reader::init_exporter() {
 
 bool Reader::read_current_batch() {
   tiledb::Query* query = read_state_.query.get();
-  const bool verbose = params_.verbose;
+  const bool verbose = LOG_DEBUG_ENABLED();
 
   if (read_state_.status == ReadStatus::INCOMPLETE) {
     auto exp = dynamic_cast<InMemoryExporter*>(exporter_.get());
@@ -982,10 +975,7 @@ bool Reader::read_current_batch() {
         std::async(std::launch::async, [query, verbose]() {
           auto t0 = std::chrono::steady_clock::now();
           auto st = query->submit();
-          if (verbose) {
-            std::cout << "query completed in " << utils::chrono_duration(t0)
-                      << " sec." << std::endl;
-          }
+          LOG_DEBUG("query completed in {} sec.", utils::chrono_duration(t0));
           return st;
         });
   }
@@ -1029,10 +1019,7 @@ bool Reader::read_current_batch() {
           std::async(std::launch::async, [query, verbose]() {
             auto t0 = std::chrono::steady_clock::now();
             auto st = query->submit();
-            if (verbose) {
-              std::cout << "query completed in " << utils::chrono_duration(t0)
-                        << " sec." << std::endl;
-            }
+            LOG_DEBUG("query completed in {} sec.", utils::chrono_duration(t0));
             return st;
           });
     }
@@ -1053,20 +1040,21 @@ bool Reader::read_current_batch() {
       complete = process_query_results_v2();
     }
 
-    if (params_.verbose) {
+    if (LOG_DEBUG_ENABLED()) {
       std::stringstream ss;
       ss << "Processed " << read_state_.query_results.num_cells()
          << " cells in " << utils::chrono_duration(t0) << " sec. Reported "
          << (read_state_.last_num_records_exported - old_num_exported)
          << " cells.";
-      if (params_.enable_progress_estimation) {
+      if (params_.enable_progress_estimation &&
+          read_state_.query_estimated_num_records > 0) {
         ss << " Approximately " << std::fixed << std::setprecision(2)
            << (read_state_.total_query_records_processed /
                static_cast<double>(read_state_.query_estimated_num_records) *
                100)
            << "% completed with query cells.";
       }
-      std::cout << ss.str() << std::endl;
+      LOG_DEBUG(ss.str());
     }
 
     // Return early if we couldn't process all the results.
@@ -1085,10 +1073,7 @@ bool Reader::read_current_batch() {
           std::async(std::launch::async, [query, verbose]() {
             auto t0 = std::chrono::steady_clock::now();
             auto st = query->submit();
-            if (verbose) {
-              std::cout << "query completed in " << utils::chrono_duration(t0)
-                        << " sec." << std::endl;
-            }
+            LOG_DEBUG("query completed in {} sec.", utils::chrono_duration(t0));
             return st;
           });
     }
@@ -1747,15 +1732,11 @@ void Reader::prepare_regions_v4(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
-                << " regions in "
-                << utils::chrono_duration(start_bed_file_parse) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    // TODO: add locale thousands seperator?
+    LOG_INFO(
+        "Parsed bed file into {} regions in {} seconds.",
+        pre_partition_regions_list.size(),
+        utils::chrono_duration(start_bed_file_parse));
   }
 
   std::pair<uint32_t, uint32_t> region_non_empty_domain =
@@ -1792,14 +1773,10 @@ void Reader::prepare_regions_v4(
     auto start_region_sort = std::chrono::steady_clock::now();
     std::sort(regions->begin(), regions->end());
 
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Sorted " << regions->size() << " regions in "
-                << utils::chrono_duration(start_region_sort) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    LOG_DEBUG(
+        "Sorted {} regions in {} seconds.",
+        regions->size(),
+        utils::chrono_duration(start_region_sort));
   }
 
   // Apply region partitioning before expanding.
@@ -1937,15 +1914,10 @@ void Reader::prepare_regions_v3(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
-                << " regions in "
-                << utils::chrono_duration(start_bed_file_parse) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    LOG_DEBUG(
+        "Parsed bed file into {} regions in {} seconds.",
+        pre_partition_regions_list.size(),
+        utils::chrono_duration(start_bed_file_parse));
   }
 
   // No specified regions means all regions.
@@ -1986,14 +1958,10 @@ void Reader::prepare_regions_v3(
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Sorted " << regions->size() << " regions in "
-                << utils::chrono_duration(start_region_sort) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    LOG_DEBUG(
+        "Sorted {} regions in {} seconds.",
+        regions->size(),
+        utils::chrono_duration(start_region_sort));
   }
 
   // Apply region partitioning before expanding.
@@ -2071,15 +2039,10 @@ void Reader::prepare_regions_v2(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Parsed bed file into " << pre_partition_regions_list.size()
-                << " regions in "
-                << utils::chrono_duration(start_bed_file_parse) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    LOG_DEBUG(
+        "Parsed bed file into {} regions in {} seconds.",
+        pre_partition_regions_list.size(),
+        utils::chrono_duration(start_bed_file_parse));
   }
 
   // No specified regions means all regions.
@@ -2122,14 +2085,10 @@ void Reader::prepare_regions_v2(
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
-    if (params_.verbose) {
-      auto old_locale = std::cout.getloc();
-      utils::enable_pretty_print_numbers(std::cout);
-      std::cout << "Sorted " << regions->size() << " regions in "
-                << utils::chrono_duration(start_region_sort) << " seconds."
-                << std::endl;
-      std::cout.imbue(old_locale);
-    }
+    LOG_DEBUG(
+        "Sorted {} regions in {} seconds.",
+        regions->size(),
+        utils::chrono_duration(start_region_sort));
   }
 
   // Apply region partitioning before expanding.
@@ -2216,8 +2175,8 @@ void Reader::prepare_attribute_buffers() {
         TileDBVCFDataset::AttrNames::V2::real_end};
   }
 
-  buffers_a.reset(new AttributeBufferSet(params_.verbose));
-  buffers_b.reset(new AttributeBufferSet(params_.verbose));
+  buffers_a.reset(new AttributeBufferSet(LOG_DEBUG_ENABLED()));
+  buffers_b.reset(new AttributeBufferSet(LOG_DEBUG_ENABLED()));
 
   const auto* user_exp = dynamic_cast<const InMemoryExporter*>(exporter_.get());
   if (params_.cli_count_only || exporter_ == nullptr ||
@@ -2247,18 +2206,18 @@ void Reader::prepare_attribute_buffers() {
     buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
     buffers_b->allocate_fixed(attrs, alloc_budget, dataset_.get());
     double_buffering_ = true;
-    if (params_.verbose)
-      std::cout << "double buffering enabled because buffers are above "
-                   "threshold size of "
-                << params_.double_buffering_threshold << std::endl;
+    LOG_DEBUG(
+        "double buffering enabled because buffers are above threshold size of "
+        "{}",
+        params_.double_buffering_threshold);
   } else {
     buffers_a->allocate_fixed(attrs, alloc_budget, dataset_.get());
     buffers_b.reset(nullptr);
     double_buffering_ = false;
-    if (params_.verbose)
-      std::cout << "double buffering disabled because buffers are below "
-                   "threshold size of "
-                << params_.double_buffering_threshold << std::endl;
+    LOG_DEBUG(
+        "double buffering disabled because buffers are below threshold size of "
+        "{}",
+        params_.double_buffering_threshold);
   }
 }
 
@@ -2386,8 +2345,8 @@ void Reader::info_attribute_name(int32_t index, char** name) {
   }
 }
 
-void Reader::set_verbose(const bool& verbose) {
-  params_.verbose = verbose;
+void Reader::set_verbosity(const int verbosity) {
+  params_.verbosity = verbosity;
 }
 
 void Reader::set_tiledb_query_config() {
@@ -2435,11 +2394,9 @@ void Reader::compute_memory_budget_details() {
 
   // TileDB Cloud datasets use all the memory for buffers
   if (dataset_ != nullptr && dataset_->tiledb_cloud_dataset()) {
-    if (params_.verbose) {
-      std::cout << "Overrode memory budgets because array is TileDB Cloud "
-                   "array. All memory will be given to buffers."
-                << std::endl;
-    }
+    LOG_DEBUG(
+        "Overrode memory budgets because array is TileDB Cloud array. All "
+        "memory will be given to buffers.");
     params_.memory_budget_breakdown.tiledb_tile_cache = 0;
     // Set the budget to non-zero but its effectively ignored
     params_.memory_budget_breakdown.tiledb_memory_budget = 1024;
@@ -2448,17 +2405,13 @@ void Reader::compute_memory_budget_details() {
         params_.memory_budget_mb * 1024 * 1024;
   }
 
-  if (params_.verbose) {
-    std::cout << "Set memory budgets as follows: "
-              << "starting budget: " << params_.memory_budget_mb * 1024 * 1024
-              << ", tile_cache: "
-              << params_.memory_budget_breakdown.tiledb_tile_cache
-              << ", per_buffer_size: "
-              << params_.memory_budget_breakdown.buffers
-              << ", tiledb_memory_budget: "
-              << params_.memory_budget_breakdown.tiledb_memory_budget
-              << std::endl;
-  }
+  LOG_DEBUG(
+      "Set memory budgets as follows: starting budget: {}, tile_cache: {}, "
+      "per_buffer_size: {}, tiledb_memory_budget: {}",
+      params_.memory_budget_mb * 1024 * 1024,
+      params_.memory_budget_breakdown.tiledb_tile_cache,
+      params_.memory_budget_breakdown.buffers,
+      params_.memory_budget_breakdown.tiledb_memory_budget);
 }
 
 void Reader::set_buffer_percentage(const float& buffer_percentage) {

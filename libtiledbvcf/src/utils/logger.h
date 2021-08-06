@@ -268,9 +268,9 @@ inline void LOG_SET_LEVEL(const int lvl) {
   global_logger().set_level(static_cast<Logger::Level>(lvl));
 }
 
-/** Check if global logger is logging the provided level. */
-inline bool LOG_IS_LOGGING(const Logger::Level lvl) {
-  return global_logger().is_logging(lvl);
+/** Check if global logger is logging debug messages. */
+inline bool LOG_DEBUG_ENABLED() {
+  return global_logger().is_logging(Logger::Level::DBG);
 }
 
 /** Logs a trace message. */

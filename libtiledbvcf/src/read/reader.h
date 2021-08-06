@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -93,9 +93,7 @@ struct ExportParams {
   PartitionInfo sample_partitioning;
   PartitionInfo region_partitioning;
   ExportFormat format = ExportFormat::CompressedBCF;
-  // TODO: change to verbosity
-  bool verbose = false;
-  //  int verbosity = 0;
+  int verbosity = 0;
   bool export_to_disk = false;
   bool cli_count_only = false;
   bool sort_regions = true;
@@ -381,10 +379,10 @@ class Reader {
   void sample_name(int32_t index, const char** name);
 
   /**
-   * Sets verbose mode on or off
-   * @param verbose setting
+   * Sets verbosity of log messages
+   * @param verbosity setting
    */
-  void set_verbose(const bool& verbose);
+  void set_verbosity(const int verbosity);
 
   /**
    * Sets disabling of progress estimation in verbose mode

@@ -360,7 +360,6 @@ void Writer::ingest_samples() {
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
-  // TODO: add locale specific thousands separater?
   LOG_INFO(
       "Done. Ingested {} records (+ {} anchors) from {} samples in {} "
       "seconds.",
@@ -546,9 +545,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             last_sample_name);
       }
     } catch (const std::exception& e) {
-      //      std::cout << "sample batch [" << first_sample_name << ", "
-      //                << last_sample_name << "] not found in existing array"
-      //                << std::endl;
+      LOG_DEBUG(
+          "sample batch [{}, {}] not found in existing array",
+          first_sample_name,
+          last_sample_name);
     }
   }
 
@@ -665,7 +665,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                   existing_contigs_in_array_for_sample_batch.end();
 
           if (contigs_exists_in_array) {
-            if (LOG_IS_LOGGING(Logger::Level::DBG)) {
+            if (LOG_DEBUG_ENABLED()) {
               for (const std::string& contig : current_batch) {
                 LOG_DEBUG(
                     "{} found to be in array via merged fragments, skipping "
@@ -752,7 +752,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           // suppose to merge this new one, then finalize the previous one
           if (last_region_contig != contig) {
             if (!last_contig_mergeable || !contig_mergeable) {
-              if (LOG_IS_LOGGING(Logger::Level::DBG)) {
+              if (LOG_DEBUG_ENABLED()) {
                 if (!last_contig_mergeable) {
                   LOG_DEBUG(
                       "Previous contig {} found to NOT be mergeable, "
