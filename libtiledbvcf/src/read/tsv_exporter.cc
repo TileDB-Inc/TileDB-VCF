@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -270,6 +270,10 @@ void TSVExporter::init_output_stream() {
   std::ostream& os = output_file_.empty() ? std::cout : os_;
   os << "SAMPLE";
   for (auto& t : output_fields_) {
+    // skip SAMPLE since it is included by default
+    if (t.name == "SAMPLE") {
+      continue;
+    }
     os << "\t";
     switch (t.type) {
       case OutputField::Type::Info:
