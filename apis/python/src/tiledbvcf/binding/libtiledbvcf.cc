@@ -31,7 +31,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_attributes", &Reader::set_attributes)
       .def("set_tiledb_stats_enabled", &Reader::set_tiledb_stats_enabled)
       .def("set_verbose", &Reader::set_verbose)
-      .def("read", &Reader::read, py::arg("release_buffs")=true)
+      .def("read", &Reader::read, py::arg("release_buffs") = true)
       .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)
       .def("result_num_records", &Reader::result_num_records)
@@ -45,13 +45,19 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_sample_count", &Reader::get_sample_count)
       .def("get_sample_names", &Reader::get_sample_names)
       .def("set_buffer_percentage", &Reader::set_buffer_percentage)
-      .def("set_tiledb_tile_cache_percentage", &Reader::set_tiledb_tile_cache_percentage)
+      .def(
+          "set_tiledb_tile_cache_percentage",
+          &Reader::set_tiledb_tile_cache_percentage)
       .def("set_check_samples_exist", &Reader::set_check_samples_exist)
       .def("version", &Reader::version)
-      .def("set_enable_progress_estimation", &Reader::set_enable_progress_estimation)
+      .def(
+          "set_enable_progress_estimation",
+          &Reader::set_enable_progress_estimation)
       .def("set_debug_print_vcf_regions", &Reader::set_debug_print_vcf_regions)
       .def("set_debug_print_sample_list", &Reader::set_debug_print_sample_list)
-      .def("set_debug_print_tiledb_query_ranges", &Reader::set_debug_print_tiledb_query_ranges);
+      .def(
+          "set_debug_print_tiledb_query_ranges",
+          &Reader::set_debug_print_tiledb_query_ranges);
 
   py::class_<Writer>(m, "Writer")
       .def(py::init())
@@ -80,6 +86,9 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("version", &Writer::version)
       .def("set_resume", &Writer::set_resume)
       .def("set_contig_fragment_merging", &Writer::set_contig_fragment_merging)
-      .def("set_contigs_to_keep_separate", &Writer::set_contigs_to_keep_separate)
-      .def("set_contigs_to_allow_merging", &Writer::set_contigs_to_allow_merging);
+      .def(
+          "set_contigs_to_keep_separate", &Writer::set_contigs_to_keep_separate)
+      .def(
+          "set_contigs_to_allow_merging",
+          &Writer::set_contigs_to_allow_merging);
 }

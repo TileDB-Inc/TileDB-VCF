@@ -90,7 +90,7 @@ class Reader {
   void set_tiledb_stats_enabled(const bool stats_enabled);
 
   /** Performs a blocking read operation. */
-  void read(const bool release_buffs=true);
+  void read(const bool release_buffs = true);
 
   /**
    * Returns a PyArrow table containing the results from the last read
@@ -192,7 +192,8 @@ class Reader {
   static py::dtype to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype);
 
   /** Convert the given datatype to a arrow datatype */
-  static std::shared_ptr<arrow::DataType> to_arrow_datatype(tiledb_vcf_attr_datatype_t datatype);
+  static std::shared_ptr<arrow::DataType> to_arrow_datatype(
+      tiledb_vcf_attr_datatype_t datatype);
 
   /** The underlying C reader object. */
   std::unique_ptr<tiledb_vcf_reader_t, decltype(&deleter)> ptr;
@@ -207,7 +208,7 @@ class Reader {
   std::vector<BufferInfo> buffers_;
 
   /** Allocate buffers for the read. */
-  void alloc_buffers(const bool release_buffs=true);
+  void alloc_buffers(const bool release_buffs = true);
 
   /** Sets the allocated buffers on the reader object. */
   void set_buffers();
@@ -216,29 +217,53 @@ class Reader {
   void release_buffers();
 
   /** Build arrow array from bufferInfo. */
-  std::shared_ptr<arrow::Array> build_arrow_array_from_buffer(BufferInfo& buffer, const uint64_t& count, const uint64_t& num_offsets, const uint64_t& num_data_elements);
+  std::shared_ptr<arrow::Array> build_arrow_array_from_buffer(
+      BufferInfo& buffer,
+      const uint64_t& count,
+      const uint64_t& num_offsets,
+      const uint64_t& num_data_elements);
 
   template <typename T>
-  std::shared_ptr<arrow::Array> build_arrow_array(const BufferInfo& buffer, const uint64_t count, const uint64_t& num_offsets, const uint64_t& num_data_elements) {
+  std::shared_ptr<arrow::Array> build_arrow_array(
+      const BufferInfo& buffer,
+      const uint64_t count,
+      const uint64_t& num_offsets,
+      const uint64_t& num_data_elements) {
     std::shared_ptr<arrow::Array> array;
     std::shared_ptr<arrow::Array> data_array;
     bool var_len = buffer.offsets != nullptr;
     bool list = buffer.list_offsets != nullptr;
 
-    if(list) {
+    if (list) {
       if (var_len) {
-        auto real_data_array = std::make_shared<T>(num_data_elements, buffer.data);
-        data_array = std::make_shared<arrow::ListArray>(arrow::list(buffer.arrow_datatype), num_offsets-1, buffer.offsets, real_data_array);
+        auto real_data_array =
+            std::make_shared<T>(num_data_elements, buffer.data);
+        data_array = std::make_shared<arrow::ListArray>(
+            arrow::list(buffer.arrow_datatype),
+            num_offsets - 1,
+            buffer.offsets,
+            real_data_array);
       } else {
         data_array = std::make_shared<T>(num_data_elements, buffer.data);
       }
-      array = std::make_shared<arrow::ListArray>(arrow::list(arrow::list(buffer.arrow_datatype)), count, buffer.list_offsets, data_array, buffer.bitmap);
+      array = std::make_shared<arrow::ListArray>(
+          arrow::list(arrow::list(buffer.arrow_datatype)),
+          count,
+          buffer.list_offsets,
+          data_array,
+          buffer.bitmap);
     } else if (var_len) {
       data_array = std::make_shared<T>(num_data_elements, buffer.data);
-      array = std::make_shared<arrow::ListArray>(arrow::list(buffer.arrow_datatype), count, buffer.offsets, data_array, buffer.bitmap);
+      array = std::make_shared<arrow::ListArray>(
+          arrow::list(buffer.arrow_datatype),
+          count,
+          buffer.offsets,
+          data_array,
+          buffer.bitmap);
     } else {
       // fixed length
-      array = std::make_shared<T>(num_data_elements, buffer.data, buffer.bitmap);
+      array =
+          std::make_shared<T>(num_data_elements, buffer.data, buffer.bitmap);
     }
 
     return array;
