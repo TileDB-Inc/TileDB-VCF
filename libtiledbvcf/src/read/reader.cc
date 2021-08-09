@@ -658,7 +658,7 @@ bool Reader::next_read_batch_v2_v3() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (LOG_DEBUG_ENABLED() && params_.enable_progress_estimation) {
+  if (params_.enable_progress_estimation) {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       read_state_.query_estimated_num_records =
           read_state_.query->est_result_size(
@@ -849,36 +849,29 @@ bool Reader::next_read_batch_v4() {
   }
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
-  if (LOG_DEBUG_ENABLED()) {
-    if (params_.debug_params.print_tiledb_query_ranges) {
-      LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
-    }
-
-    std::stringstream ss;
-    ss << "Initialized TileDB query with "
-       << read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
-              .second.size()
-       << " start_pos ranges, ";
-
-    if (read_state_.all_samples)
-      ss << " all samples";
-    else
-      ss << read_state_.current_sample_batches.size() << " samples";
-
-    ss << " for contig "
-       << read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first
-       << " (contig batch " << read_state_.query_contig_batch_idx + 1 << "/"
-       << read_state_.query_regions_v4.size() << ", sample batch "
-       << read_state_.batch_idx + 1 << "/" << read_state_.sample_batches.size()
-       << ").";
-    LOG_DEBUG(ss.str());
+  if (params_.debug_params.print_tiledb_query_ranges) {
+    LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
   }
+
+  LOG_INFO(
+      "Initialized TileDB query with {} start_pos ranges, {} for contig {} "
+      "(contig batch {}/{}, sample batch {}/{}).",
+      read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+          .second.size(),
+      (read_state_.all_samples ?
+           "all samples" :
+           std::to_string(read_state_.current_sample_batches.size())),
+      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
+      read_state_.query_contig_batch_idx + 1,
+      read_state_.query_regions_v4.size(),
+      read_state_.batch_idx + 1,
+      read_state_.sample_batches.size());
 
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
 
-  if (LOG_DEBUG_ENABLED() && params_.enable_progress_estimation) {
+  if (params_.enable_progress_estimation) {
     read_state_.query_estimated_num_records =
         read_state_.query->est_result_size(
             TileDBVCFDataset::DimensionNames::V4::start_pos) /
@@ -1040,21 +1033,25 @@ bool Reader::read_current_batch() {
       complete = process_query_results_v2();
     }
 
-    if (LOG_DEBUG_ENABLED()) {
-      std::stringstream ss;
-      ss << "Processed " << read_state_.query_results.num_cells()
-         << " cells in " << utils::chrono_duration(t0) << " sec. Reported "
-         << (read_state_.last_num_records_exported - old_num_exported)
-         << " cells.";
-      if (params_.enable_progress_estimation &&
-          read_state_.query_estimated_num_records > 0) {
-        ss << " Approximately " << std::fixed << std::setprecision(2)
-           << (read_state_.total_query_records_processed /
-               static_cast<double>(read_state_.query_estimated_num_records) *
-               100)
-           << "% completed with query cells.";
-      }
-      LOG_DEBUG(ss.str());
+    if (params_.enable_progress_estimation &&
+        read_state_.query_estimated_num_records > 0) {
+      LOG_INFO(
+          "Processed {} cells in {} sec. Reported {} cells. Approximately "
+          "{:.1f}% completed with query cells.",
+          read_state_.query_results.num_cells(),
+          utils::chrono_duration(t0),
+          read_state_.last_num_records_exported - old_num_exported,
+          std::min(
+              100.0,
+              read_state_.total_query_records_processed /
+                  static_cast<double>(read_state_.query_estimated_num_records) *
+                  100.0));
+    } else {
+      LOG_INFO(
+          "Processed {} cells in {} sec. Reported {} cells.",
+          read_state_.query_results.num_cells(),
+          utils::chrono_duration(t0),
+          read_state_.last_num_records_exported - old_num_exported);
     }
 
     // Return early if we couldn't process all the results.
@@ -2433,8 +2430,8 @@ void Reader::set_check_samples_exist(const bool check_samples_exist) {
 
 void Reader::set_enable_progress_estimation(
     const bool& enable_progress_estimation) {
-  std::cout << "setting enable_progress_estimation to "
-            << enable_progress_estimation << std::endl;
+  LOG_INFO(
+      "setting enable_progress_estimation to {}", enable_progress_estimation);
   params_.enable_progress_estimation = enable_progress_estimation;
 }
 

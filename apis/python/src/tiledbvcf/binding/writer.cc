@@ -148,9 +148,9 @@ void Writer::set_max_num_records(const uint64_t max_num_records) {
       writer, tiledb_vcf_writer_set_max_num_records(writer, max_num_records));
 }
 
-void Writer::set_verbose(bool verbose) {
+void Writer::set_verbosity(const int verbosity) {
   auto writer = ptr.get();
-  check_error(writer, tiledb_vcf_writer_set_verbose(writer, verbose));
+  check_error(writer, tiledb_vcf_writer_set_verbosity(writer, verbosity));
 }
 
 void Writer::create_dataset() {

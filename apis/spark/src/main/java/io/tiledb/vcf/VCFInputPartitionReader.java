@@ -300,10 +300,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       vcfReader.setSortRegions(sortRegions.get());
     }
 
-    // Set verbose
-    Optional<Boolean> verbose = options.getVerbose();
-    if (verbose.isPresent()) {
-      vcfReader.setVerbose(verbose.get());
+    // Set verbosity
+    Optional<Integer> verbosity = options.getVerbosity();
+    if (verbosity.isPresent()) {
+      vcfReader.setVerbosity(verbosity.get());
     }
 
     // Set enableProgressEstimation

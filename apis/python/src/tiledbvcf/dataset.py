@@ -32,7 +32,7 @@ ReadConfig.__new__.__defaults__ = (None,) * 8  # len(ReadConfig._fields)
 class Dataset(object):
     """A handle on a TileDB-VCF dataset."""
 
-    def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False):
+    def __init__(self, uri, mode="r", cfg=None, stats=False, verbosity=0):
         """Initializes a TileDB-VCF dataset for interaction.
 
         :param uri: URI of TileDB-VCF dataset
@@ -40,20 +40,20 @@ class Dataset(object):
         :type mode: 'r' or 'w'
         :param cfg: TileDB VCF configuration (optional)
         :param stats: Enable internal TileDB statistics (default False)
-        :param verbose: Enable TileDB-VCF verbose output (default False)
+        :param verbosity: Set TileDB-VCF verbosity (default 0)
         """
         self.uri = uri
         self.mode = mode
         self.cfg = cfg
         if self.mode == "r":
             self.reader = libtiledbvcf.Reader()
-            self.reader.set_verbose(verbose)
+            self.reader.set_verbosity(verbosity)
             self._set_read_cfg(cfg)
             self.reader.init(uri)
             self.reader.set_tiledb_stats_enabled(stats)
         elif self.mode == "w":
             self.writer = libtiledbvcf.Writer()
-            self.writer.set_verbose(verbose)
+            self.writer.set_verbosity(verbosity)
             self._set_write_cfg(cfg)
             self.writer.init(uri)
             self.writer.set_tiledb_stats_enabled(stats)

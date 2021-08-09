@@ -156,9 +156,9 @@ void Reader::set_tiledb_config(const std::string& config_str) {
       reader, tiledb_vcf_reader_set_tiledb_config(reader, config_str.c_str()));
 }
 
-void Reader::set_verbose(bool verbose) {
+void Reader::set_verbosity(int verbosity) {
   auto reader = ptr.get();
-  check_error(reader, tiledb_vcf_reader_set_verbose(reader, verbose));
+  check_error(reader, tiledb_vcf_reader_set_verbosity(reader, verbosity));
 }
 
 void Reader::read(const bool release_buffs) {

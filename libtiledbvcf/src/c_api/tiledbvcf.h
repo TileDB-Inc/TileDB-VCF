@@ -855,12 +855,12 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_name(
     tiledb_vcf_reader_t* reader, int32_t index, const char** name);
 
 /**
- * Sets verbose mode on or off
+ * Sets verbosity level
  * @param reader VCF reader object
- * @param verbose setting
+ * @param verbosity level (0 = less verbose, 5 = most verbose)
  */
 TILEDBVCF_EXPORT int32_t
-tiledb_vcf_reader_set_verbose(tiledb_vcf_reader_t* reader, bool verbose);
+tiledb_vcf_reader_set_verbosity(tiledb_vcf_reader_t* reader, int verbosity);
 
 /**
  * Sets verbose mode on or off
@@ -1155,13 +1155,12 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_max_num_records(
     tiledb_vcf_writer_t* writer, uint64_t max_num_records);
 
 /**
- * Sets verbose mode on or off
- * @param reader VCF writter object
+ * Sets verbosity level
  * @param writer VCF writer object
- * @param verbose setting
+ * @param verbosity level (0 = less verbose, 5 = most verbose)
  */
 TILEDBVCF_EXPORT int32_t
-tiledb_vcf_writer_set_verbose(tiledb_vcf_writer_t* writer, bool verbose);
+tiledb_vcf_writer_set_verbosity(tiledb_vcf_writer_t* writer, int verbosity);
 
 /**
  * Sets whether TileDB internal statistics should be enabled or not.

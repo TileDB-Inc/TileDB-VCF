@@ -80,7 +80,7 @@ $tilevcf export -u ingested_1 -s HG01762 -O v -b 512
 diff <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
 $tilevcf export -u ingested_2 -s HG00280 -O v -b 512
 diff <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exit 1
-$tilevcf export -u ingested_1_2 -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
@@ -100,7 +100,7 @@ $tilevcf export -u ingested_capacity -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
-$tilevcf export -u ingested_1_2 -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 
@@ -108,75 +108,75 @@ diff -u <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exi
 ## on export (which are not present in the input BCF). So we just compare without
 ## the END tags.
 rm -f HG00280.vcf HG01762.vcf
-$tilevcf export -u ingested_3 -v -s HG00280 -O v -b 512
+$tilevcf export -u ingested_3 -v 4 -s HG00280 -O v -b 512
 diff -u <(bcftools annotate --no-version -x INFO/END ${input_dir}/small3.bcf) <(bcftools annotate --no-version -x INFO/END HG00280.vcf) || exit 1
 
 ## Run region export checks
 rm -f HG00280.vcf HG01762.vcf
 region="1:12141-15000"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:12100-12800,1:13500-17350"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -R tmp.bed -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version -R tmp.bed ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -R tmp.bed ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -v -s HG01762,HG00280 -O v -b 512
+$tilevcf export -u ingested_1_2 -R tmp.bed -v 4 -s HG01762,HG00280 -O v -b 512
 diff -u <(bcftools view --no-version -R tmp.bed ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -R tmp.bed ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 
 ## Region export checks with indels
 rm -f HG00280.vcf HG01762.vcf
 region="1:12100-12800,1:13500-17350"
-$tilevcf export -u ingested_3 -r $region -v -s HG00280 -O v -b 512
+$tilevcf export -u ingested_3 -r $region -v 4 -s HG00280 -O v -b 512
 diff -u <(bcftools annotate --no-version -x INFO/END -r $region ${input_dir}/small3.bcf) <(bcftools annotate --no-version -x INFO/END HG00280.vcf) || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:70000-866511"
-$tilevcf export -u ingested_3 -r $region -v -s HG00280 -O v -b 512
+$tilevcf export -u ingested_3 -r $region -v 4 -s HG00280 -O v -b 512
 diff -u <(bcftools annotate --no-version -x INFO/END -r $region ${input_dir}/small3.bcf) <(bcftools annotate --no-version -x INFO/END HG00280.vcf) || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:1289365-1289368"
-$tilevcf export -u ingested_3 -r $region -v -s HG00280 -O v -b 512
+$tilevcf export -u ingested_3 -r $region -v 4 -s HG00280 -O v -b 512
 diff -u <(bcftools annotate --no-version -x INFO/END -r $region ${input_dir}/small3.bcf) <(bcftools annotate --no-version -x INFO/END HG00280.vcf) || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:1289370-1289370" # empty region
-$tilevcf export -u ingested_3 -r $region -v -s HG00280 -O v -b 512
+$tilevcf export -u ingested_3 -r $region -v 4 -s HG00280 -O v -b 512
 test -e HG00280.vcf && exit 1
 
 # Region export checks with sample partitioning
 rm -f HG00280.vcf HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v --sample-partition 0:1 -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v --sample-partition 0:1 -b 512
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v --sample-partition 0:2 -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v --sample-partition 0:2 -b 512
 test -e HG01762.vcf && exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG00280,HG01762 -O v --sample-partition 0:2 -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG00280,HG01762 -O v --sample-partition 0:2 -b 512
 test -e HG01762.vcf && exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small2.bcf) HG00280.vcf || exit 1
 rm -f HG00280.vcf HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v --sample-partition 1:2 -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v --sample-partition 1:2 -b 512
 test -e HG00280.vcf && exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 
@@ -201,7 +201,7 @@ rm exported_samples.txt
 rm -f HG00280.vcf HG01762.vcf
 rm -f /tmp/HG00280.vcf /tmp/HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v -d /tmp -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v -d /tmp -b 512
 test -e HG01762.vcf && exit 1
 test -e HG00280.vcf && exit 1
 test -e /tmp/HG01762.vcf || exit 1
@@ -214,7 +214,7 @@ rm -f /tmp/HG00280.vcf /tmp/HG01762.vcf
 rm -f HG00280.vcf HG01762.vcf
 rm -f /tmp/HG00280.vcf /tmp/HG01762.vcf
 region="1:13300-13390,1:13400-13413,1:13452-13500,1:13600-17480"
-$tilevcf export -u ingested_1_2 -r $region -v -s HG01762,HG00280 -O v -d /tmp --upload-dir $upload_dir -b 512
+$tilevcf export -u ingested_1_2 -r $region -v 4 -s HG01762,HG00280 -O v -d /tmp --upload-dir $upload_dir -b 512
 test -e HG01762.vcf && exit 1
 test -e HG00280.vcf && exit 1
 test -e /tmp/HG01762.vcf || exit 1
@@ -231,7 +231,7 @@ rm -f /tmp/HG00280.vcf /tmp/HG01762.vcf ${upload_dir}/*
 rm -f HG00280.vcf HG01762.vcf region-map.txt
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -b 512 || exit 1
+$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v 4 -s HG01762,HG00280 -b 512 || exit 1
 diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
@@ -253,7 +253,7 @@ EOF
 rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
+$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v 4 -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
 diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
@@ -276,7 +276,7 @@ rm -f /tmp/pfx.tsv
 rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
+$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v 4 -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
 diff -uw $upload_dir/pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
@@ -300,7 +300,7 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 
 echo "Export records with a null fmt attribute (#142)"
 create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
-$tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
+$tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v 4 -o pfx.tsv -d /tmp/ || exit 1
 diff -uw /tmp/pfx.tsv <(
 cat <<EOF
 SAMPLE	POS	S:MIN_DP
@@ -311,7 +311,7 @@ EOF
 rm -f /tmp/pfx.tsv
 
 echo "Export non-contiguous samples (#79)"
-$tilevcf export -u ingested_3_samples -Ob -v -s G1,G3 || exit 1
+$tilevcf export -u ingested_3_samples -Ob -v 4 -s G1,G3 || exit 1
 rm -f G{1,3}.bcf
 
 # Check count only
@@ -323,7 +323,7 @@ diff -uw <(echo 13) <($tilevcf export -u ingested_1_2 -R tmp.bed -c -s HG01762,H
 rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
-$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v -s HG01762,HG00280 || exit 1
+$tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v 4 -s HG01762,HG00280 || exit 1
 diff -uw pfx.tsv <(
 cat <<EOF
 SAMPLE	CHR	POS	I:END	REF	Q:POS	Q:END
@@ -397,10 +397,10 @@ $tilevcf export -u ingested_1_2 -s HG01762,HG00280 -O v || exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small.bcf) HG00280.vcf && exit 1
 diff -u <(bcftools view --no-version ${input_dir}/small2.bcf) HG01762.vcf && exit 1
 rm -f HG00280.vcf HG01762.vcf
-$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-partition 0:2 && exit 1
-$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-partition 1:1 && exit 1
-$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG00280 -O v --sample-partition 2:1 && exit 1
-$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v -s HG01762,HG00280 -O v --sample-partition 0:3 && exit 1
+$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v 4 -s HG00280 -O v --sample-partition 0:2 && exit 1
+$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v 4 -s HG00280 -O v --sample-partition 1:1 && exit 1
+$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v 4 -s HG00280 -O v --sample-partition 2:1 && exit 1
+$tilevcf export -u ingested_1_2 -r "1:13300-13390" -v 4 -s HG01762,HG00280 -O v --sample-partition 0:3 && exit 1
 $tilevcf create -u ingested_bad -a GT && exit 1
 
 echo "Expecture failure with duplicate start pos"
