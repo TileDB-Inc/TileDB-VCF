@@ -378,6 +378,16 @@ Statistics for dataset 'ingested_1_2':
 EOF
 ) || exit 1
 
+# check tsv output with SAMPLE in tsv-fields
+diff -u <($tilevcf export -u ingested_1 -Ot --tsv-fields "SAMPLE") <(
+cat <<EOF
+SAMPLE
+HG01762	
+HG01762	
+HG01762	
+EOF
+) || exit 1
+
 # Expected failures
 echo ""
 echo "** Expected failure error messages follow:"
