@@ -156,12 +156,14 @@ class Writer {
   /**
     [Store only] Set list of contigs to keep separate and not merge
   */
-  void set_contigs_to_keep_separate(const std::vector<std::string>& contigs_to_keep_separate);
+  void set_contigs_to_keep_separate(
+      const std::vector<std::string>& contigs_to_keep_separate);
 
   /**
     [Store only] Set list of contigs to allow merging into super fragments
   */
-  void set_contigs_to_allow_merging(const std::vector<std::string>& contigs_to_allow_merging);
+  void set_contigs_to_allow_merging(
+      const std::vector<std::string>& contigs_to_allow_merging);
 
  private:
   /** Helper function to free a C writer instance */

@@ -207,22 +207,28 @@ std::string Writer::get_tiledb_stats() {
 }
 
 std::string Writer::version() {
-    const char* version_str;
-    tiledb_vcf_version(&version_str);
-    return version_str;
+  const char* version_str;
+  tiledb_vcf_version(&version_str);
+  return version_str;
 }
 
 void Writer::set_resume(const bool resume) {
   auto writer = ptr.get();
-  check_error(writer, tiledb_vcf_writer_set_resume_sample_partial_ingestion(writer, resume));
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_resume_sample_partial_ingestion(writer, resume));
 }
 
 void Writer::set_contig_fragment_merging(const bool contig_fragment_merging) {
   auto writer = ptr.get();
-  check_error(writer, tiledb_vcf_writer_set_contig_fragment_merging(writer, contig_fragment_merging));
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_contig_fragment_merging(
+          writer, contig_fragment_merging));
 }
 
-void Writer::set_contigs_to_keep_separate(const std::vector<std::string>& contigs_to_keep_separate) {
+void Writer::set_contigs_to_keep_separate(
+    const std::vector<std::string>& contigs_to_keep_separate) {
   auto writer = ptr.get();
 
   // Convert vector to char**
@@ -231,10 +237,14 @@ void Writer::set_contigs_to_keep_separate(const std::vector<std::string>& contig
   for (const auto& contig : contigs_to_keep_separate)
     contigs.push_back(contig.c_str());
 
-  check_error(writer, tiledb_vcf_writer_set_contigs_to_keep_separate(writer, contigs.data(), contigs.size()));
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_contigs_to_keep_separate(
+          writer, contigs.data(), contigs.size()));
 }
 
-void Writer::set_contigs_to_allow_merging(const std::vector<std::string>& contigs_to_allow_merging) {
+void Writer::set_contigs_to_allow_merging(
+    const std::vector<std::string>& contigs_to_allow_merging) {
   auto writer = ptr.get();
 
   // Convert vector to char**
@@ -243,7 +253,10 @@ void Writer::set_contigs_to_allow_merging(const std::vector<std::string>& contig
   for (const auto& contig : contigs_to_allow_merging)
     contigs.push_back(contig.c_str());
 
-  check_error(writer, tiledb_vcf_writer_set_contigs_to_allow_merging(writer, contigs.data(), contigs.size()));
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_contigs_to_allow_merging(
+          writer, contigs.data(), contigs.size()));
 }
 
 }  // namespace tiledbvcfpy
