@@ -29,6 +29,9 @@
 #include <map>
 #include <string>
 #include <vector>
+#ifdef __linux__
+#include <malloc.h>
+#endif
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
@@ -125,6 +128,10 @@ TileDBVCFDataset::~TileDBVCFDataset() {
 
   data_array_ = nullptr;
   vcf_header_array_ = (nullptr);
+
+#ifdef __linux__
+  malloc_trim(0);
+#endif
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
