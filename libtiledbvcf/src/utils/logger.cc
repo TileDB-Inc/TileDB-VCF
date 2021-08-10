@@ -33,6 +33,9 @@
 #include "utils/logger.h"
 
 #include <spdlog/sinks/stdout_sinks.h>
+#ifndef _WIN32
+#include <spdlog/sinks/stdout_color_sinks.h>
+#endif
 
 namespace tiledb {
 namespace common {
@@ -58,7 +61,7 @@ Logger::Logger() {
   // [log level]
   // text to log...
   logger_->set_pattern(
-      "[%Y-%m-%d %H:%M:%S.%e] [%n] [Process: %P] [Thread: %t] [%l] %v");
+      "%^[%Y-%m-%d %H:%M:%S.%e] [%n] [Process: %P] [Thread: %t] [%l] %v%$");
   logger_->set_level(spdlog::level::critical);
 }
 

@@ -28,43 +28,86 @@
 # This module defines:
 #   - SPDLOG_INCLUDE_DIR, directory containing headers
 #   - SPDLOG_FOUND, whether Spdlog has been found
-#   - The Spdlog::Spdlog imported target
+#   - The spdlog::spdlog imported target
 
-# Search the path set during the superbuild for the EP.
-set(SPDLOG_PATHS ${EP_SOURCE_DIR}/ep_spdlog/include)
+# Include some common helper functions.
+include(TileDBCommon)
 
-find_path(SPDLOG_INCLUDE_DIR
-  NAMES spdlog/spdlog.h
-  PATHS ${SPDLOG_PATHS}
-)
+# If the EP was built, it will install the storage_client-config.cmake file,
+# which we can use with find_package. CMake uses CMAKE_PREFIX_PATH to locate find
+# modules.
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${EP_INSTALL_PREFIX}")
 
-include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Spdlog
-  REQUIRED_VARS SPDLOG_INCLUDE_DIR
-)
 
-if (NOT SPDLOG_FOUND AND SUPERBUILD)
-  message(STATUS "Adding Spdlog as an external project")
-  ExternalProject_Add(ep_spdlog
-    PREFIX "externals"
-    # Set download name to avoid collisions with only the version number in the filename
-    DOWNLOAD_NAME ep_spdlog.zip
-    URL "https://github.com/gabime/spdlog/archive/v0.16.3.zip"
-    URL_HASH SHA1=00a732da1449c15b787491a924d63590c1649710
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    UPDATE_COMMAND ""
-    LOG_DOWNLOAD TRUE
-    LOG_OUTPUT_ON_FAILURE ${TILEDB_LOG_OUTPUT_ON_FAILURE}
-  )
-  list(APPEND TILEDB_EXTERNAL_PROJECTS ep_spdlog)
+# First try the CMake find module.
+find_package(spdlog PATHS ${EP_INSTALL_PREFIX})
+set(SPDLOG_FOUND ${spdlog_FOUND})
+
+if (NOT SPDLOG_FOUND)
+  if(SUPERBUILD)
+    if (WIN32)
+      find_package(Git REQUIRED)
+      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR} && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+    else()
+      set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+    endif()
+
+    message(STATUS "Adding spdlog as an external project")
+    ExternalProject_Add(ep_spdlog
+      PREFIX "externals"
+      # Set download name to avoid collisions with only the version number in the filename
+      DOWNLOAD_NAME ep_spdlog.zip
+      URL "https://github.com/gabime/spdlog/archive/v1.9.0.zip"
+      URL_HASH SHA1=6259d1b6c5b9b565aa3ba5a6315d49f76d90ec0a
+      PATCH_COMMAND
+        ${CONDITIONAL_PATCH}
+      CMAKE_ARGS
+        -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
+        -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
+        -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DSPDLOG_BUILD_SHARED=OFF
+      LOG_DOWNLOAD TRUE
+      LOG_CONFIGURE TRUE
+      LOG_BUILD TRUE
+      LOG_INSTALL TRUE
+      LOG_OUTPUT_ON_FAILURE TRUE}
+    )
+    list(APPEND EXTERNAL_PROJECTS ep_spdlog)
+    list(APPEND FORWARD_EP_CMAKE_ARGS
+            -DTILEDB_SPDLOG_EP_BUILT=TRUE
+            )
+  else()
+    message(FATAL_ERROR "Unable to find spdlog")
+  endif()
 endif()
 
-# Create the imported target for Spdlog
-if (SPDLOG_FOUND AND NOT TARGET Spdlog::Spdlog)
-  add_library(Spdlog::Spdlog INTERFACE IMPORTED)
-  set_target_properties(Spdlog::Spdlog PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${SPDLOG_INCLUDE_DIR}"
-  )
+if (spdlog_FOUND AND NOT TARGET spdlog::spdlog)
+  add_library(spdlog::spdlog INTERFACE IMPORTED)
+  find_package(fmt QUIET)
+  if (${fmt_FOUND})
+    target_link_libraries(spdlog::spdlog INTERFACE fmt::fmt)
+  endif()
+  set_target_properties(spdlog::spdlog PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES "${SPDLOG_INCLUDE_DIR}"
+          )
+  # If the target is defined we need to handle external fmt build types
+elseif(TARGET spdlog::spdlog)
+  if (SPDLOG_FMT_EXTERNAL)
+    # Since we are using header only we need to define this
+    add_definitions("-DSPDLOG_FMT_EXTERNAL=1")
+    find_package(fmt REQUIRED)
+    if (${fmt_FOUND})
+      target_link_libraries(spdlog::spdlog INTERFACE fmt::fmt)
+    endif()
+  endif()
+endif()
+
+# If we built a static EP, install it if required.
+if (TILEDB_SPDLOG_EP_BUILT)
+  install_target_libs(spdlog::spdlog)
 endif()

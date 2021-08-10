@@ -91,7 +91,6 @@ target_include_directories(TILEDB_VCF_OBJECTS
     ${CMAKE_CURRENT_SOURCE_DIR}
     $<TARGET_PROPERTY:HTSlib::HTSlib,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:Spdlog::Spdlog,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
@@ -131,6 +130,7 @@ target_link_libraries(tiledbvcf
   PUBLIC
     HTSlib::HTSlib
     TileDB::tiledb_shared
+    spdlog::spdlog
 )
 
 # Sanitizer linker flags
@@ -169,6 +169,7 @@ target_link_libraries(tiledbvcf-bin
     Clipp::Clipp
     HTSlib::HTSlib
     TileDB::tiledb_shared
+    spdlog::spdlog
 )
 
 # Sanitizer linker flags
@@ -186,7 +187,6 @@ endif()
 target_include_directories(tiledbvcf-bin
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    $<TARGET_PROPERTY:Spdlog::Spdlog,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 ############################################################
