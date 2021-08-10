@@ -689,15 +689,15 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1dataset_1vers
   return rc;
 }
 JNIEXPORT jint JNICALL
-Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbose(
-    JNIEnv* env, jclass self, jlong readerPtr, jboolean verbose) {
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbosity(
+    JNIEnv* env, jclass self, jlong readerPtr, jint verbosity) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
     return TILEDB_VCF_ERR;
   }
 
-  return tiledb_vcf_reader_set_verbose(reader, verbose);
+  return tiledb_vcf_reader_set_verbosity(reader, verbosity);
 }
 
 JNIEXPORT jint JNICALL
