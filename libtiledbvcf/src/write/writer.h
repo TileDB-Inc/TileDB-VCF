@@ -55,7 +55,7 @@ struct IngestionParams {
   std::vector<std::string> sample_uris;
   unsigned num_threads = std::thread::hardware_concurrency();
   unsigned part_size_mb = 50;
-  int verbosity = 0;
+  bool verbose = false;
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
   // Max number of VCF records to read into memory
@@ -232,10 +232,10 @@ class Writer {
   void set_record_limit(const uint64_t max_num_records);
 
   /**
-   * Sets verbosity of log messages
-   * @param verbosity setting
+   * Sets verbose mode on or off
+   * @param verbose setting
    */
-  void set_verbosity(const int verbosity);
+  void set_verbose(const bool& verbose);
 
   /** Enable tiledb stats */
   void set_tiledb_stats_enabled(bool stats_enabled);

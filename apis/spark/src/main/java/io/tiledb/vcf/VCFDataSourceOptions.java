@@ -142,10 +142,10 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
-  /** @return The verbosity for the TileDB-VCF reader */
-  public Optional<Integer> getVerbosity() {
-    if (options.containsKey("verbosity")) {
-      return Optional.of(Integer.parseInt(options.get("verbosity")));
+  /** @return If TileDB-VCF reader should be set to verbose output mode */
+  public Optional<Boolean> getVerbose() {
+    if (options.containsKey("verbose")) {
+      return Optional.of(Boolean.parseBoolean(options.get("verbose")));
     }
     return Optional.empty();
   }

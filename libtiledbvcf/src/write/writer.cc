@@ -992,8 +992,8 @@ void Writer::set_scratch_space(const std::string& path, uint64_t size) {
   this->ingestion_params_.scratch_space = scratchSpaceInfo;
 }
 
-void Writer::set_verbosity(const int verbosity) {
-  ingestion_params_.verbosity = verbosity;
+void Writer::set_verbose(const bool& verbose) {
+  ingestion_params_.verbose = verbose;
 }
 
 void Writer::set_tiledb_stats_enabled(bool stats_enabled) {

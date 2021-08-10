@@ -301,7 +301,7 @@ TEST_CASE("TileDB-VCF: Test ingest 100", "[tiledbvcf][ingest]") {
   IngestionParams params;
   params.uri = dataset_uri;
   params.sample_uris = all_samples;
-  params.verbosity = 4;
+  params.verbose = true;
   writer.set_all_params(params);
   writer.ingest_samples();
 
@@ -342,7 +342,7 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
   IngestionParams params;
   params.uri = dataset_uri;
   params.sample_uris = {sample_uri};
-  params.verbosity = 4;
+  params.verbose = true;
   writer.set_all_params(params);
   writer.ingest_samples();
 
@@ -605,7 +605,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.resume_sample_partial_ingestion = true;
     params.contig_fragment_merging = true;
     params.thread_task_size = 500000000;
-    params.verbosity = 4;
+    params.verbose = true;
     writer.set_all_params(params);
     writer.ingest_samples();
   }
@@ -632,7 +632,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
     params.contig_fragment_merging = true;
-    params.verbosity = 4;
+    params.verbose = true;
     params.thread_task_size = 500000000;
     writer.set_all_params(params);
     writer.ingest_samples();

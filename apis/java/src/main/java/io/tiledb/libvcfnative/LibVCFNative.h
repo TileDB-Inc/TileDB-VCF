@@ -295,12 +295,12 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1dataset_1vers
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
- * Method:    tiledb_vcf_reader_set_verbosity
- * Signature: (JI)I
+ * Method:    tiledb_vcf_reader_set_verbose
+ * Signature: (JZ)I
  */
 JNIEXPORT jint JNICALL
-Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbosity(
-    JNIEnv*, jclass, jlong, jint);
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbose(
+    JNIEnv*, jclass, jlong, jboolean);
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative

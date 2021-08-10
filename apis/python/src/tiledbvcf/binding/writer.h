@@ -116,11 +116,11 @@ class Writer {
   int32_t get_schema_version();
 
   /**
-   * Set writer verbosity
+   * Set writer verbose output mode
    *
-   * @param verbosity level (0 = less verbose, 5 = most verbose)
+   * @param verbose mode
    */
-  void set_verbosity(int verbosity);
+  void set_verbose(bool verbose);
 
   /** Sets CSV TileDB config parameters. */
   void set_tiledb_config(const std::string& config_str);

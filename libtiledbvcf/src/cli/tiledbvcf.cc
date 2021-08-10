@@ -200,7 +200,9 @@ void do_register(const RegistrationParams& args) {
 
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
-  LOG_SET_LEVEL(args.verbosity);
+  if (args.verbose) {
+    LOG_SET_LEVEL(5);
+  }
 
   Writer writer;
   writer.set_all_params(args);
@@ -216,7 +218,9 @@ void do_store(const IngestionParams& args) {
 
 /** Export. */
 void do_export(const ExportParams& args) {
-  LOG_SET_LEVEL(args.verbosity);
+  if (args.verbose) {
+    LOG_SET_LEVEL(5);
+  }
 
   Reader reader;
   reader.set_all_params(args);
@@ -399,11 +403,8 @@ int main(int argc, char** argv) {
                    "queries.",
                    store_args.max_tiledb_buffer_size_mb) &
            value("MB", store_args.max_tiledb_buffer_size_mb),
-       option("-v", "--verbosity") %
-               defaulthelp(
-                   "Verbosity level for logging messages.",
-                   store_args.verbosity) &
-           value("N", store_args.verbosity),
+       option("-v", "--verbose").set(store_args.verbose) %
+           "Enable verbose output",
        option("--remove-sample-file").set(store_args.remove_samples_file) %
            "If specified, the samples file ('-f' argument) is deleted after "
            "successful ingestion",
@@ -533,11 +534,8 @@ int main(int argc, char** argv) {
            value("params").call([&export_args](const std::string& s) {
              export_args.tiledb_config = utils::split(s, ',');
            }),
-       option("-v", "--verbosity") %
-               defaulthelp(
-                   "Verbosity level for logging messages.",
-                   export_args.verbosity) &
-           value("N", export_args.verbosity),
+       option("-v", "--verbose").set(store_args.verbose) %
+           "Enable verbose output",
        option("-c", "--count-only").call([&export_args]() {
          export_args.export_to_disk = false;
          export_args.cli_count_only = true;

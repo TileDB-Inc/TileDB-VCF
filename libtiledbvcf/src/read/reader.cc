@@ -2342,8 +2342,8 @@ void Reader::info_attribute_name(int32_t index, char** name) {
   }
 }
 
-void Reader::set_verbosity(const int verbosity) {
-  params_.verbosity = verbosity;
+void Reader::set_verbose(const bool& verbose) {
+  params_.verbose = verbose;
 }
 
 void Reader::set_tiledb_query_config() {

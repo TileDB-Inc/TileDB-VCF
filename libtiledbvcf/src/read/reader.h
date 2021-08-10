@@ -93,7 +93,7 @@ struct ExportParams {
   PartitionInfo sample_partitioning;
   PartitionInfo region_partitioning;
   ExportFormat format = ExportFormat::CompressedBCF;
-  int verbosity = 0;
+  bool verbose = false;
   bool export_to_disk = false;
   bool cli_count_only = false;
   bool sort_regions = true;
@@ -379,10 +379,10 @@ class Reader {
   void sample_name(int32_t index, const char** name);
 
   /**
-   * Sets verbosity of log messages
-   * @param verbosity setting
+   * Sets verbose mode on or off
+   * @param verbose setting
    */
-  void set_verbosity(const int verbosity);
+  void set_verbose(const bool& verbose);
 
   /**
    * Sets disabling of progress estimation in verbose mode

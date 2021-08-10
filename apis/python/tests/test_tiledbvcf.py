@@ -890,7 +890,7 @@ def test_sample_and_region_partitioned_read():
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
-    ds = tiledbvcf.Dataset(uri, mode="r", verbosity=0)
+    ds = tiledbvcf.Dataset(uri, mode="r", verbose=True)
     df = ds.read(
         attrs=[
             "sample_name",
@@ -958,14 +958,14 @@ def test_ingest_disable_merging(tmp_path):
     ds.ingest_samples(samples, contig_fragment_merging=False)
 
     # Open it back in read mode and check some queries
-    ds = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbosity=0)
+    ds = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=False)
     df = ds.read(attrs=attrs)
     assert ds.count() == 246
     assert ds.count(regions=["chrX:9032893-9032893"]) == 1
 
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging_separate")
-    ds2 = tiledbvcf.Dataset(uri, mode="w", verbosity=4)
+    ds2 = tiledbvcf.Dataset(uri, mode="w", verbose=True)
     samples = [
         os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
     ]
@@ -973,7 +973,7 @@ def test_ingest_disable_merging(tmp_path):
     ds2.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
 
     # Open it back in read mode and check some queries
-    ds2 = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbosity=4)
+    ds2 = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=True)
     df2 = ds2.read(attrs=attrs)
     print(df.equals(df2))
     assert df.equals(df2)

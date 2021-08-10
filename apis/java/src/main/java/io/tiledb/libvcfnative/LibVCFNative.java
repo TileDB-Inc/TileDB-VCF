@@ -114,7 +114,7 @@ public class LibVCFNative {
   public static final native int tiledb_vcf_reader_get_dataset_version(
       long readerPtr, int[] version);
 
-  public static final native int tiledb_vcf_reader_set_verbosity(long readerPtr, int verbosity);
+  public static final native int tiledb_vcf_reader_set_verbose(long readerPtr, boolean verbose);
 
   public static final native int tiledb_vcf_reader_set_buffer_percentage(
       long readerPtr, float buffer_percentage);

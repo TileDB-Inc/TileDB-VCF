@@ -737,12 +737,12 @@ int32_t tiledb_vcf_reader_get_sample_name(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_reader_set_verbosity(
-    tiledb_vcf_reader_t* reader, const int verbosity) {
+int32_t tiledb_vcf_reader_set_verbose(
+    tiledb_vcf_reader_t* reader, const bool verbose) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_verbosity(verbosity)))
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_verbose(verbose)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;
@@ -1073,12 +1073,12 @@ int32_t tiledb_vcf_writer_set_max_num_records(
   return TILEDB_VCF_OK;
 }
 
-int32_t tiledb_vcf_writer_set_verbosity(
-    tiledb_vcf_writer_t* writer, const int verbosity) {
+int32_t tiledb_vcf_writer_set_verbose(
+    tiledb_vcf_writer_t* writer, const bool verbose) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
 
-  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbosity(verbosity)))
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_verbose(verbose)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;

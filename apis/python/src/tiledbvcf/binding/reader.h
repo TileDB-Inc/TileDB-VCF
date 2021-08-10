@@ -132,11 +132,11 @@ class Reader {
   std::vector<std::string> get_sample_names();
 
   /**
-   * Set reader verbosity
+   * Set reader verbose output mode
    *
-   * @param verbosity level (0 = less verbose, 5 = most verbose)
+   * @param verbose mode
    */
-  void set_verbosity(int verbosity);
+  void set_verbose(bool verbose);
 
   /** Set the TileDB query buffer memory percentage */
   void set_buffer_percentage(float buffer_percentage);

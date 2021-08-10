@@ -1178,7 +1178,7 @@ TEST_CASE("TileDB-VCF: Test export 100", "[tiledbvcf][export]") {
   IngestionParams params;
   params.uri = dataset_uri;
   params.sample_uris = all_samples;
-  params.verbosity = 4;
+  params.verbose = true;
   writer.set_all_params(params);
   writer.ingest_samples();
 
@@ -1249,7 +1249,7 @@ TEST_CASE("TileDB-VCF: Test export 100 using BED", "[tiledbvcf][export]") {
   IngestionParams params;
   params.uri = dataset_uri;
   params.sample_uris = all_samples;
-  params.verbosity = 4;
+  params.verbose = true;
   writer.set_all_params(params);
   writer.ingest_samples();
 
