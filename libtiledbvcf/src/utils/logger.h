@@ -27,15 +27,30 @@
  *
  * @section DESCRIPTION
  *
- * This file defines class Logger.
+ * This file defines class Logger, which is implemented as a wrapper around
+ * `spdlog`. By policy `spdlog` must remain encapsulated as an implementation
+ * and not be exposed as a dependency of the TileDB library. Accordingly, this
+ * header should not be included as a header in any other header file. For
+ * inclusion in a header (notably for use within the definition of
+ * template-dependent functions), include the header `logger_public.h`.
+ *
+ * The reason for this restriction is a technical limitation in template
+ * instantiation. Part of the interface to `spdlog` consists of template
+ * functions with variadic template arguments. Instantiation of such function
+ * does not instantiate a variadic function (for exmaple `printf`) but rather a
+ * function with a fixed number of arguments that depend upon the argument list.
+ * Such variadic template argument lists cannot be forwarded across the
+ * boundaries of compilation units, so exposing variadic template arguments
+ * necessarily exposes the dependency upon `spdlog`. Thus this file `logger.h`,
+ * which does have such arguments, must remain entirely within the library, but
+ * `logger_public.h`, which does not have such arguments, may be exposed without
+ * creating an additional external dependency.
  */
 
 #pragma once
-
 #ifndef TILEDB_LOGGER_H
 #define TILEDB_LOGGER_H
 
-#include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
 namespace tiledb {
@@ -63,9 +78,7 @@ class Logger {
    *
    * @param msg The string to log.
    */
-  void trace(const char* msg) {
-    logger_->trace(msg);
-  }
+  void trace(const char* msg);
 
   /**
    * A formatted trace statment.
@@ -85,9 +98,7 @@ class Logger {
    *
    * @param msg The string to log.
    */
-  void debug(const char* msg) {
-    logger_->debug(msg);
-  }
+  void debug(const char* msg);
 
   /**
    * A formatted debug statment.
@@ -107,9 +118,7 @@ class Logger {
    *
    * @param msg The string to log.
    */
-  void info(const char* msg) {
-    logger_->info(msg);
-  }
+  void info(const char* msg);
 
   /**
    * A formatted info statment.
@@ -129,9 +138,7 @@ class Logger {
    *
    * @param msg The string to log.
    */
-  void warn(const char* msg) {
-    logger_->warn(msg);
-  }
+  void warn(const char* msg);
 
   /**
    * A formatted warn statment.
@@ -151,9 +158,7 @@ class Logger {
    *
    * @param msg The string to log
    * */
-  void error(const char* msg) {
-    logger_->error(msg);
-  }
+  void error(const char* msg);
 
   /** A formatted error statement.
    *
@@ -172,9 +177,7 @@ class Logger {
    *
    * @param msg The string to log.
    */
-  void critical(const char* msg) {
-    logger_->critical(msg);
-  }
+  void critical(const char* msg);
 
   /**
    * A formatted critical statment.
@@ -205,41 +208,13 @@ class Logger {
    * @param lvl Logger::Level VERBOSE logs debug statements, ERR only logs
    *    Status Error's.
    */
-  void set_level(Logger::Level lvl) {
-    switch (lvl) {
-      case Logger::Level::FATAL:
-        logger_->set_level(spdlog::level::critical);
-        break;
-      case Logger::Level::ERR:
-        logger_->set_level(spdlog::level::err);
-        break;
-      case Logger::Level::WARN:
-        logger_->set_level(spdlog::level::warn);
-        break;
-      case Logger::Level::INFO:
-        logger_->set_level(spdlog::level::info);
-        break;
-      case Logger::Level::DBG:
-        logger_->set_level(spdlog::level::debug);
-        break;
-      case Logger::Level::TRACE:
-        logger_->set_level(spdlog::level::trace);
-        break;
-      default:
-        logger_->critical("Failed to set log level");
-    }
-    logger_level_ = lvl;
-  }
+  void set_level(Logger::Level lvl);
 
   /**
-   * Returns true if the logger is logging messages with the provided lvl.
-   * Useful for checking if debug code should be executed.
+   * Get the logger level.
    *
-   * @param lvl The Logger::Level to check.
    */
-  bool is_logging(Logger::Level lvl) {
-    return logger_level_ >= lvl;
-  }
+  Logger::Level get_level();
 
  private:
   /* ********************************* */
@@ -248,7 +223,7 @@ class Logger {
 
   /** The logger object. */
   std::shared_ptr<spdlog::logger> logger_;
-  Logger::Level logger_level_;
+  Logger::Level level_;
 };
 
 /* ********************************* */
@@ -258,90 +233,10 @@ class Logger {
 /** Global logger function. */
 Logger& global_logger();
 
-/** Set log level for global logger with enum. */
-inline void LOG_SET_LEVEL(const Logger::Level lvl) {
-  global_logger().set_level(lvl);
-}
-
-/** Set log level for global logger with int. */
-inline void LOG_SET_LEVEL(const int lvl) {
-  global_logger().set_level(static_cast<Logger::Level>(lvl));
-}
-
-/** Check if global logger is logging debug messages. */
-inline bool LOG_DEBUG_ENABLED() {
-  return global_logger().is_logging(Logger::Level::DBG);
-}
-
-/** Logs a trace message. */
-inline void LOG_TRACE(const std::string& msg) {
-  global_logger().trace(msg.c_str());
-}
-
-/** Logs a formatted trace message. */
-template <typename Arg1, typename... Args>
-inline void LOG_TRACE(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().trace(fmt, arg1, args...);
-}
-
-/** Logs a debug message. */
-inline void LOG_DEBUG(const std::string& msg) {
-  global_logger().debug(msg.c_str());
-}
-
-/** Logs a formatted debug message. */
-template <typename Arg1, typename... Args>
-inline void LOG_DEBUG(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().debug(fmt, arg1, args...);
-}
-
-/** Logs an info message. */
-inline void LOG_INFO(const std::string& msg) {
-  global_logger().info(msg.c_str());
-}
-
-/** Logs a formatted info message. */
-template <typename Arg1, typename... Args>
-inline void LOG_INFO(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().info(fmt, arg1, args...);
-}
-
-/** Logs a warning. */
-inline void LOG_WARN(const std::string& msg) {
-  global_logger().warn(msg.c_str());
-}
-
-/** Logs a formatted warning message. */
-template <typename Arg1, typename... Args>
-inline void LOG_WARN(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().warn(fmt, arg1, args...);
-}
-
-/** Logs an error. */
-inline void LOG_ERROR(const std::string& msg) {
-  global_logger().error(msg.c_str());
-}
-
-/** Logs a formatted error message. */
-template <typename Arg1, typename... Args>
-inline void LOG_ERROR(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().error(fmt, arg1, args...);
-}
-
-/** Logs a critical error and exits with a non-zero status. */
-inline void LOG_FATAL(const std::string& msg) {
-  global_logger().critical(msg.c_str());
-  exit(1);
-}
-
-/** Logs a formatted critical error and exits with a non-zero status. */
-template <typename Arg1, typename... Args>
-inline void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
-  global_logger().critical(fmt, arg1, args...);
-  exit(1);
-}
-
 }  // namespace common
 }  // namespace tiledb
+
+// Also include the public-permissible logger functions here.
+#include "utils/logger_public.h"
 
 #endif  // TILEDB_LOGGER_H

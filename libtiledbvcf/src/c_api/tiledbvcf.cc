@@ -32,7 +32,7 @@
 
 #include "c_api/tiledbvcf.h"
 #include "read/reader.h"
-#include "utils/logger.h"
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "write/writer.h"
 

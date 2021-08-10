@@ -35,7 +35,7 @@
 #include "read/read_query_results.h"
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
-#include "utils/logger.h"
+#include "utils/logger_public.h"
 
 using namespace tiledb::common;
 

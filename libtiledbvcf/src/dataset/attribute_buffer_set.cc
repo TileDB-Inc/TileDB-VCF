@@ -1,6 +1,6 @@
 #include "dataset/attribute_buffer_set.h"
 #include "read/in_memory_exporter.h"
-#include "utils/logger.h"
+#include "utils/logger_public.h"
 
 using namespace tiledb::common;
 
