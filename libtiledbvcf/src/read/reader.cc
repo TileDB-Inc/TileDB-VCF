@@ -1768,10 +1768,11 @@ void Reader::prepare_regions_v4(
     auto start_region_sort = std::chrono::steady_clock::now();
     std::sort(regions->begin(), regions->end());
 
-    LOG_DEBUG(
-        "Sorted {} regions in {} seconds.",
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Sorted {:L} regions in {} seconds.",
         regions->size(),
-        utils::chrono_duration(start_region_sort));
+        utils::chrono_duration(start_region_sort)));
   }
 
   // Apply region partitioning before expanding.
@@ -1909,10 +1910,11 @@ void Reader::prepare_regions_v3(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    LOG_DEBUG(
-        "Parsed bed file into {} regions in {} seconds.",
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Parsed bed file into {:L} regions in {} seconds.",
         pre_partition_regions_list.size(),
-        utils::chrono_duration(start_bed_file_parse));
+        utils::chrono_duration(start_bed_file_parse)));
   }
 
   // No specified regions means all regions.
@@ -1953,10 +1955,11 @@ void Reader::prepare_regions_v3(
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
-    LOG_DEBUG(
-        "Sorted {} regions in {} seconds.",
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Sorted {:L} regions in {} seconds.",
         regions->size(),
-        utils::chrono_duration(start_region_sort));
+        utils::chrono_duration(start_region_sort)));
   }
 
   // Apply region partitioning before expanding.
@@ -2034,10 +2037,11 @@ void Reader::prepare_regions_v2(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    LOG_DEBUG(
-        "Parsed bed file into {} regions in {} seconds.",
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Parsed bed file into {:L} regions in {} seconds.",
         pre_partition_regions_list.size(),
-        utils::chrono_duration(start_bed_file_parse));
+        utils::chrono_duration(start_bed_file_parse)));
   }
 
   // No specified regions means all regions.
@@ -2080,10 +2084,11 @@ void Reader::prepare_regions_v2(
   if (params_.sort_regions) {
     auto start_region_sort = std::chrono::steady_clock::now();
     Region::sort(dataset_->metadata().contig_offsets, regions);
-    LOG_DEBUG(
-        "Sorted {} regions in {} seconds.",
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Sorted {:L} regions in {} seconds.",
         regions->size(),
-        utils::chrono_duration(start_region_sort));
+        utils::chrono_duration(start_region_sort)));
   }
 
   // Apply region partitioning before expanding.

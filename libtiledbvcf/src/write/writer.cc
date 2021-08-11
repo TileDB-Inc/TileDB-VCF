@@ -360,13 +360,14 @@ void Writer::ingest_samples() {
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
-  LOG_INFO(
-      "Done. Ingested {} records (+ {} anchors) from {} samples in {} "
+  LOG_INFO(fmt::format(
+      std::locale(""),
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in {} "
       "seconds.",
       records_ingested,
       anchors_ingested,
       samples.size(),
-      utils::chrono_duration(start_all));
+      utils::chrono_duration(start_all)));
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(

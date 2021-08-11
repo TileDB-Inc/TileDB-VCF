@@ -214,4 +214,6 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
+
+  LOG_CONFIG("FATAL");
 }
