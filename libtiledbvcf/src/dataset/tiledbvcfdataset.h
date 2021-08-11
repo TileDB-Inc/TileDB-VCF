@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,8 @@ struct CreationParams {
 /** Arguments/params for dataset registration. */
 struct RegistrationParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::string sample_uris_file;
   std::vector<std::string> sample_uris;
   ScratchSpaceInfo scratch_space;
@@ -75,17 +77,23 @@ struct RegistrationParams {
 /** Arguments/params for the list operation. */
 struct ListParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 
 /** Arguments/params for the stat operation. */
 struct StatParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 
 struct UtilsParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 

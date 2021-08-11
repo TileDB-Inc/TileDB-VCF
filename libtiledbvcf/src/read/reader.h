@@ -82,6 +82,8 @@ struct DebugParams {
 struct ExportParams {
   // Basic export params:
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::string samples_file_uri;
   std::string regions_file_uri;
   std::vector<std::string> sample_names;

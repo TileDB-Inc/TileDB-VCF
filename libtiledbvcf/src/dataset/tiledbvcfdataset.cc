@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,12 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/logger_public.h"
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
+
+using namespace tiledb::common;
 
 namespace tiledb {
 namespace vcf {
@@ -128,6 +131,8 @@ TileDBVCFDataset::~TileDBVCFDataset() {
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
+  LOG_TRACE("Create dataset: {}", params.uri);
+
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
@@ -139,9 +144,13 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (vfs.is_dir(params.uri)) {
     // If the directory exists, check if it's a dataset. If so, return with no
     // error (allows for multiple no-op create calls).
-    if (vfs.is_dir(data_array_uri(params.uri)))
+    if (vfs.is_dir(data_array_uri(params.uri))) {
+      LOG_TRACE("Dataset exists: {}", params.uri);
       return;
+    }
 
+    LOG_ERROR(
+        "Cannot create TileDB-VCF dataset; directory exists: {}", params.uri);
     throw std::runtime_error(
         "Cannot create TileDB-VCF dataset; directory exists.");
   }

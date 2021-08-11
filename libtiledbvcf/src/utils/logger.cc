@@ -99,17 +99,17 @@ void Logger::critical(const char* msg) {
 }
 
 void Logger::set_level(const std::string& level) {
-  if (level == "FATAL") {
+  if (level == "FATAL" || level == "F" || level == "f") {
     level_ = spdlog::level::critical;
-  } else if (level == "ERROR") {
+  } else if (level == "ERROR" || level == "E" || level == "e") {
     level_ = spdlog::level::err;
-  } else if (level == "WARN") {
+  } else if (level == "WARN" || level == "W" || level == "w") {
     level_ = spdlog::level::warn;
-  } else if (level == "INFO") {
+  } else if (level == "INFO" || level == "I" || level == "i") {
     level_ = spdlog::level::info;
-  } else if (level == "DEBUG") {
+  } else if (level == "DEBUG" || level == "D" || level == "d") {
     level_ = spdlog::level::debug;
-  } else if (level == "TRACE") {
+  } else if (level == "TRACE" || level == "T" || level == "t") {
     level_ = spdlog::level::trace;
   } else {
     set_level("WARN");
@@ -120,6 +120,12 @@ void Logger::set_level(const std::string& level) {
 }
 
 void Logger::set_logfile(const std::string& filename) {
+  // check for existing file logger
+  if (spdlog::get(FILE_LOGGER) != nullptr) {
+    LOG_WARN("File logger already exists");
+    return;
+  }
+
   try {
     auto file_logger = spdlog::basic_logger_mt(FILE_LOGGER, filename);
     file_logger->set_pattern(LOG_PATTERN);
