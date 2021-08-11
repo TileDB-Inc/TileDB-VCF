@@ -75,8 +75,9 @@ if (NOT SPDLOG_FOUND)
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE
       LOG_INSTALL TRUE
-      LOG_OUTPUT_ON_FAILURE TRUE}
-    )
+      LOG_OUTPUT_ON_FAILURE TRUE
+      # build TileDB first, so it finds the required version of spdlog
+      DEPENDS ep_tiledb)
     list(APPEND EXTERNAL_PROJECTS ep_spdlog)
     list(APPEND FORWARD_EP_CMAKE_ARGS
             -DTILEDB_SPDLOG_EP_BUILT=TRUE

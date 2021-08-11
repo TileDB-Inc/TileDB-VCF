@@ -205,16 +205,21 @@ class Logger {
   /**
    * Set the logger level.
    *
-   * @param lvl Logger::Level VERBOSE logs debug statements, ERR only logs
-   *    Status Error's.
+   * @param level log level string (FATAL|ERROR|WARN|INFO|DEBUG|TRACE)
    */
-  void set_level(Logger::Level lvl);
+  void set_level(const std::string& level);
 
   /**
-   * Get the logger level.
+   * Set the logger output file.
    *
+   * @param filename
    */
-  Logger::Level get_level();
+  void set_logfile(const std::string& filename);
+
+  /**
+   * Return true if debug messages are enabled.
+   */
+  bool debug_enabled();
 
  private:
   /* ********************************* */
@@ -223,7 +228,7 @@ class Logger {
 
   /** The logger object. */
   std::shared_ptr<spdlog::logger> logger_;
-  Logger::Level level_;
+  spdlog::level::level_enum level_;
 };
 
 /* ********************************* */

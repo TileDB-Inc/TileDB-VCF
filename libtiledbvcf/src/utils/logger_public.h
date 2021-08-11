@@ -41,8 +41,8 @@
 namespace tiledb {
 namespace common {
 
-/** Set log level for global logger. */
-void LOG_SET_LEVEL(const int lvl);
+/** Set log level for global logger and optionally set a logfile. */
+void LOG_CONFIG(const std::string& level, const std::string& logfile = "");
 
 /** Check if global logger is logging debug messages. */
 bool LOG_DEBUG_ENABLED();
@@ -99,6 +99,7 @@ void LOG_FATAL(const std::string& msg);
 template <typename Arg1, typename... Args>
 void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
   global_logger().critical(fmt, arg1, args...);
+  exit(1);
 }
 
 }  // namespace common

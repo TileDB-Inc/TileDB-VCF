@@ -35,40 +35,43 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#ifndef _WIN32
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#endif
 
 namespace tiledb::common {
+
+// Set the default logging format
+// %^ : start color range
+// [Year-month-day 24hr-min-second.microsecond]
+// [logger]
+// [Process: id]
+// [Thread: id]
+// [log level]
+// text to log...
+// %$ : end color range
+const std::string LOG_PATTERN =
+    "%^[%Y-%m-%d %H:%M:%S.%e] [%n] [Process: %P] [Thread: %t] [%l] %v%$";
+const std::string CONSOLE_LOGGER = "tiledb-vcf";
+const std::string FILE_LOGGER = "tiledb-vcf-file";
 
 /* ********************************* */
 /*     CONSTRUCTORS & DESTRUCTORS    */
 /* ********************************* */
 
 Logger::Logger() {
-  logger_ = spdlog::get("tiledb-vcf");
+  logger_ = spdlog::get(CONSOLE_LOGGER);
   if (logger_ == nullptr) {
-#ifdef _WIN32
-    logger_ = spdlog::stdout_logger_mt("tiledb-vcf");
-#else
-    logger_ = spdlog::stdout_color_mt("tiledb-vcf");
-#endif
+    logger_ = spdlog::stdout_color_mt(CONSOLE_LOGGER);
   }
-  // Set the default logging format
-  // [Year-month-day 24hr-min-second.microsecond]
-  // [logger]
-  // [Process: id]
-  // [Thread: id]
-  // [log level]
-  // text to log...
-  logger_->set_pattern(
-      "%^[%Y-%m-%d %H:%M:%S.%e] [%n] [Process: %P] [Thread: %t] [%l] %v%$");
-  logger_->set_level(spdlog::level::critical);
+  logger_->set_pattern(LOG_PATTERN);
+  set_level("FATAL");
 }
 
 Logger::~Logger() {
-  spdlog::drop("tiledb");
+  spdlog::drop(CONSOLE_LOGGER);
+  if (spdlog::get(FILE_LOGGER) != nullptr) {
+    spdlog::drop(FILE_LOGGER);
+  }
 }
 
 void Logger::trace(const char* msg) {
@@ -95,35 +98,46 @@ void Logger::critical(const char* msg) {
   logger_->critical(msg);
 }
 
-void Logger::set_level(Logger::Level lvl) {
-  switch (lvl) {
-    case Logger::Level::FATAL:
-      logger_->set_level(spdlog::level::critical);
-      break;
-    case Logger::Level::ERR:
-      logger_->set_level(spdlog::level::err);
-      break;
-    case Logger::Level::WARN:
-      logger_->set_level(spdlog::level::warn);
-      break;
-    case Logger::Level::INFO:
-      logger_->set_level(spdlog::level::info);
-      break;
-    case Logger::Level::DBG:
-      logger_->set_level(spdlog::level::debug);
-      break;
-    case Logger::Level::TRACE:
-      logger_->set_level(spdlog::level::trace);
-      break;
-    default:
-      LOG_WARN("Illegal log level ({}), using DEBUG.", lvl);
-      logger_->set_level(spdlog::level::debug);
+void Logger::set_level(const std::string& level) {
+  if (level == "FATAL") {
+    level_ = spdlog::level::critical;
+  } else if (level == "ERROR") {
+    level_ = spdlog::level::err;
+  } else if (level == "WARN") {
+    level_ = spdlog::level::warn;
+  } else if (level == "INFO") {
+    level_ = spdlog::level::info;
+  } else if (level == "DEBUG") {
+    level_ = spdlog::level::debug;
+  } else if (level == "TRACE") {
+    level_ = spdlog::level::trace;
+  } else {
+    set_level("WARN");
+    LOG_WARN("Illegal log level = {}, using log level FATAL", level);
+    level_ = spdlog::level::critical;
   }
-  level_ = lvl;
+  logger_->set_level(level_);
 }
 
-Logger::Level Logger::get_level() {
-  return level_;
+void Logger::set_logfile(const std::string& filename) {
+  try {
+    auto file_logger = spdlog::basic_logger_mt(FILE_LOGGER, filename);
+    file_logger->set_pattern(LOG_PATTERN);
+    file_logger->set_level(level_);
+    file_logger->flush_on(spdlog::level::warn);
+  } catch (spdlog::spdlog_ex& e) {
+    // log message and exit if file logger cannot be created
+    LOG_FATAL(e.what());
+  }
+
+  // add sink to existing logger
+  // (https://github.com/gabime/spdlog/wiki/4.-Sinks)
+  auto file_sink = spdlog::get(FILE_LOGGER)->sinks().back();
+  logger_->sinks().push_back(file_sink);
+}
+
+bool Logger::debug_enabled() {
+  return (level_ == spdlog::level::debug) || (level_ == spdlog::level::trace);
 }
 
 /* ********************************* */
@@ -136,13 +150,18 @@ Logger& global_logger() {
 }
 
 /** Set log level for global logger. */
-void LOG_SET_LEVEL(const int lvl) {
-  global_logger().set_level(static_cast<Logger::Level>(lvl));
+void LOG_CONFIG(const std::string& level, const std::string& logfile) {
+  if (!level.empty()) {
+    global_logger().set_level(level);
+  }
+  if (!logfile.empty()) {
+    global_logger().set_logfile(logfile);
+  }
 }
 
 /** Check if global logger is logging debug messages. */
 bool LOG_DEBUG_ENABLED() {
-  return global_logger().get_level() >= Logger::Level::DBG;
+  return global_logger().debug_enabled();
 }
 
 /** Logs a trace message. */

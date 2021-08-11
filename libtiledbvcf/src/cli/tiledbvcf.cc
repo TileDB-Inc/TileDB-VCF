@@ -177,11 +177,17 @@ void set_partitioning(const std::string& s, PartitionInfo* info) {
 
 /** Create. */
 void do_create(const CreationParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Start create command.");
   TileDBVCFDataset::create(args);
+  LOG_TRACE("Finish create command.");
 }
 
 /** Register. */
 void do_register(const RegistrationParams& args) {
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -201,8 +207,10 @@ void do_register(const RegistrationParams& args) {
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
   if (args.verbose) {
-    LOG_SET_LEVEL(5);
+    LOG_CONFIG("DEBUG");
   }
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Start store command.");
 
   Writer writer;
   writer.set_all_params(args);
@@ -214,13 +222,17 @@ void do_store(const IngestionParams& args) {
     std::cout << "TileDB Internal Statistics:" << std::endl;
     std::cout << stats << std::endl;
   }
+  LOG_TRACE("Finish store command.");
 }
 
 /** Export. */
 void do_export(const ExportParams& args) {
   if (args.verbose) {
-    LOG_SET_LEVEL(5);
+    LOG_CONFIG("DEBUG");
   }
+
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
 
   Reader reader;
   reader.set_all_params(args);
@@ -237,6 +249,9 @@ void do_export(const ExportParams& args) {
 
 /** List. */
 void do_list(const ListParams& args) {
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -247,6 +262,9 @@ void do_list(const ListParams& args) {
 
 /** Stat. */
 void do_stat(const StatParams& args) {
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -258,6 +276,9 @@ void do_stat(const StatParams& args) {
 /** Utils. */
 void do_utils_consolidate(
     const UtilsConsolidateMode consolidate_mode, const UtilsParams& args) {
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -275,6 +296,9 @@ void do_utils_consolidate(
 
 void do_utils_vacuum(
     const UtilsConsolidateMode vacuum_mode, const UtilsParams& args) {
+  // TODO: add log support
+  // LOG_CONFIG(args.log_level, args.log_file);
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -302,6 +326,12 @@ int main(int argc, char** argv) {
   auto create_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", create_args.uri),
+       option("--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", create_args.log_level),
+       option("--log-file") % "Optional log file" &
+           value("filename", create_args.log_file),
        option("-a", "--attributes") %
                "Info or format field names (comma-delimited) to store as "
                "separate attributes. Names should be 'fmt_X' or 'info_X' for "
@@ -368,6 +398,12 @@ int main(int argc, char** argv) {
   auto store_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", store_args.uri),
+       option("--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", store_args.log_level),
+       option("--log-file") % "Optional log file" &
+           value("filename", store_args.log_file),
        option("-t", "--threads") %
                defaulthelp("Number of threads", store_args.num_threads) &
            value("N", store_args.num_threads),

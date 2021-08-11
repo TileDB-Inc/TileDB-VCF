@@ -53,6 +53,8 @@ namespace vcf {
 /** Arguments/params for dataset creation. */
 struct CreationParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> extra_attributes;
   uint64_t tile_capacity = 10000;
   uint32_t anchor_gap = 1000;

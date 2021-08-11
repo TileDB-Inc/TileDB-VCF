@@ -380,13 +380,11 @@ void Reader::read() {
   if (params_.cli_count_only) {
     std::cout << read_state_.last_num_records_exported << std::endl;
   } else {
-    auto old_locale = std::cout.getloc();
-    utils::enable_pretty_print_numbers(std::cout);
-    LOG_INFO(
-        "Done. Exported {} records in {} seconds.",
+    LOG_INFO(fmt::format(
+        std::locale(""),
+        "Done. Exported {:L} records in {} seconds.",
         read_state_.last_num_records_exported,
-        utils::chrono_duration(start_all));
-    std::cout.imbue(old_locale);
+        utils::chrono_duration(start_all)));
   }
 }
 
@@ -1729,11 +1727,11 @@ void Reader::prepare_regions_v4(
     auto start_bed_file_parse = std::chrono::steady_clock::now();
     Region::parse_bed_file_htslib(
         params_.regions_file_uri, &pre_partition_regions_list);
-    // TODO: add locale thousands seperator?
-    LOG_INFO(
-        "Parsed bed file into {} regions in {} seconds.",
+    LOG_INFO(fmt::format(
+        std::locale(""),
+        "Parsed bed file into {:L} regions in {} seconds.",
         pre_partition_regions_list.size(),
-        utils::chrono_duration(start_bed_file_parse));
+        utils::chrono_duration(start_bed_file_parse)));
   }
 
   std::pair<uint32_t, uint32_t> region_non_empty_domain =
