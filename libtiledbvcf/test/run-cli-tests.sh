@@ -379,12 +379,12 @@ EOF
 ) || exit 1
 
 # check tsv output with SAMPLE in tsv-fields
-diff -u <($tilevcf export -u ingested_1 -Ot --tsv-fields "SAMPLE") <(
+diff -u <($tilevcf export -u ingested_1 -Ot --tsv-fields "SAMPLE,CHR") <(
 cat <<EOF
-SAMPLE
-HG01762	
-HG01762	
-HG01762	
+SAMPLE	CHR
+HG01762	1
+HG01762	1
+HG01762	1
 EOF
 ) || exit 1
 

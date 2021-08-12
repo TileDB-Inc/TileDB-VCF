@@ -95,6 +95,10 @@ bool TSVExporter::export_record(
   std::ostream& os = output_file_.empty() ? std::cout : os_;
   os << sample.sample_name;
   for (auto& field : output_fields_) {
+    // skip SAMPLE since it is included by default
+    if (field.name == "SAMPLE") {
+      continue;
+    }
     os << '\t';
     switch (field.type) {
       case OutputField::Type::Regular: {
