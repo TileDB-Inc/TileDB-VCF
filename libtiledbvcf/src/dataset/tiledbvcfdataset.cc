@@ -37,8 +37,6 @@
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
 
-using namespace tiledb::common;
-
 namespace tiledb {
 namespace vcf {
 

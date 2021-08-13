@@ -37,7 +37,7 @@
 #include "write/writer.h"
 
 using namespace tiledb::vcf;
-using namespace tiledb::common;
+using namespace tiledb;
 
 namespace {
 /** TileDBVCF operation mode */

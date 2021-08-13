@@ -39,7 +39,6 @@
 #include "utils/logger.h"
 
 namespace tiledb {
-namespace common {
 
 /** Set log level for global logger and optionally set a logfile. */
 void LOG_CONFIG(const std::string& level, const std::string& logfile = "");
@@ -101,18 +100,6 @@ void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
   global_logger().critical(fmt, arg1, args...);
   exit(1);
 }
-
-}  // namespace common
-
-/*
- * Make the simple log functions available to the `tiledb` namespace
- */
-using common::LOG_DEBUG;
-using common::LOG_ERROR;
-using common::LOG_FATAL;
-using common::LOG_INFO;
-using common::LOG_TRACE;
-using common::LOG_WARN;
 
 }  // namespace tiledb
 

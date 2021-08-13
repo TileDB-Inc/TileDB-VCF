@@ -2,8 +2,6 @@
 #include "read/in_memory_exporter.h"
 #include "utils/logger_public.h"
 
-using namespace tiledb::common;
-
 namespace tiledb {
 namespace vcf {
 

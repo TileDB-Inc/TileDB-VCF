@@ -37,8 +37,6 @@
 #include "read/tsv_exporter.h"
 #include "utils/logger_public.h"
 
-using namespace tiledb::common;
-
 namespace tiledb {
 namespace vcf {
 

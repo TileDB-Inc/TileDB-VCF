@@ -40,7 +40,7 @@
 #include <iostream>
 #include <memory>
 
-using namespace tiledb::common;
+using namespace tiledb;
 
 /* ********************************* */
 /*           STRUCT TYPES            */

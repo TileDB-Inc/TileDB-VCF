@@ -36,8 +36,6 @@
 #include "write/writer_worker_v3.h"
 #include "write/writer_worker_v4.h"
 
-using namespace tiledb::common;
-
 namespace tiledb {
 namespace vcf {
 
