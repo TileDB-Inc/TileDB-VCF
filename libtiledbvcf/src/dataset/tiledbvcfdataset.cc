@@ -349,6 +349,47 @@ void TileDBVCFDataset::open(
         std::to_string(metadata_.version) +
         " but only versions 2, 3 and 4 are supported.");
 
+  bool reopen = false;
+
+  // TODO: uncomment log messages when logging is available
+  // look for vcf.start_timestamp in cfg
+  try {
+    uint64_t start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
+    data_array_->set_open_timestamp_start(start_timestamp);
+    vcf_header_array_->set_open_timestamp_start(start_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    //    LOG_TRACE("'vcf.start_timestamp' not specified in config, using
+    //    default");
+  } catch (...) {
+    // LOG_WARN(
+    //"Invalid vcf.start_timestamp '{}', using default",
+    // cfg_.get("vcf.start_timestamp"));
+  }
+
+  // look for vcf.end_timestamp in cfg
+  try {
+    uint16_t end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
+    data_array_->set_open_timestamp_end(end_timestamp);
+    vcf_header_array_->set_open_timestamp_end(end_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    // LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
+  } catch (...) {
+    // LOG_WARN(
+    //"Invalid vcf.end_timestamp '{}', using default",
+    // cfg_.get("vcf.end_timestamp"));
+  }
+
+  // reopen arrays if start or end timestamp were provided
+  if (reopen) {
+    data_array_->reopen();
+    vcf_header_array_->reopen();
+  }
+
+  // LOG_TRACE("start_timestamp = {}", data_array_->open_timestamp_start());
+  // LOG_TRACE("end_timestamp = {}", data_array_->open_timestamp_end());
+
   open_ = true;
 
   // Preloading runs on a background stl thread
