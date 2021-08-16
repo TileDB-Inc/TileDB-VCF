@@ -1,5 +1,6 @@
 #include "dataset/attribute_buffer_set.h"
 #include "read/in_memory_exporter.h"
+#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
@@ -154,57 +155,58 @@ void AttributeBufferSet::allocate_fixed(
   if (verbose_) {
     std::stringstream ss;
     ss << "Allocating " << attr_names.size() << " fields ("
-       << number_of_buffers_ << " buffers) with breakdown of: " << std::endl;
+       << number_of_buffers_ << " buffers) with breakdown of: ";
     if (buffer_size_by_type_.uint64_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "uint64_t size of " << buffer_size_by_type_.uint64_buffer_size
          << " bytes ("
          << buffer_size_by_type_.uint64_buffer_size / (1024.0f * 1024.0f)
-         << "MB)" << std::endl;
-      ;
+         << "MB)";
     }
     if (buffer_size_by_type_.float32_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "float32_t size of " << buffer_size_by_type_.float32_buffer_size
          << " bytes ("
          << buffer_size_by_type_.float32_buffer_size / (1024.0f * 1024.0f)
-         << "MB)" << std::endl;
-      ;
+         << "MB)";
     }
     if (buffer_size_by_type_.int32_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "int32_t size of " << buffer_size_by_type_.int32_buffer_size
          << " bytes ("
          << buffer_size_by_type_.int32_buffer_size / (1024.0f * 1024.0f)
-         << "MB)" << std::endl;
-      ;
+         << "MB)";
     }
     if (buffer_size_by_type_.char_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "char size of " << buffer_size_by_type_.char_buffer_size
          << " bytes ("
-         << buffer_size_by_type_.char_buffer_size / (1024.0f * 1024.0f) << "MB)"
-         << std::endl;
-      ;
+         << buffer_size_by_type_.char_buffer_size / (1024.0f * 1024.0f)
+         << "MB)";
     }
     if (buffer_size_by_type_.uint8_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "uint8_t size of " << buffer_size_by_type_.uint8_buffer_size
          << " bytes ("
          << buffer_size_by_type_.uint8_buffer_size / (1024.0f * 1024.0f)
-         << "MB)" << std::endl;
-      ;
+         << "MB)";
     }
     if (buffer_size_by_type_.var_length_uint8_buffer_size > 0) {
-      ss << "\t"
+      ss << std::endl
+         << "\t"
          << "var length fields size of "
          << buffer_size_by_type_.var_length_uint8_buffer_size << " bytes ("
          << buffer_size_by_type_.var_length_uint8_buffer_size /
                 (1024.0f * 1024.0f)
-         << "MB)" << std::endl;
+         << "MB)";
     }
 
-    std::cout << ss.str();
+    LOG_DEBUG(ss.str());
   }
 
   using attrNamesV4 = TileDBVCFDataset::AttrNames::V4;

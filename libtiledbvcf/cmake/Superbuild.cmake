@@ -4,7 +4,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2018 TileDB, Inc.
+# Copyright (c) 2018-2021 TileDB, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -69,6 +69,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindClipp_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindHTSlib_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindTileDB_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog_EP.cmake)
 
 ############################################################
 # 'make format' target
