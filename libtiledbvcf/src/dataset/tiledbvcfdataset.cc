@@ -389,21 +389,28 @@ void TileDBVCFDataset::open(
         cfg_.get("vcf.end_timestamp"));
   }
 
+  if (reopen) {
+    data_array_->reopen();
+    vcf_header_array_->reopen();
+  }
+
   auto start_ms = data_array_->open_timestamp_start();
   auto end_ms = data_array_->open_timestamp_end();
 
   if (reopen) {
-    data_array_->reopen();
-    vcf_header_array_->reopen();
     LOG_INFO(
-        "start_timestamp = {:13d} = {} UTC", start_ms, asc_timestamp(start_ms));
+        "start_timestamp = {:013d} = {} UTC",
+        start_ms,
+        asc_timestamp(start_ms));
     LOG_INFO(
-        "end_timestamp   = {:13d} = {} UTC", end_ms, asc_timestamp(end_ms));
+        "end_timestamp   = {:013d} = {} UTC", end_ms, asc_timestamp(end_ms));
   } else {
     LOG_TRACE(
-        "start_timestamp = {:13d} = {} UTC", start_ms, asc_timestamp(start_ms));
+        "start_timestamp = {:013d} = {} UTC",
+        start_ms,
+        asc_timestamp(start_ms));
     LOG_TRACE(
-        "end_timestamp   = {:13d} = {} UTC", end_ms, asc_timestamp(end_ms));
+        "end_timestamp   = {:013d} = {} UTC", end_ms, asc_timestamp(end_ms));
   }
 
   open_ = true;
