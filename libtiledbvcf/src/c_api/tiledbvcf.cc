@@ -40,7 +40,7 @@
 #include <iostream>
 #include <memory>
 
-using namespace tiledb;
+using namespace tiledb::vcf;
 
 /* ********************************* */
 /*           STRUCT TYPES            */

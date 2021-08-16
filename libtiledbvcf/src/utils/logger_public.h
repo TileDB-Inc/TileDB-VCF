@@ -38,7 +38,7 @@
 
 #include "utils/logger.h"
 
-namespace tiledb {
+namespace tiledb::vcf {
 
 /** Set log level for global logger and optionally set a logfile. */
 void LOG_CONFIG(const std::string& level, const std::string& logfile = "");
@@ -101,6 +101,6 @@ void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
   exit(1);
 }
 
-}  // namespace tiledb
+}  // namespace tiledb::vcf
 
 #endif  // TILEDB_LOGGER_PUBLIC_H

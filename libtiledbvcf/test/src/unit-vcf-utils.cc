@@ -42,7 +42,6 @@
 #include <iostream>
 
 using namespace tiledb::vcf;
-using namespace tiledb;
 
 static const std::string input_dir = TILEDB_VCF_TEST_INPUT_DIR;
 

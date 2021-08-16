@@ -53,7 +53,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace tiledb {
+namespace tiledb::vcf {
 
 /** Definition of class Logger. */
 class Logger {
@@ -237,7 +237,7 @@ class Logger {
 /** Global logger function. */
 Logger& global_logger();
 
-}  // namespace tiledb
+}  // namespace tiledb::vcf
 
 // Also include the public-permissible logger functions here.
 #include "utils/logger_public.h"
