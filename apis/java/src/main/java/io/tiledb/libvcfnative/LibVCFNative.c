@@ -688,6 +688,7 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1dataset_1vers
 
   return rc;
 }
+
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbose(
     JNIEnv* env, jclass self, jlong readerPtr, jboolean verbose) {

@@ -5,7 +5,11 @@ steps:
 - script: black --check .
   displayName: 'Test Formatting'
 
-- script: pylint --disable=all --enable=E1101 $BUILD_REPOSITORY_LOCALPATH/apis/python
+# pylint cannot lint all files in a directory, it requires an __init__.py file (https://github.com/PyCQA/pylint/issues/352)
+# run pylint on all directories with an __init__.py file
+- bash: |
+    set -eux pipefail
+    find . -name __init__.py | xargs dirname | xargs pylint --disable=all --enable=E1101
   displayName: 'Check function name/signature mismatches'
 
 - bash: |

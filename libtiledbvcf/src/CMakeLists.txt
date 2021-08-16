@@ -7,6 +7,7 @@ message(STATUS "Starting TileDB-VCF build.")
 find_package(Clipp_EP REQUIRED)
 find_package(HTSlib_EP REQUIRED)
 find_package(TileDB_EP REQUIRED)
+find_package(Spdlog_EP REQUIRED)
 
 ############################################################
 # Get source commit hash
@@ -56,6 +57,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/sample_utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/region.cc
@@ -128,6 +130,7 @@ target_link_libraries(tiledbvcf
   PUBLIC
     HTSlib::HTSlib
     TileDB::tiledb_shared
+    spdlog::spdlog
 )
 
 # Sanitizer linker flags
@@ -166,6 +169,7 @@ target_link_libraries(tiledbvcf-bin
     Clipp::Clipp
     HTSlib::HTSlib
     TileDB::tiledb_shared
+    spdlog::spdlog
 )
 
 # Sanitizer linker flags

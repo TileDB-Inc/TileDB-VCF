@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2017-2018 TileDB, Inc.
+ * @copyright Copyright (c) 2017-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read/reader.h"
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
 #include "write/writer.h"
@@ -175,11 +176,17 @@ void set_partitioning(const std::string& s, PartitionInfo* info) {
 
 /** Create. */
 void do_create(const CreationParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting create command.");
   TileDBVCFDataset::create(args);
+  LOG_TRACE("Finished create command.");
 }
 
 /** Register. */
 void do_register(const RegistrationParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting register command.");
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -190,14 +197,21 @@ void do_register(const RegistrationParams& args) {
     dataset.register_samples(args);
   else {
     assert(dataset.metadata().version == TileDBVCFDataset::Version::V4);
-    throw std::runtime_error(
+    LOG_FATAL(
         "Only v2 and v3 datasets require registration. V4 and newer are "
         "capable of ingestion without registration.");
   }
+  LOG_TRACE("Finished register command.");
 }
 
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
+  if (args.verbose) {
+    LOG_CONFIG("DEBUG");
+  }
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting store command.");
+
   Writer writer;
   writer.set_all_params(args);
   writer.ingest_samples();
@@ -208,10 +222,17 @@ void do_store(const IngestionParams& args) {
     std::cout << "TileDB Internal Statistics:" << std::endl;
     std::cout << stats << std::endl;
   }
+  LOG_TRACE("Finished store command.");
 }
 
 /** Export. */
 void do_export(const ExportParams& args) {
+  if (args.verbose) {
+    LOG_CONFIG("DEBUG");
+  }
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting export command.");
+
   Reader reader;
   reader.set_all_params(args);
   reader.open_dataset(args.uri);
@@ -223,31 +244,43 @@ void do_export(const ExportParams& args) {
     std::cout << "TileDB Internal Statistics:" << std::endl;
     std::cout << stats << std::endl;
   }
+  LOG_TRACE("Finished export command.");
 }
 
 /** List. */
 void do_list(const ListParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting list command.");
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_samples_list();
+  LOG_TRACE("Finished list command.");
 }
 
 /** Stat. */
 void do_stat(const StatParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting stat command.");
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_dataset_stats();
+  LOG_TRACE("Finished stat command.");
 }
 
 /** Utils. */
 void do_utils_consolidate(
     const UtilsConsolidateMode consolidate_mode, const UtilsParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting utils consolidate command.");
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -258,13 +291,17 @@ void do_utils_consolidate(
   else if (consolidate_mode == UtilsConsolidateMode::Fragments)
     dataset.consolidate_fragments(args);
   else
-    throw std::runtime_error(
+    LOG_FATAL(
         "Invalid consolidate mode, valid options are fragment_meta or "
         "fragments");
+  LOG_TRACE("Finished utils consolidate command.");
 }
 
 void do_utils_vacuum(
     const UtilsConsolidateMode vacuum_mode, const UtilsParams& args) {
+  LOG_CONFIG(args.log_level, args.log_file);
+  LOG_TRACE("Starting utils vacuum command.");
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
@@ -275,9 +312,9 @@ void do_utils_vacuum(
   else if (vacuum_mode == UtilsConsolidateMode::Fragments)
     dataset.vacuum_fragments(args);
   else
-    throw std::runtime_error(
-        "Invalid vacuum mode, valid options are fragment_meta or "
-        "fragments");
+    LOG_ERROR(
+        "Invalid vacuum mode, valid options are fragment_meta or fragments");
+  LOG_TRACE("Finished utils vacuum command.");
 }
 
 }  // namespace
@@ -292,6 +329,12 @@ int main(int argc, char** argv) {
   auto create_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", create_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", create_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", create_args.log_file),
        option("-a", "--attributes") %
                "Info or format field names (comma-delimited) to store as "
                "separate attributes. Names should be 'fmt_X' or 'info_X' for "
@@ -333,6 +376,12 @@ int main(int argc, char** argv) {
   auto register_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", register_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", register_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", register_args.log_file),
        option("-d", "--scratch-dir") %
                "Directory used for local storage of downloaded remote samples" &
            value("path", register_args.scratch_space.path),
@@ -358,6 +407,12 @@ int main(int argc, char** argv) {
   auto store_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", store_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", store_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", store_args.log_file),
        option("-t", "--threads") %
                defaulthelp("Number of threads", store_args.num_threads) &
            value("N", store_args.num_threads),
@@ -452,6 +507,12 @@ int main(int argc, char** argv) {
   auto export_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", export_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", export_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", export_args.log_file),
        option("-O", "--output-format") %
                "Export format. Options are: 'b': bcf (compressed); 'u': bcf; "
                "'z': vcf.gz; 'v': vcf; 't': TSV. [default b]" &
@@ -589,6 +650,12 @@ int main(int argc, char** argv) {
   auto list_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", list_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", list_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", list_args.log_file),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
                "specifying optional TileDB configuration parameter settings." &
@@ -600,6 +667,12 @@ int main(int argc, char** argv) {
   auto stat_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", stat_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", stat_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", stat_args.log_file),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
                "specifying optional TileDB configuration parameter settings." &
@@ -611,6 +684,12 @@ int main(int argc, char** argv) {
   auto utils_mode =
       (required("-u", "--uri") % "TileDB dataset URI" &
            value("uri", utils_args.uri),
+       option("-ll", "--log-level") %
+               "Verbosity of log messages "
+               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
+           value("level", utils_args.log_level),
+       option("-lf", "--log-file") % "Optional log file" &
+           value("filename", utils_args.log_file),
        option("--tiledb-config") %
                "CSV string of the format 'param1=val1,param2=val2...' "
                "specifying optional TileDB configuration parameter settings." &

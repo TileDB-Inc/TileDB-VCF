@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,12 +32,15 @@
 
 #include "c_api/tiledbvcf.h"
 #include "read/reader.h"
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "write/writer.h"
 
 #include <cassert>
 #include <iostream>
 #include <memory>
+
+using namespace tiledb::vcf;
 
 /* ********************************* */
 /*           STRUCT TYPES            */
@@ -60,11 +63,6 @@ struct tiledb_vcf_error_t {
 /* ********************************* */
 /*             HELPERS               */
 /* ********************************* */
-
-#define LOG_ERROR(s)               \
-  do {                             \
-    std::cerr << (s) << std::endl; \
-  } while (0)
 
 static void save_error(tiledb_vcf_reader_t* reader, const std::string& error) {
   LOG_ERROR(error);
