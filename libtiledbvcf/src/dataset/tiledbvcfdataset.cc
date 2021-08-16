@@ -356,8 +356,6 @@ void TileDBVCFDataset::open(
         std::to_string(metadata_.version) +
         " but only versions 2, 3 and 4 are supported.");
 
-  bool reopen = false;
-
   // Handle time traveling by looking for 'vcf.start_timestamp' and
   // 'vcf.end_timestamp' in tiledb_config. If either timestamp is provided,
   // reopen the arrays.
