@@ -239,6 +239,9 @@ Logger& global_logger();
 
 }  // namespace tiledb::vcf
 
+/** Convert TileDB timestamp (in ms) to human readable timestamp. */
+std::string asc_timestamp(uint64_t timestamp_ms);
+
 // Also include the public-permissible logger functions here.
 #include "utils/logger_public.h"
 

@@ -201,4 +201,12 @@ void LOG_FATAL(const std::string& msg) {
   exit(1);
 }
 
+/** Convert TileDB timestamp (in ms) to human readable timestamp. */
+std::string asc_timestamp(uint64_t timestamp_ms) {
+  auto time_sec = static_cast<time_t>(timestamp_ms) / 1000;
+  std::string time_str = asctime(gmtime(&time_sec));
+  time_str.pop_back();  // remove newline
+  return time_str;
+}
+
 }  // namespace tiledb::vcf

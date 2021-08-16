@@ -358,44 +358,55 @@ void TileDBVCFDataset::open(
 
   bool reopen = false;
 
-  // TODO: uncomment log messages when logging is available
-  // look for vcf.start_timestamp in cfg
+  // Handle time traveling by looking for 'vcf.start_timestamp' and
+  // 'vcf.end_timestamp' in tiledb_config. If either timestamp is provided,
+  // reopen the arrays.
+  bool reopen = false;
+
   try {
-    uint64_t start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
+    auto start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
     data_array_->set_open_timestamp_start(start_timestamp);
     vcf_header_array_->set_open_timestamp_start(start_timestamp);
+    LOG_INFO("Using vcf.start_timestamp from config: {}", start_timestamp);
     reopen = true;
   } catch (const tiledb::TileDBError& ex) {
-    //    LOG_TRACE("'vcf.start_timestamp' not specified in config, using
-    //    default");
+    LOG_TRACE("'vcf.start_timestamp' not specified in config, using default");
   } catch (...) {
-    // LOG_WARN(
-    //"Invalid vcf.start_timestamp '{}', using default",
-    // cfg_.get("vcf.start_timestamp"));
+    LOG_WARN(
+        "Invalid vcf.start_timestamp '{}', using default",
+        cfg_.get("vcf.start_timestamp"));
   }
 
-  // look for vcf.end_timestamp in cfg
   try {
-    uint16_t end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
+    auto end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
     data_array_->set_open_timestamp_end(end_timestamp);
     vcf_header_array_->set_open_timestamp_end(end_timestamp);
+    LOG_INFO("Using vcf.end_timestamp from config: {}", end_timestamp);
     reopen = true;
   } catch (const tiledb::TileDBError& ex) {
-    // LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
+    LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
   } catch (...) {
-    // LOG_WARN(
-    //"Invalid vcf.end_timestamp '{}', using default",
-    // cfg_.get("vcf.end_timestamp"));
+    LOG_WARN(
+        "Invalid vcf.end_timestamp '{}', using default",
+        cfg_.get("vcf.end_timestamp"));
   }
 
-  // reopen arrays if start or end timestamp were provided
+  auto start_ms = data_array_->open_timestamp_start();
+  auto end_ms = data_array_->open_timestamp_end();
+
   if (reopen) {
     data_array_->reopen();
     vcf_header_array_->reopen();
+    LOG_INFO(
+        "start_timestamp = {:13d} = {} UTC", start_ms, asc_timestamp(start_ms));
+    LOG_INFO(
+        "end_timestamp   = {:13d} = {} UTC", end_ms, asc_timestamp(end_ms));
+  } else {
+    LOG_TRACE(
+        "start_timestamp = {:13d} = {} UTC", start_ms, asc_timestamp(start_ms));
+    LOG_TRACE(
+        "end_timestamp   = {:13d} = {} UTC", end_ms, asc_timestamp(end_ms));
   }
-
-  // LOG_TRACE("start_timestamp = {}", data_array_->open_timestamp_start());
-  // LOG_TRACE("end_timestamp = {}", data_array_->open_timestamp_end());
 
   open_ = true;
 

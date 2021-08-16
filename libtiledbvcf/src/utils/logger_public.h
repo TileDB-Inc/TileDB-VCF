@@ -101,6 +101,9 @@ void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
   exit(1);
 }
 
+/** Convert TileDB timestamp (in ms) to human readable timestamp. */
+std::string asc_timestamp(uint64_t timestamp_ms);
+
 }  // namespace tiledb::vcf
 
 #endif  // TILEDB_LOGGER_PUBLIC_H
