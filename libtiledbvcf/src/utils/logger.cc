@@ -38,7 +38,8 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace tiledb::vcf {
+namespace tiledb {
+namespace vcf {
 
 // Set the default logging format
 // %^ : start color range
@@ -201,4 +202,5 @@ void LOG_FATAL(const std::string& msg) {
   exit(1);
 }
 
-}  // namespace tiledb::vcf
+}  // namespace vcf
+}  // namespace tiledb
