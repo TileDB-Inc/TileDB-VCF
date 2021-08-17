@@ -46,7 +46,6 @@ using namespace tiledb::vcf;
 static const std::string input_dir = TILEDB_VCF_TEST_INPUT_DIR;
 
 TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
-  LOG_CONFIG("TRACE");
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
@@ -213,6 +212,4 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
-
-  LOG_CONFIG("FATAL");
 }
