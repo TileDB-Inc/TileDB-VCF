@@ -52,6 +52,13 @@ if (NOT SPDLOG_FOUND)
       set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
     endif()
 
+    # if building ep_tiledb, make spdlog depend on ep_tiledb, so tiledb finds its required version of spdlog
+    if (TARGET ep_tiledb)
+      SET(SPDLOG_DEPENDS ep_tiledb)
+    else()
+      SET(SPDLOG_DEPENDS "")
+    endif()
+
     message(STATUS "Adding spdlog as an external project")
     ExternalProject_Add(ep_spdlog
       PREFIX "externals"
@@ -76,8 +83,7 @@ if (NOT SPDLOG_FOUND)
       LOG_BUILD TRUE
       LOG_INSTALL TRUE
       LOG_OUTPUT_ON_FAILURE TRUE
-      # build TileDB first, so it finds the required version of spdlog
-      DEPENDS ep_tiledb)
+      DEPENDS ${SPDLOG_DEPENDS})
     list(APPEND EXTERNAL_PROJECTS ep_spdlog)
     list(APPEND FORWARD_EP_CMAKE_ARGS
             -DTILEDB_SPDLOG_EP_BUILT=TRUE
