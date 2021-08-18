@@ -53,7 +53,8 @@
 
 #include <spdlog/spdlog.h>
 
-namespace tiledb::vcf {
+namespace tiledb {
+namespace vcf {
 
 /** Definition of class Logger. */
 class Logger {
@@ -237,7 +238,8 @@ class Logger {
 /** Global logger function. */
 Logger& global_logger();
 
-}  // namespace tiledb::vcf
+}  // namespace vcf
+}  // namespace tiledb
 
 /** Convert TileDB timestamp (in ms) to human readable timestamp. */
 std::string asc_timestamp(uint64_t timestamp_ms);

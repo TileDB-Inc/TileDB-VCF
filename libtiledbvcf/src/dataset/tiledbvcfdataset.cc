@@ -111,21 +111,34 @@ TileDBVCFDataset::TileDBVCFDataset()
 }
 
 TileDBVCFDataset::~TileDBVCFDataset() {
-  // Grabbing a lock makes sure we don't delete the array in the middle of any
-  // usage (i.e. preloading)
+  // block until it's safe to delete the arrays
+  lock_and_join_data_array();
+  lock_and_join_vcf_header_array();
+
+  data_array_ = nullptr;
+  vcf_header_array_ = (nullptr);
+}
+
+void TileDBVCFDataset::lock_and_join_data_array() {
+  // Grabbing a lock makes sure we don't delete or close the array in the middle
+  // of any usage (i.e. preloading)
   utils::UniqueWriteLock data_array_lck_(
       const_cast<utils::RWLock*>(&data_array_lock_));
-  utils::UniqueWriteLock vcf_header_array_lck_(
-      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
 
   // Block if the non empty domain threads have not completed.
   if (data_array_preload_non_empty_domain_thread_.joinable())
     data_array_preload_non_empty_domain_thread_.join();
+}
+
+void TileDBVCFDataset::lock_and_join_vcf_header_array() {
+  // Grabbing a lock makes sure we don't delete or close the array in the middle
+  // of any usage (i.e. preloading)
+  utils::UniqueWriteLock vcf_header_array_lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
+  // Block if the non empty domain threads have not completed.
   if (vcf_header_array_preload_non_empty_domain_thread_.joinable())
     vcf_header_array_preload_non_empty_domain_thread_.join();
-
-  data_array_ = nullptr;
-  vcf_header_array_ = (nullptr);
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
@@ -2006,6 +2019,8 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
+  // block until it's safe to close the array
+  lock_and_join_vcf_header_array();
   vcf_header_array_->close();
   tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
@@ -2017,6 +2032,8 @@ void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
+  // block until it's safe to close the array
+  lock_and_join_data_array();
   data_array_->close();
   tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
@@ -2032,6 +2049,8 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
+  // block until it's safe to close the array
+  lock_and_join_vcf_header_array();
   vcf_header_array_->close();
   tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
   vcf_header_array_ = open_vcf_array(TILEDB_READ);
@@ -2041,6 +2060,8 @@ void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
+  // block until it's safe to close the array
+  lock_and_join_data_array();
   data_array_->close();
   tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
