@@ -1085,11 +1085,16 @@ bool Reader::read_current_batch() {
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
 
-      for (const auto& s : read_state_.current_hdrs_lookup) {
-        std::string sample_name = s.first;
-        bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
-        exporter_->finalize_export(
-            SampleAndId{.sample_name = sample_name, .sample_id = 0}, hdr);
+      // If we've finished the last contig for the sample batch we need to
+      // finalize the export
+      if (read_state_.query_contig_batch_idx ==
+          read_state_.query_regions_v4.size() - 1) {
+        for (const auto& s : read_state_.current_hdrs_lookup) {
+          std::string sample_name = s.first;
+          bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
+          exporter_->finalize_export(
+              SampleAndId{.sample_name = sample_name, .sample_id = 0}, hdr);
+        }
       }
     }
   }
