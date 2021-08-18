@@ -875,6 +875,12 @@ class TileDBVCFDataset {
   /*          PRIVATE METHODS          */
   /* ********************************* */
 
+  /** Block until it's safe to delete or close the data array */
+  void lock_and_join_data_array();
+
+  /** Block until it's safe to delete or close the vcf header array */
+  void lock_and_join_vcf_header_array();
+
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
