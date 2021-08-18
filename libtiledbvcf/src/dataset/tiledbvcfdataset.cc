@@ -412,18 +412,12 @@ void TileDBVCFDataset::open(
 
   if (reopen) {
     LOG_INFO(
-        "start_timestamp = {:013d} = {} UTC",
-        start_ms,
-        asc_timestamp(start_ms));
-    LOG_INFO(
-        "end_timestamp   = {:013d} = {} UTC", end_ms, asc_timestamp(end_ms));
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_INFO("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
   } else {
     LOG_TRACE(
-        "start_timestamp = {:013d} = {} UTC",
-        start_ms,
-        asc_timestamp(start_ms));
-    LOG_TRACE(
-        "end_timestamp   = {:013d} = {} UTC", end_ms, asc_timestamp(end_ms));
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_TRACE("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
   }
 
   open_ = true;

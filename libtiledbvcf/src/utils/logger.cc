@@ -207,6 +207,7 @@ std::string asc_timestamp(uint64_t timestamp_ms) {
   auto time_sec = static_cast<time_t>(timestamp_ms) / 1000;
   std::string time_str = asctime(gmtime(&time_sec));
   time_str.pop_back();  // remove newline
+  time_str += " UTC";
   return time_str;
 }
 
