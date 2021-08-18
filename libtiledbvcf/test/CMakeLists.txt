@@ -41,6 +41,7 @@ add_executable(tiledb_vcf_unit EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-iter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-store.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-utils.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-time-travel.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit.cc
 )
 
