@@ -3,11 +3,11 @@ package io.tiledb.vcf;
 import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.functions.callUDF;
 
-import java.text.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.log4j.Level;
