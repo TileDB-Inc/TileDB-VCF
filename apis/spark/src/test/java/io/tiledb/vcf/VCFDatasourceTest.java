@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.log4j.Level;
@@ -764,6 +765,34 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("debug.print_vcf_regions", true)
             .option("debug.print_sample_list", true)
             .option("debug.print_tiledb_query_ranges", true)
+            .load();
+    dfRead.createOrReplaceTempView("vcf");
+    List<Row> rows =
+        sparkSession
+            .sql("SELECT sampleName FROM vcf WHERE vcf.sampleName='HG01762'")
+            .collectAsList();
+    Assert.assertEquals(3, rows.size());
+    Assert.assertEquals(rows.get(0).getString(0), "HG01762");
+    Assert.assertEquals(rows.get(1).getString(0), "HG01762");
+    Assert.assertEquals(rows.get(2).getString(0), "HG01762");
+  }
+
+  @Test
+  public void testTimeTravel() throws java.text.ParseException {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-dd hh:mm:ss");
+    Long start_ms = sdf.parse("2000-08-01 12:00:00").getTime();
+    Long end_ms = sdf.parse("2030-08-01 16:00:00").getTime();
+
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("ranges", "1:12100-13360,1:13500-17350")
+            .option("tiledb.vfs.num_threads", 1)
+            .option("tiledb.vcf.start_timestamp", start_ms)
+            .option("tiledb.vcf.end_timestamp", end_ms)
+            .option("tiledb.vcf.log_level", "INFO")
             .load();
     dfRead.createOrReplaceTempView("vcf");
     List<Row> rows =
