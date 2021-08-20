@@ -183,7 +183,9 @@ void Region::parse_bed_file_htslib(
     for (auto& res : futures) {
       if (!res.valid())
         throw std::runtime_error("Parsing of BED file failed");
-      auto status = res.wait_for(std::chrono::seconds(30));
+      // Set bedfile region parsing timeout to 5 minutes
+      // TODO: make this a config option
+      auto status = res.wait_for(std::chrono::seconds(300));
       if (status != std::future_status::ready)
         throw std::runtime_error("Parsing of BED file timed out");
       std::list<Region> res_list = res.get();
