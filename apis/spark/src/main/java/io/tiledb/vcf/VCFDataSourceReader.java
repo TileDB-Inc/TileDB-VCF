@@ -242,8 +242,8 @@ public class VCFDataSourceReader
                 schema,
                 options,
                 samples,
-                new VCFPartitionInfo(r, ranges_end, local_regions),
-                new VCFPartitionInfo(s, samples_end, null)));
+                new VCFPartitionInfo(r, numRangePartitions, local_regions),
+                new VCFPartitionInfo(s, numSamplePartitions, null)));
       }
     }
 
