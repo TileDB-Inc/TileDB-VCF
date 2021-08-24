@@ -2251,6 +2251,13 @@ void Reader::init_tiledb() {
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(params_.tiledb_config);
+
+  // set log level if specified in cfg
+  try {
+    auto log_level = cfg.get("vcf.log_level");
+    LOG_CONFIG(log_level);
+  } catch (...) {
+  }
 }
 
 void Reader::check_partitioning(

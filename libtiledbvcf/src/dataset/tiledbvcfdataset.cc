@@ -369,6 +369,57 @@ void TileDBVCFDataset::open(
         std::to_string(metadata_.version) +
         " but only versions 2, 3 and 4 are supported.");
 
+  // Handle time traveling by looking for 'vcf.start_timestamp' and
+  // 'vcf.end_timestamp' in tiledb_config. If either timestamp is provided,
+  // reopen the arrays.
+  bool reopen = false;
+
+  try {
+    auto start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
+    data_array_->set_open_timestamp_start(start_timestamp);
+    vcf_header_array_->set_open_timestamp_start(start_timestamp);
+    LOG_INFO("Using vcf.start_timestamp from config: {}", start_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_TRACE("'vcf.start_timestamp' not specified in config, using default");
+  } catch (...) {
+    LOG_WARN(
+        "Invalid vcf.start_timestamp '{}', using default",
+        cfg_.get("vcf.start_timestamp"));
+  }
+
+  try {
+    auto end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
+    data_array_->set_open_timestamp_end(end_timestamp);
+    vcf_header_array_->set_open_timestamp_end(end_timestamp);
+    LOG_INFO("Using vcf.end_timestamp from config: {}", end_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
+  } catch (...) {
+    LOG_WARN(
+        "Invalid vcf.end_timestamp '{}', using default",
+        cfg_.get("vcf.end_timestamp"));
+  }
+
+  if (reopen) {
+    data_array_->reopen();
+    vcf_header_array_->reopen();
+  }
+
+  auto start_ms = data_array_->open_timestamp_start();
+  auto end_ms = data_array_->open_timestamp_end();
+
+  if (reopen) {
+    LOG_INFO(
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_INFO("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
+  } else {
+    LOG_TRACE(
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_TRACE("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
+  }
+
   open_ = true;
 
   // Preloading runs on a background stl thread
