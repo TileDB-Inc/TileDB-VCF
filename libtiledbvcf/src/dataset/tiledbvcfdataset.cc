@@ -130,7 +130,9 @@ TileDBVCFDataset::~TileDBVCFDataset() {
   vcf_header_array_ = (nullptr);
 
 #ifdef __linux__
-  malloc_trim(0);
+  int ret = malloc_trim(0);
+  std::cout << "malloc_trim " << (ret ? "did" : "did not") << "free memory"
+            << std::endl;
 #endif
 }
 

@@ -36,6 +36,10 @@
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
 
+#ifdef __linux__
+#include <malloc.h>
+#endif
+
 namespace tiledb {
 namespace vcf {
 
@@ -978,6 +982,11 @@ bool Reader::read_current_batch() {
         std::async(std::launch::async, [query, verbose]() {
           auto t0 = std::chrono::steady_clock::now();
           auto st = query->submit();
+#ifdef __linux__
+          int ret = malloc_trim(0);
+          std::cout << "malloc_trim " << (ret ? "did" : "did not")
+                    << "free memory" << std::endl;
+#endif
           if (verbose) {
             std::cout << "query completed in " << utils::chrono_duration(t0)
                       << " sec." << std::endl;
@@ -1025,6 +1034,11 @@ bool Reader::read_current_batch() {
           std::async(std::launch::async, [query, verbose]() {
             auto t0 = std::chrono::steady_clock::now();
             auto st = query->submit();
+#ifdef __linux__
+            int ret = malloc_trim(0);
+            std::cout << "malloc_trim " << (ret ? "did" : "did not")
+                      << "free memory" << std::endl;
+#endif
             if (verbose) {
               std::cout << "query completed in " << utils::chrono_duration(t0)
                         << " sec." << std::endl;
@@ -1081,6 +1095,11 @@ bool Reader::read_current_batch() {
           std::async(std::launch::async, [query, verbose]() {
             auto t0 = std::chrono::steady_clock::now();
             auto st = query->submit();
+#ifdef __linux__
+            int ret = malloc_trim(0);
+            std::cout << "malloc_trim " << (ret ? "did" : "did not")
+                      << "free memory" << std::endl;
+#endif
             if (verbose) {
               std::cout << "query completed in " << utils::chrono_duration(t0)
                         << " sec." << std::endl;
