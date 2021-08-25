@@ -282,7 +282,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), configCsv);
 
-    if (!options.getForceRangePartitioningByContig().orElse(false)) {
+    if (!options.getNewPartitionMethod().orElse(false)) {
       log.info("No ranges on spark partition info, using bed file/user passed regions instead");
       // Set ranges
       Optional<String[]> ranges = options.getRanges();
@@ -298,7 +298,7 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     } else {
       if (rangePartitionInfo.getRegions().isEmpty()) {
         throw new RuntimeException(
-            "rangePartitionInfo missing regions but force_range_partitioning_by_contig is set");
+            "rangePartitionInfo missing regions but new_partition_method is set");
       }
       log.info("Setting " + rangePartitionInfo.getRegions().size() + " ranges from partition info");
       String[] regions = new String[rangePartitionInfo.getRegions().size()];

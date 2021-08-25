@@ -810,8 +810,9 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1alloc
-  (JNIEnv* env, jclass self, jlongArray bedFilePtrOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1alloc(
+    JNIEnv* env, jclass self, jlongArray bedFilePtrOut) {
   (void)self;
 
   // Check that the passed in array is not null
@@ -842,8 +843,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1free
-  (JNIEnv* env, jclass self, jlong bedFilePtr) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1free(
+    JNIEnv* env, jclass self, jlong bedFilePtr) {
   (void)self;
 
   if (bedFilePtr == 0) {
@@ -856,8 +858,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   return 0;
 }
 
-JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1last_1error_1message
-  (JNIEnv* env, jclass self, jlong bedFilePtr) {
+JNIEXPORT jstring JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1last_1error_1message(
+    JNIEnv* env, jclass self, jlong bedFilePtr) {
   (void)self;
   tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
   if (bed_file == 0) {
@@ -911,8 +914,13 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1parse
-  (JNIEnv* env, jclass self, jlong readerPtr, jlong bedFilePtr, jstring bedFileURI) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1parse(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jlong bedFilePtr,
+    jstring bedFileURI) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -933,8 +941,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1count
-  (JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut){
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1count(
+    JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
   (void)self;
   tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
   if (bed_file == 0) {
@@ -965,8 +974,9 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1total_1region_1count
-  (JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1total_1region_1count(
+    JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
   (void)self;
   tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
   if (bed_file == 0) {
@@ -1000,8 +1010,13 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region_1count
-  (JNIEnv* env, jclass self, jlong bedFilePtr, jlong contigIndex, jlongArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region_1count(
+    JNIEnv* env,
+    jclass self,
+    jlong bedFilePtr,
+    jlong contigIndex,
+    jlongArray countOut) {
   (void)self;
   tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
   if (bed_file == 0) {
@@ -1009,7 +1024,8 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   }
 
   uint64_t count;
-  int32_t rc = tiledb_vcf_bed_file_get_contig_region_count(bed_file, contigIndex, &count);
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region_count(
+      bed_file, contigIndex, &count);
   if (rc == TILEDB_VCF_OK) {
     return set_out_param_int64(env, count, countOut);
   }
@@ -1017,8 +1033,17 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region
-  (JNIEnv* env, jclass self, jlong bedFilePtr, jlong contigIndex, jlong regionIndex, jbyteArray regionStrOut, jbyteArray regionContigOut, jlongArray regionStartOut, jlongArray regionEndOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region(
+    JNIEnv* env,
+    jclass self,
+    jlong bedFilePtr,
+    jlong contigIndex,
+    jlong regionIndex,
+    jbyteArray regionStrOut,
+    jbyteArray regionContigOut,
+    jlongArray regionStartOut,
+    jlongArray regionEndOut) {
   (void)self;
   tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
   if (bed_file == 0) {
@@ -1028,7 +1053,14 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed
   const char* region_str;
   const char* region_contig;
   uint32_t region_start, region_end;
-  int32_t rc = tiledb_vcf_bed_file_get_contig_region(bed_file, contigIndex, regionIndex, &region_str, &region_contig, &region_start, &region_end);
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region(
+      bed_file,
+      contigIndex,
+      regionIndex,
+      &region_str,
+      &region_contig,
+      &region_start,
+      &region_end);
   if (rc == TILEDB_VCF_OK) {
     int length = strlen(region_str);
     (*env)->SetByteArrayRegion(env, regionStrOut, 0, length, region_str);

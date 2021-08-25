@@ -108,10 +108,10 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
-  /** @return Optional force range partition per contig */
-  public Optional<Boolean> getForceRangePartitioningByContig() {
-    if (options.containsKey("force_range_partitioning_by_contig")) {
-      return Optional.of(Boolean.parseBoolean(options.get("force_range_partitioning_by_contig")));
+  /** @return Optional use new bed file partition method */
+  public Optional<Boolean> getNewPartitionMethod() {
+    if (options.containsKey("new_partition_method")) {
+      return Optional.of(Boolean.parseBoolean(options.get("new_partition_method")));
     }
     return Optional.empty();
   }

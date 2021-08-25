@@ -213,9 +213,8 @@ public class VCFDataSourceReader
     }
 
     // Create Spark input partitions
-    Optional<Boolean> forceRangePartitioningByContig = options.getForceRangePartitioningByContig();
     List<List<String>> regions = null;
-    if (forceRangePartitioningByContig.orElse(false)) {
+    if (options.getNewPartitionMethod().orElse(false)) {
       regions = computeRegionPartitionsFromBedFile(numRangePartitions);
       numRangePartitions = regions.size();
       ranges_end = regions.size();
@@ -254,7 +253,7 @@ public class VCFDataSourceReader
     Optional<URI> bedURI = options.getBedURI();
     if (!bedURI.isPresent()) {
       throw new RuntimeException(
-          "Can't use force_range_partitioning_by_contig without setting bed_file");
+          "Can't use new_partition_method without setting bed_file");
     }
 
     log.info("Init VCFReader for partition calculation");
