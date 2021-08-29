@@ -2362,13 +2362,15 @@ void Reader::set_tiledb_query_config() {
   tiledb::Config cfg;
   utils::set_tiledb_config(params_.tiledb_config, &cfg);
   if (params_.tiledb_config_map.find("sm.memory_budget") ==
-      params_.tiledb_config_map.end())
+          params_.tiledb_config_map.end() &&
+      params_.memory_budget_breakdown.tiledb_memory_budget > 0)
     cfg["sm.memory_budget"] =
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
 
   if (params_.tiledb_config_map.find("sm.memory_budget_var") ==
-      params_.tiledb_config_map.end())
+          params_.tiledb_config_map.end() &&
+      params_.memory_budget_breakdown.tiledb_memory_budget > 0)
     cfg["sm.memory_budget_var"] =
         params_.memory_budget_breakdown.tiledb_memory_budget /
         buffers_a->nbuffers();
@@ -2405,7 +2407,7 @@ void Reader::compute_memory_budget_details() {
         "memory will be given to buffers.");
     params_.memory_budget_breakdown.tiledb_tile_cache = 0;
     // Set the budget to non-zero but its effectively ignored
-    params_.memory_budget_breakdown.tiledb_memory_budget = 1024;
+    params_.memory_budget_breakdown.tiledb_memory_budget = 0;
     // Set the buffers to the full budget
     params_.memory_budget_breakdown.buffers =
         params_.memory_budget_mb * 1024 * 1024;
