@@ -1008,7 +1008,7 @@ bool Reader::read_current_batch() {
           "Processed {} cells in {} sec. Reported {} cells. Approximately "
           "{:.1f}% completed with query cells.",
           read_state_.query_results.num_cells(),
-          utils::chrono_duration(t0),
+          utils::chrono_duration(processing_start_timer),
           read_state_.last_num_records_exported - old_num_exported,
           std::min(
               100.0,
@@ -1019,7 +1019,7 @@ bool Reader::read_current_batch() {
       LOG_INFO(
           "Processed {} cells in {} sec. Reported {} cells.",
           read_state_.query_results.num_cells(),
-          utils::chrono_duration(t0),
+          utils::chrono_duration(processing_start_timer),
           read_state_.last_num_records_exported - old_num_exported);
     }
 
