@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/logger_public.h"
 #include "utils/sample_utils.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
@@ -211,15 +212,11 @@ void Writer::ingest_samples() {
       tiledb::vcf::pair_hash>
       existing_fragments;
   if (ingestion_params_.resume_sample_partial_ingestion) {
-    if (ingestion_params_.verbose)
-      std::cout << "Starting fetching of contig to sample list for resumption "
-                   "checking"
-                << std::endl;
+    LOG_DEBUG(
+        "Starting fetching of contig to sample list for resumption checking");
     existing_fragments = dataset_->fragment_contig_sample_list();
-    if (ingestion_params_.verbose)
-      std::cout
-          << "Finished fetching of contig sample list for resumption checking"
-          << std::endl;
+    LOG_DEBUG(
+        "Finished fetching of contig sample list for resumption checking");
   }
 
   // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
@@ -273,9 +270,9 @@ void Writer::ingest_samples() {
       batches[0],
       &scratch_space_a);
 
-  if (ingestion_params_.verbose)
-    std::cout << "Initialization completed in "
-              << utils::chrono_duration(start_all) << " sec." << std::endl;
+  LOG_DEBUG(
+      "Initialization completed in {} seconds.",
+      utils::chrono_duration(start_all));
   uint64_t records_ingested = 0, anchors_ingested = 0;
   uint64_t samples_ingested = 0;
   for (unsigned i = 1; i < batches.size(); i++) {
@@ -305,12 +302,11 @@ void Writer::ingest_samples() {
     anchors_ingested += result.second;
     samples_ingested += local_samples.size();
 
-    if (ingestion_params_.verbose) {
-      std::cout << "Finished ingesting " << samples_ingested << " / "
-                << samples.size() << " samples ("
-                << utils::chrono_duration(start_batch) << " sec)..."
-                << std::endl;
-    }
+    LOG_INFO(
+        "Finished ingesting {} / {} samples ({} sec)...",
+        samples_ingested,
+        samples.size(),
+        utils::chrono_duration(start_batch));
 
     if (download_samples) {
       // Reset current scratch space and swap.
@@ -340,15 +336,14 @@ void Writer::ingest_samples() {
   anchors_ingested += result.second;
 
   auto t0 = std::chrono::steady_clock::now();
-  if (ingestion_params_.verbose)
-    std::cout << "Making sure all finalize tasks completed..." << std::endl;
+  LOG_DEBUG("Making sure all finalize tasks completed...");
   for (const auto& finalize_task : finalize_tasks_) {
     if (finalize_task.valid())
       finalize_task.wait();
   }
-  if (ingestion_params_.verbose)
-    std::cout << "All finalize tasks successfully completed. Waited for "
-              << utils::chrono_duration(t0) << " sec." << std::endl;
+  LOG_DEBUG(
+      "All finalize tasks successfully completed. Waited for {} sec.",
+      utils::chrono_duration(t0));
 
   array_->close();
 
@@ -363,15 +358,14 @@ void Writer::ingest_samples() {
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
-  if (ingestion_params_.verbose) {
-    auto loc = std::cout.getloc();
-    utils::enable_pretty_print_numbers(std::cout);
-    std::cout << "Done. Ingested " << records_ingested << " records (+ "
-              << anchors_ingested << " anchors) from " << samples.size()
-              << " samples in " << utils::chrono_duration(start_all)
-              << " seconds." << std::endl;
-    std::cout.imbue(loc);
-  }
+  LOG_INFO(fmt::format(
+      std::locale(""),
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in {} "
+      "seconds.",
+      records_ingested,
+      anchors_ingested,
+      samples.size(),
+      utils::chrono_duration(start_all)));
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -465,11 +459,12 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
 
-          if (ingestion_params_.verbose)
-            std::cout << "Writing " << worker->records_buffered()
-                      << " for contig " << worker->region().seq_name
-                      << " (task " << i << " / " << tasks.size() << ")"
-                      << std::endl;
+          LOG_INFO(
+              "Writing {} for contig {} (task {} / {})",
+              worker->records_buffered(),
+              worker->region().seq_name,
+              i,
+              tasks.size());
         }
         records_ingested += worker->records_buffered();
         anchors_ingested += worker->anchors_buffered();
@@ -540,17 +535,19 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           std::make_pair(first_sample_name, last_sample_name));
       for (const auto& contig : contigs) {
         existing_contigs_in_array_for_sample_batch.emplace(contig);
-        if (params.verbose) {
-          std::cout << "found existing for contigs [" << contig.first << ", "
-                    << contig.second << "]"
-                    << " for batch [" << first_sample_name << ", "
-                    << last_sample_name << "] - skipping ingestion"
-                    << std::endl;
-        }
+        LOG_INFO(
+            "found existing for contigs [{}, {}] for batch [{}, {}] - skipping "
+            "ingestion",
+            contig.first,
+            contig.second,
+            first_sample_name,
+            last_sample_name);
       }
     } catch (const std::exception& e) {
-      //      std::cout << "sample batch [" << first_sample_name << ", " <<
-      //      last_sample_name << "] not found in existing array" << std::endl;
+      LOG_DEBUG(
+          "sample batch [{}, {}] not found in existing array",
+          first_sample_name,
+          last_sample_name);
     }
   }
 
@@ -575,6 +572,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     // Loop over all contigs in the header, store the nonempty and also the
     // regions
     for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      // Skip empty contigs
+      if (!vcf.contig_has_records(contig_region.seq_name))
+        continue;
+
       // Check if the contig has already been ingested. If so we'll skip it.
       // This first check only handles non-combined contigs
       const bool contig_exists_in_array =
@@ -583,14 +584,13 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               std::make_pair(contig_region.seq_name, contig_region.seq_name)) !=
               existing_contigs_in_array_for_sample_batch.end();
       if (contig_exists_in_array) {
-        if (params.resume_sample_partial_ingestion) {
-          if (params.verbose) {
-            std::cout << "skipping " << contig_region.seq_name
-                      << " as it was in existing contig list for batch"
-                      << std::endl;
-          }
+        if (params.resume_sample_partial_ingestion &&
+            !params.contig_fragment_merging) {
+          LOG_INFO(
+              "skipping {} as it was in existing contig list for batch",
+              contig_region.seq_name);
           continue;
-        } else {
+        } else if (!params.contig_fragment_merging) {
           throw std::runtime_error(
               "batch for " + sample_name + " has already ingested " +
               contig_region.seq_name + " aborting");
@@ -614,14 +614,100 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
-  // For V4 lets write the headers for this batch and also prepare the region
-  // list specific to this batch
   // If there were no regions in the VCF files return early
   if (regions_v4.empty())
     return {0, 0};
 
-  dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
   regions = prepare_region_list(regions_v4, ingestion_params_);
+
+  // Loop over complete contig list, check for merging and if already ingested
+  // to skip
+  if (params.contig_fragment_merging &&
+      params.resume_sample_partial_ingestion) {
+    LOG_INFO("Checking for regions to skip with contig merging enabled");
+
+    // Whitelist and black can not both be used
+    assert(
+        params.contigs_to_allow_merging.empty() +
+            params.contigs_to_keep_separate.empty() <
+        2);
+
+    std::vector<std::string> contigs_to_skip_ingesting;
+    std::vector<std::string> current_batch;
+    bool end_batch;
+    for (const auto& region : regions) {
+      // We end the batch if the contig is not mergeable
+      end_batch = !check_contig_mergeable(region.seq_name);
+
+      if (end_batch) {
+        // Handle this single contig. Its on the black list so not point in
+        // adding it to the current batch, lets just deal with it now
+        const bool contig_exists_in_array =
+            !existing_contigs_in_array_for_sample_batch.empty() &&
+            existing_contigs_in_array_for_sample_batch.find(
+                std::make_pair(region.seq_name, region.seq_name)) !=
+                existing_contigs_in_array_for_sample_batch.end();
+
+        if (contig_exists_in_array) {
+          LOG_INFO(
+              "{} found to be in array, skipping ingestion", region.seq_name);
+          contigs_to_skip_ingesting.emplace_back(region.seq_name);
+        }
+
+        if (!current_batch.empty()) {
+          // If the current batch isn't empty lets check to see if it was
+          // already ingested
+          const bool contigs_exists_in_array =
+              !existing_contigs_in_array_for_sample_batch.empty() &&
+              existing_contigs_in_array_for_sample_batch.find(std::make_pair(
+                  current_batch.front(), current_batch.back())) !=
+                  existing_contigs_in_array_for_sample_batch.end();
+
+          if (contigs_exists_in_array) {
+            if (LOG_DEBUG_ENABLED()) {
+              for (const std::string& contig : current_batch) {
+                LOG_DEBUG(
+                    "{} found to be in array via merged fragments, skipping "
+                    "ingestion",
+                    contig);
+              }
+            }
+            contigs_to_skip_ingesting.insert(
+                contigs_to_skip_ingesting.end(),
+                current_batch.begin(),
+                current_batch.end());
+            current_batch.clear();
+          }
+        }
+      } else {
+        current_batch.emplace_back(region.seq_name);
+      }
+    }
+
+    // Remove any contigs from the region list
+    for (uint64_t i = 0; i < contigs_to_skip_ingesting.size(); i++) {
+      const auto& contig_to_skip_ingesting = contigs_to_skip_ingesting[i];
+      uint64_t j;
+      bool found = false;
+      for (j = 0; j < regions.size(); j++) {
+        if (regions[j].seq_name == contig_to_skip_ingesting) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
+        // remove region
+        regions.erase(regions.begin() + j);
+        // Reset i to check again
+        --i;
+      }
+    }
+  }
+
+  // For V4 lets write the headers for this batch and also prepare the region
+  // list specific to this batch
+  dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
 
   const size_t nregions = regions.size();
   size_t region_idx = 0;
@@ -640,6 +726,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   }
 
   std::string last_region_contig = workers[0]->region().seq_name;
+  std::string starting_region_contig_for_merge = workers[0]->region().seq_name;
   bool finished = tasks.empty();
   while (!finished) {
     finished = true;
@@ -655,37 +742,77 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
-          if (last_region_contig != worker->region().seq_name) {
-            if (ingestion_params_.verbose)
-              std::cout << "Finalizing contig " << last_region_contig
-                        << std::endl;
+          const std::string& contig = worker->region().seq_name;
+          // Check if finished contig is allowed to be merged
+          const bool contig_mergeable = check_contig_mergeable(contig);
+          const bool last_contig_mergeable =
+              check_contig_mergeable(last_region_contig);
+          // If the contig is different the last one we wrote, and we aren't
+          // suppose to merge this new one, then finalize the previous one
+          if (last_region_contig != contig) {
+            if (!last_contig_mergeable || !contig_mergeable) {
+              if (LOG_DEBUG_ENABLED()) {
+                if (!last_contig_mergeable) {
+                  LOG_DEBUG(
+                      "Previous contig {} found to NOT be mergeable, "
+                      "finalizing previous fragment and starting new write for "
+                      "{}",
+                      last_region_contig,
+                      contig);
+                } else if (!contig_mergeable) {
+                  LOG_DEBUG(
+                      "Contig {0} found to NOT be mergeable, "
+                      "finalizing previous fragment and starting new write for "
+                      "{0}",
+                      contig);
+                }
+              }
+              // If the contig is different the last one we wrote, and we aren't
+              // suppose to merge this new one, then finalize the previous one
+              LOG_DEBUG(
+                  "Finalizing contig batch [{}, {}]",
+                  starting_region_contig_for_merge,
+                  last_region_contig);
 
-            // Finalize fragment for this contig async
-            // it is okay to move the query because we reset it next.
-            finalize_tasks_.emplace_back(std::async(
-                std::launch::async, finalize_query, std::move(query_)));
+              // Finalize fragment for this contig async
+              // it is okay to move the query because we reset it next.
+              finalize_tasks_.emplace_back(std::async(
+                  std::launch::async, finalize_query, std::move(query_)));
 
-            // Start new query for new fragment for next contig
-            query_.reset(new Query(*ctx_, *array_));
-            query_->set_layout(TILEDB_GLOBAL_ORDER);
+              // Start new query for new fragment for next contig
+              query_.reset(new Query(*ctx_, *array_));
+              query_->set_layout(TILEDB_GLOBAL_ORDER);
 
-            // Set new contig
-            last_region_contig = worker->region().seq_name;
+              // Set new contig
+              last_region_contig = contig;
+              starting_region_contig_for_merge = contig;
+            } else {
+              LOG_INFO(
+                  "last contig {} and contig {} found to be mergeable, "
+                  "combining into super fragment",
+                  last_region_contig,
+                  contig);
+              // Set the last contig to the current one if we are merging
+              last_region_contig = contig;
+            }
           }
 
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
           auto st = query_->submit();
           if (st != Query::Status::COMPLETE)
+            // TODO: log critical error?
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
-
-          if (ingestion_params_.verbose)
-            std::cout << "Recorded " << worker->records_buffered()
-                      << " cells for contig " << worker->region().seq_name
-                      << " (task " << i + 1 << " / " << tasks.size() << ")"
-                      << std::endl;
+          LOG_INFO(
+              "Recorded {} cells for contig {} (task {} / {})",
+              worker->records_buffered(),
+              contig,
+              i + 1,
+              tasks.size());
+        } else {
+          LOG_DEBUG("No records found for {}", worker->region().seq_name);
         }
         records_ingested += worker->records_buffered();
         anchors_ingested += worker->anchors_buffered();
@@ -695,6 +822,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         if (!task_complete)
           tasks[i] = std::async(
               std::launch::async, [worker]() { return worker->resume(); });
+        LOG_DEBUG("Work for {} not complete, resuming", i);
       }
 
       // Start next region parsing using the same worker.
@@ -711,8 +839,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
-  if (ingestion_params_.verbose)
-    std::cout << "Finalizing contig " << last_region_contig << std::endl;
+  LOG_DEBUG(
+      "Finalizing last contig batch of [{}, {}]",
+      starting_region_contig_for_merge,
+      last_region_contig);
 
   // Finalize fragment for this contig
   finalize_tasks_.emplace_back(
@@ -904,5 +1034,42 @@ void Writer::set_sample_batch_size(const uint64_t size) {
 void Writer::set_resume_sample_partial_ingestion(const bool resume) {
   ingestion_params_.resume_sample_partial_ingestion = resume;
 }
+
+bool Writer::check_contig_mergeable(const std::string& contig) {
+  // If merging is disabled always return false
+  if (!ingestion_params_.contig_fragment_merging)
+    return false;
+
+  // If contig is in blacklist, then it can not be merged
+  if (!ingestion_params_.contigs_to_keep_separate.empty() &&
+      ingestion_params_.contigs_to_keep_separate.find(contig) !=
+          ingestion_params_.contigs_to_keep_separate.end())
+    return false;
+
+  // If the whitelist is not empty and contig is not in the whitelist then it
+  // can not be merged
+  if (!ingestion_params_.contigs_to_allow_merging.empty() &&
+      ingestion_params_.contigs_to_allow_merging.find(contig) ==
+          ingestion_params_.contigs_to_allow_merging.end())
+    return false;
+
+  // In all other cases we are mergeable
+  return true;
+}
+
+void Writer::set_contig_fragment_merging(const bool contig_fragment_merging) {
+  ingestion_params_.contig_fragment_merging = contig_fragment_merging;
+}
+
+void Writer::set_contigs_to_keep_separate(
+    const std::set<std::string>& contigs_to_keep_separate) {
+  ingestion_params_.contigs_to_keep_separate = contigs_to_keep_separate;
+}
+
+void Writer::set_contigs_to_allow_merging(
+    const std::set<std::string>& contigs_to_allow_merging) {
+  ingestion_params_.contigs_to_allow_merging = contigs_to_allow_merging;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

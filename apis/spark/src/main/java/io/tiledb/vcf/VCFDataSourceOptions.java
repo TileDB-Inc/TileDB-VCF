@@ -108,6 +108,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Optional use new bed file partition method */
+  public Optional<Boolean> getNewPartitionMethod() {
+    if (options.containsKey("new_partition_method")) {
+      return Optional.of(Boolean.parseBoolean(options.get("new_partition_method")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional number of sample partitions */
   public Optional<Integer> getSamplePartitions() {
     if (options.containsKey("sample_partitions")) {

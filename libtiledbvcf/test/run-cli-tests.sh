@@ -25,7 +25,8 @@ function clean_up {
            ingested_dupe_start_pos errored_dupe_start_pos \
            ingested_null_attr \
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
-           region-map.txt pfx.tsv
+           region-map.txt pfx.tsv \
+           export_test G1.bcf \
     rm -rf "$upload_dir"
 }
 
@@ -377,6 +378,22 @@ Statistics for dataset 'ingested_1_2':
 - Extracted attributes: none
 EOF
 ) || exit 1
+
+# check tsv output with SAMPLE in tsv-fields
+diff -u <($tilevcf export -u ingested_1 -Ot --tsv-fields "SAMPLE,CHR") <(
+cat <<EOF
+SAMPLE	CHR
+HG01762	1
+HG01762	1
+HG01762	1
+EOF
+) || exit 1
+
+# check vcf export
+$tilevcf create -u export_test
+$tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
+$tilevcf export -u export_test -Ob -s G1
+diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf) || exit 1
 
 # Expected failures
 echo ""

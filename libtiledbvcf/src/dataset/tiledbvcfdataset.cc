@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/logger_public.h"
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
@@ -110,24 +111,39 @@ TileDBVCFDataset::TileDBVCFDataset()
 }
 
 TileDBVCFDataset::~TileDBVCFDataset() {
-  // Grabbing a lock makes sure we don't delete the array in the middle of any
-  // usage (i.e. preloading)
-  utils::UniqueWriteLock data_array_lck_(
-      const_cast<utils::RWLock*>(&data_array_lock_));
-  utils::UniqueWriteLock vcf_header_array_lck_(
-      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
-
-  // Block if the non empty domain threads have not completed.
-  if (data_array_preload_non_empty_domain_thread_.joinable())
-    data_array_preload_non_empty_domain_thread_.join();
-  if (vcf_header_array_preload_non_empty_domain_thread_.joinable())
-    vcf_header_array_preload_non_empty_domain_thread_.join();
+  // block until it's safe to delete the arrays
+  lock_and_join_data_array();
+  lock_and_join_vcf_header_array();
 
   data_array_ = nullptr;
   vcf_header_array_ = (nullptr);
 }
 
+void TileDBVCFDataset::lock_and_join_data_array() {
+  // Grabbing a lock makes sure we don't delete or close the array in the middle
+  // of any usage (i.e. preloading)
+  utils::UniqueWriteLock data_array_lck_(
+      const_cast<utils::RWLock*>(&data_array_lock_));
+
+  // Block if the non empty domain threads have not completed.
+  if (data_array_preload_non_empty_domain_thread_.joinable())
+    data_array_preload_non_empty_domain_thread_.join();
+}
+
+void TileDBVCFDataset::lock_and_join_vcf_header_array() {
+  // Grabbing a lock makes sure we don't delete or close the array in the middle
+  // of any usage (i.e. preloading)
+  utils::UniqueWriteLock vcf_header_array_lck_(
+      const_cast<utils::RWLock*>(&vcf_header_array_lock_));
+
+  // Block if the non empty domain threads have not completed.
+  if (vcf_header_array_preload_non_empty_domain_thread_.joinable())
+    vcf_header_array_preload_non_empty_domain_thread_.join();
+}
+
 void TileDBVCFDataset::create(const CreationParams& params) {
+  LOG_TRACE("Create dataset: {}", params.uri);
+
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
@@ -139,9 +155,13 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (vfs.is_dir(params.uri)) {
     // If the directory exists, check if it's a dataset. If so, return with no
     // error (allows for multiple no-op create calls).
-    if (vfs.is_dir(data_array_uri(params.uri)))
+    if (vfs.is_dir(data_array_uri(params.uri))) {
+      LOG_TRACE("Dataset exists: {}", params.uri);
       return;
+    }
 
+    LOG_ERROR(
+        "Cannot create TileDB-VCF dataset; directory exists: {}", params.uri);
     throw std::runtime_error(
         "Cannot create TileDB-VCF dataset; directory exists.");
   }
@@ -348,6 +368,57 @@ void TileDBVCFDataset::open(
         "Cannot open TileDB-VCF dataset; dataset is version " +
         std::to_string(metadata_.version) +
         " but only versions 2, 3 and 4 are supported.");
+
+  // Handle time traveling by looking for 'vcf.start_timestamp' and
+  // 'vcf.end_timestamp' in tiledb_config. If either timestamp is provided,
+  // reopen the arrays.
+  bool reopen = false;
+
+  try {
+    auto start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
+    data_array_->set_open_timestamp_start(start_timestamp);
+    vcf_header_array_->set_open_timestamp_start(start_timestamp);
+    LOG_INFO("Using vcf.start_timestamp from config: {}", start_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_TRACE("'vcf.start_timestamp' not specified in config, using default");
+  } catch (...) {
+    LOG_WARN(
+        "Invalid vcf.start_timestamp '{}', using default",
+        cfg_.get("vcf.start_timestamp"));
+  }
+
+  try {
+    auto end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
+    data_array_->set_open_timestamp_end(end_timestamp);
+    vcf_header_array_->set_open_timestamp_end(end_timestamp);
+    LOG_INFO("Using vcf.end_timestamp from config: {}", end_timestamp);
+    reopen = true;
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
+  } catch (...) {
+    LOG_WARN(
+        "Invalid vcf.end_timestamp '{}', using default",
+        cfg_.get("vcf.end_timestamp"));
+  }
+
+  if (reopen) {
+    data_array_->reopen();
+    vcf_header_array_->reopen();
+  }
+
+  auto start_ms = data_array_->open_timestamp_start();
+  auto end_ms = data_array_->open_timestamp_end();
+
+  if (reopen) {
+    LOG_INFO(
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_INFO("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
+  } else {
+    LOG_TRACE(
+        "start_timestamp = {:013d} = {}", start_ms, asc_timestamp(start_ms));
+    LOG_TRACE("end_timestamp   = {:013d} = {}", end_ms, asc_timestamp(end_ms));
+  }
 
   open_ = true;
 
@@ -1942,6 +2013,8 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
+  // block until it's safe to close the array
+  lock_and_join_vcf_header_array();
   vcf_header_array_->close();
   tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
@@ -1953,6 +2026,8 @@ void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
+  // block until it's safe to close the array
+  lock_and_join_data_array();
   data_array_->close();
   tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
@@ -1968,6 +2043,8 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
+  // block until it's safe to close the array
+  lock_and_join_vcf_header_array();
   vcf_header_array_->close();
   tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
   vcf_header_array_ = open_vcf_array(TILEDB_READ);
@@ -1977,6 +2054,8 @@ void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
+  // block until it's safe to close the array
+  lock_and_join_data_array();
   data_array_->close();
   tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);

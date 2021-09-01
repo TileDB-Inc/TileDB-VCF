@@ -41,6 +41,7 @@ Region::Region()
     , max(0)
     , seq_offset(std::numeric_limits<uint32_t>::max() - 1)
     , line(0) {
+  region_str = to_str(Type::ZeroIndexedHalfOpen);
 }
 
 Region::Region(
@@ -50,6 +51,7 @@ Region::Region(
     , max(max)
     , seq_offset(std::numeric_limits<uint32_t>::max() - 1)
     , line(line) {
+  region_str = to_str(Type::ZeroIndexedHalfOpen);
 }
 
 Region::Region(const std::string& str, Type parse_from) {
@@ -59,6 +61,7 @@ Region::Region(const std::string& str, Type parse_from) {
   max = r.max;
   seq_offset = std::numeric_limits<uint32_t>::max() - 1;
   line = 0;
+  region_str = to_str(parse_from);
 }
 
 std::string Region::to_str(Type type) const {
@@ -114,7 +117,10 @@ Region Region::parse_region(
   }
 
   if (result.min > result.max)
-    throw std::invalid_argument("Invalid region, min > max.");
+    throw std::invalid_argument(
+        "Invalid region " + region_str + ", min > max (" +
+        std::to_string(result.min) + " > " + std::to_string(result.max) +
+        ") with contig " + result.seq_name + ".");
 
   switch (parse_from) {
     case Region::Type::ZeroIndexedInclusive:
@@ -131,6 +137,7 @@ Region Region::parse_region(
       break;
   }
 
+  result.region_str = region_str;
   return result;
 }
 
@@ -183,7 +190,9 @@ void Region::parse_bed_file_htslib(
     for (auto& res : futures) {
       if (!res.valid())
         throw std::runtime_error("Parsing of BED file failed");
-      auto status = res.wait_for(std::chrono::seconds(30));
+      // Set bedfile region parsing timeout to 5 minutes
+      // TODO: make this a config option
+      auto status = res.wait_for(std::chrono::seconds(300));
       if (status != std::future_status::ready)
         throw std::runtime_error("Parsing of BED file timed out");
       std::list<Region> res_list = res.get();

@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,8 @@ struct DebugParams {
 struct ExportParams {
   // Basic export params:
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::string samples_file_uri;
   std::string regions_file_uri;
   std::vector<std::string> sample_names;

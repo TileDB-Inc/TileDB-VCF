@@ -93,6 +93,9 @@ typedef struct tiledb_vcf_writer_t tiledb_vcf_writer_t;
 /** Error object. */
 typedef struct tiledb_vcf_error_t tiledb_vcf_error_t;
 
+/** Bed file object. */
+typedef struct tiledb_vcf_bed_file_t tiledb_vcf_bed_file_t;
+
 /* ********************************* */
 /*              MISC                 */
 /* ********************************* */
@@ -963,6 +966,100 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_last_error(
     tiledb_vcf_reader_t* reader, tiledb_vcf_error_t** error);
 
 /* ********************************* */
+/*             BED FILE              */
+/* ********************************* */
+
+/**
+ * Allocate a VCF bed file object.
+ *
+ * @param bed_file Will be set to point at the allocated bed file object.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_bed_file_alloc(tiledb_vcf_bed_file_t** bed_file);
+
+/**
+ * Free the given VCF bed file object.
+ *
+ * @param bed_file Pointer to writer object to free.
+ */
+TILEDBVCF_EXPORT void tiledb_vcf_bed_file_free(
+    tiledb_vcf_bed_file_t** bed_file);
+
+/**
+ * Gets the last error from the bed file object. Don't forget to free the error
+ * object.
+ *
+ * @param bed_file VCF bed file object
+ * @param error Set to a newly allocated error object holding the last error.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_get_last_error(
+    tiledb_vcf_bed_file_t* bed_file, tiledb_vcf_error_t** error);
+
+/**
+ * Parse a bed file into a bed file object
+ * @param reader VCF reader object
+ * @param bed_file VCF bed file object
+ * @param bed_file_path path to bed file
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_parse(
+    tiledb_vcf_reader_t* reader,
+    tiledb_vcf_bed_file_t* bed_file,
+    const char* bed_file_uri);
+
+/**
+ * Get count of number of contigs in parsed bed file
+ * @param bed_file
+ * @param contig_count
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_get_contig_count(
+    tiledb_vcf_bed_file_t* bed_file, uint64_t* contig_count);
+
+/**
+ *
+ * @param bed_file
+ * @param total_region_count
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_get_total_region_count(
+    tiledb_vcf_bed_file_t* bed_file, uint64_t* total_region_count);
+
+/**
+ *
+ * @param bed_file
+ * @param contig_index
+ * @param region_count
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_get_contig_region_count(
+    tiledb_vcf_bed_file_t* bed_file,
+    uint64_t contig_index,
+    uint64_t* region_count);
+
+/**
+ *
+ * @param bed_file
+ * @param contig_index
+ * @param region_index
+ * @param region_str
+ * @param region_contig
+ * @param region_start
+ * @param region_end
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_bed_file_get_contig_region(
+    tiledb_vcf_bed_file_t* bed_file,
+    uint64_t contig_index,
+    uint64_t region_index,
+    const char** region_str,
+    const char** region_contig,
+    uint32_t* region_start,
+    uint32_t* region_end);
+
+/* ********************************* */
 /*              WRITER               */
 /* ********************************* */
 
@@ -1246,7 +1343,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_tiledb_config(
  * Set sample batch size for ingestion
  *
  * @param writer VCF writer object
- * @param size number of samples to ingest per batch
+ * @param size number of samples to ingest per batch (default: 10)
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
@@ -1261,6 +1358,44 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_sample_batch_size(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_resume_sample_partial_ingestion(
     tiledb_vcf_writer_t* writer, const bool resume);
+
+/**
+ * Set contig fragment merging enabled or not
+ *
+ * @param writer VCF writer object
+ * @param contig_fragment_merging whether to enable contig merging or not on
+ * ingestion
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contig_fragment_merging(
+    tiledb_vcf_writer_t* writer, const bool contig_fragment_merging);
+
+/**
+ * Set list of contigs to force keeping separate and not allow merging. If none
+ * are set, then the merging is based on only including those from
+ * "set_contigs_to_allow_merging". If neither option is set, all contigs will be
+ * considered for merging.
+ *
+ * @param writer VCF writer object
+ * @param contigs array of contig strings
+ * @param len length of array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_keep_separate(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len);
+
+/**
+ * Set list of contigs to allow merging. If none are set, then the merging is
+ * based on only restricting those from "contigs_to_keep_separate". If neither
+ * option is set, all contigs will be considered for merging.
+ *
+ * @param writer VCF writer object
+ * @param contigs array of contig strings
+ * @param len length of array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
+    tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len);
 
 /* ********************************* */
 /*               ERROR               */

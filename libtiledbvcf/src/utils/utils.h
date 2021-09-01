@@ -198,6 +198,16 @@ std::vector<std::string> split(
 
 /**
  * @brief
+ * Split a string into tokens with any delimiter in delims.
+ * @param str String to split
+ * @param delims List of delimiters to split by
+ * @param skip_empty Skip empty elements
+ * @return set of tokens
+ */
+std::set<std::string> split_set(const std::string& s, char delim);
+
+/**
+ * @brief
  * Splits a string into a vector given some character delimiter.
  * @param s string to split
  * @param delim split string at delim, discarding the delim

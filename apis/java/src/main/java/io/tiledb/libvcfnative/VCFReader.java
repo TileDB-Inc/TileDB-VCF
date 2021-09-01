@@ -624,9 +624,13 @@ public class VCFReader implements AutoCloseable {
       it.next();
       it.remove();
     }
-    if (readerPtr != 0l) {
+    if (readerPtr != 0L) {
       LibVCFNative.tiledb_vcf_reader_free(readerPtr);
     }
-    readerPtr = 0l;
+    readerPtr = 0L;
+  }
+
+  protected long ptr() {
+    return readerPtr;
   }
 }

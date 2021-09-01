@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 
 #include "dataset/tiledbvcfdataset.h"
 #include "read/reader.h"
+#include "utils/logger_public.h"
 #include "write/writer.h"
 
 #include <cstring>
@@ -60,6 +61,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Ingest
   {
+    LOG_TRACE("Ingest");
     Writer writer;
     IngestionParams params;
     params.uri = dataset_uri;
@@ -71,6 +73,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Check count operation
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;
@@ -85,6 +88,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Ingest a second time to double the fragments
   {
+    LOG_TRACE("Ingest again");
     Writer writer;
     IngestionParams params;
     params.uri = dataset_uri;
@@ -97,6 +101,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   // Check count operation to make sure results are the same as before.
   // Duplicates are disabled so this should be true
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;
@@ -111,6 +116,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Consolidate fragment metadata
   {
+    LOG_TRACE("Consolidate fragment metadata");
     TileDBVCFDataset dataset;
     dataset.open(dataset_uri);
     UtilsParams params;
@@ -119,6 +125,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Check count operation after consolidating fragment metadata
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;
@@ -133,6 +140,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Consolidate fragments
   {
+    LOG_TRACE("Consolidate fragments");
     TileDBVCFDataset dataset;
     dataset.open(dataset_uri);
     UtilsParams params;
@@ -141,6 +149,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Check count operation after consolidating fragments
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;
@@ -155,6 +164,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Vacuum fragment metadata
   {
+    LOG_TRACE("Vacuum fragment metadata");
     TileDBVCFDataset dataset;
     dataset.open(dataset_uri);
     UtilsParams params;
@@ -163,6 +173,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Check count operation after consolidating fragment metadata
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;
@@ -177,6 +188,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Vacuum fragments
   {
+    LOG_TRACE("Vacuum fragments");
     TileDBVCFDataset dataset;
     dataset.open(dataset_uri);
     UtilsParams params;
@@ -185,6 +197,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
 
   // Check count operation after consolidating fragments
   {
+    LOG_TRACE("Check count");
     Reader reader;
     ExportParams params;
     params.uri = dataset_uri;

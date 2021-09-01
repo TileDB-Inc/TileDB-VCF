@@ -520,8 +520,9 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1ty
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1count
-  (JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1count(
+    JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -534,19 +535,21 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
     return set_out_param_int32(env, count, countOut);
   }
 
-    return rc;
+  return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1name
-  (JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1attribute_1name(
+    JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
     return TILEDB_VCF_ERR;
   }
 
-  char *buf;
-  int32_t rc = tiledb_vcf_reader_get_queryable_attribute_name(reader, index, &buf);
+  char* buf;
+  int32_t rc =
+      tiledb_vcf_reader_get_queryable_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
     int length = strlen(buf);
     (*env)->SetByteArrayRegion(env, nameOut, 0, length, buf);
@@ -555,9 +558,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return rc;
 }
 
-
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1count
-  (JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1count(
+    JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -565,24 +568,27 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   }
 
   int32_t count;
-  int32_t rc = tiledb_vcf_reader_get_materialized_attribute_count(reader, &count);
+  int32_t rc =
+      tiledb_vcf_reader_get_materialized_attribute_count(reader, &count);
   if (rc == TILEDB_VCF_OK) {
     return set_out_param_int32(env, count, countOut);
   }
 
-    return rc;
+  return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1name
-  (JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1materialized_1attribute_1name(
+    JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
     return TILEDB_VCF_ERR;
   }
 
-  char *buf;
-  int32_t rc = tiledb_vcf_reader_get_materialized_attribute_name(reader, index, &buf);
+  char* buf;
+  int32_t rc =
+      tiledb_vcf_reader_get_materialized_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
     int length = strlen(buf);
     (*env)->SetByteArrayRegion(env, nameOut, 0, length, buf);
@@ -591,8 +597,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1count
-  (JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1count(
+    JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -608,15 +615,16 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1name
-  (JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1fmt_1attribute_1name(
+    JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
     return TILEDB_VCF_ERR;
   }
 
-  char *buf;
+  char* buf;
   int32_t rc = tiledb_vcf_reader_get_fmt_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
     int length = strlen(buf);
@@ -626,8 +634,9 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1count
-  (JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1count(
+    JNIEnv* env, jclass self, jlong readerPtr, jintArray countOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -643,15 +652,16 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1name
-  (JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1info_1attribute_1name(
+    JNIEnv* env, jclass self, jlong readerPtr, jint index, jbyteArray nameOut) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
     return TILEDB_VCF_ERR;
   }
 
-  char *buf;
+  char* buf;
   int32_t rc = tiledb_vcf_reader_get_info_attribute_name(reader, index, &buf);
   if (rc == TILEDB_VCF_OK) {
     int length = strlen(buf);
@@ -678,8 +688,10 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1dataset_1vers
 
   return rc;
 }
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbose
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean verbose) {
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1verbose(
+    JNIEnv* env, jclass self, jlong readerPtr, jboolean verbose) {
   (void)self;
   tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
   if (reader == 0) {
@@ -689,26 +701,29 @@ JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1rea
   return tiledb_vcf_reader_set_verbose(reader, verbose);
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1percentage
-  (JNIEnv* env, jclass self, jlong readerPtr, jfloat buffer_percentage) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1buffer_1percentage(
+    JNIEnv* env, jclass self, jlong readerPtr, jfloat buffer_percentage) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
 
-    return tiledb_vcf_reader_set_buffer_percentage(reader, buffer_percentage);
+  return tiledb_vcf_reader_set_buffer_percentage(reader, buffer_percentage);
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1tile_1cache_1percentage
-  (JNIEnv* env, jclass self, jlong readerPtr, jfloat tile_cache_percentage) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1tile_1cache_1percentage(
+    JNIEnv* env, jclass self, jlong readerPtr, jfloat tile_cache_percentage) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
 
-    return tiledb_vcf_reader_set_tiledb_tile_cache_percentage(reader, tile_cache_percentage);
+  return tiledb_vcf_reader_set_tiledb_tile_cache_percentage(
+      reader, tile_cache_percentage);
 }
 
 JNIEXPORT jstring JNICALL
@@ -745,7 +760,8 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1tiledb_1stats
 
   const bool stats_enabled = statsEnabled ? true : false;
 
-  int32_t rc = tiledb_vcf_reader_set_tiledb_stats_enabled(reader, stats_enabled);
+  int32_t rc =
+      tiledb_vcf_reader_set_tiledb_stats_enabled(reader, stats_enabled);
 
   return rc;
 }
@@ -775,72 +791,295 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1tiledb_1stats(
     return NULL;
   }
 
-  char *stats;
+  char* stats;
   tiledb_vcf_reader_get_tiledb_stats(reader, &stats);
 
   jstring result = (*env)->NewStringUTF(env, stats);
   return result;
 }
 
-JNIEXPORT jstring JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(
-  JNIEnv* env, jclass self) {
+JNIEXPORT jstring JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(
+    JNIEnv* env, jclass self) {
   (void)self;
 
-    const char *version;
-    tiledb_vcf_version(&version);
+  const char* version;
+  tiledb_vcf_version(&version);
 
-    jstring result = (*env)->NewStringUTF(env, version);
-    return result;
+  jstring result = (*env)->NewStringUTF(env, version);
+  return result;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1enable_1progress_1estimation
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean enableProgressEstimation) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1alloc(
+    JNIEnv* env, jclass self, jlongArray bedFilePtrOut) {
+  (void)self;
 
-    int32_t rc = tiledb_vcf_reader_set_enable_progress_estimation(reader, enableProgressEstimation);
+  // Check that the passed in array is not null
+  jlong* c_query = (*env)->GetLongArrayElements(env, bedFilePtrOut, NULL);
+  if (c_query == NULL) {
+    return -1;
+  }
+  if ((*env)->GetArrayLength(env, bedFilePtrOut) != 1) {
+    (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
+    return -1;
+  }
 
+  // Allocate a new bed_file
+  tiledb_vcf_bed_file_t* bed_file_ptr = NULL;
+  int rc = tiledb_vcf_bed_file_alloc(&bed_file_ptr);
+  if (rc != TILEDB_VCF_OK || bed_file_ptr == NULL) {
+    (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
     return rc;
+  }
+
+  // Store the address of the bed_file struct
+  c_query[0] = (jlong)bed_file_ptr;
+  (*env)->SetLongArrayRegion(env, bedFilePtrOut, 0, 1, c_query);
+
+  // Un-pin memory region
+  (*env)->ReleaseLongArrayElements(env, bedFilePtrOut, c_query, 0);
+
+  return rc;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1vcf_1regions
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printVCFRegions) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1free(
+    JNIEnv* env, jclass self, jlong bedFilePtr) {
+  (void)self;
 
-    int32_t rc = tiledb_vcf_reader_set_debug_print_vcf_regions(reader, printVCFRegions);
+  if (bedFilePtr == 0) {
+    return 0;
+  }
 
-    return rc;
+  tiledb_vcf_bed_file_t* bed_file_ptr = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  tiledb_vcf_bed_file_free(&bed_file_ptr);
+
+  return 0;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1sample_1list
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printSampleList) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jstring JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1last_1error_1message(
+    JNIEnv* env, jclass self, jlong bedFilePtr) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return NULL;
+  }
 
-    int32_t rc = tiledb_vcf_reader_set_debug_print_sample_list(reader, printSampleList);
+  const char* msg = "Error getting error message via JNI.";
+  tiledb_vcf_error_t* error = NULL;
+  int32_t rc = tiledb_vcf_bed_file_get_last_error(bed_file, &error);
+  if (rc == TILEDB_VCF_OK) {
+    tiledb_vcf_error_get_message(error, &msg);
+  } else {
+    error = NULL;
+  }
 
-    return rc;
+  jstring result = (*env)->NewStringUTF(env, msg);
+  tiledb_vcf_error_free(&error);
+  return result;
 }
 
-JNIEXPORT jint JNICALL Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1tiledb_1query_1ranges
-  (JNIEnv* env, jclass self, jlong readerPtr, jboolean printTileDBQueryRanges) {
-    (void)self;
-    tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
-    if (reader == 0) {
-      return TILEDB_VCF_ERR;
-    }
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1enable_1progress_1estimation(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jboolean enableProgressEstimation) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
 
-    int32_t rc = tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(reader, printTileDBQueryRanges);
+  int32_t rc = tiledb_vcf_reader_set_enable_progress_estimation(
+      reader, enableProgressEstimation);
 
-    return rc;
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1vcf_1regions(
+    JNIEnv* env, jclass self, jlong readerPtr, jboolean printVCFRegions) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int32_t rc =
+      tiledb_vcf_reader_set_debug_print_vcf_regions(reader, printVCFRegions);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1parse(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jlong bedFilePtr,
+    jstring bedFileURI) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* c_uri = (*env)->GetStringUTFChars(env, bedFileURI, 0);
+  if (c_uri == NULL) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int rc = tiledb_vcf_bed_file_parse(reader, bed_file, c_uri);
+  (*env)->ReleaseStringUTFChars(env, bedFileURI, c_uri);
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1count(
+    JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_count(bed_file, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1sample_1list(
+    JNIEnv* env, jclass self, jlong readerPtr, jboolean printSampleList) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int32_t rc =
+      tiledb_vcf_reader_set_debug_print_sample_list(reader, printSampleList);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1total_1region_1count(
+    JNIEnv* env, jclass self, jlong bedFilePtr, jlongArray countOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_total_region_count(bed_file, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1debug_1print_1tiledb_1query_1ranges(
+    JNIEnv* env,
+    jclass self,
+    jlong readerPtr,
+    jboolean printTileDBQueryRanges) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int32_t rc = tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
+      reader, printTileDBQueryRanges);
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region_1count(
+    JNIEnv* env,
+    jclass self,
+    jlong bedFilePtr,
+    jlong contigIndex,
+    jlongArray countOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  uint64_t count;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region_count(
+      bed_file, contigIndex, &count);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_param_int64(env, count, countOut);
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1region(
+    JNIEnv* env,
+    jclass self,
+    jlong bedFilePtr,
+    jlong contigIndex,
+    jlong regionIndex,
+    jbyteArray regionStrOut,
+    jbyteArray regionContigOut,
+    jlongArray regionStartOut,
+    jlongArray regionEndOut) {
+  (void)self;
+  tiledb_vcf_bed_file_t* bed_file = (tiledb_vcf_bed_file_t*)bedFilePtr;
+  if (bed_file == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* region_str;
+  const char* region_contig;
+  uint32_t region_start, region_end;
+  int32_t rc = tiledb_vcf_bed_file_get_contig_region(
+      bed_file,
+      contigIndex,
+      regionIndex,
+      &region_str,
+      &region_contig,
+      &region_start,
+      &region_end);
+  if (rc == TILEDB_VCF_OK) {
+    int length = strlen(region_str);
+    (*env)->SetByteArrayRegion(env, regionStrOut, 0, length, region_str);
+
+    int length2 = strlen(region_contig);
+    (*env)->SetByteArrayRegion(env, regionContigOut, 0, length2, region_contig);
+
+    // Upcast to 64bit because java doesn't have unsigned 32bit ints
+    int64_t region_start_long = region_start;
+    rc = set_out_param_int64(env, region_start_long, regionStartOut);
+    if (rc != 0)
+      return rc;
+
+    // Upcast to 64bit because java doesn't have unsigned 32bit ints
+    int64_t region_end_long = region_end;
+    rc = set_out_param_int64(env, region_end_long, regionEndOut);
+    if (rc != 0)
+      return rc;
+  }
+
+  return rc;
 }

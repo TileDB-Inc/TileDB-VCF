@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,8 @@ namespace vcf {
 /** Arguments/params for dataset ingestion. */
 struct IngestionParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::string samples_file_uri;
   std::vector<std::string> sample_uris;
   unsigned num_threads = std::thread::hardware_concurrency();
@@ -74,7 +76,7 @@ struct IngestionParams {
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
 
-  // Number of samples per batch for ingestion
+  // Number of samples per batch for ingestion (default: 10).
   uint64_t sample_batch_size = 10;
 
   // Should the fragment info of data be loaded
@@ -84,6 +86,29 @@ struct IngestionParams {
   // Should we check if the samples have been partial ingested?
   // This might have a significant performance penalty on large arrays
   bool resume_sample_partial_ingestion = false;
+
+  // Enable merging of contigs into fragments which contain multiple. This is an
+  // optimization to reduce fragment count when the list of contigs is very
+  // large. This can improve performance due to slow s3/azure/gcs listings when
+  // there is hundreds of thousands of prefixes.
+  bool contig_fragment_merging = true;
+
+  // These are the contig that will not be merged so they are guaranteed to be
+  // there own fragments The user can override this default list, we default to
+  // human contigs in UCSC and ensembl formats
+  std::set<std::string> contigs_to_keep_separate = {
+      "chr1",  "chr2",  "chr3",  "chr4",  "chr5",  "chr6",  "chr7",  "chr8",
+      "chr9",  "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16",
+      "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrY",  "chrX",
+      "chrM",  "1",     "2",     "3",     "4",     "5",     "6",     "7",
+      "8",     "9",     "10",    "11",    "12",    "13",    "14",    "15",
+      "16",    "17",    "18",    "19",    "20",    "21",    "22",    "X",
+      "Y",     "MT"};
+
+  // These are the contigs which will be forced to be merged into combined
+  // fragments By default we use the blacklist since usually there are less
+  // non-mergeable contigs
+  std::set<std::string> contigs_to_allow_merging = {};
 };
 
 /* ********************************* */
@@ -238,6 +263,17 @@ class Writer {
   /** Set resume support for partial ingestion. */
   void set_resume_sample_partial_ingestion(const bool);
 
+  /** Set contig fragment merging. */
+  void set_contig_fragment_merging(const bool contig_fragment_merging);
+
+  /** Set list of contigs to keep separate. */
+  void set_contigs_to_keep_separate(
+      const std::set<std::string>& contigs_to_keep_separate);
+
+  /** Set list of contigs to allow to be merged. */
+  void set_contigs_to_allow_merging(
+      const std::set<std::string>& contigs_to_allow_merging);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
@@ -333,6 +369,13 @@ class Writer {
           pair_hash> map);
 
   static void finalize_query(std::unique_ptr<tiledb::Query> query);
+
+  /**
+   *
+   * @param contig to check mergability on
+   * @return true if contig is allowed to be merged based on whitelist/blacklist
+   */
+  bool check_contig_mergeable(const std::string& contig);
 };
 
 }  // namespace vcf

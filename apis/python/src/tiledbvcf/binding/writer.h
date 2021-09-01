@@ -148,6 +148,23 @@ class Writer {
   */
   void set_resume(const bool resume);
 
+  /**
+    [Store only] Sets whether to enable merging of contigs into super fragments
+  */
+  void set_contig_fragment_merging(const bool contig_fragment_merging);
+
+  /**
+    [Store only] Set list of contigs to keep separate and not merge
+  */
+  void set_contigs_to_keep_separate(
+      const std::vector<std::string>& contigs_to_keep_separate);
+
+  /**
+    [Store only] Set list of contigs to allow merging into super fragments
+  */
+  void set_contigs_to_allow_merging(
+      const std::vector<std::string>& contigs_to_allow_merging);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

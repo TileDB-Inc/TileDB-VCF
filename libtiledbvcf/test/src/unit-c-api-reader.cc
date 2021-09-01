@@ -422,18 +422,18 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
 
   SECTION("- Valid options") {
     const char* config =
-        "sm.sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi";
+        "sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
   }
 
   SECTION("- Invalid format") {
     const char* config =
-        "sm.sm.compute_concurrency_level=4 vfs.s3.proxy_host=abc.def.ghi";
+        "sm.compute_concurrency_level=4 vfs.s3.proxy_host=abc.def.ghi";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_ERR);
 
-    const char* config2 = "sm.sm.compute_concurrency_level 4";
+    const char* config2 = "sm.compute_concurrency_level 4";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config2) == TILEDB_VCF_ERR);
   }
@@ -5003,5 +5003,74 @@ TEST_CASE("C API: Reader submit (BED file Parallelism)", "[capi][reader]") {
   REQUIRE(sample_name_offsets[10] == 31);
   REQUIRE(fmt_GT_offsets[10] == 20);
 
+  tiledb_vcf_reader_free(&reader);
+}
+
+TEST_CASE("C API: Reader BED file parsing", "[capi][reader][bed]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+  tiledb_vcf_bed_file_t* bed_file = nullptr;
+  REQUIRE(tiledb_vcf_bed_file_alloc(&bed_file) == TILEDB_VCF_OK);
+
+  std::string dataset_uri;
+  SECTION("- V2") {
+    dataset_uri = INPUT_ARRAYS_DIR_V2 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V3") {
+    dataset_uri = INPUT_ARRAYS_DIR_V3 + "/ingested_2samples_GT_DP_PL";
+  }
+
+  SECTION("- V4") {
+    dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  }
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  // Set up samples and ranges
+  auto bed_uri = TILEDB_VCF_TEST_INPUT_DIR + std::string("/simple.bed");
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_file(reader, bed_uri.c_str()) == TILEDB_VCF_OK);
+
+  REQUIRE(
+      tiledb_vcf_bed_file_parse(reader, bed_file, bed_uri.c_str()) ==
+      TILEDB_VCF_OK);
+
+  uint64_t total_region_count = 0;
+  uint64_t contig_count = 0;
+  uint64_t first_contig_count = 0;
+
+  REQUIRE(
+      tiledb_vcf_bed_file_get_total_region_count(
+          bed_file, &total_region_count) == TILEDB_VCF_OK);
+  REQUIRE(2 == total_region_count);
+
+  REQUIRE(
+      tiledb_vcf_bed_file_get_contig_count(bed_file, &contig_count) ==
+      TILEDB_VCF_OK);
+  REQUIRE(1 == contig_count);
+
+  REQUIRE(
+      tiledb_vcf_bed_file_get_contig_region_count(
+          bed_file, 0, &first_contig_count) == TILEDB_VCF_OK);
+  REQUIRE(2 == first_contig_count);
+
+  uint32_t region_start, region_end;
+  const char* region_contig;
+  const char* region_str;
+  REQUIRE(
+      tiledb_vcf_bed_file_get_contig_region(
+          bed_file,
+          0,
+          0,
+          &region_str,
+          &region_contig,
+          &region_start,
+          &region_end) == TILEDB_VCF_OK);
+  REQUIRE(12099 == region_start);
+  REQUIRE(13359 == region_end);
+  REQUIRE_THAT(region_str, Catch::Matchers::Equals("1:12099-13360"));
+  REQUIRE_THAT(region_contig, Catch::Matchers::Equals("1"));
+
+  tiledb_vcf_bed_file_free(&bed_file);
   tiledb_vcf_reader_free(&reader);
 }

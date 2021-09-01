@@ -5,7 +5,11 @@ steps:
 - script: black --check .
   displayName: 'Test Formatting'
 
-- script: pylint --disable=all --enable=E1101 $BUILD_REPOSITORY_LOCALPATH/apis/python
+# pylint cannot lint all files in a directory, it requires an __init__.py file (https://github.com/PyCQA/pylint/issues/352)
+# run pylint on all directories with an __init__.py file
+- bash: |
+    set -eux pipefail
+    find . -name __init__.py | xargs dirname | xargs pylint --disable=all --enable=E1101
   displayName: 'Check function name/signature mismatches'
 
 - bash: |
@@ -15,6 +19,9 @@ steps:
     cd $BUILD_REPOSITORY_LOCALPATH
     ci/run-clang-format.sh $src clang-format 0 \
       $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
+    apis=$BUILD_REPOSITORY_LOCALPATH/apis
+    ci/run-clang-format.sh $apis clang-format 0 \
+      $(find $apis -name "*.cc" -or -name "*.c" -or -name "*.h")
   condition: eq(variables['Agent.OS'], 'Darwin')
   displayName: 'Check formatting (macOS only)'
 

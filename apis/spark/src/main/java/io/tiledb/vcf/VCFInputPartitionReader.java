@@ -282,16 +282,28 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
 
     vcfReader = new VCFReader(uriString, samples, options.getSampleURI(), configCsv);
 
-    // Set ranges
-    Optional<String[]> ranges = options.getRanges();
-    if (ranges.isPresent()) {
-      vcfReader.setRanges(ranges.get());
-    }
+    if (!options.getNewPartitionMethod().orElse(false)) {
+      log.info("No ranges on spark partition info, using bed file/user passed regions instead");
+      // Set ranges
+      Optional<String[]> ranges = options.getRanges();
+      if (ranges.isPresent()) {
+        vcfReader.setRanges(ranges.get());
+      }
 
-    // Set BED file
-    Optional<URI> bedURI = options.getBedURI();
-    if (bedURI.isPresent()) {
-      vcfReader.setBedFile(bedURI.get().toString());
+      // Set BED file
+      Optional<URI> bedURI = options.getBedURI();
+      if (bedURI.isPresent()) {
+        vcfReader.setBedFile(bedURI.get().toString());
+      }
+    } else {
+      if (rangePartitionInfo.getRegions().isEmpty()) {
+        throw new RuntimeException(
+            "rangePartitionInfo missing regions but new_partition_method is set");
+      }
+      log.info("Setting " + rangePartitionInfo.getRegions().size() + " ranges from partition info");
+      String[] regions = new String[rangePartitionInfo.getRegions().size()];
+      regions = rangePartitionInfo.getRegions().toArray(regions);
+      vcfReader.setRanges(regions);
     }
 
     // Set sort regions
@@ -346,8 +358,10 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
     if (!this.enableStatsLogLevel.equals(Level.OFF)) this.vcfReader.setStatsEnabled(true);
 
     // Set logical partition in array
-    vcfReader.setRangePartition(
-        rangePartitionInfo.getNumPartitions(), rangePartitionInfo.getIndex());
+    if (rangePartitionInfo.getRegions().isEmpty()) {
+      vcfReader.setRangePartition(
+          rangePartitionInfo.getNumPartitions(), rangePartitionInfo.getIndex());
+    }
     vcfReader.setSamplePartition(
         samplePartitionInfo.getNumPartitions(), samplePartitionInfo.getIndex());
 

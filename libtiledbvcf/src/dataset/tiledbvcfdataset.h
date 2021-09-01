@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,6 +53,8 @@ namespace vcf {
 /** Arguments/params for dataset creation. */
 struct CreationParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> extra_attributes;
   uint64_t tile_capacity = 10000;
   uint32_t anchor_gap = 1000;
@@ -64,6 +66,8 @@ struct CreationParams {
 /** Arguments/params for dataset registration. */
 struct RegistrationParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::string sample_uris_file;
   std::vector<std::string> sample_uris;
   ScratchSpaceInfo scratch_space;
@@ -73,17 +77,23 @@ struct RegistrationParams {
 /** Arguments/params for the list operation. */
 struct ListParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 
 /** Arguments/params for the stat operation. */
 struct StatParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 
 struct UtilsParams {
   std::string uri;
+  std::string log_level;
+  std::string log_file;
   std::vector<std::string> tiledb_config;
 };
 
@@ -864,6 +874,12 @@ class TileDBVCFDataset {
   /* ********************************* */
   /*          PRIVATE METHODS          */
   /* ********************************* */
+
+  /** Block until it's safe to delete or close the data array */
+  void lock_and_join_data_array();
+
+  /** Block until it's safe to delete or close the vcf header array */
+  void lock_and_join_vcf_header_array();
 
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
