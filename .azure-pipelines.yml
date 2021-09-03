@@ -155,7 +155,7 @@ stages:
           - task: GithubRelease@0
             displayName: 'GitHub Release'
             inputs:
-              gitHubConnection: github_tiledb
+              gitHubConnection: 'TileDB-Inc-Release'
               repositoryName: TileDB-Inc/TileDB-VCF
               tag: $(Build.SourceBranchName)
               action: "edit"
