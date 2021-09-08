@@ -1,12 +1,29 @@
-FROM amazonlinux:latest as builder
+FROM ubuntu:latest as builder
 
 ENV AWS_EC2_METADATA_DISABLED true
 
 # Install some dependencies
-RUN yum -y install cmake3 which wget git tar gzip unzip gcc-c++ zlib-devel \
-       openssl-devel bzip2-devel libcurl-devel xz-devel make \
-       automake autoconf patch \
-    && yum clean all
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    cmake \
+    wget \
+    git \
+    tar \
+    gzip \
+    unzip \
+    libz-dev \
+    libssl-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    xz-utils \
+    liblzma-dev \
+    make \
+    automake \
+    autoconf \
+    patch \
+    build-essential \
+    && apt-get clean \
+    && apt-get purge -y \
+    && rm -rf /var/lib/apt/lists*
 
 WORKDIR /tmp
 COPY libtiledbvcf libtiledbvcf
@@ -14,13 +31,13 @@ COPY libtiledbvcf libtiledbvcf
 COPY .git .git
 
 WORKDIR /tmp/libtiledbvcf/build
-RUN cmake3 .. -DCMAKE_BUILD_TYPE=Release \
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
              -DCMAKE_INSTALL_PREFIX=/usr/local \
              -DOVERRIDE_INSTALL_PREFIX=OFF \
-    && make -j4 \
+    && make -j$(nproc) \
     && make install-libtiledbvcf
 
-FROM amazonlinux:latest
+FROM ubuntu:latest
 COPY --from=builder /usr/local/bin/* /usr/local/bin/
 COPY --from=builder /usr/local/include/* /usr/local/include/
 COPY --from=builder /usr/local/lib/* /usr/local/lib/
