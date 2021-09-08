@@ -203,16 +203,16 @@ def test_incomplete_reads():
     )
 
     # Region partitions
-    dask_df = test_ds.read_dask(
+    dask_df = test_ds.read_dask(  # pylint:disable=no-member
         attrs=["sample_name", "pos_start", "pos_end"], region_partitions=10
-    )
+    )  # pylint:disable=no-member
     df = dask_df.compute()
     _check_dfs(expected_df, df)
 
     # Sample partitions (we have to sort to check the result)
     dask_df = test_ds.read_dask(
         attrs=["sample_name", "pos_start", "pos_end"], sample_partitions=2
-    )
+    )  # pylint:disable=no-member
     df = dask_df.compute().sort_values("sample_name").reset_index(drop=True)
     _check_dfs(expected_df.sort_values("sample_name").reset_index(drop=True), df)
 
@@ -221,12 +221,14 @@ def test_incomplete_reads():
         attrs=["sample_name", "pos_start", "pos_end"],
         region_partitions=10,
         sample_partitions=2,
-    )
+    )  # pylint:disable=no-member
     df = dask_df.compute().sort_values("sample_name").reset_index(drop=True)
     _check_dfs(expected_df.sort_values("sample_name").reset_index(drop=True), df)
 
     # No partitioning
-    dask_df = test_ds.read_dask(attrs=["sample_name", "pos_start", "pos_end"])
+    dask_df = test_ds.read_dask(
+        attrs=["sample_name", "pos_start", "pos_end"]
+    )  # pylint:disable=no-member
     df = dask_df.compute()
     _check_dfs(expected_df, df)
 
@@ -236,7 +238,7 @@ def test_incomplete_reads():
         region_partitions=10,
         sample_partitions=2,
         limit_partitions=2,
-    )
+    )  # pylint:disable=no-member
     assert dask_df.npartitions == 2
 
 
@@ -254,7 +256,7 @@ def test_basic_map(test_ds):
         lambda df: df[df.pos_start * 2 < 25000],
         attrs=["sample_name", "pos_start", "pos_end"],
         region_partitions=10,
-    )
+    )  # pylint:disable=no-member
     df = dask_df.compute()
     _check_dfs(expected_df, df)
 
@@ -274,10 +276,10 @@ def test_map_incomplete():
     )
 
     # Region partitions
-    dask_df = test_ds.map_dask(
+    dask_df = test_ds.map_dask(  # pylint:disable=no-member
         lambda df: df[df.pos_start * 2 < 25000],
         attrs=["sample_name", "pos_start", "pos_end"],
         region_partitions=10,
-    )
+    )  # pylint:disable=no-member
     df = dask_df.compute()
     _check_dfs(expected_df, df)
