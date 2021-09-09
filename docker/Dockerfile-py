@@ -1,31 +1,95 @@
-FROM continuumio/miniconda3:4.10.3
-ENV CFLAGS "-march=haswell"
-ENV CPPFLAGS "-march=haswell"
+FROM ubuntu:latest
 
 ENV AWS_EC2_METADATA_DISABLED true
-ENV TILEDBVCF_FORCE_EXTERNAL_HTSLIB=OFF
-ENV LD_LIBRARY_PATH=/usr/local/lib:/opt/conda/lib
 
 # Install some dependencies
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y \
-       build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    cmake \
+    wget \
+    git \
+    tar \
+    gzip \
+    unzip \
+    libz-dev \
+    libssl-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    xz-utils \
+    liblzma-dev \
+    make \
+    automake \
+    autoconf \
+    patch \
+    build-essential \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python-is-python3 \
+    ## arrow build dependencies
+    flex \
+    gettext \
+    libjemalloc-dev \
+    libsnappy-dev \
+    bison \
+    libboost-all-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    llvm-7 \
+    clang-7 \
+    libgrpc-dev \
+    libssl-dev \
+    libboost-dev \
+    libboost-filesystem-dev \
+    libboost-system-dev \
+    libboost-regex-dev \
+    && apt-get clean \
+    && apt-get purge -y \
+    && rm -rf /var/lib/apt/lists*
 
-# Copy the TileDB-VCF Python directory and build it.
-COPY apis/python/conda-env.yml .
-RUN conda env update -n base -f conda-env.yml \
-    && conda install -y -c bioconda 'htslib>=1.8' \
-    && conda install -y 'cmake>=3' \
-    && conda clean -a -y \
-    && rm conda-env.yml
+RUN pip install --user pandas cython
 
+
+# Build arrow
+ENV ARROW_HOME=/usr/local
+
+RUN cd /tmp \
+    && git clone https://github.com/apache/arrow.git -b apache-arrow-5.0.0 \
+    && cd arrow/cpp \
+    && mkdir build \
+    && cd build \
+    && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local \
+                -DARROW_FLIGHT=ON \
+                -DARROW_GANDIVA=ON \
+                -DARROW_ORC=ON \
+                -DARROW_WITH_BZ2=ON \
+                -DARROW_WITH_ZLIB=ON \
+                -DARROW_WITH_ZSTD=ON \
+                -DARROW_WITH_LZ4=ON \
+                -DARROW_WITH_SNAPPY=ON \
+                -DARROW_WITH_BROTLI=ON \
+                -DARROW_PARQUET=ON \
+                -DARROW_PYTHON=ON \
+                -DARROW_PLASMA=ON \
+    && make -j$(nproc) \
+    && make install \
+    && cd /tmp/arrow/python \
+    && python3 setup.py install \
+    && cd /tmp \
+    && rm -r arrow
+
+RUN ldconfig
+
+# Build TileDB-VCF
 WORKDIR /tmp
-COPY . tiledbvcf
+COPY . TileDB-VCF
 
-WORKDIR /tmp/tiledbvcf/apis/python
+WORKDIR /tmp/TileDB-VCF/apis/python
+
 RUN python setup.py install
-RUN rm -rf /tmp/tiledbvcf
 
-WORKDIR /data
+WORKDIR /opt
+
+RUN rm -r /tmp/TileDB-VCF
+
 ENTRYPOINT ["python3"]
