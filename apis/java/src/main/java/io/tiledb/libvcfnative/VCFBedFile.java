@@ -97,9 +97,6 @@ public class VCFBedFile implements AutoCloseable {
         for (j = 0; j < regionContigBytes.length && regionContigBytes[j] != 0; j++) {}
         regionContig = new String(regionContigBytes, 0, j);
 
-        // the regionStr has 2 zeros appended to it, not sure why, need to debug futher
-        // cause of this we just make the string ourselves
-        regionStr = regionContig + ":" + (regionStart[0] + 1) + "-" + (regionEnd[0] + 1);
         regionList.add(new Region(regionStr, regionContig, regionStart[0], regionEnd[0]));
       }
       contigRegions.put(regionContig, regionList);

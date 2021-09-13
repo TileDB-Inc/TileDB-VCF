@@ -55,7 +55,7 @@ struct Region {
 
   Region();
 
-  Region(const std::string& seq, unsigned min, unsigned max, uint64_t line = 0);
+  Region(const std::string& seq, uint32_t min, uint32_t max, uint32_t line = 0);
 
   Region(const std::string& str, Type parse_from);
 

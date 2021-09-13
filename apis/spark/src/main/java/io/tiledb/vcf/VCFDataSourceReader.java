@@ -219,7 +219,7 @@ public class VCFDataSourceReader
       numRangePartitions = regions.size();
       ranges_end = regions.size();
       log.info(
-          "Forcing regions per contig partitioning has yielded "
+          "New partition method has yielded "
               + numRangePartitions
               + " range partitions");
     }
@@ -231,6 +231,7 @@ public class VCFDataSourceReader
         // Skip empty region list
         // TODO: find out why this happens?
         if (local_regions.size() == 0) {
+          log.warn(String.format("range %d of %d: local_regions.size() == 0", r, ranges_end));
           continue;
         }
       }

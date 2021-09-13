@@ -1062,10 +1062,10 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1re
       &region_start,
       &region_end);
   if (rc == TILEDB_VCF_OK) {
-    int length = strlen(region_str);
+    int length = strlen(region_str) + 1;  // add 1 to copy null terminator
     (*env)->SetByteArrayRegion(env, regionStrOut, 0, length, region_str);
 
-    int length2 = strlen(region_contig);
+    int length2 = strlen(region_contig) + 1;  // add 1 to copy null terminator
     (*env)->SetByteArrayRegion(env, regionContigOut, 0, length2, region_contig);
 
     // Upcast to 64bit because java doesn't have unsigned 32bit ints

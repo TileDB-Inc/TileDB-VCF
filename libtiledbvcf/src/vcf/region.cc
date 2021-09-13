@@ -29,6 +29,7 @@
 #include <future>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
 #include "vcf_utils.h"
@@ -45,7 +46,7 @@ Region::Region()
 }
 
 Region::Region(
-    const std::string& seq, unsigned min, unsigned max, uint64_t line)
+    const std::string& seq, uint32_t min, uint32_t max, uint32_t line)
     : seq_name(seq)
     , min(min)
     , max(max)
@@ -60,23 +61,28 @@ Region::Region(const std::string& str, Type parse_from) {
   min = r.min;
   max = r.max;
   seq_offset = std::numeric_limits<uint32_t>::max() - 1;
-  line = 0;
+  line = r.line;
   region_str = to_str(parse_from);
 }
 
 std::string Region::to_str(Type type) const {
+  std::string result;
   switch (type) {
     case Type::ZeroIndexedInclusive:
-      return seq_name + ':' + std::to_string(min) + '-' + std::to_string(max);
+      result = seq_name + ':' + std::to_string(min) + '-' + std::to_string(max);
+      break;
     case Type::ZeroIndexedHalfOpen:
-      return seq_name + ':' + std::to_string(min) + '-' +
-             std::to_string(max + 1);
+      result =
+          seq_name + ':' + std::to_string(min) + '-' + std::to_string(max + 1);
+      break;
     case Type::OneIndexedInclusive:
-      return seq_name + ':' + std::to_string(min + 1) + '-' +
-             std::to_string(max + 1);
+      result = seq_name + ':' + std::to_string(min + 1) + '-' +
+               std::to_string(max + 1);
+      break;
     default:
       throw std::invalid_argument("Unknown region type for string conversion.");
   }
+  return result + ":" + std::to_string(line);
 }
 
 Region Region::parse_region(
@@ -89,9 +95,13 @@ Region Region::parse_region(
 
   if (region_split.size() == 1) {
     region_split.push_back("0-0");
-  } else if (region_split.size() != 2)
+    region_split.push_back("0");  // add bed line number
+  } else if (region_split.size() == 2) {
+    region_split.push_back("0");  // add bed line number
+  } else if (region_split.size() != 3) {
     throw std::invalid_argument(
         "Error parsing region string '" + region_str + "'; invalid format.");
+  }
 
   result.seq_name = region_split[0];
 
@@ -101,16 +111,16 @@ Region Region::parse_region(
       region_split[1].end());
 
   // Range
-  region_split = utils::split(region_split[1], '-');
-  if (region_split.size() != 2)
+  auto range_split = utils::split(region_split[1], '-');
+  if (range_split.size() != 2)
     throw std::invalid_argument(
         "Error parsing region string; invalid region format, should be "
         "CHR:XX,XXX-YY,YYY\n\t" +
         region_str);
 
   try {
-    result.min = std::stoul(region_split[0]);
-    result.max = std::stoul(region_split[1]);
+    result.min = std::stoul(range_split[0]);
+    result.max = std::stoul(range_split[1]);
   } catch (std::exception& e) {
     throw std::invalid_argument(
         "Error parsing region string '" + region_str + "'");
@@ -137,6 +147,14 @@ Region Region::parse_region(
       break;
   }
 
+  // bed line number
+  try {
+    result.line = std::stoul(region_split[2]);
+  } catch (std::exception& e) {
+    throw std::invalid_argument(
+        "Error parsing region string '" + region_str + "'");
+  }
+
   result.region_str = region_str;
   return result;
 }
@@ -158,6 +176,7 @@ void Region::parse_bed_file_htslib(
     path = bed_file_uri;
   // 0, 1, -2 come from bcf_sr_set_regions, these are suppose to be ignored when
   // reading from a file though
+  // TODO: check init params
   SafeRegionFh regions_file(
       bcf_sr_regions_init(path.c_str(), 1, 0, 1, -2), bcf_sr_regions_destroy);
 
@@ -169,6 +188,7 @@ void Region::parse_bed_file_htslib(
     std::vector<std::future<std::list<Region>>> futures;
     // Loop over the sequences in the index file and launch a task for each one
     std::vector<SafeRegionFh> open_files;
+    // TODO: check init params
     for (int i = 0; i < regions_file->nseqs; i++) {
       open_files.emplace_back(SafeRegionFh(
           bcf_sr_regions_init(path.c_str(), 1, 0, 1, -2),
@@ -199,8 +219,10 @@ void Region::parse_bed_file_htslib(
       // Adjust the line number based on where the contig started in the bed
       // file Since we loop over them in order we can just use the current
       // result size
-      for (auto& region : res_list)
+      for (auto& region : res_list) {
         region.line += result->size();
+        region.region_str = region.to_str(Type::ZeroIndexedHalfOpen);
+      }
 
       result->splice(result->end(), res_list);
     }
@@ -215,6 +237,10 @@ void Region::parse_bed_file_htslib(
           line);
       ++line;
     }
+    LOG_TRACE(fmt::format(
+        std::locale(""),
+        "BED file: parsed {:L} regions total (un-indexed)",
+        line));
   }
 
   // reset htslib log level
@@ -245,6 +271,12 @@ std::list<Region> Region::parse_bed_file_htslib_section(
         line);
     ++line;
   }
+
+  LOG_TRACE(fmt::format(
+      std::locale(""),
+      "BED file: parsed {:L} regions in contig {}",
+      line,
+      chr));
 
   return result;
 }

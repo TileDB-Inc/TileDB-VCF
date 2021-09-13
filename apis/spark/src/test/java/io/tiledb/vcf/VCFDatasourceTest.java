@@ -438,6 +438,48 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     }
   }
 
+  // TODO: test is WIP
+  //@Test
+  public void testNewPartition() {
+    boolean new_partition_method = true;
+    int rangePartitions = 8;
+    int samplePartitions = 1;
+    if (new_partition_method) {
+      rangePartitions = 1;
+      samplePartitions = 1;
+    }
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+//            .option("uri", "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20")
+            .option("uri", "~/data/vcf-samples-20")
+//            .option("bedfile", "~/data/clinvar.bed.gz")
+            .option("bedfile", "~/data/clinvar-chrx.bed.gz")
+            .option("samples", "v2-DjrIAzkP")
+            .option("new_partition_method", new_partition_method)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+    System.out.println(String.format("*** num partitions = %d", dfRead.select("sampleName").rdd().getNumPartitions()));
+//    Assert.assertEquals(rangePartitions, dfRead.select("sampleName").rdd().getNumPartitions());
+    
+    List<Row> rows = dfRead.select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd", "queryBedLine").collectAsList();
+
+    for (int i = 0; i < rows.size(); i++) {
+      System.out.println(String.format("*** %s, %s, pos=%d-%d, query=%d-%d, bedLine=%d", 
+        rows.get(i).getString(0),
+        rows.get(i).getString(1),
+        rows.get(i).getInt(2),
+        rows.get(i).getInt(3),
+        rows.get(i).getInt(4),
+        rows.get(i).getInt(5),
+        rows.get(i).getInt(6)
+      ));
+    }
+  }
+
   @Test
   public void testBedFile() {
     Dataset<Row> dfRead =
