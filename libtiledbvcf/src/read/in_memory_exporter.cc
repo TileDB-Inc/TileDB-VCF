@@ -447,6 +447,8 @@ bool InMemoryExporter::export_record(
         break;
       }
       case ExportableAttribute::QueryBedEnd: {
+        // converting 0-indexed, inclusive end position to 0-indexed, half-open
+        // end position to match the BED file
         uint32_t end = query_region.max + 1;
         overflow = !copy_cell(&user_buff, &end, sizeof(end), 1, hdr);
         break;

@@ -218,10 +218,7 @@ public class VCFDataSourceReader
       regions = computeRegionPartitionsFromBedFile(numRangePartitions);
       numRangePartitions = regions.size();
       ranges_end = regions.size();
-      log.info(
-          "New partition method has yielded "
-              + numRangePartitions
-              + " range partitions");
+      log.info("New partition method has yielded " + numRangePartitions + " range partitions");
     }
 
     for (int r = ranges_start; r < ranges_end; r++) {
@@ -276,8 +273,8 @@ public class VCFDataSourceReader
     Map<String, List<String>> mapOfRegions = bedFile.getContigRegionStrings();
     List<List<String>> res = new LinkedList<>(mapOfRegions.values());
 
-    // Sort the region list by size of regions in contig
-    res.sort(Comparator.comparingInt(List::size));
+    // Sort the region list by size of regions in contig, largest first
+    res.sort(Comparator.comparingInt(List<String>::size).reversed());
 
     // Keep splitting the larges region lists until we have the desired minimum number of range
     // Partitions, we stop if the large region has a size of 10 or less

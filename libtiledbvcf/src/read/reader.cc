@@ -1682,10 +1682,11 @@ void Reader::prepare_regions_v4(
   // of BED file
   std::list<Region> pre_partition_regions_list;
 
-  // Manually-specified regions (-r) are 1-indexed and inclusive
+  // Add manually-specified regions (-r) which are 1-indexed and inclusive
+  // and spark generated regions, which are 0-indexed and inclusive
+  // conversion is handled in the Region constructor
   for (const std::string& r : params_.regions)
-    pre_partition_regions_list.emplace_back(
-        r, Region::Type::OneIndexedInclusive);
+    pre_partition_regions_list.emplace_back(r);
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {
@@ -1865,10 +1866,11 @@ void Reader::prepare_regions_v3(
   // of BED file
   std::list<Region> pre_partition_regions_list;
 
-  // Manually-specified regions (-r) are 1-indexed and inclusive
+  // Add manually-specified regions (-r) which are 1-indexed and inclusive
+  // and spark generated regions, which are 0-indexed and inclusive
+  // conversion is handled in the Region constructor
   for (const std::string& r : params_.regions)
-    pre_partition_regions_list.emplace_back(
-        r, Region::Type::OneIndexedInclusive);
+    pre_partition_regions_list.emplace_back(r);
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {
@@ -1992,10 +1994,11 @@ void Reader::prepare_regions_v2(
   // of BED file
   std::list<Region> pre_partition_regions_list;
 
-  // Manually-specified regions (-r) are 1-indexed and inclusive
+  // Add manually-specified regions (-r) which are 1-indexed and inclusive
+  // and spark generated regions, which are 0-indexed and inclusive
+  // conversion is handled in the Region constructor
   for (const std::string& r : params_.regions)
-    pre_partition_regions_list.emplace_back(
-        r, Region::Type::OneIndexedInclusive);
+    pre_partition_regions_list.emplace_back(r);
 
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {

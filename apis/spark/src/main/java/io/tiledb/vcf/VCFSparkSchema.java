@@ -315,7 +315,7 @@ public class VCFSparkSchema implements Serializable {
       String fieldPart = field.substring(5);
       return fieldPart.toUpperCase() + " field in INFO block of BCF";
     } else if (field.equals("queryBedStart")) return "BED start position (0-based) of query";
-    else if (field.equals("queryBedEnd")) return "BED end position (1-based) of query";
+    else if (field.equals("queryBedEnd")) return "BED end position (half-open) of query";
     else if (field.equals("queryBedLine")) return "BED file line number of query";
 
     return field;

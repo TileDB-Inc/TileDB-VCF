@@ -29,8 +29,18 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
+  private String testSampleGroupURI(String sampleGroupName, String version) {
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", version, sampleGroupName);
+    return "file://".concat(arraysPath.toAbsolutePath().toString());
+  }
+
   private String testSimpleBEDFile() {
     Path path = Paths.get("src", "test", "resources", "simple.bed");
+    return "file://".concat(path.toAbsolutePath().toString());
+  }
+
+  private String testLargeBEDFile() {
+    Path path = Paths.get("src", "test", "resources", "E001_15_coreMarks_dense.bed.gz");
     return "file://".concat(path.toAbsolutePath().toString());
   }
 
@@ -438,45 +448,60 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     }
   }
 
-  // TODO: test is WIP
-  //@Test
+  @Test
   public void testNewPartition() {
-    boolean new_partition_method = true;
-    int rangePartitions = 8;
-    int samplePartitions = 1;
-    if (new_partition_method) {
-      rangePartitions = 1;
-      samplePartitions = 1;
-    }
+    int rangePartitions = 32;
+    int samplePartitions = 2;
     Dataset<Row> dfRead =
         session()
             .read()
             .format("io.tiledb.vcf")
-//            .option("uri", "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20")
-            .option("uri", "~/data/vcf-samples-20")
-//            .option("bedfile", "~/data/clinvar.bed.gz")
-            .option("bedfile", "~/data/clinvar-chrx.bed.gz")
-            .option("samples", "v2-DjrIAzkP")
-            .option("new_partition_method", new_partition_method)
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bedfile", testLargeBEDFile())
+            .option("new_partition_method", true)
             .option("range_partitions", rangePartitions)
             .option("sample_partitions", samplePartitions)
             .option("tiledb.vcf.log_level", "TRACE")
             .load();
-    System.out.println(String.format("*** num partitions = %d", dfRead.select("sampleName").rdd().getNumPartitions()));
-//    Assert.assertEquals(rangePartitions, dfRead.select("sampleName").rdd().getNumPartitions());
-    
-    List<Row> rows = dfRead.select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd", "queryBedLine").collectAsList();
+
+    Assert.assertEquals(
+        rangePartitions * samplePartitions, dfRead.select("sampleName").rdd().getNumPartitions());
+
+    List<Row> rows =
+        dfRead
+            .select(
+                "sampleName",
+                "contig",
+                "posStart",
+                "posEnd",
+                "queryBedStart",
+                "queryBedEnd",
+                "queryBedLine")
+            .collectAsList();
+
+    // query from bed file line 184134 (0-indexed line numbers)
+    // 1	10600	540400	15_Quies	0	.	10600	540400	255,255,255
+
+    // NOTE: queryBedEnd returns the half-open value from the bed file,
+    //       not the inclusive value used by tiledb-vcf
+    int expectedBedStart = 10600; // 0-indexed
+    int expectedBedEnd = 540400; // half-open
+    int expectedBedLine = 184134;
 
     for (int i = 0; i < rows.size(); i++) {
-      System.out.println(String.format("*** %s, %s, pos=%d-%d, query=%d-%d, bedLine=%d", 
-        rows.get(i).getString(0),
-        rows.get(i).getString(1),
-        rows.get(i).getInt(2),
-        rows.get(i).getInt(3),
-        rows.get(i).getInt(4),
-        rows.get(i).getInt(5),
-        rows.get(i).getInt(6)
-      ));
+      System.out.println(
+          String.format(
+              "*** %s, %s, pos=%d-%d, query=%d-%d, bedLine=%d",
+              rows.get(i).getString(0),
+              rows.get(i).getString(1),
+              rows.get(i).getInt(2),
+              rows.get(i).getInt(3),
+              rows.get(i).getInt(4),
+              rows.get(i).getInt(5),
+              rows.get(i).getInt(6)));
+      Assert.assertEquals(expectedBedStart, rows.get(i).getInt(4));
+      Assert.assertEquals(expectedBedEnd, rows.get(i).getInt(5));
+      Assert.assertEquals(expectedBedLine, rows.get(i).getInt(6));
     }
   }
 
@@ -756,19 +781,19 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
         new int[] {12099, 12099, 12099, 12099, 12099, 12099, 13499, 13499, 13499, 13499};
     int[] expectedEnd =
         new int[] {13360, 13360, 13360, 13360, 13360, 13360, 17350, 17350, 17350, 17350};
-    int[] expectedLine = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int expectedLine = -1; // query is not from a bed file
 
     int[] resultStart = new int[rows.size()];
     int[] resultEnd = new int[rows.size()];
-    int[] resultLine = new int[rows.size()];
+    int resultLine;
     for (int i = 0; i < rows.size(); i++) {
       resultStart[i] = rows.get(i).getInt(0);
       resultEnd[i] = rows.get(i).getInt(1);
-      resultLine[i] = rows.get(i).getInt(2);
+      resultLine = rows.get(i).getInt(2);
+      Assert.assertEquals(expectedLine, resultLine);
     }
     Assert.assertArrayEquals(expectedStart, resultStart);
     Assert.assertArrayEquals(expectedEnd, resultEnd);
-    Assert.assertArrayEquals(expectedLine, resultLine);
   }
 
   // TODO(ttd) commenting out because AD is not in the default schema

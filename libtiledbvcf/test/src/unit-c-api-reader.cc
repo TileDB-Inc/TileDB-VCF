@@ -5068,7 +5068,8 @@ TEST_CASE("C API: Reader BED file parsing", "[capi][reader][bed]") {
           &region_end) == TILEDB_VCF_OK);
   REQUIRE(12099 == region_start);
   REQUIRE(13359 == region_end);
-  REQUIRE_THAT(region_str, Catch::Matchers::Equals("1:12099-13360:0"));
+  // region_str is 0-indexed, inclusive
+  REQUIRE_THAT(region_str, Catch::Matchers::Equals("1:12099-13359:0"));
   REQUIRE_THAT(region_contig, Catch::Matchers::Equals("1"));
 
   tiledb_vcf_bed_file_free(&bed_file);

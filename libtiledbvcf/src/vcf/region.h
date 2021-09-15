@@ -43,23 +43,58 @@ typedef std::unique_ptr<bcf_sr_regions_t, decltype(&bcf_sr_regions_destroy)>
 /**
  * Struct representing a parsed region string.
  *
- * Regions values this of this type are always treated as 0-indexed, inclusive
+ * Regions values of this type are always treated as 0-indexed, inclusive
  * intervals.
+ *
+ * The region_str member always contains a 0-indexed, inclusive string
+ * representation of the region with an extra line number field.
+ *
+ *     contig:start-end:line
+ *
+ * When creating Region objects from the following sources, they must be
+ * converted to 0-indexed, inclusive intervals:
+ *   - BED files contain 0-indexed, half-open regions. However, htslib converts
+ *     the regions to 0-indexed, inclusive, so no modification is required.
+ *   - Regions specified on the command line (-r) are 1-indexed, inclusive and
+ *     are converted to 0-index, inclusive in Region::Region(str)
  */
 struct Region {
-  enum class Type {
-    ZeroIndexedInclusive,
-    ZeroIndexedHalfOpen,
-    OneIndexedInclusive,
-  };
-
   Region();
 
-  Region(const std::string& seq, uint32_t min, uint32_t max, uint32_t line = 0);
+  /*
+   * Create a Region object.
+   *
+   * The min and max values must be 0-indexed, inclusive when creating the
+   * object.
+   *
+   * If line == -1, the region was not created from a BED file
+   */
+  Region(const std::string& seq, uint32_t min, uint32_t max, int32_t line = -1);
 
-  Region(const std::string& str, Type parse_from);
+  /*
+   * Create Region object from a region string of two types:
+   *
+   *  1. A manually specified 1-indexed, inclusive string with the format:
+   *
+   *       contig:start-end
+   *
+   *     A line number must not be included for the string to be treated as
+   *     1-indexed, inclusive.
+   *
+   *  2. An internal 0-indexed, inclusive string created by Region::to_str:
+   *
+   *       contig:start-end:line
+   */
+  Region(const std::string& str);
 
-  std::string to_str(Type type = Type::ZeroIndexedInclusive) const;
+  /*
+   * Convert the Region object to a region string with the format:
+   *
+   *   contig:start-end:line
+   *
+   * The Region object and string are always 0-indexed, inclusive
+   */
+  std::string to_str() const;
 
   /**
    * Comparator used in sorting by contig name
@@ -73,12 +108,11 @@ struct Region {
   }
 
   /**
-   * Parse a region in the format: SEQ_NAME:MIN_POS-MAX_POS
+   * Parse a region in the format: SEQ_NAME:MIN_POS-MAX_POS[:LINE]
    *
    * Commas are stripped.
    */
-  static Region parse_region(
-      const std::string& region_str, Region::Type parse_from);
+  static Region parse_region(const std::string& region_str);
 
   /**
    * Parses a BED file using htslib.
@@ -127,7 +161,7 @@ struct Region {
   uint32_t seq_offset;
 
   /** Optional line number from bed file. */
-  uint32_t line;
+  int32_t line;
 };
 
 }  // namespace vcf
