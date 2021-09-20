@@ -62,7 +62,7 @@ stages:
       - template: ci/azure-linux_mac.yml
 
   - stage: Docker
-    condition: or(succeeded(), eq(variables.isRefTag, true))
+    # condition: or(succeeded(), eq(variables.isRefTag, true))
     jobs:
       - job: Build
         pool:
