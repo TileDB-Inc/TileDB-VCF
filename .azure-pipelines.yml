@@ -73,10 +73,12 @@ stages:
               dockerfile: docker/Dockerfile-cli
               repository: tiledb/tiledbvcf-cli
               context: .
+              test_cmd: version
             python:
               dockerfile: docker/Dockerfile-py
               repository: tiledb/tiledbvcf-py
               context: .
+              test_cmd: -c "import tiledbvcf; print(tiledbvcf.version)"
             # dask:
             #   dockerfile: docker/Dockerfile-dask-py
             #   repository: tiledb/tiledbvcf-dask
