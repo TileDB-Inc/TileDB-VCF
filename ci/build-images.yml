@@ -12,6 +12,11 @@ steps:
         latest
         $(build.SourceBranchName)
 
+  - script: |
+      docker run --rm $(repository):dev $(test_cmd)
+    env: { sourceVersion: $(Build.SourceVersion) }
+    displayName: Test Image
+
   - task: Docker@2
     displayName: Push Latest Tag
     condition: eq(variables['build.sourceBranch'], 'refs/heads/master')
