@@ -45,6 +45,8 @@ configurations {
 }
 
 test {
+    minHeapSize = "8192m"
+    maxHeapSize = "8192m"
     testLogging {
         showStandardStreams = true
     }
