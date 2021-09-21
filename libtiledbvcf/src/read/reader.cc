@@ -1083,24 +1083,6 @@ struct RegionComparator {
   }
 } RegionComparator;
 
-struct RegionComparatorV4 {
-  std::vector<Region>* regions_;
-
-  explicit RegionComparatorV4(std::vector<Region>* regions) {
-    regions_ = regions;
-  }
-
-  /**
-   * Compare for less than
-   * @param left region index
-   * @param right real_start
-   * @return
-   */
-  bool operator()(const size_t& left, uint32_t right) {
-    return (*regions_)[left].max < right;
-  }
-};
-
 bool Reader::process_query_results_v4() {
   if (read_state_.regions.empty())
     throw std::runtime_error(
@@ -1136,6 +1118,16 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   std::vector<size_t> regions = regions_indexes->second;
 
+  // Create a vector of regions sorted by region.max. This is used in the binary
+  // search to find the regions where real_start < region.max
+  std::vector<size_t> max_sorted_regions = regions_indexes->second;
+  std::sort(
+      max_sorted_regions.begin(),
+      max_sorted_regions.end(),
+      [this](const unsigned a, const unsigned b) {
+        return read_state_.regions[a].max < read_state_.regions[b].max;
+      });
+
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
@@ -1148,21 +1140,32 @@ bool Reader::process_query_results_v4() {
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
-    // Perform a binary search to find first region we can intersection
-    // This is an optimization to avoid a linear scan over all regions for
-    // intersection This replaces the previous, incorrect, optimization of
-    // trying to keep a minimum region as we iterate
+    // Perform a binary search to find the regions where real_start < region.max
     auto it = std::lower_bound(
-        regions.begin(),
-        regions.end(),
+        max_sorted_regions.begin(),
+        max_sorted_regions.end(),
         real_start,
-        RegionComparatorV4(&read_state_.regions));
-    if (it == regions.end()) {
+        [this](const unsigned index, const unsigned value) {
+          return read_state_.regions[index].max < value;
+        });
+
+    // Continue to the next record if no intersecting regions are found
+    if (it == max_sorted_regions.end()) {
       continue;
-    } else {
-      read_state_.last_intersecting_region_idx_ =
-          std::distance(regions.begin(), it);
     }
+
+    // Find the smallest absolute region index for regions found in the binary
+    // search above. This is the first potentially overlapping region.
+    auto start_region = max_sorted_regions[std::distance(
+        max_sorted_regions.begin(),
+        std::min_element(it, max_sorted_regions.end()))];
+
+    // Find the index of start_region in the regions vector. This is where we
+    // start checking for overlap.
+    it = std::lower_bound(regions.begin(), regions.end(), start_region);
+    assert(it != regions.end());  // start_region must be found in regions
+    read_state_.last_intersecting_region_idx_ =
+        std::distance(regions.begin(), it);
 
     for (size_t j = read_state_.last_intersecting_region_idx_;
          j < regions.size();
