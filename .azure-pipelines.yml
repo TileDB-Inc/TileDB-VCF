@@ -93,7 +93,7 @@ stages:
         strategy:
           matrix:
             linux:
-              imageName: 'ubuntu-18.04'
+              imageName: 'ubuntu-20.04'
               python.version: '3.x'
               CXX: g++
               BUILD_PYTHON_API: ON
@@ -124,7 +124,7 @@ stages:
         strategy:
           matrix:
             ubuntu_18:
-              imageName: 'ubuntu-18.04'
+              imageName: 'ubuntu-20.04'
         pool:
           vmImage: $(imageName)
 
