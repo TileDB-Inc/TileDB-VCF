@@ -94,6 +94,7 @@ else()
             -DTILEDB_SERIALIZATION=ON
             -DTILEDB_TESTS=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DTILEDB_WERROR=OFF
           UPDATE_COMMAND ""
           INSTALL_COMMAND
             ${CMAKE_COMMAND} --build . --target install-tiledb
