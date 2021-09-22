@@ -1128,6 +1128,23 @@ bool Reader::process_query_results_v4() {
         return read_state_.regions[a].max < read_state_.regions[b].max;
       });
 
+  // Build set of regions that overlap with other regions
+  std::set<size_t> overlapping_regions;
+  for (size_t i = 0; i < max_sorted_regions.size(); i++) {
+    // If a region is closer to the end of the max sorted regions vector
+    // compared to the min sorted regions vector, the region will be checked for
+    // overlap
+    if (max_sorted_regions[i] < regions[i]) {
+      overlapping_regions.insert(max_sorted_regions[i]);
+    }
+  }
+
+  LOG_TRACE(
+      "{}: {} of {} overlapping regions",
+      query_contig,
+      overlapping_regions.size(),
+      max_sorted_regions.size());
+
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = read_state_.cell_idx;
@@ -1154,18 +1171,18 @@ bool Reader::process_query_results_v4() {
       continue;
     }
 
-    // Find the smallest absolute region index for regions found in the binary
-    // search above. This is the first potentially overlapping region.
-    auto start_region = max_sorted_regions[std::distance(
-        max_sorted_regions.begin(),
-        std::min_element(it, max_sorted_regions.end()))];
+    // Region to start searching for intersections
+    size_t start_region = *it;
 
-    // Find the index of start_region in the regions vector. This is where we
-    // start checking for overlap.
-    it = std::lower_bound(regions.begin(), regions.end(), start_region);
-    assert(it != regions.end());  // start_region must be found in regions
-    read_state_.last_intersecting_region_idx_ =
-        std::distance(regions.begin(), it);
+    // Expand search to include potentially overlapping regions
+    if (overlapping_regions.size()) {
+      start_region = std::min(start_region, *overlapping_regions.begin());
+    }
+
+    // Convert start_region to an index into the regions vector
+    read_state_.last_intersecting_region_idx_ = start_region - regions[0];
+    assert(
+        read_state_.last_intersecting_region_idx_ < read_state_.regions.size());
 
     for (size_t j = read_state_.last_intersecting_region_idx_;
          j < regions.size();
