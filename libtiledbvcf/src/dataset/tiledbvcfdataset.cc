@@ -126,8 +126,12 @@ void TileDBVCFDataset::lock_and_join_data_array() {
       const_cast<utils::RWLock*>(&data_array_lock_));
 
   // Block if the non empty domain threads have not completed.
-  if (data_array_preload_non_empty_domain_thread_.joinable())
-    data_array_preload_non_empty_domain_thread_.join();
+  if (data_array_preload_non_empty_domain_thread_.valid()) {
+    TRY_CATCH_THROW(data_array_preload_non_empty_domain_thread_.get());
+  }
+  if (data_array_preload_fragment_info_thread_.valid()) {
+    TRY_CATCH_THROW(data_array_preload_fragment_info_thread_.get());
+  }
 }
 
 void TileDBVCFDataset::lock_and_join_vcf_header_array() {
@@ -137,8 +141,9 @@ void TileDBVCFDataset::lock_and_join_vcf_header_array() {
       const_cast<utils::RWLock*>(&vcf_header_array_lock_));
 
   // Block if the non empty domain threads have not completed.
-  if (vcf_header_array_preload_non_empty_domain_thread_.joinable())
-    vcf_header_array_preload_non_empty_domain_thread_.join();
+  if (vcf_header_array_preload_non_empty_domain_thread_.valid()) {
+    TRY_CATCH_THROW(vcf_header_array_preload_non_empty_domain_thread_.get());
+  }
 }
 
 void TileDBVCFDataset::create(const CreationParams& params) {
@@ -637,21 +642,25 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
   std::map<uint32_t, std::string> sample_headers;
   std::vector<std::vector<SampleAndIndex>> batches =
       utils::batch_elements(samples, 100);
-  std::future<std::vector<SafeBCFHdr>> future_headers = std::async(
-      std::launch::async,
-      SampleUtils::get_sample_headers,
-      vfs,
-      batches[0],
-      params.scratch_space);
+  std::future<std::vector<SafeBCFHdr>> future_headers;
+  TRY_CATCH_THROW(
+      future_headers = std::async(
+          std::launch::async,
+          SampleUtils::get_sample_headers,
+          vfs,
+          batches[0],
+          params.scratch_space));
   for (unsigned i = 1; i < batches.size(); i++) {
-    auto headers = future_headers.get();
+    std::vector<SafeBCFHdr> headers;
+    TRY_CATCH_THROW(headers = future_headers.get());
     // Start the next batch downloading
-    future_headers = std::async(
-        std::launch::async,
-        SampleUtils::get_sample_headers,
-        vfs,
-        batches[i],
-        params.scratch_space);
+    TRY_CATCH_THROW(
+        future_headers = std::async(
+            std::launch::async,
+            SampleUtils::get_sample_headers,
+            vfs,
+            batches[i],
+            params.scratch_space));
     // Register the batch
     register_samples_helper(headers, &metadata_, &sample_set, &sample_headers);
     write_vcf_headers_v2(ctx, root_uri_, sample_headers);
@@ -659,8 +668,8 @@ void TileDBVCFDataset::register_samples(const RegistrationParams& params) {
   }
 
   // Register the final batch.
-  register_samples_helper(
-      future_headers.get(), &metadata_, &sample_set, &sample_headers);
+  TRY_CATCH_THROW(register_samples_helper(
+      future_headers.get(), &metadata_, &sample_set, &sample_headers));
   write_vcf_headers_v2(ctx, root_uri_, sample_headers);
 
   if (tiledb_stats_enabled_)
@@ -2146,13 +2155,17 @@ void TileDBVCFDataset::preload_data_array_non_empty_domain() {
 }
 
 void TileDBVCFDataset::preload_data_array_non_empty_domain_v2_v3() {
-  data_array_preload_non_empty_domain_thread_ =
-      std::thread([this]() { data_array_->non_empty_domain<uint32_t>(0); });
+  TRY_CATCH_THROW(
+      data_array_preload_non_empty_domain_thread_ = std::async(
+          std::launch::async,
+          [this]() { data_array_->non_empty_domain<uint32_t>(0); }));
 }
 
 void TileDBVCFDataset::preload_data_array_non_empty_domain_v4() {
-  data_array_preload_non_empty_domain_thread_ =
-      std::thread([this]() { data_array_->non_empty_domain_var(0); });
+  TRY_CATCH_THROW(
+      data_array_preload_non_empty_domain_thread_ = std::async(
+          std::launch::async,
+          [this]() { data_array_->non_empty_domain_var(0); }));
 }
 
 void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
@@ -2164,13 +2177,17 @@ void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain() {
 }
 
 void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v2_v3() {
-  vcf_header_array_preload_non_empty_domain_thread_ = std::thread(
-      [this]() { vcf_header_array_->non_empty_domain<uint32_t>(0); });
+  TRY_CATCH_THROW(
+      vcf_header_array_preload_non_empty_domain_thread_ = std::async(
+          std::launch::async,
+          [this]() { vcf_header_array_->non_empty_domain<uint32_t>(0); }));
 }
 
 void TileDBVCFDataset::preload_vcf_header_array_non_empty_domain_v4() {
-  vcf_header_array_preload_non_empty_domain_thread_ =
-      std::thread([this]() { vcf_header_array_->non_empty_domain_var(0); });
+  TRY_CATCH_THROW(
+      vcf_header_array_preload_non_empty_domain_thread_ = std::async(
+          std::launch::async,
+          [this]() { vcf_header_array_->non_empty_domain_var(0); }));
 }
 
 void TileDBVCFDataset::data_array_fragment_info_load() {
@@ -2185,7 +2202,9 @@ void TileDBVCFDataset::data_array_fragment_info_load() {
 }
 
 void TileDBVCFDataset::preload_data_array_fragment_info() {
-  std::thread([this]() { data_array_fragment_info_load(); }).detach();
+  TRY_CATCH_THROW(
+      data_array_preload_fragment_info_thread_ = std::async(
+          std::launch::async, [this]() { data_array_fragment_info_load(); }));
 }
 
 std::shared_ptr<tiledb::FragmentInfo>
