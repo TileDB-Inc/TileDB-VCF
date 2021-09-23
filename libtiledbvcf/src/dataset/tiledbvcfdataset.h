@@ -734,11 +734,14 @@ class TileDBVCFDataset {
   /** RWLock for vcf header array to prevent destruction if in use */
   utils::RWLock vcf_header_array_lock_;
 
-  /** Thread for preloading non_empty_domain of data array */
-  std::thread data_array_preload_non_empty_domain_thread_;
+  /** Future for preloading non_empty_domain of data array */
+  std::future<void> data_array_preload_non_empty_domain_thread_;
 
-  /** Thread for preloading non_empty_domain of vcf header array */
-  std::thread vcf_header_array_preload_non_empty_domain_thread_;
+  /** Future for preloading non_empty_domain of data array */
+  std::future<void> data_array_preload_fragment_info_thread_;
+
+  /** Future for preloading non_empty_domain of vcf header array */
+  std::future<void> vcf_header_array_preload_non_empty_domain_thread_;
 
   /* ********************************* */
   /*          STATIC METHODS           */
