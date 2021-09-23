@@ -1128,22 +1128,28 @@ bool Reader::process_query_results_v4() {
         return read_state_.regions[a].max < read_state_.regions[b].max;
       });
 
-  // Build set of regions that overlap with other regions
-  std::set<size_t> overlapping_regions;
-  for (size_t i = 0; i < max_sorted_regions.size(); i++) {
-    // If a region is closer to the end of the max sorted regions vector
-    // compared to the min sorted regions vector, the region will be checked for
-    // overlap
-    if (max_sorted_regions[i] < regions[i]) {
-      overlapping_regions.insert(max_sorted_regions[i]);
+  // If the min sorted order of regions does not match max sorted order, there
+  // are overlapping regions. Find the first overlapping region, which is the
+  // first region in the min sorted regions that does not have the same position
+  // in the max sorted regions
+  bool overlapping_regions_exist = false;
+  size_t first_overlapping_region = 0;
+
+  for (size_t i = 0; i < regions.size(); i++) {
+    if (regions[i] != max_sorted_regions[i]) {
+      first_overlapping_region = regions[i];
+      overlapping_regions_exist = true;
+      LOG_TRACE(
+          "First overlapping region in contig {} = {}",
+          query_contig,
+          first_overlapping_region);
+      break;
     }
   }
 
-  LOG_TRACE(
-      "{}: {} of {} overlapping regions",
-      query_contig,
-      overlapping_regions.size(),
-      max_sorted_regions.size());
+  if (!overlapping_regions_exist) {
+    LOG_TRACE("No overlapping regions in contig {}", query_contig);
+  }
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
@@ -1175,8 +1181,8 @@ bool Reader::process_query_results_v4() {
     size_t start_region = *it;
 
     // Expand search to include potentially overlapping regions
-    if (overlapping_regions.size()) {
-      start_region = std::min(start_region, *overlapping_regions.begin());
+    if (overlapping_regions_exist) {
+      start_region = std::min(start_region, first_overlapping_region);
     }
 
     // Convert start_region to an index into the regions vector
