@@ -263,12 +263,13 @@ void Writer::ingest_samples() {
 
   // Start fetching first batch, either downloading of using remote vfs plugin
   // if no scratch space.
-  future_paths = std::async(
-      std::launch::async,
-      SampleUtils::get_samples,
-      *vfs_,
-      batches[0],
-      &scratch_space_a);
+  TRY_CATCH_THROW(
+      future_paths = std::async(
+          std::launch::async,
+          SampleUtils::get_samples,
+          *vfs_,
+          batches[0],
+          &scratch_space_a));
 
   LOG_DEBUG(
       "Initialization completed in {} seconds.",
@@ -277,15 +278,16 @@ void Writer::ingest_samples() {
   uint64_t samples_ingested = 0;
   for (unsigned i = 1; i < batches.size(); i++) {
     // Block until current batch is fetched.
-    local_samples = future_paths.get();
+    TRY_CATCH_THROW(local_samples = future_paths.get());
 
     // Start the next batch fetching.
-    future_paths = std::async(
-        std::launch::async,
-        SampleUtils::get_samples,
-        *vfs_,
-        batches[i],
-        &scratch_space_b);
+    TRY_CATCH_THROW(
+        future_paths = std::async(
+            std::launch::async,
+            SampleUtils::get_samples,
+            *vfs_,
+            batches[i],
+            &scratch_space_b));
 
     // Ingest the batch.
     auto start_batch = std::chrono::steady_clock::now();
@@ -319,7 +321,7 @@ void Writer::ingest_samples() {
   }
 
   // Ingest the last batch
-  local_samples = future_paths.get();
+  TRY_CATCH_THROW(local_samples = future_paths.get());
   std::pair<uint64_t, uint64_t> result;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
@@ -337,9 +339,10 @@ void Writer::ingest_samples() {
 
   auto t0 = std::chrono::steady_clock::now();
   LOG_DEBUG("Making sure all finalize tasks completed...");
-  for (const auto& finalize_task : finalize_tasks_) {
-    if (finalize_task.valid())
-      finalize_task.wait();
+  for (auto& finalize_task : finalize_tasks_) {
+    if (finalize_task.valid()) {
+      TRY_CATCH_THROW(finalize_task.get());
+    }
   }
   LOG_DEBUG(
       "All finalize tasks successfully completed. Waited for {} sec.",
@@ -428,9 +431,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
-        tasks.push_back(std::async(std::launch::async, [worker, reg]() {
-          return worker->parse(reg);
-        }));
+        TRY_CATCH_THROW(
+            tasks.push_back(std::async(std::launch::async, [worker, reg]() {
+              return worker->parse(reg);
+            })));
         break;
       }
     }
@@ -447,7 +451,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
       WriterWorker* worker = workers[i].get();
       bool task_complete = false;
       while (!task_complete) {
-        task_complete = tasks[i].get();
+        TRY_CATCH_THROW(task_complete = tasks[i].get());
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
@@ -471,18 +475,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
-        if (!task_complete)
-          tasks[i] = std::async(
-              std::launch::async, [worker]() { return worker->resume(); });
+        if (!task_complete) {
+          TRY_CATCH_THROW(tasks[i] = std::async(std::launch::async, [worker]() {
+                            return worker->resume();
+                          }));
+        }
       }
 
       // Start next region parsing using the same worker.
       while (region_idx < nregions) {
         Region reg = regions[region_idx++];
         if (nonempty_contigs.count(reg.seq_name) > 0) {
-          tasks[i] = std::async(std::launch::async, [worker, reg]() {
-            return worker->parse(reg);
-          });
+          TRY_CATCH_THROW(
+              tasks[i] = std::async(std::launch::async, [worker, reg]() {
+                return worker->parse(reg);
+              }));
           finished = false;
           break;
         }
@@ -717,9 +724,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
-        tasks.push_back(std::async(std::launch::async, [worker, reg]() {
-          return worker->parse(reg);
-        }));
+        TRY_CATCH_THROW(
+            tasks.push_back(std::async(std::launch::async, [worker, reg]() {
+              return worker->parse(reg);
+            })));
         break;
       }
     }
@@ -738,7 +746,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       WriterWorker* worker = workers[i].get();
       bool task_complete = false;
       while (!task_complete) {
-        task_complete = tasks[i].get();
+        TRY_CATCH_THROW(task_complete = tasks[i].get());
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
@@ -776,8 +784,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
               // Finalize fragment for this contig async
               // it is okay to move the query because we reset it next.
-              finalize_tasks_.emplace_back(std::async(
-                  std::launch::async, finalize_query, std::move(query_)));
+              TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
+                  std::launch::async, finalize_query, std::move(query_))));
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
@@ -801,7 +809,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               query_.get(), dataset_->metadata().version);
           auto st = query_->submit();
           if (st != Query::Status::COMPLETE)
-            // TODO: log critical error?
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
@@ -819,19 +826,22 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
-        if (!task_complete)
-          tasks[i] = std::async(
-              std::launch::async, [worker]() { return worker->resume(); });
-        LOG_DEBUG("Work for {} not complete, resuming", i);
+        if (!task_complete) {
+          TRY_CATCH_THROW(tasks[i] = std::async(std::launch::async, [worker]() {
+                            return worker->resume();
+                          }));
+          LOG_DEBUG("Work for {} not complete, resuming", i);
+        }
       }
 
       // Start next region parsing using the same worker.
       while (region_idx < nregions) {
         Region reg = regions[region_idx++];
         if (nonempty_contigs.count(reg.seq_name) > 0) {
-          tasks[i] = std::async(std::launch::async, [worker, reg]() {
-            return worker->parse(reg);
-          });
+          TRY_CATCH_THROW(
+              tasks[i] = std::async(std::launch::async, [worker, reg]() {
+                return worker->parse(reg);
+              }));
           finished = false;
           break;
         }
@@ -845,8 +855,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       last_region_contig);
 
   // Finalize fragment for this contig
-  finalize_tasks_.emplace_back(
-      std::async(std::launch::async, finalize_query, std::move(query_)));
+  TRY_CATCH_THROW(finalize_tasks_.emplace_back(
+      std::async(std::launch::async, finalize_query, std::move(query_))));
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));

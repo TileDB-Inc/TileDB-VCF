@@ -36,6 +36,17 @@
 
 #include "utils/buffer.h"
 
+#define TRY_CATCH_THROW(stmt)                                      \
+  [&]() {                                                          \
+    try {                                                          \
+      (stmt);                                                      \
+    } catch (const std::exception& e) {                            \
+      auto err = std::string("TileDB-VCF exception: ") + e.what(); \
+      LOG_ERROR(err);                                              \
+      throw std::runtime_error(err);                               \
+    }                                                              \
+  }()
+
 namespace tiledb {
 namespace vcf {
 

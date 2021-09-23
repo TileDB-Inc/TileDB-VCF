@@ -181,12 +181,12 @@ void Region::parse_bed_file_htslib(
     for (int i = 0; i < regions_file->nseqs; i++) {
       const char* chr = regions_file->seq_names[i];
       auto open_file = std::move(open_files[i]);
-      futures.push_back(std::async(
+      TRY_CATCH_THROW(futures.push_back(std::async(
           std::launch::async,
           [chr](SafeRegionFh file) {
             return parse_bed_file_htslib_section(std::move(file), chr);
           },
-          std::move(open_file)));
+          std::move(open_file))));
     }
 
     // Add results to final linked list, this will block on the future
@@ -196,10 +196,12 @@ void Region::parse_bed_file_htslib(
         throw std::runtime_error("Parsing of BED file failed");
       // Set bedfile region parsing timeout to 5 minutes
       // TODO: make this a config option
-      auto status = res.wait_for(std::chrono::seconds(300));
+      std::future_status status;
+      TRY_CATCH_THROW(status = res.wait_for(std::chrono::seconds(300)));
       if (status != std::future_status::ready)
         throw std::runtime_error("Parsing of BED file timed out");
-      std::list<Region> res_list = res.get();
+      std::list<Region> res_list;
+      TRY_CATCH_THROW(res_list = res.get());
       // Adjust the line number based on where the contig started in the bed
       // file Since we loop over them in order we can just use the current
       // result size

@@ -4,10 +4,12 @@ dist/*
 libtiledbvcf/cmake-build-*/*
 libtiledbvcf/build/*
 apis/spark/.gradle/*
+apis/spark/.project
 apis/spark/build/*
 apis/spark/out/*
 apis/spark/spark.iml
 apis/java/.gradle/*
+apis/java/.project
 apis/java/build/*
 apis/java/out/*
 core/bin/*
