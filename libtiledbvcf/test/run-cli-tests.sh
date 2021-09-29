@@ -12,7 +12,7 @@ set -x
 
 build_dir=$1
 input_dir=$2
-tilevcf=${build_dir}/libtiledbvcf/src/tiledbvcf
+tilevcf=${build_dir}/libtiledbvcf/src/${3:-tiledbvcf}
 upload_dir=/tmp/tilevcf-upload-dir-$$
 
 # Clean up test outputs

@@ -44,6 +44,12 @@ namespace vcf {
 /** Set log level for global logger and optionally set a logfile. */
 void LOG_CONFIG(const std::string& level, const std::string& logfile = "");
 
+/** Set log level for global logger. */
+void LOG_SET_LEVEL(const std::string& level);
+
+/** Set log file for global logger. */
+void LOG_SET_FILE(const std::string& logfile);
+
 /** Check if global logger is logging debug messages. */
 bool LOG_DEBUG_ENABLED();
 

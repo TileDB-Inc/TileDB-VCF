@@ -5,6 +5,7 @@ message(STATUS "Starting TileDB-VCF build.")
 ############################################################
 
 find_package(Clipp_EP REQUIRED)
+find_package(CLI11_EP REQUIRED)
 find_package(HTSlib_EP REQUIRED)
 find_package(TileDB_EP REQUIRED)
 find_package(Spdlog_EP REQUIRED)
@@ -192,6 +193,42 @@ target_include_directories(tiledbvcf-bin
 )
 
 ############################################################
+# CLI executable target (with cli11)
+############################################################
+
+add_executable(tiledbvcf-cli
+  $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
+  ${CMAKE_CURRENT_SOURCE_DIR}/cli/tilevcf.cc
+)
+
+set_target_properties(tiledbvcf-cli PROPERTIES OUTPUT_NAME tilevcf)
+
+target_link_libraries(tiledbvcf-cli
+  PUBLIC
+    CLI11::CLI11
+    HTSlib::HTSlib
+    TileDB::tiledb_shared
+    spdlog::spdlog
+)
+
+# Sanitizer linker flags
+if (SANITIZER)
+  target_link_libraries(tiledbvcf-cli
+          INTERFACE
+          -fsanitize=${SANITIZER}
+          )
+endif()
+
+if (NOT APPLE)
+  target_link_libraries(tiledbvcf-cli PRIVATE pthread)
+endif()
+
+target_include_directories(tiledbvcf-cli
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+############################################################
 # API symbol exports (and public headers for install)
 ############################################################
 
@@ -243,8 +280,15 @@ set_property(
     "${CMAKE_INSTALL_PREFIX}/lib"
 )
 
+set_property(
+  TARGET tiledbvcf-cli
+  PROPERTY INSTALL_RPATH
+    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+    "${CMAKE_INSTALL_PREFIX}/lib"
+)
+
 install(
-  TARGETS tiledbvcf tiledbvcf-bin
+  TARGETS tiledbvcf tiledbvcf-bin tiledbvcf-cli
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

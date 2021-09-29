@@ -82,6 +82,8 @@ steps:
     ./libtiledbvcf/test/tiledb_vcf_unit
   
     ../test/run-cli-tests.sh . ../test/inputs
+    # test new version of cli
+    ../test/run-cli-tests.sh . ../test/inputs tilevcf
 
     make install-libtiledbvcf
 
