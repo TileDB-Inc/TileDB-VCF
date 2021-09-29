@@ -24,8 +24,6 @@
  * THE SOFTWARE.
  */
 
-#include <csignal>
-
 #include "CLI11.hpp"
 
 #include "dataset/tiledbvcfdataset.h"
@@ -236,6 +234,38 @@ std::ostream& operator<<(std::ostream& os, const ExportFormat& value) {
 }  // namespace detail
 }  // namespace CLI
 
+// return string with newlines inserted near the specified width
+std::string wrap(const std::string& input, const int width = 80) {
+  std::stringstream ss;
+  int col = 0;
+  for (auto chr : input) {
+    if (col >= width && chr == ' ') {
+      ss << std::endl;
+      col = 0;
+    } else {
+      ss << chr;
+      col++;
+    }
+  }
+  return ss.str();
+}
+
+// custom cli11 formater that line wraps option descriptions
+class VcfFormatter : public CLI::Formatter {
+ public:
+  VcfFormatter(int column_width = 80)
+      : Formatter()
+      , column_width_(column_width) {
+  }
+
+  std::string make_option_desc(const CLI::Option* opt) const override {
+    return wrap(opt->get_description(), column_width_);
+  }
+
+ private:
+  int column_width_;
+};
+
 //==================================================================
 // cli parser common options
 //==================================================================
@@ -425,12 +455,10 @@ void add_store(CLI::App& app) {
   cmd->add_flag(
       "--disable-contig-fragment-merging",
       args->contig_fragment_merging,
-      "Disable merging of contigs into fragments. This overrides the "
-      "contigs-to-keep-separate/contigs-to-allow-mering options. "
-      "Generally contig fragment merging "
-      "is good, this is a performance optimization to reduce the "
-      "prefixes on a s3/azure/gcs bucket when there is a large number "
-      "of pseudo contigs which are small in size.");
+      "Disable merging of contigs into fragments. Generally contig fragment "
+      "merging is good, this is a performance optimization to reduce the "
+      "prefixes on a s3/azure/gcs bucket when there is a large number of "
+      "pseudo contigs which are small in size.");
   cmd->add_option(
          "--contigs-to-keep-separate",
          args->contigs_to_keep_separate,
@@ -683,12 +711,18 @@ void add_utils(CLI::App& app) {
 //==================================================================
 
 int main(int argc, char** argv) {
+  // column widths for help message
+  int left_width = 40;
+  int right_width = 80;
+
   CLI::App app{
       "TileDB-VCF -- Efficient variant-call data storage and retrieval.\n\n"
       "  This command-line utility provides an interface to create, store and\n"
       "  efficiently retrieve variant-call data in the TileDB storage "
       "format.\n\n"
       "  More information: TileDB <https://tiledb.com>"};
+  app.formatter(std::make_shared<VcfFormatter>(right_width));
+  app.get_formatter()->column_width(left_width);
   app.failure_message(CLI::FailureMessage::help);
   app.require_subcommand(1, 1);
   app.option_defaults()->always_capture_default();
