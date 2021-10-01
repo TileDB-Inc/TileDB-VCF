@@ -1083,6 +1083,58 @@ struct RegionComparator {
   }
 } RegionComparator;
 
+bool Reader::first_intersecting_region(
+    const std::string& contig, uint32_t real_start, size_t& first_region) {
+  const auto& regions =
+      read_state_.regions_index_per_contig.find(contig)->second;
+
+  if (read_state_.super_regions.count(contig) == 0) {
+    // No overlapping regions exist for this contig.
+    // Perform binary search to find the first intersecting region, where
+    // real_start <= region.max
+    auto it = std::lower_bound(
+        regions.begin(),
+        regions.end(),
+        real_start,
+        [&](const unsigned index, const unsigned value) {
+          return read_state_.regions[index].max < value;
+        });
+
+    // no intersecting regions found
+    if (it == regions.end()) {
+      return false;
+    }
+
+    first_region = *it;
+  } else {
+    // Super regions exist for this contig.
+    // Perform binary search to find the first intersecting super region, where
+    // real_start <= super_region.end_max
+    std::vector<SuperRegion> super_regions = read_state_.super_regions[contig];
+    auto it = std::lower_bound(
+        super_regions.begin(),
+        super_regions.end(),
+        real_start,
+        [&](const SuperRegion& sr, const unsigned value) {
+          return sr.end_max < value;
+        });
+
+    // no intersecting super regions found
+    if (it == super_regions.end()) {
+      return false;
+    }
+
+    first_region = it->region_min;
+  }
+
+  // Translate first_region to an index into the contig's
+  // regions_index_per_contig vector
+  first_region -= regions[0];
+  assert(first_region < regions.size());
+
+  return true;
+}
+
 bool Reader::process_query_results_v4() {
   if (read_state_.regions.empty())
     throw std::runtime_error(
@@ -1102,7 +1154,7 @@ bool Reader::process_query_results_v4() {
 
   // This lets us limit the scope of intersections to only regions for this
   // query's contig
-  const auto regions_indexes =
+  const auto& regions_indexes =
       read_state_.regions_index_per_contig.find(query_contig);
   // If we have a contig which isn't asked for error out
   if (regions_indexes == read_state_.regions_index_per_contig.end())
@@ -1116,40 +1168,7 @@ bool Reader::process_query_results_v4() {
   // will be non-zero. All regions with an index less-than
   // 'last_intersecting_region_idx_' have already been reported, so we
   // must avoid reporting them multiple times.
-  std::vector<size_t> regions = regions_indexes->second;
-
-  // Create a vector of regions sorted by region.max. This is used in the binary
-  // search to find the regions where real_start < region.max
-  std::vector<size_t> max_sorted_regions = regions_indexes->second;
-  std::sort(
-      max_sorted_regions.begin(),
-      max_sorted_regions.end(),
-      [this](const unsigned a, const unsigned b) {
-        return read_state_.regions[a].max < read_state_.regions[b].max;
-      });
-
-  // If the min sorted order of regions does not match max sorted order, there
-  // are overlapping regions. Find the first overlapping region, which is the
-  // first region in the min sorted regions that does not have the same position
-  // in the max sorted regions
-  bool overlapping_regions_exist = false;
-  size_t first_overlapping_region = 0;
-
-  for (size_t i = 0; i < regions.size(); i++) {
-    if (regions[i] != max_sorted_regions[i]) {
-      first_overlapping_region = regions[i];
-      overlapping_regions_exist = true;
-      LOG_TRACE(
-          "First overlapping region in contig {} = {}",
-          query_contig,
-          first_overlapping_region);
-      break;
-    }
-  }
-
-  if (!overlapping_regions_exist) {
-    LOG_TRACE("No overlapping regions in contig {}", query_contig);
-  }
+  const auto& regions = regions_indexes->second;
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
@@ -1163,32 +1182,14 @@ bool Reader::process_query_results_v4() {
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
-    // Perform a binary search to find the regions where real_start < region.max
-    auto it = std::lower_bound(
-        max_sorted_regions.begin(),
-        max_sorted_regions.end(),
-        real_start,
-        [this](const unsigned index, const unsigned value) {
-          return read_state_.regions[index].max < value;
-        });
+    // Search for the first intersecting region
+    bool found = first_intersecting_region(
+        query_contig, real_start, read_state_.last_intersecting_region_idx_);
 
     // Continue to the next record if no intersecting regions are found
-    if (it == max_sorted_regions.end()) {
+    if (!found) {
       continue;
     }
-
-    // Region to start searching for intersections
-    size_t start_region = *it;
-
-    // Expand search to include potentially overlapping regions
-    if (overlapping_regions_exist) {
-      start_region = std::min(start_region, first_overlapping_region);
-    }
-
-    // Convert start_region to an index into the regions vector
-    read_state_.last_intersecting_region_idx_ = start_region - regions[0];
-    assert(
-        read_state_.last_intersecting_region_idx_ < read_state_.regions.size());
 
     for (size_t j = read_state_.last_intersecting_region_idx_;
          j < regions.size();
@@ -1701,7 +1702,7 @@ void Reader::prepare_regions_v4(
     std::unordered_map<std::string, std::vector<size_t>>*
         regions_index_per_contig,
     std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
-        query_regions) const {
+        query_regions) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   const uint32_t g = dataset_->metadata().anchor_gap;
   // Use a linked list for pre-partition regions to allow for parallel parsing
@@ -1882,7 +1883,75 @@ void Reader::prepare_regions_v4(
       }
     }
   }
-}  // namespace vcf
+
+  // Create super regions if overlapping regions exist
+  for (auto& regions_index_per_contig : read_state_.regions_index_per_contig) {
+    auto& contig = regions_index_per_contig.first;
+    auto& region_indexes = regions_index_per_contig.second;
+
+    // Check for overlapping regions.
+    // If region.max is not monotonically increasing, overlaps exist.
+    bool overlap = false;
+    uint32_t prev_max = 0;
+    for (auto i : region_indexes) {
+      if (prev_max > read_state_.regions[i].max) {
+        overlap = true;
+        break;
+      }
+      prev_max = read_state_.regions[i].max;
+    }
+
+    // Create super regions for this contig
+    if (overlap) {
+      int max_super_region_size = 0;
+      int super_region_size = 0;
+      SuperRegion super_region = {SIZE_MAX, 0};
+
+      for (auto i : region_indexes) {
+        auto start = read_state_.regions[i].min;
+        auto end = read_state_.regions[i].max;
+
+        // Finish super region when it meets the size requirement and the next
+        // region does not overlap the super region. This ensures there are no
+        // overlapping super regions.
+        if (super_region_size >= params_.min_super_region_size &&
+            start >= super_region.end_max) {
+          read_state_.super_regions[contig].emplace_back(super_region);
+          max_super_region_size =
+              std::max(max_super_region_size, super_region_size);
+          super_region = {SIZE_MAX, 0};
+          super_region_size = 0;
+        }
+        super_region.region_min = std::min(super_region.region_min, i);
+        super_region.end_max = std::max(super_region.end_max, end);
+        super_region_size++;
+      }
+      // Add final super region
+      if (super_region_size) {
+        read_state_.super_regions[contig].emplace_back(super_region);
+        max_super_region_size =
+            std::max(max_super_region_size, super_region_size);
+      }
+
+      LOG_TRACE(
+          "Created {} super regions for {} (max size = {})",
+          read_state_.super_regions[contig].size(),
+          contig,
+          max_super_region_size);
+
+      // Assert that there are no overlapping super regions
+      uint32_t prev_max = 0;
+      for (auto sr : read_state_.super_regions[contig]) {
+        if (prev_max > sr.end_max) {
+          assert(false);
+        }
+        prev_max = sr.end_max;
+      }
+    } else {
+      LOG_TRACE("No region overlaps in contig: {}", contig);
+    }
+  }
+}
 
 void Reader::prepare_regions_v3(
     std::vector<Region>* regions,
