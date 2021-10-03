@@ -123,8 +123,11 @@ struct ExportParams {
   // Debug parameters for optional debug information
   struct DebugParams debug_params;
 
-  // Minimum super region size, used to handle overlapping regions
-  int min_super_region_size = 100;
+  // Minimum super region size, used to handle overlapping regions.
+  // Recommed setting to 1 to create smaller super regions and reduce the
+  // time to find the first intersecting region. Increase the setting if
+  // the memory overhead of super regions needs to be reduced.
+  int min_super_region_size = 1;
 };
 
 /* ********************************* */

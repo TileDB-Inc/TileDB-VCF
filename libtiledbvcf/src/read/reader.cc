@@ -1908,14 +1908,13 @@ void Reader::prepare_regions_v4(
       SuperRegion super_region = {SIZE_MAX, 0};
 
       for (auto i : region_indexes) {
-        auto start = read_state_.regions[i].min;
         auto end = read_state_.regions[i].max;
 
         // Finish super region when it meets the size requirement and the next
         // region does not overlap the super region. This ensures there are no
         // overlapping super regions.
         if (super_region_size >= params_.min_super_region_size &&
-            start >= super_region.end_max) {
+            end >= super_region.end_max) {
           read_state_.super_regions[contig].emplace_back(super_region);
           max_super_region_size =
               std::max(max_super_region_size, super_region_size);
