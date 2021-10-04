@@ -24,9 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <clipp.h>
-#include <sstream>
-#include <thread>
+#include <CLI11.hpp>
 
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
@@ -38,145 +36,12 @@
 
 using namespace tiledb::vcf;
 
-namespace {
-/** TileDBVCF operation mode */
-enum class Mode {
-  Version,
-  Create,
-  Register,
-  Store,
-  Export,
-  List,
-  Stat,
-  Utils,
-  UNDEF
-};
-/** TileDBVCF Util command operation modes */
-enum class UtilsMode { Consolidate, Vacuum, UNDEF };
-enum class UtilsConsolidateMode { FragmentMeta, Fragments, UNDEF };
-
-/** Returns a help string, displaying the given default value. */
-template <typename T>
-std::string defaulthelp(const std::string& msg, T default_value) {
-  return msg + " [default " + std::to_string(default_value) + "]";
-}
-
-/** Prints a formatted help message for a command. */
-void print_command_usage(
-    const std::string& name, const std::string& desc, const clipp::group& cli) {
-  using namespace clipp;
-  clipp::doc_formatting fmt{};
-  fmt.start_column(4).doc_column(25);
-  std::cout << name << "\n\nDESCRIPTION\n    " << desc << "\n\nUSAGE\n"
-            << usage_lines(cli, name, fmt) << "\n\nOPTIONS\n"
-            << documentation(cli, fmt) << "\n";
-}
-
-/** Prints the 'create' mode help message. */
-void usage_create(const clipp::group& create_mode) {
-  print_command_usage(
-      "tiledbvcf create", "Creates an empty TileDB-VCF dataset.", create_mode);
-}
-
-/** Prints the 'register' mode help message. */
-void usage_register(const clipp::group& register_mode) {
-  print_command_usage(
-      "tiledbvcf register",
-      "Registers samples in a TileDB-VCF dataset prior to ingestion.",
-      register_mode);
-}
-
-/** Prints the 'store' mode help message. */
-void usage_store(const clipp::group& store_mode) {
-  print_command_usage(
-      "tiledbvcf store",
-      "Ingests registered samples into a TileDB-VCF dataset.",
-      store_mode);
-}
-
-/** Prints the 'export' mode help message. */
-void usage_export(const clipp::group& export_mode) {
-  print_command_usage(
-      "tiledbvcf export",
-      "Exports data from a TileDB-VCF dataset.",
-      export_mode);
-}
-
-/** Prints the 'list' mode help message. */
-void usage_list(const clipp::group& list_mode) {
-  print_command_usage(
-      "tiledbvcf list",
-      "Lists all sample names present in a TileDB-VCF dataset.",
-      list_mode);
-}
-
-/** Prints the 'stat' mode help message. */
-void usage_stat(const clipp::group& stat_mode) {
-  print_command_usage(
-      "tiledbvcf stat",
-      "Prints high-level statistics about a TileDB-VCF dataset.",
-      stat_mode);
-}
-
-/** Prints the 'utils' mode help message. */
-void usage_utils(const clipp::group& utils_mode) {
-  print_command_usage(
-      "tiledbvcf",
-      "Utils for working with a TileDB-VCF dataset.\"",
-      utils_mode);
-}
-
-/** Prints the default help message. */
-void usage(
-    const clipp::group& cli,
-    const clipp::group& create_mode,
-    const clipp::group& register_mode,
-    const clipp::group& store_mode,
-    const clipp::group& export_mode,
-    const clipp::group& list_mode,
-    const clipp::group& stat_mode,
-    const clipp::group& utils_mode) {
-  using namespace clipp;
-  std::cout
-      << "TileDBVCF -- efficient variant-call data storage and retrieval.\n\n"
-      << "This command-line utility provides an interface to create, store and "
-         "efficiently retrieve variant-call data in the TileDB storage format."
-      << "\n\n"
-      << "More information: TileDB <https://tiledb.io>\n"
-      << utils::version_info() << "\n\n";
-
-  std::cout << "Summary:\n" << usage_lines(cli, "tiledbvcf") << "\n\n\n";
-  usage_create(create_mode);
-  std::cout << "\n\n";
-  usage_register(register_mode);
-  std::cout << "\n\n";
-  usage_store(store_mode);
-  std::cout << "\n\n";
-  usage_export(export_mode);
-  std::cout << "\n\n";
-  usage_list(list_mode);
-  std::cout << "\n\n";
-  usage_stat(stat_mode);
-  std::cout << "\n\n";
-  usage_utils(utils_mode);
-  std::cout << "\n";
-}
-
-/** Parses the string into the given partition info struct. */
-void set_partitioning(const std::string& s, PartitionInfo* info) {
-  auto vals = utils::split(s, ':');
-  try {
-    info->partition_index = (unsigned)std::stoul(vals.at(0));
-    info->num_partitions = (unsigned)std::stoul(vals.at(1));
-  } catch (const std::exception& e) {
-    throw std::invalid_argument(
-        "Error parsing partition string '" + s + "': " + std::string(e.what()));
-  }
-}
+//==================================================================
+// Command functions (do_*)
+//==================================================================
 
 /** Create. */
 void do_create(const CreationParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
   LOG_TRACE("Starting create command.");
   TileDBVCFDataset::create(args);
   LOG_TRACE("Finished create command.");
@@ -184,7 +49,6 @@ void do_create(const CreationParams& args) {
 
 /** Register. */
 void do_register(const RegistrationParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
   LOG_TRACE("Starting register command.");
 
   // Set htslib global config and context based on user passed TileDB config
@@ -206,10 +70,12 @@ void do_register(const RegistrationParams& args) {
 
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
-  if (args.verbose) {
-    LOG_CONFIG("DEBUG");
+  if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
+    std::cerr << "VCF URIs or --sample-file is required\n"
+              << "Run with --help for more information.\n";
+    exit(1);
   }
-  LOG_CONFIG(args.log_level, args.log_file);
+
   LOG_TRACE("Starting store command.");
 
   Writer writer;
@@ -226,12 +92,10 @@ void do_store(const IngestionParams& args) {
 }
 
 /** Export. */
-void do_export(const ExportParams& args) {
-  if (args.verbose) {
-    LOG_CONFIG("DEBUG");
-  }
-  LOG_CONFIG(args.log_level, args.log_file);
+void do_export(ExportParams& args) {
   LOG_TRACE("Starting export command.");
+
+  args.export_to_disk = !args.cli_count_only;
 
   Reader reader;
   reader.set_all_params(args);
@@ -249,7 +113,6 @@ void do_export(const ExportParams& args) {
 
 /** List. */
 void do_list(const ListParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
   LOG_TRACE("Starting list command.");
 
   // Set htslib global config and context based on user passed TileDB config
@@ -263,7 +126,6 @@ void do_list(const ListParams& args) {
 
 /** Stat. */
 void do_stat(const StatParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
   LOG_TRACE("Starting stat command.");
 
   // Set htslib global config and context based on user passed TileDB config
@@ -276,538 +138,618 @@ void do_stat(const StatParams& args) {
 }
 
 /** Utils. */
-void do_utils_consolidate(
-    const UtilsConsolidateMode consolidate_mode, const UtilsParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
-  LOG_TRACE("Starting utils consolidate command.");
-
-  // Set htslib global config and context based on user passed TileDB config
-  // options
+void do_utils_consolidate_fragments(const UtilsParams& args) {
+  LOG_TRACE("Starting utils consolidate fragments command.");
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
-  if (consolidate_mode == UtilsConsolidateMode::FragmentMeta)
-    dataset.consolidate_fragment_metadata(args);
-  else if (consolidate_mode == UtilsConsolidateMode::Fragments)
-    dataset.consolidate_fragments(args);
-  else
-    LOG_FATAL(
-        "Invalid consolidate mode, valid options are fragment_meta or "
-        "fragments");
-  LOG_TRACE("Finished utils consolidate command.");
+  dataset.consolidate_fragments(args);
+  LOG_TRACE("Finished utils consolidate fragments command.");
 }
 
-void do_utils_vacuum(
-    const UtilsConsolidateMode vacuum_mode, const UtilsParams& args) {
-  LOG_CONFIG(args.log_level, args.log_file);
-  LOG_TRACE("Starting utils vacuum command.");
-
-  // Set htslib global config and context based on user passed TileDB config
-  // options
+void do_utils_consolidate_fragment_metadata(const UtilsParams& args) {
+  LOG_TRACE("Starting utils consolidate fragment metadata command.");
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
-  if (vacuum_mode == UtilsConsolidateMode::FragmentMeta)
-    dataset.vacuum_fragment_metadata(args);
-  else if (vacuum_mode == UtilsConsolidateMode::Fragments)
-    dataset.vacuum_fragments(args);
-  else
-    LOG_ERROR(
-        "Invalid vacuum mode, valid options are fragment_meta or fragments");
-  LOG_TRACE("Finished utils vacuum command.");
+  dataset.consolidate_fragment_metadata(args);
+  LOG_TRACE("Finished utils consolidate fragment metadata command.");
 }
 
-}  // namespace
+void do_utils_vacuum_fragments(const UtilsParams& args) {
+  LOG_TRACE("Starting utils vacuum fragments command.");
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  TileDBVCFDataset dataset;
+  dataset.open(args.uri, args.tiledb_config);
+  dataset.vacuum_fragments(args);
+  LOG_TRACE("Finished utils vacuum fragments command.");
+}
+
+void do_utils_vacuum_fragment_metadata(const UtilsParams& args) {
+  LOG_TRACE("Starting utils vacuum fragment metadata command.");
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  TileDBVCFDataset dataset;
+  dataset.open(args.uri, args.tiledb_config);
+  dataset.vacuum_fragment_metadata(args);
+  LOG_TRACE("Finished utils vacuum fragment metadata command.");
+}
+
+//==================================================================
+// cli parser helpers
+//==================================================================
+
+// maps for enums
+std::map<std::string, tiledb_filter_type_t> filter_map{
+    {"sha256", TILEDB_FILTER_CHECKSUM_SHA256},
+    {"md5", TILEDB_FILTER_CHECKSUM_MD5},
+    {"none", TILEDB_FILTER_NONE}};
+
+std::map<std::string, ExportFormat> format_map{
+    {"b", ExportFormat::CompressedBCF},
+    {"u", ExportFormat::BCF},
+    {"z", ExportFormat::VCFGZ},
+    {"v", ExportFormat::VCF},
+    {"t", ExportFormat::TSV}};
+
+// add helper functions to CLI::detail namespace
+namespace CLI {
+namespace detail {
+
+// lexical_cast is used to convert string to a custom type
+template <>
+bool lexical_cast<PartitionInfo>(
+    const std::string& input, PartitionInfo& output) {
+  auto vals = CLI::detail::split(input, ':');
+  if (vals.size() != 2) {
+    return false;
+  }
+
+  try {
+    output.partition_index = std::stoul(vals.at(0));
+    output.num_partitions = std::stoul(vals.at(1));
+  } catch (const std::exception& e) {
+    return false;
+  }
+
+  return true;
+}
+
+// overload << to display key from enum map in help messages
+std::ostream& operator<<(std::ostream& os, const tiledb_filter_type_t& value) {
+  for (auto it : filter_map) {
+    if (it.second == value) {
+      os << it.first;
+      return os;
+    }
+  }
+  os << "UNKNOWN";
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const ExportFormat& value) {
+  for (auto it : format_map) {
+    if (it.second == value) {
+      os << it.first;
+      return os;
+    }
+  }
+  os << "UNKNOWN";
+  return os;
+}
+
+}  // namespace detail
+}  // namespace CLI
+
+// return string with newlines inserted near the specified width
+std::string wrap(const std::string& input, const int width = 80) {
+  std::stringstream ss;
+  int col = 0;
+  for (auto chr : input) {
+    if (col >= width && chr == ' ') {
+      ss << std::endl;
+      col = 0;
+    } else {
+      ss << chr;
+      col++;
+    }
+  }
+  return ss.str();
+}
+
+// custom cli11 formater that line wraps option descriptions
+class VcfFormatter : public CLI::Formatter {
+ public:
+  VcfFormatter(int column_width = 80)
+      : Formatter()
+      , column_width_(column_width) {
+  }
+
+  std::string make_option_desc(const CLI::Option* opt) const override {
+    return wrap(opt->get_description(), column_width_);
+  }
+
+ private:
+  int column_width_;
+};
+
+//==================================================================
+// cli parser common options
+//==================================================================
+
+void add_tiledb_uri_option(CLI::App* cmd, std::string& uri) {
+  cmd->add_option("-u,--uri", uri, "TileDB-VCF dataset URI")->required();
+}
+
+void add_tiledb_options(
+    CLI::App* cmd, std::vector<std::string>& tiledb_config) {
+  cmd->add_option(
+         "--tiledb-config",
+         tiledb_config,
+         "CSV string of the format 'param1=val1,param2=val2...' "
+         "specifying optional TileDB configuration parameter settings.")
+      ->delimiter(',');
+}
+
+void add_logging_options(
+    CLI::App* cmd, std::string& log_level, std::string& log_file) {
+  cmd->add_option_function<std::string>(
+         "--log-level",
+         [](const std::string& value) { LOG_SET_LEVEL(value); },
+         "Log message level")
+      ->default_str("fatal")
+      ->check(CLI::IsMember(
+          {"fatal", "error", "warn", "info", "debug", "trace"},
+          CLI::ignore_case));
+  cmd->add_option_function<std::string>(
+      "--log-file",
+      [](const std::string& value) { LOG_SET_FILE(value); },
+      "Log message output file");
+}
+
+//==================================================================
+// cli parser subcommands (add_*)
+//==================================================================
+
+void add_create(CLI::App& app) {
+  auto args = std::make_shared<CreationParams>();
+  auto cmd =
+      app.add_subcommand("create", "Creates an empty TileDB-VCF dataset");
+
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  cmd->add_option(
+         "-a,--attributes",
+         args->extra_attributes,
+         "Info or format field names (comma-delimited) to store as separate "
+         "attributes. Names should be 'fmt_X' or 'info_X' for "
+         "a field name 'X' (case sensitive).")
+      ->delimiter(',');
+  cmd->add_option(
+      "-g,--anchor-gap", args->anchor_gap, "Anchor gap size to use");
+  cmd->add_flag_function(
+      "-n,--no-duplicates",
+      [args](int count) { args->allow_duplicates = false; },
+      "Allow records with duplicate start positions to be written to the "
+      "array.");
+
+  cmd->option_defaults()->group("TileDB options");
+  cmd->add_option(
+      "-c,--tile-capacity",
+      args->tile_capacity,
+      "Tile capacity to use for the array schema");
+  add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_option(
+         "--checksum",
+         args->checksum,
+         "Checksum to use for dataset validation on read and writes.")
+      ->transform(CLI::CheckedTransformer(filter_map));
+
+  cmd->option_defaults()->group("Debug options");
+  add_logging_options(cmd, args->log_level, args->log_file);
+
+  // register function to implement this command
+  cmd->callback([args]() { do_create(*args); });
+}
+
+void add_register(CLI::App& app) {
+  auto args = std::make_shared<RegistrationParams>();
+  auto cmd = app.add_subcommand(
+      "register",
+      "Registers samples in a TileDB-VCF dataset prior to ingestion");
+
+  cmd->group("");  // hide register command from help message
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  cmd->add_option(
+      "-d,--scratch-dir",
+      args->scratch_space.path,
+      "Directory used for local storage of downloaded remote samples");
+  cmd->add_option(
+      "-s,--scratch-mb",
+      args->scratch_space.size_mb,
+      "Amount of local storage that can be used for downloading remote samples "
+      "(MB)");
+  add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_option(
+      "-f,--samples-file",
+      args->sample_uris_file,
+      "File with 1 VCF path to be ingested per line. The format can "
+      "also include an explicit index path on each line, in the format "
+      "'<vcf-uri><TAB><index-uri>'");
+  cmd->add_option("paths", args->sample_uris, "VCF URIs to ingest")
+      ->excludes("--samples-file");
+
+  cmd->option_defaults()->group("Debug options");
+  add_logging_options(cmd, args->log_level, args->log_file);
+
+  // register function to implement this command
+  cmd->callback([args]() { do_register(*args); });
+}
+
+void add_store(CLI::App& app) {
+  auto args = std::make_shared<IngestionParams>();
+  auto cmd =
+      app.add_subcommand("store", "Ingests samples into a TileDB-VCF dataset");
+
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  cmd->add_option("-t,--threads", args->num_threads, "Number of threads");
+  cmd->add_option(
+      "-n,--max-record-buff",
+      args->max_record_buffer_size,
+      "Max number of BCF records to buffer per file");
+  cmd->add_option(
+      "-k,--thread-task-size",
+      args->thread_task_size,
+      "Max length (# columns) of an ingestion task. Affects load "
+      "balancing of ingestion work across threads, and total "
+      "memory consumption.");
+  cmd->add_flag(
+      "--resume",
+      args->resume_sample_partial_ingestion,
+      "Resume incomplete ingestion of sample batch");
+
+  cmd->option_defaults()->group("Sample options");
+  cmd->add_option(
+      "-e,--sample-batch-size",
+      args->sample_batch_size,
+      "Number of samples per batch for ingestion");
+  cmd->add_option(
+      "-f,--samples-file",
+      args->samples_file_uri,
+      "File with 1 VCF path to be ingested per line. The format can "
+      "also include an explicit index path on each line, in the format "
+      "'<vcf-uri><TAB><index-uri>'");
+  cmd->add_option("paths", args->sample_uris, "VCF URIs to ingest")
+      ->excludes("--samples-file");
+  cmd->add_flag(
+         "--remove-sample-file",
+         args->remove_samples_file,
+         "If specified, the samples file ('-f' argument) is deleted after "
+         "successful ingestion")
+      ->needs("--samples-file");
+  cmd->add_option(
+      "-d,--scratch-dir",
+      args->scratch_space.path,
+      "Directory used for local storage of downloaded remote samples");
+  cmd->add_option(
+      "-s,--scratch-mb",
+      args->scratch_space.size_mb,
+      "Amount of local storage that can be used for downloading remote samples "
+      "(MB)");
+
+  cmd->option_defaults()->group("TileDB options");
+  cmd->add_option(
+      "-b,--mem-budget-mb",
+      args->max_tiledb_buffer_size_mb,
+      "The total memory budget (MB) used when submitting TileDB "
+      "queries.");
+  cmd->add_option(
+      "-p,--s3-part-size",
+      args->part_size_mb,
+      "[S3 only] Part size to use for writes (MB)");
+  add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_flag("--stats", args->tiledb_stats_enabled, "Enable TileDB stats");
+  cmd->add_flag(
+      "--stats-vcf-header-array",
+      args->tiledb_stats_enabled_vcf_header_array,
+      "Enable TileDB stats for vcf header array usage");
+
+  cmd->option_defaults()->group("Advanced options");
+
+  cmd->option_defaults()->group("Contig options");
+  cmd->add_flag(
+      "--disable-contig-fragment-merging",
+      args->contig_fragment_merging,
+      "Disable merging of contigs into fragments. Generally contig fragment "
+      "merging is good, this is a performance optimization to reduce the "
+      "prefixes on a s3/azure/gcs bucket when there is a large number of "
+      "pseudo contigs which are small in size.");
+  cmd->add_option(
+         "--contigs-to-keep-separate",
+         args->contigs_to_keep_separate,
+         "Comma-separated list of contigs that should not be merged "
+         "into combined fragments. The default list includes all "
+         "standard human chromosomes in both UCSC (e.g., chr1) and "
+         "Ensembl (e.g., 1) formats.")
+      ->delimiter(',')
+      ->default_str("")
+      ->excludes("--disable-contig-fragment-merging");
+  cmd->add_option(
+         "--contigs-to-allow-merging",
+         args->contigs_to_allow_merging,
+         "Comma-separated list of contigs that should be allowed to "
+         "be merged into combined fragments.")
+      ->delimiter(',')
+      ->excludes("--disable-contig-fragment-merging")
+      ->excludes("--contigs-to-keep-separate");
+
+  cmd->option_defaults()->group("Debug options");
+  add_logging_options(cmd, args->log_level, args->log_file);
+  cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
+  CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
+
+  // register function to implement this command
+  cmd->callback([args]() { do_store(*args); });
+}
+
+void add_export(CLI::App& app) {
+  auto args = std::make_shared<ExportParams>();
+  auto cmd =
+      app.add_subcommand("export", "Exports data from a TileDB-VCF dataset");
+
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+
+  cmd->option_defaults()->group("Output options");
+  cmd->add_option(
+         "-O,--output-format",
+         args->format,
+         "Export format. Options are: 'b': bcf (compressed); 'u': bcf; "
+         "'z': vcf.gz; 'v': vcf; 't': TSV.")
+      ->transform(CLI::CheckedTransformer(format_map));
+  cmd->add_option(
+      "-o,--output-path",
+      args->tsv_output_path,
+      "[TSV export only] The name of the output TSV file.");
+  cmd->add_option(
+         "-t,--tsv-fields",
+         args->tsv_fields,
+         "[TSV export only] An ordered CSV list of fields to export in "
+         "the TSV. A field name can be one of 'SAMPLE', 'ID', 'REF', "
+         "'ALT', 'QUAL', 'POS', 'CHR', 'FILTER'. Additionally, INFO "
+         "fields can be specified by 'I:<name>' and FMT fields with "
+         "'S:<name>'. To export the intersecting query region for each "
+         "row in the output, use the field names 'Q:POS', 'Q:END' and "
+         "'Q:LINE'.")
+      ->delimiter(',');
+  cmd->add_option(
+      "-n,--limit",
+      args->max_num_records,
+      "Only export the first N intersecting records.");
+  cmd->add_option(
+      "-d,--output-dir",
+      args->output_dir,
+      "Directory used for local output of exported samples");
+  cmd->add_option(
+      "--upload-dir",
+      args->upload_dir,
+      "If set, all output file(s) from the export process will be "
+      "copied to the given directory (or S3 prefix) upon completion.");
+  cmd->add_flag(
+      "-c,--count-only",
+      args->cli_count_only,
+      "Don't write output files, only print the count of the resulting "
+      "number of intersecting records.");
+
+  cmd->option_defaults()->group("Region options");
+  cmd->add_option(
+         "-r,--regions",
+         args->regions,
+         "CSV list of regions to export in the format 'chr:min-max'")
+      ->delimiter(',');
+  cmd->add_option(
+         "-R,--regions-file",
+         args->regions_file_uri,
+         "File containing regions (BED format)")
+      ->excludes("--regions");
+  cmd->add_flag(
+      "--sorted",
+      args->sort_regions,
+      "Do not sort regions or regions file if they are pre-sorted");
+  cmd->add_option(
+      "--region-partition",
+      args->region_partitioning,
+      "Partitions the list of regions to be exported and causes this "
+      "export to export only a specific partition of them. Specify in "
+      "the format I:N where I is the partition index and N is the "
+      "total number of partitions. Useful for batch exports.");
+
+  cmd->option_defaults()->group("Sample options");
+  cmd->add_option(
+      "-f,--samples-file",
+      args->samples_file_uri,
+      "Path to file with 1 sample name per line");
+  cmd->add_option(
+         "-s,--samples-name",
+         args->sample_names,
+         "CSV list of sample names to export")
+      ->delimiter(',')
+      ->excludes("--samples-file");
+  cmd->add_option(
+      "--sample-partition",
+      args->sample_partitioning,
+      "Partitions the list of samples to be exported and causes this "
+      "export to export only a specific partition of them. Specify in "
+      "the format I:N where I is the partition index and N is the "
+      "total number of partitions. Useful for batch exports.");
+  cmd->add_flag(
+      "--disable-check-samples",
+      args->check_samples_exist,
+      "Disable validating that sample passed exist in dataset before "
+      "executing query and error if any sample requested is not in the "
+      "dataset");
+
+  cmd->option_defaults()->group("TileDB options");
+  add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_option(
+      "--mem-budget-buffer-percentage",
+      args->memory_budget_breakdown.buffers_percentage,
+      "The percentage of the memory budget to use for TileDB "
+      "query buffers.");
+  cmd->add_option(
+      "--mem-budget-tile-cache-percentage",
+      args->memory_budget_breakdown.tile_cache_percentage,
+      "The percentage of the memory budget to use for TileDB tile "
+      "cache.");
+  cmd->add_option(
+      "-b,--mem-budget-mb",
+      args->memory_budget_mb,
+      "The memory budget (MB) used when submitting TileDB "
+      "queries.");
+
+  cmd->add_flag("--stats", args->tiledb_stats_enabled, "Enable TileDB stats");
+  cmd->add_flag(
+      "--stats-vcf-header-array",
+      args->tiledb_stats_enabled_vcf_header_array,
+      "Enable TileDB stats for vcf header array usage");
+
+  cmd->option_defaults()->group("Debug options");
+  add_logging_options(cmd, args->log_level, args->log_file);
+  cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
+  CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
+  cmd->add_flag(
+      "--enable-progress-estimation",
+      args->enable_progress_estimation,
+      "Enable progress estimation in verbose mode. Progress estimation "
+      "can sometimes cause a performance impact, so enable this with "
+      "consideration.");
+  cmd->add_flag(
+      "--debug-print-vcf-regions",
+      args->debug_params.print_vcf_regions,
+      "Enable debug printing of vcf region passed by user or bed file. "
+      "Requires verbose mode");
+  cmd->add_flag(
+      "--debug-print-sample-list",
+      args->debug_params.print_sample_list,
+      "Enable debug printing of sample list used in read. Requires "
+      "verbose mode");
+  cmd->add_flag(
+      "--debug-print-tiledb-query-ranges",
+      args->debug_params.print_tiledb_query_ranges,
+      "Enable debug printing of tiledb query ranges used in read. "
+      "Requires verbose mode");
+
+  // register function to implement this command
+  cmd->callback([args]() { do_export(*args); });
+}
+
+void add_list(CLI::App& app) {
+  auto args = std::make_shared<ListParams>();
+  auto cmd = app.add_subcommand(
+      "list", "Lists all sample names present in a TileDB-VCF dataset");
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  add_tiledb_options(cmd, args->tiledb_config);
+  add_logging_options(cmd, args->log_level, args->log_file);
+
+  // register function to implement this command
+  cmd->callback([args]() { do_list(*args); });
+}
+
+void add_stat(CLI::App& app) {
+  auto args = std::make_shared<StatParams>();
+  auto cmd = app.add_subcommand(
+      "stat", "Prints high-level statistics about a TileDB-VCF dataset");
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  add_tiledb_options(cmd, args->tiledb_config);
+  add_logging_options(cmd, args->log_level, args->log_file);
+
+  // register function to implement this command
+  cmd->callback([args]() { do_stat(*args); });
+}
+
+void add_util_options(CLI::App* cmd, UtilsParams& args) {
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args.uri);
+  add_tiledb_options(cmd, args.tiledb_config);
+  add_logging_options(cmd, args.log_level, args.log_file);
+}
+
+void add_utils(CLI::App& app) {
+  auto args = std::make_shared<UtilsParams>();
+  auto cmd = app.add_subcommand(
+      "utils", "Utils for working with a TileDB-VCF dataset");
+  cmd->require_subcommand(1, 1);
+
+  auto c_cmd =
+      cmd->add_subcommand("consolidate", "Consolidate TileDB-VCF dataset");
+  c_cmd->require_subcommand(1, 1);
+
+  auto c_f_cmd = c_cmd->add_subcommand(
+      "fragments", "Consolidate TileDB-VCF dataset fragments");
+  add_util_options(c_f_cmd, *args);
+  c_f_cmd->callback([args]() { do_utils_consolidate_fragments(*args); });
+
+  auto c_m_cmd = c_cmd->add_subcommand(
+      "fragment_meta", "Consolidate TileDB-VCF dataset fragment metadata");
+  add_util_options(c_m_cmd, *args);
+  c_m_cmd->callback(
+      [args]() { do_utils_consolidate_fragment_metadata(*args); });
+
+  auto v_cmd = cmd->add_subcommand("vacuum", "Vacuum TileDB-VCF dataset");
+  v_cmd->require_subcommand(1, 1);
+
+  auto v_f_cmd =
+      v_cmd->add_subcommand("fragments", "Vacuum TileDB-VCF dataset fragments");
+  add_util_options(v_f_cmd, *args);
+  v_f_cmd->callback([args]() { do_utils_vacuum_fragments(*args); });
+
+  auto v_m_cmd = v_cmd->add_subcommand(
+      "fragment_meta", "Vacuum TileDB-VCF dataset fragment metadata");
+  add_util_options(v_m_cmd, *args);
+  v_m_cmd->callback([args]() { do_utils_vacuum_fragment_metadata(*args); });
+}
+
+//==================================================================
+// main program
+//==================================================================
 
 int main(int argc, char** argv) {
-  using namespace clipp;
-  Mode opmode = Mode::UNDEF;
-  UtilsMode opmode_utils = UtilsMode::UNDEF;
-  UtilsConsolidateMode opmode_utils_consolidate = UtilsConsolidateMode::UNDEF;
+  // column widths for help message
+  int left_width = 40;
+  int right_width = 80;
 
-  CreationParams create_args;
-  auto create_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", create_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", create_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", create_args.log_file),
-       option("-a", "--attributes") %
-               "Info or format field names (comma-delimited) to store as "
-               "separate attributes. Names should be 'fmt_X' or 'info_X' for "
-               "a field name 'X' (case sensitive)." &
-           value("fields").call([&](const std::string& s) {
-             create_args.extra_attributes = utils::split(s, ',');
-           }),
-       option("-c", "--tile-capacity") %
-               defaulthelp(
-                   "Tile capacity to use for the array schema",
-                   create_args.tile_capacity) &
-           value("N", create_args.tile_capacity),
-       option("-g", "--anchor-gap") %
-               defaulthelp("Anchor gap size to use", create_args.anchor_gap) &
-           value("N", create_args.anchor_gap),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&create_args](const std::string& s) {
-             create_args.tiledb_config = utils::split(s, ',');
-           }),
-       option("--checksum") %
-               "Checksum to use for dataset validation on read and writes, "
-               "defaults to 'sha256'" &
-           value("checksum").call([&create_args](const std::string& s) {
-             if (s == "sha256")
-               create_args.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
-             else if (s == "md5")
-               create_args.checksum = TILEDB_FILTER_CHECKSUM_MD5;
-             else if (s == "none")
-               create_args.checksum = TILEDB_FILTER_NONE;
-           }),
-       option("-n", "--no-duplicates")
-               .set(create_args.allow_duplicates, false) %
-           "Do not allow records with duplicate start positions to be written "
-           "to the array.");
+  CLI::App app{
+      "TileDB-VCF -- Efficient variant-call data storage and retrieval.\n\n"
+      "  This command-line utility provides an interface to create, store and\n"
+      "  efficiently retrieve variant-call data in the TileDB storage "
+      "format.\n\n"
+      "  More information: TileDB <https://tiledb.com>"};
+  app.formatter(std::make_shared<VcfFormatter>(right_width));
+  app.get_formatter()->column_width(left_width);
+  // app.failure_message(CLI::FailureMessage::help);
+  app.require_subcommand(1, 1);
+  app.option_defaults()->always_capture_default();
+  app.add_flag_function(
+      "-v,--version",
+      [](int count) {
+        std::cout << utils::version_info() << std::endl;
+        exit(0);
+      },
+      "Print the version information and exit");
 
-  RegistrationParams register_args;
-  auto register_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", register_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", register_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", register_args.log_file),
-       option("-d", "--scratch-dir") %
-               "Directory used for local storage of downloaded remote samples" &
-           value("path", register_args.scratch_space.path),
-       option("-s", "--scratch-mb") %
-               "Amount of local storage that can be used for downloading "
-               "remote samples (MB)" &
-           value("MB", register_args.scratch_space.size_mb),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&register_args](const std::string& s) {
-             register_args.tiledb_config = utils::split(s, ',');
-           }),
-       (option("-f", "--samples-file") %
-            "File with 1 VCF path to be registered per line. The format can "
-            "also include an explicit index path on each line, in the format "
-            "'<vcf-uri><TAB><index-uri>'" &
-        value("path", register_args.sample_uris_file)) |
-           (values("paths", register_args.sample_uris) %
-            "Argument list of VCF files to register"));
+  // add subcommands
+  add_create(app);
+  add_register(app);
+  add_store(app);
+  add_export(app);
+  add_list(app);
+  add_stat(app);
+  add_utils(app);
 
-  IngestionParams store_args;
-  auto store_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", store_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", store_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", store_args.log_file),
-       option("-t", "--threads") %
-               defaulthelp("Number of threads", store_args.num_threads) &
-           value("N", store_args.num_threads),
-       option("-p", "--s3-part-size") %
-               defaulthelp(
-                   "[S3 only] Part size to use for writes (MB)",
-                   store_args.part_size_mb) &
-           value("MB", store_args.part_size_mb),
-       option("-d", "--scratch-dir") %
-               "Directory used for local storage of downloaded remote samples" &
-           value("path", store_args.scratch_space.path),
-       option("-s", "--scratch-mb") %
-               defaulthelp(
-                   "Amount of local storage that can be used for downloading "
-                   "remote samples (MB)",
-                   store_args.scratch_space.size_mb) &
-           value("MB", store_args.scratch_space.size_mb),
-       option("-n", "--max-record-buff") %
-               defaulthelp(
-                   "Max number of BCF records to buffer per file",
-                   store_args.max_record_buffer_size) &
-           value("N", store_args.max_record_buffer_size),
-       option("-k", "--thread-task-size") %
-               defaulthelp(
-                   "Max length (# columns) of an ingestion task. Affects load "
-                   "balancing of ingestion work across threads, and total "
-                   "memory consumption.",
-                   store_args.thread_task_size) &
-           value("N", store_args.thread_task_size),
-       option("-b", "--mem-budget-mb") %
-               defaulthelp(
-                   "The total memory budget (MB) used when submitting TileDB "
-                   "queries.",
-                   store_args.max_tiledb_buffer_size_mb) &
-           value("MB", store_args.max_tiledb_buffer_size_mb),
-       option("-v", "--verbose").set(store_args.verbose) %
-           "Enable verbose output",
-       option("--remove-sample-file").set(store_args.remove_samples_file) %
-           "If specified, the samples file ('-f' argument) is deleted after "
-           "successful ingestion",
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&store_args](const std::string& s) {
-             store_args.tiledb_config = utils::split(s, ',');
-           }),
-       (option("-f", "--samples-file") %
-            "File with 1 VCF path to be ingested per line. The format can "
-            "also include an explicit index path on each line, in the format "
-            "'<vcf-uri><TAB><index-uri>'" &
-        value("path", store_args.samples_file_uri)) |
-           (values("paths", store_args.sample_uris) %
-            "Argument list of VCF files to ingest"),
-       option("-e", "--sample-batch-size") %
-               defaulthelp(
-                   "Number of samples per batch for ingestion (default: 10)",
-                   store_args.sample_batch_size) &
-           value("N", store_args.sample_batch_size),
-       option("--stats").set(store_args.tiledb_stats_enabled) %
-           "Enable TileDB stats",
-       option("--stats-vcf-header-array")
-               .set(store_args.tiledb_stats_enabled_vcf_header_array) %
-           "Enable TileDB stats for vcf header array usage",
-       option("--resume").set(store_args.resume_sample_partial_ingestion) %
-           "Resume incomplete ingestion of sample batch",
-       one_of(
-           option("--disable-contig-fragment-merging")
-                   .set(store_args.contig_fragment_merging, false) %
-               "Disable merging of contigs into fragments. This overrides the "
-               "contigs-to-keep-separate/contigs-to-allow-mering options. "
-               "Generally contig fragment merging "
-               "is good, this is a performance optimization to reduce the "
-               "prefixes on a s3/azure/gcs bucket when there is a large number "
-               "of pseduo contigs which are small in size.",
-           option("--contigs-to-keep-separate") %
-                   "comma-separated list of contigs that should not be merged "
-                   "into combined fragments. The default list includes all "
-                   "standard human chromosomes in both UCSC (e.g., chr1) and "
-                   "Ensembl (e.g., 1) formats." &
-               value("params").call([&store_args](const std::string& s) {
-                 store_args.contigs_to_keep_separate = utils::split_set(s, ',');
-               }),
-           option("--contigs-to-allow-merging") %
-                   "comma-separated list of contigs that should be allowed to "
-                   "be merged into combined fragments." &
-               value("params").call([&store_args](const std::string& s) {
-                 store_args.contigs_to_allow_merging = utils::split_set(s, ',');
-               })));
-
-  ExportParams export_args;
-  export_args.export_to_disk = true;
-  auto export_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", export_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", export_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", export_args.log_file),
-       option("-O", "--output-format") %
-               "Export format. Options are: 'b': bcf (compressed); 'u': bcf; "
-               "'z': vcf.gz; 'v': vcf; 't': TSV. [default b]" &
-           value("format").call([&export_args](const std::string& s) {
-             const std::map<std::string, ExportFormat> m = {
-                 {"b", ExportFormat::CompressedBCF},
-                 {"u", ExportFormat::BCF},
-                 {"z", ExportFormat::VCFGZ},
-                 {"v", ExportFormat::VCF},
-                 {"t", ExportFormat::TSV},
-             };
-             auto it = m.find(s);
-             if (it == m.end())
-               throw std::invalid_argument("Unknown export format '" + s + "'");
-             export_args.format = it->second;
-           }),
-       option("-o", "--output-path") %
-               "[TSV export only] The name of the output TSV file." &
-           value("path", export_args.tsv_output_path),
-       option("-t", "--tsv-fields") %
-               "[TSV export only] An ordered CSV list of fields to export in "
-               "the TSV. A field name can be one of 'SAMPLE', 'ID', 'REF', "
-               "'ALT', 'QUAL', 'POS', 'CHR', 'FILTER'. Additionally, INFO "
-               "fields can be specified by 'I:<name>' and FMT fields with "
-               "'S:<name>'. To export the intersecting query region for each "
-               "row in the output, use the field names 'Q:POS', 'Q:END' and "
-               "'Q:LINE'." &
-           value("fields").call([&export_args](const std::string& s) {
-             export_args.tsv_fields = utils::split(s, ',');
-           }),
-       ((option("-r", "--regions") %
-             "CSV list of regions to export in the format 'chr:min-max'" &
-         value("regions").call([&export_args](const std::string& s) {
-           export_args.regions = utils::split(s, ',');
-         })) |
-        (option("-R", "--regions-file") %
-             "File containing regions (BED format)" &
-         value("path", export_args.regions_file_uri))),
-       option("--sorted").set(export_args.sort_regions, false) %
-           "Do not sort regions or regions file if they are pre-sorted",
-       option("-n", "--limit") %
-               "Only export the first N intersecting records." &
-           value("N", export_args.max_num_records),
-       option("-d", "--output-dir") %
-               "Directory used for local output of exported samples" &
-           value("path", export_args.output_dir),
-       option("--sample-partition") %
-               "Partitions the list of samples to be exported and causes this "
-               "export to export only a specific partition of them. Specify in "
-               "the format I:N where I is the partition index and N is the "
-               "total number of partitions. Useful for batch exports." &
-           value("I:N").call([&export_args](const std::string& s) {
-             set_partitioning(s, &export_args.sample_partitioning);
-           }),
-       option("--region-partition") %
-               "Partitions the list of regions to be exported and causes this "
-               "export to export only a specific partition of them. Specify in "
-               "the format I:N where I is the partition index and N is the "
-               "total number of partitions. Useful for batch exports." &
-           value("I:N").call([&export_args](const std::string& s) {
-             set_partitioning(s, &export_args.region_partitioning);
-           }),
-       option("--upload-dir") %
-               "If set, all output file(s) from the export process will be "
-               "copied to the given directory (or S3 prefix) upon completion." &
-           value("path", export_args.upload_dir),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&export_args](const std::string& s) {
-             export_args.tiledb_config = utils::split(s, ',');
-           }),
-       option("-v", "--verbose").set(export_args.verbose) %
-           "Enable verbose output",
-       option("-c", "--count-only").call([&export_args]() {
-         export_args.export_to_disk = false;
-         export_args.cli_count_only = true;
-       }) % "Don't write output files, only print the count of the resulting "
-            "number of intersecting records.",
-       option("--mem-budget-buffer-percentage") %
-               defaulthelp(
-                   "The percentage of the memory budget to use for TileDB "
-                   "query buffers. Default 25",
-                   export_args.memory_budget_breakdown.buffers_percentage) &
-           value("%", export_args.memory_budget_breakdown.buffers_percentage),
-       option("--mem-budget-tile-cache-percentage") %
-               defaulthelp(
-                   "The percentage of the memory budget to use for TileDB tile "
-                   "cache. Default 10",
-                   export_args.memory_budget_breakdown.tile_cache_percentage) &
-           value(
-               "%", export_args.memory_budget_breakdown.tile_cache_percentage),
-       option("-b", "--mem-budget-mb") %
-               defaulthelp(
-                   "The memory budget (MB) used when submitting TileDB "
-                   "queries.",
-                   export_args.memory_budget_mb) &
-           value("MB", export_args.memory_budget_mb),
-       ((option("-f", "--samples-file") %
-             "Path to file with 1 sample name per line" &
-         value("path", export_args.samples_file_uri)) |
-        (option("-s", "--sample-names") % "CSV list of sample names to export" &
-         value("samples").call([&](const std::string& s) {
-           export_args.sample_names = utils::split(s, ',');
-         }))),
-       option("--stats").set(export_args.tiledb_stats_enabled) %
-           "Enable TileDB stats",
-       option("--stats-vcf-header-array")
-               .set(export_args.tiledb_stats_enabled_vcf_header_array) %
-           "Enable TileDB stats for vcf header array usage",
-       option("--disable-check-samples")
-               .set(export_args.check_samples_exist, false) %
-           "Disable validating that sample passed exist in dataset before "
-           "executing "
-           "query and error if any sample requested is not in the dataset",
-       option("--enable-progress-estimation")
-               .set(export_args.enable_progress_estimation) %
-           "Enable progress estimation in verbose mode. Progress estimation "
-           "can sometimes cause a performance impact, so enable this with "
-           "consideration.",
-       option("--debug-print-vcf-regions")
-               .set(export_args.debug_params.print_vcf_regions) %
-           "Enable debug printing of vcf region passed by user or bed file. "
-           "Requires verbose mode",
-       option("--debug-print-sample-list")
-               .set(export_args.debug_params.print_sample_list) %
-           "Enable debug printing of sample list used in read. Requires "
-           "verbose mode",
-       option("--debug-print-tiledb-query-ranges")
-               .set(export_args.debug_params.print_tiledb_query_ranges) %
-           "Enable debug printing of tiledb query ranges used in read. "
-           "Requires verbose mode");
-
-  ListParams list_args;
-  auto list_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", list_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", list_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", list_args.log_file),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&list_args](const std::string& s) {
-             list_args.tiledb_config = utils::split(s, ',');
-           }));
-
-  StatParams stat_args;
-  auto stat_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", stat_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", stat_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", stat_args.log_file),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&stat_args](const std::string& s) {
-             stat_args.tiledb_config = utils::split(s, ',');
-           }));
-
-  UtilsParams utils_args;
-  auto utils_mode =
-      (required("-u", "--uri") % "TileDB dataset URI" &
-           value("uri", utils_args.uri),
-       option("-ll", "--log-level") %
-               "Verbosity of log messages "
-               "(FATAL|ERROR|WARN|INFO|DEBUG|TRACE)" &
-           value("level", utils_args.log_level),
-       option("-lf", "--log-file") % "Optional log file" &
-           value("filename", utils_args.log_file),
-       option("--tiledb-config") %
-               "CSV string of the format 'param1=val1,param2=val2...' "
-               "specifying optional TileDB configuration parameter settings." &
-           value("params").call([&utils_args](const std::string& s) {
-             utils_args.tiledb_config = utils::split(s, ',');
-           }));
-
-  auto utils =
-      (command("utils").set(opmode, Mode::Utils),
-       (command("consolidate").set(opmode_utils, UtilsMode::Consolidate) |
-        command("vacuum").set(opmode_utils, UtilsMode::Vacuum)),
-       command("fragment_meta")
-               .set(
-                   opmode_utils_consolidate,
-                   UtilsConsolidateMode::FragmentMeta) |
-           command("fragments")
-               .set(opmode_utils_consolidate, UtilsConsolidateMode::Fragments),
-       utils_mode);
-
-  auto cli =
-      (command("--version", "-v", "version").set(opmode, Mode::Version) %
-           "Prints the version and exits." |
-       (command("create").set(opmode, Mode::Create), create_mode) |
-       (command("register").set(opmode, Mode::Register), register_mode) |
-       (command("store").set(opmode, Mode::Store), store_mode) |
-       (command("export").set(opmode, Mode::Export), export_mode) |
-       (command("list").set(opmode, Mode::List), list_mode) |
-       (command("stat").set(opmode, Mode::Stat), stat_mode) | utils);
-
-  if (!parse(argc, argv, cli)) {
-    if (argc > 1) {
-      // Try to print the right help page.
-      if (std::string(argv[1]) == "create") {
-        usage_create(create_mode);
-      } else if (std::string(argv[1]) == "register") {
-        usage_register(register_mode);
-      } else if (std::string(argv[1]) == "store") {
-        usage_store(store_mode);
-      } else if (std::string(argv[1]) == "export") {
-        usage_export(export_mode);
-      } else if (std::string(argv[1]) == "list") {
-        usage_list(list_mode);
-      } else if (std::string(argv[1]) == "stat") {
-        usage_stat(stat_mode);
-      } else if (std::string(argv[1]) == "utils") {
-        usage_utils(utils);
-      } else {
-        usage(
-            cli,
-            create_mode,
-            register_mode,
-            store_mode,
-            export_mode,
-            list_mode,
-            stat_mode,
-            utils);
-      }
-    } else {
-      usage(
-          cli,
-          create_mode,
-          register_mode,
-          store_mode,
-          export_mode,
-          list_mode,
-          stat_mode,
-          utils);
-    }
-    return 1;
-  }
-
-  switch (opmode) {
-    case Mode::Version:
-      std::cout << utils::version_info() << "\n";
-      break;
-    case Mode::Create:
-      do_create(create_args);
-      break;
-    case Mode::Register:
-      do_register(register_args);
-      break;
-    case Mode::Store:
-      do_store(store_args);
-      break;
-    case Mode::Export:
-      do_export(export_args);
-      break;
-    case Mode::List:
-      do_list(list_args);
-      break;
-    case Mode::Stat:
-      do_stat(stat_args);
-      break;
-    case Mode::Utils:
-      switch (opmode_utils) {
-        case UtilsMode::Consolidate:
-          do_utils_consolidate(opmode_utils_consolidate, utils_args);
-          break;
-        case UtilsMode::Vacuum:
-          do_utils_vacuum(opmode_utils_consolidate, utils_args);
-          break;
-        default:
-          usage_utils(utils);
-          return 1;
-      }
-      break;
-    default:
-      usage(
-          cli,
-          create_mode,
-          register_mode,
-          store_mode,
-          export_mode,
-          list_mode,
-          stat_mode,
-          utils);
-      return 1;
-  }
+  CLI11_PARSE(app, argc, argv);
 
   return 0;
 }

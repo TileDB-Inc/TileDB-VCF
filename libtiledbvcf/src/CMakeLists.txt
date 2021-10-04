@@ -4,7 +4,6 @@ message(STATUS "Starting TileDB-VCF build.")
 # Find required dependencies
 ############################################################
 
-find_package(Clipp_EP REQUIRED)
 find_package(CLI11_EP REQUIRED)
 find_package(HTSlib_EP REQUIRED)
 find_package(TileDB_EP REQUIRED)
@@ -169,7 +168,7 @@ set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
 
 target_link_libraries(tiledbvcf-bin
   PUBLIC
-    Clipp::Clipp
+    CLI11::CLI11
     HTSlib::HTSlib
     TileDB::tiledb_shared
     spdlog::spdlog
@@ -188,42 +187,6 @@ if (NOT APPLE)
 endif()
 
 target_include_directories(tiledbvcf-bin
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-############################################################
-# CLI executable target (with cli11)
-############################################################
-
-add_executable(tiledbvcf-cli
-  $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
-  ${CMAKE_CURRENT_SOURCE_DIR}/cli/tilevcf.cc
-)
-
-set_target_properties(tiledbvcf-cli PROPERTIES OUTPUT_NAME tilevcf)
-
-target_link_libraries(tiledbvcf-cli
-  PUBLIC
-    CLI11::CLI11
-    HTSlib::HTSlib
-    TileDB::tiledb_shared
-    spdlog::spdlog
-)
-
-# Sanitizer linker flags
-if (SANITIZER)
-  target_link_libraries(tiledbvcf-cli
-          INTERFACE
-          -fsanitize=${SANITIZER}
-          )
-endif()
-
-if (NOT APPLE)
-  target_link_libraries(tiledbvcf-cli PRIVATE pthread)
-endif()
-
-target_include_directories(tiledbvcf-cli
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -280,15 +243,8 @@ set_property(
     "${CMAKE_INSTALL_PREFIX}/lib"
 )
 
-set_property(
-  TARGET tiledbvcf-cli
-  PROPERTY INSTALL_RPATH
-    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
-    "${CMAKE_INSTALL_PREFIX}/lib"
-)
-
 install(
-  TARGETS tiledbvcf tiledbvcf-bin tiledbvcf-cli
+  TARGETS tiledbvcf tiledbvcf-bin
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
