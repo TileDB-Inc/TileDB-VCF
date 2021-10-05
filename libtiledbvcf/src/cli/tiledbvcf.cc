@@ -40,16 +40,22 @@ using namespace tiledb::vcf;
 // Command functions (do_*)
 //==================================================================
 
+void config_to_log(const CLI::App& cmd) {
+  LOG_DEBUG("Command options:\n{}", cmd.config_to_str(true));
+}
+
 /** Create. */
-void do_create(const CreationParams& args) {
+void do_create(const CreationParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting create command.");
+  config_to_log(cmd);
   TileDBVCFDataset::create(args);
   LOG_TRACE("Finished create command.");
 }
 
 /** Register. */
-void do_register(const RegistrationParams& args) {
+void do_register(const RegistrationParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting register command.");
+  config_to_log(cmd);
 
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -69,7 +75,7 @@ void do_register(const RegistrationParams& args) {
 }
 
 /** Store/ingest. */
-void do_store(const IngestionParams& args) {
+void do_store(const IngestionParams& args, const CLI::App& cmd) {
   if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
     std::cerr
         << "ERROR: RequiredError: VCF URIs or --sample-file is required\n";
@@ -77,6 +83,7 @@ void do_store(const IngestionParams& args) {
   }
 
   LOG_TRACE("Starting store command.");
+  config_to_log(cmd);
 
   Writer writer;
   writer.set_all_params(args);
@@ -92,8 +99,9 @@ void do_store(const IngestionParams& args) {
 }
 
 /** Export. */
-void do_export(ExportParams& args) {
+void do_export(ExportParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting export command.");
+  config_to_log(cmd);
 
   args.export_to_disk = !args.cli_count_only;
 
@@ -112,8 +120,9 @@ void do_export(ExportParams& args) {
 }
 
 /** List. */
-void do_list(const ListParams& args) {
+void do_list(const ListParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting list command.");
+  config_to_log(cmd);
 
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -125,8 +134,9 @@ void do_list(const ListParams& args) {
 }
 
 /** Stat. */
-void do_stat(const StatParams& args) {
+void do_stat(const StatParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting stat command.");
+  config_to_log(cmd);
 
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -138,8 +148,10 @@ void do_stat(const StatParams& args) {
 }
 
 /** Utils. */
-void do_utils_consolidate_fragments(const UtilsParams& args) {
+void do_utils_consolidate_fragments(
+    const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils consolidate fragments command.");
+  config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
@@ -147,8 +159,10 @@ void do_utils_consolidate_fragments(const UtilsParams& args) {
   LOG_TRACE("Finished utils consolidate fragments command.");
 }
 
-void do_utils_consolidate_fragment_metadata(const UtilsParams& args) {
+void do_utils_consolidate_fragment_metadata(
+    const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils consolidate fragment metadata command.");
+  config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
@@ -156,8 +170,9 @@ void do_utils_consolidate_fragment_metadata(const UtilsParams& args) {
   LOG_TRACE("Finished utils consolidate fragment metadata command.");
 }
 
-void do_utils_vacuum_fragments(const UtilsParams& args) {
+void do_utils_vacuum_fragments(const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils vacuum fragments command.");
+  config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
@@ -165,8 +180,10 @@ void do_utils_vacuum_fragments(const UtilsParams& args) {
   LOG_TRACE("Finished utils vacuum fragments command.");
 }
 
-void do_utils_vacuum_fragment_metadata(const UtilsParams& args) {
+void do_utils_vacuum_fragment_metadata(
+    const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils vacuum fragment metadata command.");
+  LOG_DEBUG(cmd.config_to_str(true));
   utils::set_htslib_tiledb_context(args.tiledb_config);
   TileDBVCFDataset dataset;
   dataset.open(args.uri, args.tiledb_config);
@@ -348,7 +365,7 @@ void add_create(CLI::App& app) {
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command
-  cmd->callback([args]() { do_create(*args); });
+  cmd->callback([args, cmd]() { do_create(*args, *cmd); });
 }
 
 void add_register(CLI::App& app) {
@@ -383,7 +400,7 @@ void add_register(CLI::App& app) {
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command
-  cmd->callback([args]() { do_register(*args); });
+  cmd->callback([args, cmd]() { do_register(*args, *cmd); });
 }
 
 void add_store(CLI::App& app) {
@@ -490,7 +507,7 @@ void add_store(CLI::App& app) {
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
 
   // register function to implement this command
-  cmd->callback([args]() { do_store(*args); });
+  cmd->callback([args, cmd]() { do_store(*args, *cmd); });
 }
 
 void add_export(CLI::App& app) {
@@ -641,7 +658,7 @@ void add_export(CLI::App& app) {
       "Requires verbose mode");
 
   // register function to implement this command
-  cmd->callback([args]() { do_export(*args); });
+  cmd->callback([args, cmd]() { do_export(*args, *cmd); });
 }
 
 void add_list(CLI::App& app) {
@@ -654,7 +671,7 @@ void add_list(CLI::App& app) {
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command
-  cmd->callback([args]() { do_list(*args); });
+  cmd->callback([args, cmd]() { do_list(*args, *cmd); });
 }
 
 void add_stat(CLI::App& app) {
@@ -667,7 +684,7 @@ void add_stat(CLI::App& app) {
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command
-  cmd->callback([args]() { do_stat(*args); });
+  cmd->callback([args, cmd]() { do_stat(*args, *cmd); });
 }
 
 void add_util_options(CLI::App* cmd, UtilsParams& args) {
@@ -690,13 +707,14 @@ void add_utils(CLI::App& app) {
   auto c_f_cmd = c_cmd->add_subcommand(
       "fragments", "Consolidate TileDB-VCF dataset fragments");
   add_util_options(c_f_cmd, *args);
-  c_f_cmd->callback([args]() { do_utils_consolidate_fragments(*args); });
+  c_f_cmd->callback(
+      [args, cmd]() { do_utils_consolidate_fragments(*args, *cmd); });
 
   auto c_m_cmd = c_cmd->add_subcommand(
       "fragment_meta", "Consolidate TileDB-VCF dataset fragment metadata");
   add_util_options(c_m_cmd, *args);
   c_m_cmd->callback(
-      [args]() { do_utils_consolidate_fragment_metadata(*args); });
+      [args, cmd]() { do_utils_consolidate_fragment_metadata(*args, *cmd); });
 
   auto v_cmd = cmd->add_subcommand("vacuum", "Vacuum TileDB-VCF dataset");
   v_cmd->require_subcommand(1, 1);
@@ -704,12 +722,13 @@ void add_utils(CLI::App& app) {
   auto v_f_cmd =
       v_cmd->add_subcommand("fragments", "Vacuum TileDB-VCF dataset fragments");
   add_util_options(v_f_cmd, *args);
-  v_f_cmd->callback([args]() { do_utils_vacuum_fragments(*args); });
+  v_f_cmd->callback([args, cmd]() { do_utils_vacuum_fragments(*args, *cmd); });
 
   auto v_m_cmd = v_cmd->add_subcommand(
       "fragment_meta", "Vacuum TileDB-VCF dataset fragment metadata");
   add_util_options(v_m_cmd, *args);
-  v_m_cmd->callback([args]() { do_utils_vacuum_fragment_metadata(*args); });
+  v_m_cmd->callback(
+      [args, cmd]() { do_utils_vacuum_fragment_metadata(*args, *cmd); });
 }
 
 //==================================================================
