@@ -77,7 +77,7 @@ $tilevcf store -u ingested_sep_indexes --remove-sample-file -f samples.txt || ex
 test -e samples.txt && exit 1
 
 # Run export checks
-$tilevcf export -u ingested_1 -s HG01762 -O v -b 512
+$tilevcf export -u ingested_1 --sample-names HG01762 -O v -b 512
 diff <(bcftools view --no-version ${input_dir}/small.bcf) HG01762.vcf || exit 1
 $tilevcf export -u ingested_2 -s HG00280 -O v -b 512
 diff <(bcftools view --no-version ${input_dir}/small2.bcf) HG00280.vcf || exit 1
