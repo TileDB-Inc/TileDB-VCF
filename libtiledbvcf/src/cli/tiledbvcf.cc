@@ -82,6 +82,10 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
     throw CLI::CallForHelp();
   }
 
+  if (args.verbose) {
+    LOG_SET_LEVEL("debug");
+  }
+
   LOG_TRACE("Starting store command.");
   config_to_log(cmd);
 
@@ -100,6 +104,10 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
 
 /** Export. */
 void do_export(ExportParams& args, const CLI::App& cmd) {
+  if (args.verbose) {
+    LOG_SET_LEVEL("debug");
+  }
+
   LOG_TRACE("Starting export command.");
   config_to_log(cmd);
 
@@ -588,7 +596,7 @@ void add_export(CLI::App& app) {
       args->samples_file_uri,
       "Path to file with 1 sample name per line");
   cmd->add_option(
-         "-s,--samples-name",
+         "-s,--sample-names",
          args->sample_names,
          "CSV list of sample names to export")
       ->delimiter(',')
