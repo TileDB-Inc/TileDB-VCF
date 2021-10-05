@@ -55,7 +55,7 @@ struct IngestionParams {
   std::string log_file;
   std::string samples_file_uri;
   std::vector<std::string> sample_uris;
-  unsigned num_threads = std::thread::hardware_concurrency() / 2;
+  unsigned num_threads = std::thread::hardware_concurrency();
   unsigned part_size_mb = 50;
   bool verbose = false;
   ScratchSpaceInfo scratch_space;
