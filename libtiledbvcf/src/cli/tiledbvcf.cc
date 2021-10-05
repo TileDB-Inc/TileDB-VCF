@@ -71,9 +71,9 @@ void do_register(const RegistrationParams& args) {
 /** Store/ingest. */
 void do_store(const IngestionParams& args) {
   if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
-    std::cerr << "VCF URIs or --sample-file is required\n"
-              << "Run with --help for more information.\n";
-    exit(1);
+    std::cerr
+        << "ERROR: RequiredError: VCF URIs or --sample-file is required\n";
+    throw CLI::CallForHelp();
   }
 
   LOG_TRACE("Starting store command.");
@@ -729,16 +729,9 @@ int main(int argc, char** argv) {
       "  More information: TileDB <https://tiledb.com>"};
   app.formatter(std::make_shared<VcfFormatter>(right_width));
   app.get_formatter()->column_width(left_width);
-  // app.failure_message(CLI::FailureMessage::help);
+  app.failure_message(CLI::FailureMessage::help);
   app.require_subcommand(1, 1);
   app.option_defaults()->always_capture_default();
-  app.add_flag_function(
-      "-v,--version",
-      [](int count) {
-        std::cout << utils::version_info() << std::endl;
-        exit(0);
-      },
-      "Print the version information and exit");
 
   // add subcommands
   add_create(app);
@@ -748,6 +741,21 @@ int main(int argc, char** argv) {
   add_list(app);
   add_stat(app);
   add_utils(app);
+
+  // add version option and subcommand
+  app.add_flag_function(
+      "-v,--version",
+      [](int count) {
+        std::cout << utils::version_info() << std::endl;
+        exit(0);
+      },
+      "Print the version information and exit");
+  auto sub =
+      app.add_subcommand("version", "Print the version information and exit");
+  sub->parse_complete_callback([]() {
+    std::cout << utils::version_info() << std::endl;
+    exit(0);
+  });
 
   CLI11_PARSE(app, argc, argv);
 
