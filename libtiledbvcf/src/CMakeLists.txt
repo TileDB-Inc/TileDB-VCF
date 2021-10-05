@@ -4,7 +4,7 @@ message(STATUS "Starting TileDB-VCF build.")
 # Find required dependencies
 ############################################################
 
-find_package(Clipp_EP REQUIRED)
+find_package(CLI11_EP REQUIRED)
 find_package(HTSlib_EP REQUIRED)
 find_package(TileDB_EP REQUIRED)
 find_package(Spdlog_EP REQUIRED)
@@ -168,7 +168,7 @@ set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
 
 target_link_libraries(tiledbvcf-bin
   PUBLIC
-    Clipp::Clipp
+    CLI11::CLI11
     HTSlib::HTSlib
     TileDB::tiledb_shared
     spdlog::spdlog

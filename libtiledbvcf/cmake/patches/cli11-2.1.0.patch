@@ -1,0 +1,33 @@
+diff --git a/CLI11.hpp b/CLI11.hpp
+index e6c3f6d..e42abad 100644
+--- a/CLI11.hpp
++++ b/CLI11.hpp
+@@ -8829,8 +8829,8 @@ inline std::string Formatter::make_groups(const App *app, AppFormatMode mode) co
+         if(!group.empty() && !opts.empty()) {
+             out << make_group(group, false, opts);
+ 
+-            if(group != groups.back())
+-                out << "\n";
++            //if(group != groups.back())
++            //    out << "\n";
+         }
+     }
+ 
+@@ -8838,7 +8838,7 @@ inline std::string Formatter::make_groups(const App *app, AppFormatMode mode) co
+ }
+ 
+ inline std::string Formatter::make_description(const App *app) const {
+-    std::string desc = app->get_description();
++    std::string desc = "\n" + app->get_description();
+     auto min_options = app->get_require_option_min();
+     auto max_options = app->get_require_option_max();
+     if(app->get_required()) {
+@@ -8860,7 +8860,7 @@ inline std::string Formatter::make_description(const App *app) const {
+     } else if(min_options > 0) {
+         desc += " \n[At least " + std::to_string(min_options) + " of the following options are required]";
+     }
+-    return (!desc.empty()) ? desc + "\n" : std::string{};
++    return (!desc.empty()) ? desc + "\n\n" : std::string{};
+ }
+ 
+ inline std::string Formatter::make_usage(const App *app, std::string name) const {

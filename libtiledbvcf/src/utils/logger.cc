@@ -99,18 +99,22 @@ void Logger::critical(const char* msg) {
   logger_->critical(msg);
 }
 
-void Logger::set_level(const std::string& level) {
-  if (level == "FATAL" || level == "F" || level == "f") {
+void Logger::set_level(const std::string& level_in) {
+  // convert level to lower case
+  std::string level = level_in;
+  std::for_each(level.begin(), level.end(), [](char& c) { c = ::tolower(c); });
+
+  if (level == "fatal" || level[0] == 'f') {
     level_ = spdlog::level::critical;
-  } else if (level == "ERROR" || level == "E" || level == "e") {
+  } else if (level == "error" || level[0] == 'e') {
     level_ = spdlog::level::err;
-  } else if (level == "WARN" || level == "W" || level == "w") {
+  } else if (level == "warn" || level[0] == 'w') {
     level_ = spdlog::level::warn;
-  } else if (level == "INFO" || level == "I" || level == "i") {
+  } else if (level == "info" || level[0] == 'i') {
     level_ = spdlog::level::info;
-  } else if (level == "DEBUG" || level == "D" || level == "d") {
+  } else if (level == "debug" || level[0] == 'd') {
     level_ = spdlog::level::debug;
-  } else if (level == "TRACE" || level == "T" || level == "t") {
+  } else if (level == "trace" || level[0] == 't') {
     level_ = spdlog::level::trace;
   } else {
     set_level("WARN");
@@ -164,6 +168,16 @@ void LOG_CONFIG(const std::string& level, const std::string& logfile) {
   if (!logfile.empty()) {
     global_logger().set_logfile(logfile);
   }
+}
+
+/** Set log level for global logger. */
+void LOG_SET_LEVEL(const std::string& level) {
+  global_logger().set_level(level);
+}
+
+/** Set log file for global logger. */
+void LOG_SET_FILE(const std::string& logfile) {
+  global_logger().set_logfile(logfile);
 }
 
 /** Check if global logger is logging debug messages. */
