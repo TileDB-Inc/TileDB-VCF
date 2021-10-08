@@ -1,7 +1,7 @@
 package io.tiledb.vcf.hail
 
 import java.nio.file.Paths
-import io.tiledb.vcf.TileDBHailVCFReader
+import io.tiledb.vcf.TileDBVCFHailReader
 import is.hail.HailContext
 import is.hail.annotations.{Region, RegionPool}
 import is.hail.backend.spark.SparkBackend
@@ -19,7 +19,7 @@ import org.scalatest.Assertions.assertResult
 import org.scalatest.funsuite.AnyFunSuite
 import org.testng.annotations.Test
 
-class TileDBHailVCFReaderTests {
+class TileDBVCFHailReaderTests {
   val sparkSession = SparkSession
     .builder()
     .master("local[1]")
@@ -101,7 +101,7 @@ class TileDBHailVCFReaderTests {
     val t1: TableIR = MatrixRowsTable(vcf)
 
 
-    val reader = TileDBHailVCFReader.build(testVCFURI("hail_vcf/regressionLogistic/regressionLogistic") , Some("G"))
+    val reader = TileDBVCFHailReader.build(testVCFURI("hail_vcf/regressionLogistic/regressionLogistic") , Some("G"))
     val tileDBMatrixRead = MatrixRead(reader.fullMatrixType, false, false, reader)
     val tileDBMRT = MatrixRowsTable(tileDBMatrixRead)
 
@@ -121,7 +121,7 @@ class TileDBHailVCFReaderTests {
     val t1: TableIR = MatrixRowsTable(vcf)
     val tv1 = Interpret.apply(t1, ctx)
 
-    val reader = TileDBHailVCFReader.build(testVCFURI("hail_vcf/pedigree/tiledb/pedigree"), Some("Dad1"))
+    val reader = TileDBVCFHailReader.build(testVCFURI("hail_vcf/pedigree/tiledb/pedigree"), Some("Dad1"))
 
     val tileDBMatrixRead = MatrixRead(reader.fullMatrixType, false, false, reader)
     val tileDBMRT = MatrixRowsTable(tileDBMatrixRead)
@@ -141,7 +141,7 @@ class TileDBHailVCFReaderTests {
     val hailMRT: TableIR = MatrixRowsTable(vcf)
     val hailTV = Interpret.apply(hailMRT, ctx)
 
-    val reader = TileDBHailVCFReader.build(testTileDBVCFURI("arrays/v3/ingested_2samples"), Some("HG01762"))
+    val reader = TileDBVCFHailReader.build(testTileDBVCFURI("arrays/v3/ingested_2samples"), Some("HG01762"))
     val tileDBMatrixRead = MatrixRead(reader.fullMatrixType, false, false, reader)
     val tileDBMRT = MatrixRowsTable(tileDBMatrixRead)
     val tileDBTV = Interpret.apply(tileDBMRT, ctx)
@@ -161,7 +161,7 @@ class TileDBHailVCFReaderTests {
 //    val hailMRT: TableIR = MatrixRowsTable(vcf)
 //
 //    val samples = Option("Mom1")
-//    val reader = TileDBHailVCFReader.build(testTileDBVCFURI("hail_vcf/pedigree/tiledb/pedigree"), samples)
+//    val reader = TileDBVCFHailReader.build(testTileDBVCFURI("hail_vcf/pedigree/tiledb/pedigree"), samples)
 //    val tileDBMatrixRead = MatrixRead(reader.fullMatrixType, false, false, reader)
 //    val tileDBMRT = MatrixRowsTable(tileDBMatrixRead)
 //

@@ -75,8 +75,8 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
     // Test with sample HG01762
     String sample = "HG01762";
 
-    TileDBHailVCFReader reader =
-        TileDBHailVCFReader.build(
+    TileDBVCFHailReader reader =
+        TileDBVCFHailReader.build(
             testSampleDataset(sample), testVCFUri("ingested_2samples"), Option.apply(sample));
 
     MatrixRead r = new MatrixRead(reader.fullMatrixType(), false, false, reader);
@@ -111,7 +111,7 @@ public class TileDBHailReaderTest extends SharedJavaSparkSession {
     sample = "HG00280";
 
     reader =
-        TileDBHailVCFReader.build(
+        TileDBVCFHailReader.build(
             testSampleDataset(sample), testVCFUri("ingested_2samples"), Option.apply(sample));
 
     r = new MatrixRead(reader.fullMatrixType(), false, false, reader);

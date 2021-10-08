@@ -93,6 +93,8 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
     rowKey = Array("locus", "alleles"),
     entryType = entryType)
 
+  val typ = fullMatrixType
+
   override def apply(tr: TableRead, ctx: ExecuteContext): TableValue = {
     val requestedType = tr.typ
     val rowType = tr.typ.rowType
@@ -273,7 +275,7 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
 
 case class TileDBHail(uri: String, samples: String)
 
-object TileDBHailVCFReader {
+object TileDBVCFHailReader {
   def fromJValue(jv: JValue) = {
     implicit val formats: Formats = DefaultFormats
     val params = jv.extract[TileDBHail]
