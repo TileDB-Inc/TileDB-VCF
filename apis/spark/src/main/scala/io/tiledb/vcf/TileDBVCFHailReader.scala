@@ -1,33 +1,34 @@
 package io.tiledb.vcf
 
+import java.util.Optional
+
+import io.tiledb.libvcfnative.VCFReader
+import io.tiledb.libvcfnative.VCFReader.AttributeDatatype
 import is.hail.annotations.BroadcastRow
 import is.hail.expr.ir.{ExecuteContext, LowerMatrixIR, MatrixHybridReader, TableRead, TableValue}
-import is.hail.rvd.{RVD, RVDType}
+import is.hail.rvd.RVD
 import is.hail.sparkextras.ContextRDD
 import is.hail.types.physical.{PCanonicalCall, PCanonicalSet, PCanonicalString, PCanonicalStruct, PField, PFloat32, PFloat64, PInt32, PStruct, PType}
 import is.hail.types.virtual._
 import is.hail.types.{MatrixType, TableType}
 import is.hail.utils.{FastIndexedSeq, toRichContextRDDRow, toRichIterable}
-import is.hail.variant.{Call, Call2, Locus, ReferenceGenome}
-import org.apache.spark.sql.{Column, DataFrame, Row, functions}
+import is.hail.variant.{Call2, Locus, ReferenceGenome}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.json4s.JsonAST.JValue
 import org.json4s.{DefaultFormats, Formats}
-import io.tiledb.libvcfnative.VCFReader
-import io.tiledb.libvcfnative.VCFReader.AttributeDatatype
 
-import java.util.Optional
 import scala.collection.mutable
 
 
-class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = Option.empty) extends MatrixHybridReader {
+class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = Option.empty, var df: DataFrame = null) extends MatrixHybridReader {
   override def pathsUsed: Seq[String] = Seq.empty
   override def columnCount: Option[Int] = None
   override def partitionCounts: Option[IndexedSeq[Long]] = None
 
-  var df: DataFrame = null
+  //  var df: DataFrame = dataframe
 
   val sampleList = {
-    if (samples.isDefined) samples.get.split(",")
+    if (samples != null && samples.isDefined) samples.get.split(",")
     else Array[String]()
   }
 
@@ -208,32 +209,30 @@ class TileDBHailVCFReader(var uri: String = null, var samples: Option[String] = 
   }
 }
 
-case class TileDBHail(uri: String, samples: String)
-
 object TileDBHailVCFReader {
   def fromJValue(jv: JValue) = {
     implicit val formats: Formats = DefaultFormats
     val params = jv.extract[TileDBHail]
 
-    val reader = new TileDBHailVCFReader(params.uri, Option(params.samples))
+    val reader = new TileDBVCFHailReader(params.uri, Option(params.samples))
 
     reader
   }
 
-  def build(uri: String, samples: Option[String]): TileDBHailVCFReader = {
-    val reader = new TileDBHailVCFReader(uri, samples)
+  def build(uri: String, samples: Option[String]): TileDBVCFHailReader = {
+    val reader = new TileDBVCFHailReader(uri, samples)
 
     reader
   }
 
-  def build(df: DataFrame, uri: String, samples: Option[String]): TileDBHailVCFReader = {
-    val reader = new TileDBHailVCFReader(uri, samples)
-    reader.df = df
+  def build(df: DataFrame, uri: String, samples: Option[String]): TileDBVCFHailReader = {
+    val reader = new TileDBVCFHailReader(uri, samples, df)
+    //    reader.df = df
 
     reader
   }
 
-  def build(uri: String): TileDBHailVCFReader = {
+  def build(uri: String): TileDBVCFHailReader = {
     build(uri, Option.empty)
   }
 }
