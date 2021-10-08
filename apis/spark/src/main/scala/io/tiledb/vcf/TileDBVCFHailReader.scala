@@ -60,6 +60,23 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
     (infoAttr.toString.split("_")(1) -> dt.virtualType)
   }
 
+  val fmt = vcfReader.fmtAttributes.keySet.toArray.map{ fmtAttr =>
+    val key = fmtAttr.toString
+    val dt = {
+      if (key.contains("GT"))
+        PCanonicalCall(false)
+      else {
+        vcfReader.fmtAttributes.get(key).datatype match {
+          case AttributeDatatype.UINT8 => PInt32()
+          case AttributeDatatype.INT32 => PInt32()
+          case AttributeDatatype.CHAR => PCanonicalString()
+          case AttributeDatatype.FLOAT32 => PFloat32()
+        }
+      }
+    }
+    (fmtAttr.toString.split("_")(1) -> dt.virtualType)
+  }
+
   val vaSignature = PCanonicalStruct(Array(
     PField("rsid", PCanonicalString(), 0),
     PField("qual", PFloat64(), 1),
@@ -70,7 +87,8 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
     colType = TStruct("s" -> TString),
     colKey = Array("s"),
     rowType = TStruct(
-      "locus" -> TLocus(ReferenceGenome.GRCh37),
+//      "locus" -> TLocus(ReferenceGenome.GRCh38),
+      "locus" -> TLocus.schemaFromRG(None),
       "alleles" -> TArray(TString)) ++ vaSignature.virtualType ++ (TStruct("info" -> TStruct(info:_*))),
     rowKey = Array("locus", "alleles"),
     entryType = entryType)
@@ -109,6 +127,7 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
     // Construct a map of info fields and row indices
     var idx = 3
     val infoFieldIdx: mutable.HashMap[String, Int] = mutable.HashMap()
+    val fmtFieldIdx: mutable.HashMap[String, Int] = mutable.HashMap()
 
     // Check if the row has an "info" field
     val hasInfo = rowType.hasField("info")
@@ -117,6 +136,17 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
       info.foreach { infoField =>
         columns = columns :+ s"info_${infoField._1}"
         infoFieldIdx.put(infoField._1, idx)
+        idx += 1
+      }
+    }
+
+    // Check if the row has an "fmt" field
+    val hasFmt = rowType.hasField("info")
+    val fmtFieldNames = fmt.map(_._1)
+    if (hasFmt) {
+      fmt.foreach { fmtField =>
+        columns = columns :+ s"fmt_${fmtField._1}"
+        fmtFieldIdx.put(fmtField._1, idx)
         idx += 1
       }
     }
@@ -130,6 +160,14 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
       if (entryType.hasField(infoField)){
         columns = columns :+ infoField
         infoFieldIdx.put(infoField, idx)
+        idx += 1
+      })
+
+    // Parse fmt entry fields
+    fmtFieldNames.foreach(fmtField =>
+      if (entryType.hasField(fmtField)){
+        columns = columns :+ fmtField
+        fmtFieldIdx.put(fmtField, idx)
         idx += 1
       })
 
@@ -159,8 +197,16 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
           }.toSeq: _*)
         }
 
+        if (hasFmt) {
+          rowFields = rowFields :+ Row(fmtFieldNames.map { x =>
+            val idx = fmtFieldIdx.get(x).get
+            val v = row.get(idx)
+            v
+          }.toSeq: _*)
+        }
+
         // Parse Entry fields (GT, DP and PL)
-        val entryValues = entryType.fieldNames.map { fieldName =>
+        val entryValuesInfo = entryType.fieldNames.map { fieldName =>
           val rid = infoFieldIdx.get(fieldName).get
           fieldName match {
             case "GT" => {
@@ -172,8 +218,24 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
           }
         }
 
-        if (entryValues.nonEmpty) {
-          rowFields = rowFields :+ mutable.WrappedArray.make(Array(Row(entryValues :_* )))
+        val entryValuesFmt = entryType.fieldNames.map { fieldName =>
+          val rid = fmtFieldIdx.get(fieldName).get
+          fieldName match {
+            case "GT" => {
+              val r = row.get(rid).asInstanceOf[mutable.WrappedArray[Int]]
+              val GT = Call2(r(0), r(1))
+              GT
+            }
+            case _ => row.get(rid)
+          }
+        }
+
+        if (entryValuesInfo.nonEmpty) {
+          rowFields = rowFields :+ mutable.WrappedArray.make(Array(Row(entryValuesInfo :_* )))
+        }
+
+        if (entryValuesFmt.nonEmpty) {
+          rowFields = rowFields :+ mutable.WrappedArray.make(Array(Row(entryValuesFmt :_* )))
         }
 
         Row(rowFields : _ *)
@@ -208,6 +270,8 @@ class TileDBVCFHailReader(var uri: String = null, var samples: Option[String] = 
     requestedType.canonicalRowPType -> PType.canonical(requestedType.globalType).asInstanceOf[PStruct]
   }
 }
+
+case class TileDBHail(uri: String, samples: String)
 
 object TileDBHailVCFReader {
   def fromJValue(jv: JValue) = {
