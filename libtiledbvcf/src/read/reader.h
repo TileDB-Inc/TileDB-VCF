@@ -122,6 +122,12 @@ struct ExportParams {
 
   // Debug parameters for optional debug information
   struct DebugParams debug_params;
+
+  // Minimum super region size, used to handle overlapping regions.
+  // Recommed setting to 1 to create smaller super regions and reduce the
+  // time to find the first intersecting region. Increase the setting if
+  // the memory overhead of super regions needs to be reduced.
+  int min_super_region_size = 1;
 };
 
 /* ********************************* */
@@ -438,6 +444,12 @@ class Reader {
     std::string contig;
   };
 
+  /** Helper struct containing stats for a group of regions */
+  struct SuperRegion {
+    size_t region_min;  // minimum region index
+    uint32_t end_max;   // maximum end position
+  };
+
   /**
    * Structure holding all of the state for the current read operation. The read
    * state tracks all of the information that is required to implement
@@ -476,6 +488,13 @@ class Reader {
 
     /** The original genomic regions specified by the user to export. */
     std::vector<Region> regions;
+
+    /**
+     * Contains merged regions per contig to support overlapping regions.
+     * If the super_region vector does not exist for a contig, there are no
+     * overlapping regions in that contig.
+     */
+    std::unordered_map<std::string, std::vector<SuperRegion>> super_regions;
 
     /** Store index positions to only compare again regions for a contig */
     std::unordered_map<std::string, std::vector<size_t>>
@@ -629,7 +648,7 @@ class Reader {
       std::unordered_map<std::string, std::vector<size_t>>*
           regions_index_per_contig,
       std::vector<std::pair<std::string, std::vector<QueryRegion>>>*
-          query_regions) const;
+          query_regions);
 
   /**
    * Prepares the regions to be queried and exported. This merges the list of
@@ -651,6 +670,14 @@ class Reader {
 
   /** Allocates required attribute buffers to receive TileDB query data. */
   void prepare_attribute_buffers();
+
+  /**
+   * Search the regions vector for the first region that can intersect with
+   * the real_start position. If a region is found, modify first_region and
+   * return true. Otherwise, return false.
+   */
+  bool first_intersecting_region(
+      const std::string& contig, uint32_t real_start, size_t& first_region);
 
   /**
    * Processes the result cells from the last TileDB query. Returns false if,
