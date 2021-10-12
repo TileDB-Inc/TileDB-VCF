@@ -140,11 +140,13 @@ Region Region::parse_region(const std::string& region_str) {
 void Region::parse_bed_file_htslib(
     const std::string& bed_file_uri, std::list<Region>* result) {
   // htslib requires bed file names end in ".bed" or ".bed.gz" (case-sensitive)
-  if (!std::regex_match(bed_file_uri, std::regex(".*\\.bed")) &&
-      !std::regex_match(bed_file_uri, std::regex(".*\\.bed.gz"))) {
-    LOG_ERROR("BED file uri must end in '.bed' or '.bed.gz': {}", bed_file_uri);
+  if (!std::regex_match(bed_file_uri, std::regex(".*\\.bed(\\.gz|\\.bgz)?$"))) {
+    LOG_ERROR(
+        "BED file uri must end in '.bed', '.bed.gz', or '.bed.bgz': {}",
+        bed_file_uri);
     throw std::invalid_argument(
-        "BED file uri must end in '.bed' or '.bed.gz': " + bed_file_uri);
+        "BED file uri must end in '.bed', '.bed.gz', or '.bed.bgz': " +
+        bed_file_uri);
   }
 
   // htslib is very chatty as it will try (and fail) to find all possible index
