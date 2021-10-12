@@ -139,7 +139,8 @@ Region Region::parse_region(const std::string& region_str) {
 
 void Region::parse_bed_file_htslib(
     const std::string& bed_file_uri, std::list<Region>* result) {
-  // htslib requires bed file names end in ".bed" or ".bed.gz" (case-sensitive)
+  // htslib requires bed file names end in ".bed", ".bed.gz", or ".bed.bgz"
+  // (case-sensitive)
   if (!std::regex_match(bed_file_uri, std::regex(".*\\.bed(\\.gz|\\.bgz)?$"))) {
     LOG_ERROR(
         "BED file uri must end in '.bed', '.bed.gz', or '.bed.bgz': {}",
