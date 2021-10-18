@@ -47,8 +47,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
 
-RUN pip install --user pandas cython
-
+# avoid --home to prevent issues with singularity
+RUN pip install --no-cache-dir pandas cython
 
 # Build arrow
 ENV ARROW_HOME=/usr/local
