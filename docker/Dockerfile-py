@@ -1,6 +1,7 @@
 FROM ubuntu:20.04
 
 ENV AWS_EC2_METADATA_DISABLED true
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Install some dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
