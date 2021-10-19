@@ -121,7 +121,13 @@ std::vector<std::string> SampleUtils::get_sample_names(
     const ScratchSpaceInfo& scratch_space) {
   return process_sample_headers<std::string>(
       vfs, samples, scratch_space, [](SafeBCFHdr hdr) {
-        return std::string(hdr->samples[0]);
+        int sample_count = bcf_hdr_nsamples(hdr.get());
+        if (sample_count > 1)
+          throw std::runtime_error("Combined VCFs are current not suppported");
+        else if (sample_count == 0)
+          return std::string();
+        else
+          return std::string(hdr->samples[0]);
       });
 }
 

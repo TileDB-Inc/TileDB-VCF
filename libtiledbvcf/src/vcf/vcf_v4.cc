@@ -174,9 +174,11 @@ std::string VCFV4::sample_name() const {
   if (!open_)
     throw std::runtime_error(
         "Error getting sample name from VCF; file not open.");
+
+  // If there are no samples set the name to an empty string
   if (hdr_ == nullptr || bcf_hdr_nsamples(hdr_) == 0)
-    throw std::runtime_error(
-        "Error getting sample name from VCF; header has no samples.");
+    return std::string();
+
   std::string unnormalized_name(hdr_->samples[0]);
   std::string name;
   if (!VCFUtils::normalize_sample_name(unnormalized_name, &name))
@@ -389,8 +391,8 @@ bool VCFV4::Iter::seek(const std::string& contig_name, uint32_t pos) {
     throw std::runtime_error(
         "Failed to init TBX iterator; contig name cannot be empty.");
 
-  int region_min = pos;
-  int region_max = std::numeric_limits<int>::max();
+  int64_t region_min = pos;
+  int64_t region_max = std::numeric_limits<int64_t>::max();
 
   // If we have a tbx index
   if (tbx_ != nullptr) {

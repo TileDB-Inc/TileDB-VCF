@@ -943,11 +943,14 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
               sample + ".");
         }
 
-        if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
-          throw std::runtime_error(
-              "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample to "
-              "BCF header for sample " +
-              sample + ".");
+        if (!sample.empty()) {
+          if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
+            throw std::runtime_error(
+                "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample "
+                "to "
+                "BCF header for sample " +
+                sample + ".");
+          }
         }
 
         if (bcf_hdr_sync(hdr) < 0)
@@ -1496,11 +1499,13 @@ void TileDBVCFDataset::write_vcf_headers_v4(
     headers.push_back(pair.second);
   }
 
+  query.set_layout(TILEDB_UNORDERED);
   auto offsets_and_data = ungroup_var_buffer(headers);
+  query.set_buffer("header", offsets_and_data);
+
   auto sample_offsets_and_data = ungroup_var_buffer(samples);
-  query.set_layout(TILEDB_UNORDERED)
-      .set_buffer("sample", sample_offsets_and_data)
-      .set_buffer("header", offsets_and_data);
+
+  query.set_buffer("sample", sample_offsets_and_data);
   auto st = query.submit();
   if (st != Query::Status::COMPLETE)
     throw std::runtime_error(

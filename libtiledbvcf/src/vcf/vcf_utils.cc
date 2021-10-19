@@ -157,11 +157,10 @@ std::vector<Region> VCFUtils::hdr_get_contigs_regions(bcf_hdr_t* hdr) {
           "line " +
           std::to_string(i));
     int j = bcf_hrec_find_key(hrec, "length");
-    if (j < 0)
-      throw std::invalid_argument(
-          "Cannot get contig offsets from header; contig def does not have "
-          "length");
-    auto length = strtol(hrec->vals[j], nullptr, 10);
+    uint32_t length = std::numeric_limits<uint32_t>::max() - 1;
+    if (j >= 0) {
+      length = strtol(hrec->vals[j], nullptr, 10);
+    }
 
     Region region;
     region.seq_name = seqname;

@@ -567,13 +567,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
 
     std::vector<std::string> hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
+    // Initially set sample_name to empty string to support annoated vcf's
+    // without sample in the header
+    std::string sample_name;
     if (hdr_samples.size() > 1)
       throw std::invalid_argument(
           "Error registering samples; a file has more than 1 sample. "
           "Ingestion "
           "from cVCF is not supported.");
-
-    const auto& sample_name = hdr_samples[0];
+    else if (hdr_samples.size() == 1)
+      sample_name = hdr_samples[0];
     sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
 
     // Loop over all contigs in the header, store the nonempty and also the
