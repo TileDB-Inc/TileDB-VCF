@@ -3,7 +3,7 @@ FROM ubuntu:20.04 as builder
 ENV AWS_EC2_METADATA_DISABLED true
 
 # Install build-time dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     cmake \
     wget \
     git \
