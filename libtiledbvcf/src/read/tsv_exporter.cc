@@ -112,6 +112,8 @@ bool TSVExporter::export_record(
               os << ',';
             }
           }
+        } else if (field.name == "ID") {
+          os << rec->d.id;
         } else if (field.name == "QUAL") {
           os << rec->qual;
         } else if (field.name == "POS") {
