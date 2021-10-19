@@ -37,6 +37,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libbz2-dev \
     liblzma-dev \
     llvm-7 \
+    llvm-7-dev \
     clang-7 \
     libgrpc-dev \
     libssl-dev \
