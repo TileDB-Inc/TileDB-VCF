@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 ENV AWS_EC2_METADATA_DISABLED true
 
