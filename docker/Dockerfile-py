@@ -90,8 +90,7 @@ WORKDIR /tmp/TileDB-VCF/apis/python
 
 RUN python setup.py install
 
-WORKDIR /opt
-
 RUN rm -r /tmp/TileDB-VCF
 
+WORKDIR /data
 ENTRYPOINT ["python3"]
