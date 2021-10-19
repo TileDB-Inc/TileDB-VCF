@@ -1,9 +1,10 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 ENV AWS_EC2_METADATA_DISABLED true
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Install some dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     cmake \
     wget \
     git \
@@ -36,6 +37,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libbz2-dev \
     liblzma-dev \
     llvm-7 \
+    llvm-7-dev \
     clang-7 \
     libgrpc-dev \
     libssl-dev \
@@ -48,7 +50,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && rm -rf /var/lib/apt/lists*
 
 # avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir pandas cython
+RUN pip install --no-cache-dir cython pandas>=1.21.0 tiledb==0.10.3 
 
 # Build arrow
 ENV ARROW_HOME=/usr/local
@@ -88,8 +90,7 @@ WORKDIR /tmp/TileDB-VCF/apis/python
 
 RUN python setup.py install
 
-WORKDIR /opt
-
 RUN rm -r /tmp/TileDB-VCF
 
+WORKDIR /data
 ENTRYPOINT ["python3"]

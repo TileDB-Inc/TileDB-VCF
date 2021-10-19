@@ -1,9 +1,7 @@
-FROM ubuntu:latest as builder
-
-ENV AWS_EC2_METADATA_DISABLED true
+FROM ubuntu:20.04 as builder
 
 # Install build-time dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     cmake \
     wget \
     git \
@@ -37,7 +35,11 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
     && make -j$(nproc) \
     && make install-libtiledbvcf
 
-FROM ubuntu:latest
+FROM ubuntu:20.04
+
+ENV AWS_EC2_METADATA_DISABLED true
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+
 # Install run-time dependencies
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
