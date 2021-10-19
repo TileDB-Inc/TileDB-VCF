@@ -25,6 +25,7 @@
  */
 
 #include "vcf/vcf_v4.h"
+#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
@@ -274,7 +275,8 @@ void VCFV4::read_records() {
     std::queue<SafeSharedBCFRec>().swap(record_queue_);
 
   SafeBCFRec tmp_r(bcf_init1(), bcf_destroy);
-  while (record_queue_.size() < max_record_buffer_size_) {
+  size_t record_buffer_size = 0;
+  while (record_buffer_size < max_record_buffer_size_) {
     if (!record_iter_.next(tmp_r.get()))
       break;
 
@@ -298,6 +300,16 @@ void VCFV4::read_records() {
       bcf_unpack(r.get(), BCF_UN_ALL);
       record_queue_.emplace(std::move(r));
     }
+    auto& new_record = record_queue_.front();
+    record_buffer_size +=
+        sizeof(bcf1_t) + new_record->shared.m + new_record->indiv.m;
+  }
+  if (record_buffer_size) {
+    LOG_TRACE(
+        "Filled VCF record queue: bytes={} records={} avg record bytes={}",
+        record_buffer_size,
+        record_queue_.size(),
+        record_buffer_size / record_queue_.size());
   }
 }
 

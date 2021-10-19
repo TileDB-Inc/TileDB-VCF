@@ -73,6 +73,9 @@ struct IngestionParams {
    */
   unsigned thread_task_size = 5000000;
 
+  // Total memory budget
+  uint64_t total_memory_budget_mb = 8192;
+
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
 

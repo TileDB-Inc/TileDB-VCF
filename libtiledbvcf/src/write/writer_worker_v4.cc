@@ -25,6 +25,7 @@
  */
 
 #include "write/writer_worker_v4.h"
+#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
@@ -204,6 +205,7 @@ bool WriterWorkerV4::resume() {
       return false;
   }
 
+  LOG_TRACE("Output buffer size = {} MiB", buffers_.total_size() >> 20);
   return true;
 }
 

@@ -420,15 +420,21 @@ void add_store(CLI::App& app) {
   add_tiledb_uri_option(cmd, args->uri);
   cmd->add_option("-t,--threads", args->num_threads, "Number of threads");
   cmd->add_option(
+      "-m,--total-memory-budget-mb",
+      args->total_memory_budget_mb,
+      "The total memory budget for ingestion (MiB)");
+  cmd->add_option(
       "-n,--max-record-buff",
       args->max_record_buffer_size,
       "Max number of BCF records to buffer per file");
+  CLI::retire_option(cmd, "--max-record-buff");
   cmd->add_option(
       "-k,--thread-task-size",
       args->thread_task_size,
       "Max length (# columns) of an ingestion task. Affects load "
       "balancing of ingestion work across threads, and total "
       "memory consumption.");
+  CLI::retire_option(cmd, "--thread-task-size");
   cmd->add_flag(
       "--resume",
       args->resume_sample_partial_ingestion,
@@ -469,6 +475,7 @@ void add_store(CLI::App& app) {
       args->max_tiledb_buffer_size_mb,
       "The total memory budget (MB) used when submitting TileDB "
       "queries.");
+  CLI::retire_option(cmd, "--mem-budget-mb");
   cmd->add_option(
       "-p,--s3-part-size",
       args->part_size_mb,

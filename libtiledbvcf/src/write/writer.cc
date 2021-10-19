@@ -361,14 +361,16 @@ void Writer::ingest_samples() {
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
+  auto time_sec = utils::chrono_duration(start_all);
   LOG_INFO(fmt::format(
       std::locale(""),
-      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in {} "
-      "seconds.",
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+      "{:.3f} seconds = {:.1f} records/sec",
       records_ingested,
       anchors_ingested,
       samples.size(),
-      utils::chrono_duration(start_all)));
+      time_sec,
+      records_ingested / time_sec));
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -511,6 +513,38 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
+  // set ingestion parameters
+  size_t avg_bcf_record_bytes = 512;
+  size_t fixed_overhead_bytes = 1 << 30;
+  size_t buffer_bytes_per_thread =
+      (params.total_memory_budget_mb << 20) - fixed_overhead_bytes;
+  buffer_bytes_per_thread *= 0.75;
+  buffer_bytes_per_thread /= params.num_threads;
+
+  // per thread, per sample vcf input buffer
+  ingestion_params_.max_record_buffer_size =
+      0.1 * buffer_bytes_per_thread / samples.size();
+
+  // per thread output buffer
+  ingestion_params_.max_tiledb_buffer_size_mb = 0.9 * buffer_bytes_per_thread;
+
+  // contig range size per work item
+  ingestion_params_.thread_task_size =
+      ingestion_params_.max_tiledb_buffer_size_mb / avg_bcf_record_bytes;
+
+  LOG_INFO(
+      "VCF input buffers = {} threads * {} samples * {} MiB",
+      params.num_threads,
+      samples.size(),
+      ingestion_params_.max_record_buffer_size >> 20);
+  LOG_INFO(
+      "TileDB output buffers = {} threads * {} MiB",
+      params.num_threads,
+      ingestion_params_.max_tiledb_buffer_size_mb >> 20);
+  LOG_INFO(
+      "Contig range per task = {} positions",
+      ingestion_params_.thread_task_size);
+
   // TODO: workers can be reused across space tiles
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
@@ -518,7 +552,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_bytes(
-        params.max_tiledb_buffer_size_mb * 1024 * 1024);
+        ingestion_params_.max_tiledb_buffer_size_mb * 1024 * 1024);
   }
 
   // First compose the set of contigs that are nonempty.
@@ -739,6 +773,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   while (!finished) {
     finished = true;
 
+    auto start = std::chrono::steady_clock::now();
+    size_t prev_records = records_ingested;
     for (unsigned i = 0; i < tasks.size(); i++) {
       if (!tasks[i].valid())
         continue;
@@ -812,7 +848,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
-          LOG_INFO(
+          LOG_DEBUG(
               "Recorded {} cells for contig {} (task {} / {})",
               worker->records_buffered(),
               contig,
@@ -847,6 +883,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
     }
+    LOG_INFO(
+        "Ingestion rate = {:.3f} records/sec",
+        (records_ingested - prev_records) / utils::chrono_duration(start));
   }
 
   LOG_DEBUG(
