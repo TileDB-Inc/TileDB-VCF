@@ -76,6 +76,11 @@ struct IngestionParams {
   // Total memory budget
   uint64_t total_memory_budget_mb = 8192;
 
+  // Components of total memory budget
+  uint64_t tiledb_memory_budget_mb;  // sm.mem.total_budget
+  uint64_t input_memory_budget_mb;   // VCF record queues
+  uint64_t output_memory_budget_mb;  // record heap, attribute buffers
+
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
 

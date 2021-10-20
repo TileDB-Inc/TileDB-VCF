@@ -302,9 +302,8 @@ void VCFV4::read_records() {
       bcf_unpack(r.get(), BCF_UN_ALL);
       record_queue_.emplace(std::move(r));
     }
-    auto& new_record = record_queue_.front();
-    record_buffer_size +=
-        sizeof(bcf1_t) + new_record->shared.m + new_record->indiv.m;
+    record_buffer_size += sizeof(bcf1_t) + record_queue_.front()->shared.m +
+                          record_queue_.front()->indiv.m;
   }
   if (record_buffer_size) {
     LOG_TRACE(

@@ -89,8 +89,10 @@ void Writer::init(const IngestionParams& params) {
       params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
 
   tiledb_config_.reset(new Config);
-  (*tiledb_config_)["vfs.s3.multipart_part_size"] =
-      params.part_size_mb * 1024 * 1024;
+  (*tiledb_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
+  (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
+                                             << 20;
+  (*tiledb_config_)["sm.compute_concurrency_level"] = params.num_threads;
 
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
@@ -196,6 +198,24 @@ void Writer::ingest_samples() {
   if (ingestion_params_.resume_sample_partial_ingestion) {
     ingestion_params_.load_data_array_fragment_info = true;
   }
+
+  // Distribute memory budget
+  size_t total_mb = ingestion_params_.total_memory_budget_mb;
+  size_t tiledb_mb = std::min(static_cast<int>(total_mb * 0.5), 4096);
+  size_t input_mb = (total_mb - tiledb_mb) * 0.1;
+  size_t output_mb = total_mb - tiledb_mb - input_mb;
+
+  ingestion_params_.tiledb_memory_budget_mb = tiledb_mb;
+  ingestion_params_.input_memory_budget_mb = input_mb;
+  ingestion_params_.output_memory_budget_mb = output_mb;
+
+  LOG_INFO(
+      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
+      "output={} MiB",
+      total_mb,
+      tiledb_mb,
+      input_mb,
+      output_mb);
 
   init(ingestion_params_);
 
@@ -515,32 +535,30 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   // set ingestion parameters
   size_t avg_bcf_record_bytes = 512;
-  size_t fixed_overhead_bytes = 1 << 30;
-  size_t buffer_bytes_per_thread =
-      (params.total_memory_budget_mb << 20) - fixed_overhead_bytes;
-  buffer_bytes_per_thread *= 0.75;
-  buffer_bytes_per_thread /= params.num_threads;
 
   // per thread, per sample vcf input buffer
   ingestion_params_.max_record_buffer_size =
-      0.1 * buffer_bytes_per_thread / samples.size();
+      (params.input_memory_budget_mb << 20) / params.num_threads /
+      samples.size();
 
   // per thread output buffer
-  ingestion_params_.max_tiledb_buffer_size_mb = 0.9 * buffer_bytes_per_thread;
+  ingestion_params_.max_tiledb_buffer_size_mb =
+      params.output_memory_budget_mb / params.num_threads;
 
   // contig range size per work item
   ingestion_params_.thread_task_size =
-      ingestion_params_.max_tiledb_buffer_size_mb / avg_bcf_record_bytes;
+      (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
+      avg_bcf_record_bytes;
 
   LOG_INFO(
-      "VCF input buffers = {} threads * {} samples * {} MiB",
+      "Input buffers = {} threads * {} samples * {} MiB",
       params.num_threads,
       samples.size(),
       ingestion_params_.max_record_buffer_size >> 20);
   LOG_INFO(
-      "TileDB output buffers = {} threads * {} MiB",
+      "Output buffers = {} threads * {} MiB",
       params.num_threads,
-      ingestion_params_.max_tiledb_buffer_size_mb >> 20);
+      ingestion_params_.max_tiledb_buffer_size_mb);
   LOG_INFO(
       "Contig range per task = {} positions",
       ingestion_params_.thread_task_size);
