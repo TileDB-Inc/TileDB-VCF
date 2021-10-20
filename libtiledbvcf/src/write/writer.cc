@@ -202,8 +202,10 @@ void Writer::ingest_samples() {
   // Distribute memory budget
   size_t total_mb = ingestion_params_.total_memory_budget_mb;
   size_t tiledb_mb = std::min(static_cast<int>(total_mb * 0.5), 4096);
-  size_t input_mb = (total_mb - tiledb_mb) * 0.1;
-  size_t output_mb = total_mb - tiledb_mb - input_mb;
+  size_t input_mb = (total_mb - tiledb_mb) * 0.05;
+  // Remove overhead for holding mulitple contigs in the record heap
+  size_t output_mb = (total_mb - tiledb_mb - input_mb) * 0.8;
+  size_t overhead_mb = total_mb - tiledb_mb - input_mb - output_mb;
 
   ingestion_params_.tiledb_memory_budget_mb = tiledb_mb;
   ingestion_params_.input_memory_budget_mb = input_mb;
@@ -211,11 +213,12 @@ void Writer::ingest_samples() {
 
   LOG_INFO(
       "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
-      "output={} MiB",
+      "output={} MiB + overhead={} MiB",
       total_mb,
       tiledb_mb,
       input_mb,
-      output_mb);
+      output_mb,
+      overhead_mb);
 
   init(ingestion_params_);
 
@@ -818,14 +821,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             if (!last_contig_mergeable || !contig_mergeable) {
               if (LOG_DEBUG_ENABLED()) {
                 if (!last_contig_mergeable) {
-                  LOG_DEBUG(
+                  LOG_INFO(
                       "Previous contig {} found to NOT be mergeable, "
                       "finalizing previous fragment and starting new write for "
                       "{}",
                       last_region_contig,
                       contig);
                 } else if (!contig_mergeable) {
-                  LOG_DEBUG(
+                  LOG_INFO(
                       "Contig {0} found to NOT be mergeable, "
                       "finalizing previous fragment and starting new write for "
                       "{0}",
@@ -834,7 +837,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               }
               // If the contig is different the last one we wrote, and we aren't
               // suppose to merge this new one, then finalize the previous one
-              LOG_DEBUG(
+              LOG_INFO(
                   "Finalizing contig batch [{}, {}]",
                   starting_region_contig_for_merge,
                   last_region_contig);
