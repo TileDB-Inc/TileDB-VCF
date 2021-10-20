@@ -39,6 +39,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/utils.h"
 #include "vcf/htslib_value.h"
 
 namespace tiledb {
@@ -74,7 +75,9 @@ struct IngestionParams {
   unsigned thread_task_size = 5000000;
 
   // Total memory budget
-  uint64_t total_memory_budget_mb = 8192;
+  uint64_t total_memory_budget_mb = utils::system_memory_mb() > 0 ?
+                                        0.75 * utils::system_memory_mb() :
+                                        8192;
 
   // Components of total memory budget
   uint64_t tiledb_memory_budget_mb;  // sm.mem.total_budget

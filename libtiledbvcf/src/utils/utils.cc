@@ -26,6 +26,7 @@
 
 #include <htslib/vcf.h>
 #include <tiledb/version.h>
+#include <unistd.h>
 #include <cerrno>
 #include <fstream>
 #include <mutex>
@@ -555,6 +556,14 @@ const std::string& version_info() {
   }
 
   return version;
+}
+
+size_t system_memory_mb() {
+#ifdef _WIN32
+  return 0;
+#else
+  return (sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE)) >> 20;
+#endif
 }
 
 }  // namespace utils

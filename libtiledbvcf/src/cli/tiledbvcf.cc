@@ -41,7 +41,7 @@ using namespace tiledb::vcf;
 //==================================================================
 
 void config_to_log(const CLI::App& cmd) {
-  LOG_DEBUG("Command options:\n{}", cmd.config_to_str(true));
+  LOG_INFO("Command options:\n{}", cmd.config_to_str(true));
 }
 
 /** Create. */
@@ -422,7 +422,8 @@ void add_store(CLI::App& app) {
   cmd->add_option(
       "-m,--total-memory-budget-mb",
       args->total_memory_budget_mb,
-      "The total memory budget for ingestion (MiB)");
+      "The total memory budget for ingestion (MiB). Default = 75% of system "
+      "memory.");
   cmd->add_flag(
       "--resume",
       args->resume_sample_partial_ingestion,
