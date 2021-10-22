@@ -632,7 +632,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
       LOG_DEBUG(fmt::format(
           std::locale(""),
-          "sample {} contig {}: {:L} positions {:L} records",
+          "Sample {} contig {}: {:L} positions {:L} records",
           sample_name,
           contig_region.seq_name,
           contig_region.max,
@@ -691,13 +691,12 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Set worker task size for each contig
   for (auto& region : regions_v4) {
     // convert total records to task size
-    contig_task_size[region.seq_name] = params.ratio_task_size * region.max *
-                                        output_buffer_records /
-                                        contig_task_size[region.seq_name];
-    LOG_DEBUG(
-        "Contig {} task size = {:L}",
-        region.seq_name,
-        contig_task_size[region.seq_name]);
+    uint32_t task_size = params.ratio_task_size * region.max *
+                         output_buffer_records /
+                         contig_task_size[region.seq_name];
+    // limit task size to contig length
+    contig_task_size[region.seq_name] =
+        task_size;  // std::min(task_size, region.max);
   }
 
   regions = prepare_region_list(regions_v4, contig_task_size);
@@ -1047,6 +1046,12 @@ std::vector<Region> Writer::prepare_region_list(
     const uint32_t task_size = contig_task_size.at(r.seq_name);
     const uint32_t contig_len = r.max - r.min + 1;
     const uint32_t ntasks = utils::ceil(contig_len, task_size);
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Contig {}: task size = {:L}, tasks = {:L}",
+        r.seq_name,
+        task_size,
+        ntasks));
     for (uint32_t i = 0; i < ntasks; i++) {
       uint32_t task_min = r.min + i * task_size;
       uint32_t task_max = std::min(task_min + task_size - 1, r.max);
