@@ -200,11 +200,11 @@ void Writer::ingest_samples() {
   }
 
   // Distribute memory budget
-  size_t total_mb = ingestion_params_.total_memory_budget_mb;
-  size_t tiledb_mb = total_mb * ingestion_params_.ratio_tiledb_memory;
+  uint32_t total_mb = ingestion_params_.total_memory_budget_mb;
+  uint32_t tiledb_mb = total_mb * ingestion_params_.ratio_tiledb_memory;
   tiledb_mb = std::min(tiledb_mb, ingestion_params_.max_tiledb_memory_mb);
-  size_t input_mb = total_mb * ingestion_params_.ratio_input_memory;
-  size_t output_mb = total_mb - tiledb_mb - input_mb;
+  uint32_t input_mb = total_mb * ingestion_params_.ratio_input_memory;
+  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
 
   ingestion_params_.tiledb_memory_budget_mb = tiledb_mb;
   ingestion_params_.input_memory_budget_mb = input_mb;
@@ -601,7 +601,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   }
 
   // Total number of records in each contig for all samples.
-  std::map<std::string, size_t> contig_task_size;
+  std::map<std::string, uint32_t> contig_task_size;
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -635,7 +635,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           "Sample {} contig {}: {:L} positions {:L} records",
           sample_name,
           contig_region.seq_name,
-          contig_region.max,
+          contig_region.max + 1,
           vcf.record_count(contig_region.seq_name)));
 
       contig_task_size[contig_region.seq_name] +=
@@ -684,7 +684,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     return {0, 0};
 
   // Estimate the number of records that will fit the output buffer.
-  size_t output_buffer_records =
+  uint32_t output_buffer_records =
       (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
       params.avg_bcf_record_size;
 
@@ -695,8 +695,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                          output_buffer_records /
                          contig_task_size[region.seq_name];
     // limit task size to contig length
-    contig_task_size[region.seq_name] =
-        task_size;  // std::min(task_size, region.max);
+    contig_task_size[region.seq_name] = std::min(task_size, region.max + 1);
   }
 
   regions = prepare_region_list(regions_v4, contig_task_size);
@@ -1039,7 +1038,7 @@ std::vector<Region> Writer::prepare_region_list(
 
 std::vector<Region> Writer::prepare_region_list(
     const std::vector<Region>& all_contigs,
-    const std::map<std::string, size_t>& contig_task_size) const {
+    const std::map<std::string, uint32_t>& contig_task_size) const {
   std::vector<Region> result;
 
   for (const auto& r : all_contigs) {
@@ -1048,10 +1047,11 @@ std::vector<Region> Writer::prepare_region_list(
     const uint32_t ntasks = utils::ceil(contig_len, task_size);
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Contig {}: task size = {:L}, tasks = {:L}",
+        "Contig {}: task size = {:L} tasks = {:L}",
         r.seq_name,
         task_size,
         ntasks));
+    assert(ntasks > 0);
     for (uint32_t i = 0; i < ntasks; i++) {
       uint32_t task_min = r.min + i * task_size;
       uint32_t task_max = std::min(task_min + task_size - 1, r.max);

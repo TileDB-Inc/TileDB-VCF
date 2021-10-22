@@ -62,7 +62,7 @@ struct IngestionParams {
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
   // Max number of VCF records to read into memory
-  uint64_t max_record_buffer_size = 50000;
+  uint32_t max_record_buffer_size = 50000;
   std::vector<std::string> tiledb_config;
   bool tiledb_stats_enabled = false;
   bool tiledb_stats_enabled_vcf_header_array = false;
@@ -81,12 +81,12 @@ struct IngestionParams {
                                         8192;
 
   // Components of total memory budget
-  uint64_t tiledb_memory_budget_mb;  // sm.mem.total_budget
-  uint64_t input_memory_budget_mb;   // VCF record queues
-  uint64_t output_memory_budget_mb;  // record heap, attribute buffers
+  uint32_t tiledb_memory_budget_mb;  // sm.mem.total_budget
+  uint32_t input_memory_budget_mb;   // VCF record queues
+  uint32_t output_memory_budget_mb;  // record heap, attribute buffers
 
   // Parameters used to distribute the memory budget
-  uint64_t max_tiledb_memory_mb = 4096;
+  uint32_t max_tiledb_memory_mb = 4096;
   float ratio_tiledb_memory = 0.5;
   float ratio_input_memory = 0.02;
 
@@ -100,10 +100,10 @@ struct IngestionParams {
   float ratio_task_size = 0.8;
 
   // Max size of TileDB buffers before flushing. Defaults to 1GB
-  uint64_t max_tiledb_buffer_size_mb = 1024;
+  uint32_t max_tiledb_buffer_size_mb = 1024;
 
   // Number of samples per batch for ingestion (default: 10).
-  uint64_t sample_batch_size = 10;
+  uint32_t sample_batch_size = 10;
 
   // Should the fragment info of data be loaded
   // This is used for resuming partial ingestions
@@ -362,7 +362,7 @@ class Writer {
    */
   std::vector<Region> prepare_region_list(
       const std::vector<Region>& all_contigs,
-      const std::map<std::string, size_t>& contig_task_size) const;
+      const std::map<std::string, uint32_t>& contig_task_size) const;
 
   /**
    * Ingests a batch of samples.
