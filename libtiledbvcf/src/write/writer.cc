@@ -601,7 +601,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   }
 
   // Total number of records in each contig for all samples.
-  std::map<std::string, uint32_t> contig_task_size;
+  std::map<std::string, uint32_t> total_contig_records;
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -638,7 +638,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           contig_region.max + 1,
           vcf.record_count(contig_region.seq_name)));
 
-      contig_task_size[contig_region.seq_name] +=
+      total_contig_records[contig_region.seq_name] +=
           vcf.record_count(contig_region.seq_name);
 
       // Check if the contig has already been ingested. If so we'll skip it.
@@ -688,14 +688,19 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
       params.avg_bcf_record_size;
 
+  LOG_DEBUG("Output buffer records = {}", output_buffer_records);
+
   // Set worker task size for each contig
+  std::map<std::string, uint32_t> contig_task_size;
   for (auto& region : regions_v4) {
     // convert total records to task size
-    uint32_t task_size = params.ratio_task_size * region.max *
-                         output_buffer_records /
-                         contig_task_size[region.seq_name];
-    // limit task size to contig length
-    contig_task_size[region.seq_name] = std::min(task_size, region.max + 1);
+    uint32_t total_records = total_contig_records[region.seq_name];
+    uint32_t task_size = region.max + 1;
+    if (total_records > output_buffer_records) {
+      task_size = params.ratio_task_size * region.max * output_buffer_records /
+                  total_records;
+    }
+    contig_task_size[region.seq_name] = task_size;
   }
 
   regions = prepare_region_list(regions_v4, contig_task_size);
@@ -1051,7 +1056,6 @@ std::vector<Region> Writer::prepare_region_list(
         r.seq_name,
         task_size,
         ntasks));
-    assert(ntasks > 0);
     for (uint32_t i = 0; i < ntasks; i++) {
       uint32_t task_min = r.min + i * task_size;
       uint32_t task_max = std::min(task_min + task_size - 1, r.max);
