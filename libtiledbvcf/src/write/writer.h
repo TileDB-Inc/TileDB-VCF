@@ -71,18 +71,33 @@ struct IngestionParams {
    * Max length (# columns) of an ingestion "task". This value is derived
    * empirically to optimize ingestion performance. It affects available
    * parallelism as well as load balancing of ingestion work across threads.
+   * (not used in V4)
    */
   unsigned thread_task_size = 5000000;
 
   // Total memory budget
   uint64_t total_memory_budget_mb = utils::system_memory_mb() > 0 ?
-                                        0.75 * utils::system_memory_mb() :
+                                        0.5 * utils::system_memory_mb() :
                                         8192;
 
   // Components of total memory budget
   uint64_t tiledb_memory_budget_mb;  // sm.mem.total_budget
   uint64_t input_memory_budget_mb;   // VCF record queues
   uint64_t output_memory_budget_mb;  // record heap, attribute buffers
+
+  // Parameters used to distribute the memory budget
+  uint64_t max_tiledb_memory_mb = 4096;
+  float ratio_tiledb_memory = 0.5;
+  float ratio_input_memory = 0.02;
+
+  // Average bcf record size used to estimate the number of records that
+  // fit in the output memory.
+  int avg_bcf_record_size = 512;
+
+  // Scaling factor for the worker task range. Scaling the task range avoids
+  // flushing the attribute buffers before the record heap is empty.
+  // (performance optimization)
+  float ratio_task_size = 0.8;
 
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint64_t max_tiledb_buffer_size_mb = 1024;
@@ -343,11 +358,11 @@ class Writer {
   /**
    * Prepares a list of disjoint genomic regions that cover the whole genome.
    * This is used to split up work across the ingestion threads, and so the
-   * returned list depends on the thread task size parameter.
+   * returned list depends on the contig task size.
    */
   std::vector<Region> prepare_region_list(
       const std::vector<Region>& all_contigs,
-      const IngestionParams& params) const;
+      const std::map<std::string, size_t>& contig_task_size) const;
 
   /**
    * Ingests a batch of samples.

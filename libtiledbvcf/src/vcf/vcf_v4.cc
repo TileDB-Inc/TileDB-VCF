@@ -191,6 +191,10 @@ std::string VCFV4::sample_name() const {
 }
 
 bool VCFV4::contig_has_records(const std::string& contig_name) const {
+  return record_count(contig_name) > 0;
+}
+
+size_t VCFV4::record_count(const std::string& contig_name) const {
   if (!open_)
     throw std::runtime_error(
         "Error checking empty contig in VCF; file not open.");
@@ -208,7 +212,7 @@ bool VCFV4::contig_has_records(const std::string& contig_name) const {
 
   uint64_t records, unused;
   hts_idx_get_stat(idx, region_id, &records, &unused);
-  return records > 0;
+  return records;
 }
 
 void VCFV4::set_max_record_buff_size(uint64_t max_record_buffer_size) {

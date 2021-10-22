@@ -59,7 +59,7 @@ namespace vcf {
 class WriterWorkerV4 : public WriterWorker {
  public:
   /** Constructor. */
-  WriterWorkerV4();
+  WriterWorkerV4(int id = 0);
 
   /**
    * Initializes: opens the specified VCF files and allocates empty attribute
@@ -99,6 +99,9 @@ class WriterWorkerV4 : public WriterWorker {
   uint64_t anchors_buffered() const;
 
  private:
+  /** Worker id */
+  int id_;
+
   /** Attribute buffers holding parsed data. */
   AttributeBufferSet buffers_;
 

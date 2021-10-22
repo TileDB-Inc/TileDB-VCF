@@ -156,6 +156,8 @@ bool Logger::debug_enabled() {
 /* ********************************* */
 
 Logger& global_logger() {
+  // Set global locale to elimiate the need to set it in multiple places
+  std::locale::global(std::locale(""));
   static Logger l;
   return l;
 }

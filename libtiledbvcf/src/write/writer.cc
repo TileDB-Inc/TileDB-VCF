@@ -201,11 +201,10 @@ void Writer::ingest_samples() {
 
   // Distribute memory budget
   size_t total_mb = ingestion_params_.total_memory_budget_mb;
-  size_t tiledb_mb = std::min(static_cast<int>(total_mb * 0.5), 4096);
-  size_t input_mb = (total_mb - tiledb_mb) * 0.05;
-  // Remove overhead for holding mulitple contigs in the record heap
-  size_t output_mb = (total_mb - tiledb_mb - input_mb) * 0.8;
-  size_t overhead_mb = total_mb - tiledb_mb - input_mb - output_mb;
+  size_t tiledb_mb = total_mb * ingestion_params_.ratio_tiledb_memory;
+  tiledb_mb = std::min(tiledb_mb, ingestion_params_.max_tiledb_memory_mb);
+  size_t input_mb = total_mb * ingestion_params_.ratio_input_memory;
+  size_t output_mb = total_mb - tiledb_mb - input_mb;
 
   ingestion_params_.tiledb_memory_budget_mb = tiledb_mb;
   ingestion_params_.input_memory_budget_mb = input_mb;
@@ -213,12 +212,11 @@ void Writer::ingest_samples() {
 
   LOG_INFO(
       "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
-      "output={} MiB + overhead={} MiB",
+      "output={} MiB",
       total_mb,
       tiledb_mb,
       input_mb,
-      output_mb,
-      overhead_mb);
+      output_mb);
 
   init(ingestion_params_);
 
@@ -385,15 +383,14 @@ void Writer::ingest_samples() {
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
   auto time_sec = utils::chrono_duration(start_all);
-  LOG_INFO(fmt::format(
-      std::locale(""),
+  LOG_INFO(
       "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
       "{:.3f} seconds = {:.1f} records/sec",
       records_ingested,
       anchors_ingested,
       samples.size(),
       time_sec,
-      records_ingested / time_sec));
+      records_ingested / time_sec);
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -536,22 +533,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
-  // set ingestion parameters
-  size_t avg_bcf_record_bytes = 512;
-
-  // per thread, per sample vcf input buffer
+  // Set per thread, per sample vcf input buffer size
   ingestion_params_.max_record_buffer_size =
       (params.input_memory_budget_mb << 20) / params.num_threads /
       samples.size();
 
-  // per thread output buffer
+  // Set per thread output buffer size
   ingestion_params_.max_tiledb_buffer_size_mb =
       params.output_memory_budget_mb / params.num_threads;
-
-  // contig range size per work item
-  ingestion_params_.thread_task_size =
-      (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
-      avg_bcf_record_bytes;
 
   LOG_INFO(
       "Input buffers = {} threads * {} samples * {} MiB",
@@ -562,14 +551,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       "Output buffers = {} threads * {} MiB",
       params.num_threads,
       ingestion_params_.max_tiledb_buffer_size_mb);
-  LOG_INFO(
-      "Contig range per task = {} positions",
-      ingestion_params_.thread_task_size);
 
   // TODO: workers can be reused across space tiles
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_bytes(
@@ -613,6 +599,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
+  // Total number of records in each contig for all samples.
+  std::map<std::string, size_t> contig_task_size;
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -640,6 +628,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Skip empty contigs
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
+
+      LOG_DEBUG(
+          "sample {} contig {}: {:L} positions {:L} records",
+          sample_name,
+          contig_region.seq_name,
+          contig_region.max,
+          vcf.record_count(contig_region.seq_name));
+
+      contig_task_size[contig_region.seq_name] +=
+          vcf.record_count(contig_region.seq_name);
 
       // Check if the contig has already been ingested. If so we'll skip it.
       // This first check only handles non-combined contigs
@@ -683,7 +681,24 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   if (regions_v4.empty())
     return {0, 0};
 
-  regions = prepare_region_list(regions_v4, ingestion_params_);
+  // Estimate the number of records that will fit the output buffer.
+  size_t output_buffer_records =
+      (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
+      params.avg_bcf_record_size;
+
+  // Set worker task size for each contig
+  for (auto& region : regions_v4) {
+    // convert total records to task size
+    contig_task_size[region.seq_name] = params.ratio_task_size * region.max *
+                                        output_buffer_records /
+                                        contig_task_size[region.seq_name];
+    LOG_DEBUG(
+        "Contig {} task size = {:L}",
+        region.seq_name,
+        contig_task_size[region.seq_name]);
+  }
+
+  regions = prepare_region_list(regions_v4, contig_task_size);
 
   // Loop over complete contig list, check for merging and if already ingested
   // to skip
@@ -821,14 +836,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             if (!last_contig_mergeable || !contig_mergeable) {
               if (LOG_DEBUG_ENABLED()) {
                 if (!last_contig_mergeable) {
-                  LOG_INFO(
+                  LOG_DEBUG(
                       "Previous contig {} found to NOT be mergeable, "
                       "finalizing previous fragment and starting new write for "
                       "{}",
                       last_region_contig,
                       contig);
                 } else if (!contig_mergeable) {
-                  LOG_INFO(
+                  LOG_DEBUG(
                       "Contig {0} found to NOT be mergeable, "
                       "finalizing previous fragment and starting new write for "
                       "{0}",
@@ -855,7 +870,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               last_region_contig = contig;
               starting_region_contig_for_merge = contig;
             } else {
-              LOG_INFO(
+              LOG_DEBUG(
                   "last contig {} and contig {} found to be mergeable, "
                   "combining into super fragment",
                   last_region_contig,
@@ -873,7 +888,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
           LOG_DEBUG(
-              "Recorded {} cells for contig {} (task {} / {})",
+              "Recorded {:L} cells for contig {} (task {} / {})",
               worker->records_buffered(),
               contig,
               i + 1,
@@ -907,9 +922,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
     }
-    LOG_INFO(
-        "Ingestion rate = {:.3f} records/sec",
-        (records_ingested - prev_records) / utils::chrono_duration(start));
+    if (records_ingested > prev_records) {
+      LOG_INFO(
+          "Ingestion rate = {:.3f} records/sec",
+          (records_ingested - prev_records) / utils::chrono_duration(start));
+    }
   }
 
   LOG_DEBUG(
@@ -1021,16 +1038,16 @@ std::vector<Region> Writer::prepare_region_list(
 
 std::vector<Region> Writer::prepare_region_list(
     const std::vector<Region>& all_contigs,
-    const IngestionParams& params) const {
+    const std::map<std::string, size_t>& contig_task_size) const {
   std::vector<Region> result;
 
   for (const auto& r : all_contigs) {
+    const uint32_t task_size = contig_task_size.at(r.seq_name);
     const uint32_t contig_len = r.max - r.min + 1;
-    const uint32_t ntasks = utils::ceil(contig_len, params.thread_task_size);
+    const uint32_t ntasks = utils::ceil(contig_len, task_size);
     for (uint32_t i = 0; i < ntasks; i++) {
-      uint32_t task_min = r.min + i * params.thread_task_size;
-      uint32_t task_max =
-          std::min(task_min + params.thread_task_size - 1, r.max);
+      uint32_t task_min = r.min + i * task_size;
+      uint32_t task_max = std::min(task_min + task_size - 1, r.max);
       result.emplace_back(r.seq_name, task_min, task_max);
     }
   }

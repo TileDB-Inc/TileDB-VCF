@@ -95,6 +95,11 @@ class VCFV4 {
    */
   bool contig_has_records(const std::string& contig_name) const;
 
+  /**
+   * Returns the number of records found in the VCF file for the given contig
+   */
+  size_t record_count(const std::string& contig_name) const;
+
   /** Returns the header instance of the currently open file. */
   bcf_hdr_t* hdr() const;
 

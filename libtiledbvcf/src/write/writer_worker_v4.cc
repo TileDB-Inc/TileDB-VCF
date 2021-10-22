@@ -30,8 +30,9 @@
 namespace tiledb {
 namespace vcf {
 
-WriterWorkerV4::WriterWorkerV4()
-    : dataset_(nullptr)
+WriterWorkerV4::WriterWorkerV4(int id)
+    : id_(id)
+    , dataset_(nullptr)
     , records_buffered_(0)
     , anchors_buffered_(0) {
 }
@@ -201,11 +202,19 @@ bool WriterWorkerV4::resume() {
       }
     }
 
-    if (overflowed)
+    if (overflowed) {
+      LOG_DEBUG(
+          "Worker {}: flush, output buffer size = {} MiB",
+          id_,
+          buffers_.total_size() >> 20);
       return false;
+    }
   }
 
-  LOG_TRACE("Output buffer size = {} MiB", buffers_.total_size() >> 20);
+  LOG_DEBUG(
+      "Worker {}: record heap empty, output buffer size = {} MiB",
+      id_,
+      buffers_.total_size() >> 20);
   return true;
 }
 

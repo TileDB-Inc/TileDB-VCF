@@ -422,7 +422,7 @@ void add_store(CLI::App& app) {
   cmd->add_option(
       "-m,--total-memory-budget-mb",
       args->total_memory_budget_mb,
-      "The total memory budget for ingestion (MiB). Default = 75% of system "
+      "The total memory budget for ingestion (MiB). Default = 50% of system "
       "memory.");
   cmd->add_flag(
       "--resume",
