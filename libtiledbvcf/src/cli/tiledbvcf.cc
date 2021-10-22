@@ -504,25 +504,25 @@ void add_store(CLI::App& app) {
   cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
 
-  cmd->option_defaults()->group("Retired options");
+  cmd->option_defaults()->group("V2/V3 options");
   cmd->add_option(
       "-n,--max-record-buff",
       args->max_record_buffer_size,
       "Max number of BCF records to buffer per file");
-  CLI::retire_option(cmd, "--max-record-buff");
+  //  CLI::retire_option(cmd, "--max-record-buff");
   cmd->add_option(
       "-k,--thread-task-size",
       args->thread_task_size,
       "Max length (# columns) of an ingestion task. Affects load "
       "balancing of ingestion work across threads, and total "
       "memory consumption.");
-  CLI::retire_option(cmd, "--thread-task-size");
+  //  CLI::retire_option(cmd, "--thread-task-size");
   cmd->add_option(
       "-b,--mem-budget-mb",
       args->max_tiledb_buffer_size_mb,
       "The total memory budget (MB) used when submitting TileDB "
       "queries.");
-  CLI::retire_option(cmd, "--mem-budget-mb");
+  //  CLI::retire_option(cmd, "--mem-budget-mb");
 
   // register function to implement this command
   cmd->callback([args, cmd]() { do_store(*args, *cmd); });

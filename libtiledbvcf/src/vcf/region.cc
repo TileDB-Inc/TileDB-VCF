@@ -215,7 +215,10 @@ void Region::parse_bed_file_htslib(
 
       result->splice(result->end(), res_list);
     }
-    LOG_TRACE("BED file: parsed {:L} regions total", result->size());
+    LOG_TRACE(fmt::format(
+        std::locale(""),
+        "BED file: parsed {:L} regions total",
+        result->size()));
   } else {
     // If there is no index file just loop over the entire file
     uint32_t line = 0;
@@ -228,7 +231,10 @@ void Region::parse_bed_file_htslib(
           line);
       ++line;
     }
-    LOG_TRACE("Unindexed BED file: parsed {:L} regions total", line);
+    LOG_TRACE(fmt::format(
+        std::locale(""),
+        "Unindexed BED file: parsed {:L} regions total",
+        line));
   }
 
   // reset htslib log level
@@ -261,7 +267,11 @@ std::list<Region> Region::parse_bed_file_htslib_section(
     ++line;
   }
 
-  LOG_TRACE("BED file: parsed {:L} regions in contig {}", line, chr);
+  LOG_TRACE(fmt::format(
+      std::locale(""),
+      "BED file: parsed {:L} regions in contig {}",
+      line,
+      chr));
 
   return result;
 }

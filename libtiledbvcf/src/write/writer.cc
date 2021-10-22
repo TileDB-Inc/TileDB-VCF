@@ -383,14 +383,15 @@ void Writer::ingest_samples() {
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
   auto time_sec = utils::chrono_duration(start_all);
-  LOG_INFO(
+  LOG_INFO(fmt::format(
+      std::locale(""),
       "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
       "{:.3f} seconds = {:.1f} records/sec",
       records_ingested,
       anchors_ingested,
       samples.size(),
       time_sec,
-      records_ingested / time_sec);
+      records_ingested / time_sec));
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -629,12 +630,13 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
 
-      LOG_DEBUG(
+      LOG_DEBUG(fmt::format(
+          std::locale(""),
           "sample {} contig {}: {:L} positions {:L} records",
           sample_name,
           contig_region.seq_name,
           contig_region.max,
-          vcf.record_count(contig_region.seq_name));
+          vcf.record_count(contig_region.seq_name)));
 
       contig_task_size[contig_region.seq_name] +=
           vcf.record_count(contig_region.seq_name);
