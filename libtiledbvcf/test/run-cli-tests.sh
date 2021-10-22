@@ -391,8 +391,8 @@ EOF
 
 # check vcf export
 $tilevcf create -u export_test
-$tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
-$tilevcf export -u export_test -Ob -s G1
+$tilevcf store --log-level trace -u export_test ${input_dir}/random_synthetic/G1.bcf
+$tilevcf export --log-level trace -u export_test -Ob -s G1
 diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf) || exit 1
 
 # Expected failures
