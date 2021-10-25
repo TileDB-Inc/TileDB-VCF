@@ -392,6 +392,10 @@ void Writer::ingest_samples() {
       samples.size(),
       time_sec,
       records_ingested / time_sec));
+
+  assert(records_ingested == total_records_expected_);
+  LOG_INFO(
+      "QA Check: Total records ingested == total records in VCF files: PASS");
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -640,6 +644,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
       total_contig_records[contig_region.seq_name] +=
           vcf.record_count(contig_region.seq_name);
+
+      total_records_expected_ += vcf.record_count(contig_region.seq_name);
 
       // Check if the contig has already been ingested. If so we'll skip it.
       // This first check only handles non-combined contigs

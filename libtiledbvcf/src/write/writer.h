@@ -318,6 +318,7 @@ class Writer {
   CreationParams creation_params_;
   RegistrationParams registration_params_;
   IngestionParams ingestion_params_;
+  size_t total_records_expected_ = 0;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */
