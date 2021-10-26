@@ -76,9 +76,8 @@ struct IngestionParams {
   unsigned thread_task_size = 5000000;
 
   // Total memory budget
-  uint64_t total_memory_budget_mb = utils::system_memory_mb() > 0 ?
-                                        0.5 * utils::system_memory_mb() :
-                                        8192;
+  uint32_t total_memory_budget_mb = utils::system_memory_mb() * 0.5;
+  float ratio_total_memory = 0.0;
 
   // Components of total memory budget
   uint32_t tiledb_memory_budget_mb;  // sm.mem.total_budget

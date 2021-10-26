@@ -427,9 +427,9 @@ bool is_local_uri(const std::string& uri);
 const std::string& version_info();
 
 /**
- * Returns total system memory in MiB or 0 if not implemented
+ * Returns total system memory in MiB
  */
-size_t system_memory_mb();
+uint32_t system_memory_mb();
 
 }  // namespace utils
 }  // namespace vcf

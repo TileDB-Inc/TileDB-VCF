@@ -75,7 +75,7 @@ void do_register(const RegistrationParams& args, const CLI::App& cmd) {
 }
 
 /** Store/ingest. */
-void do_store(const IngestionParams& args, const CLI::App& cmd) {
+void do_store(IngestionParams& args, const CLI::App& cmd) {
   if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
     std::cerr
         << "ERROR: RequiredError: VCF URIs or --sample-file is required\n";
@@ -84,6 +84,12 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
 
   if (args.verbose) {
     LOG_SET_LEVEL("debug");
+  }
+
+  // override  total memory budget
+  if (args.ratio_total_memory > 0) {
+    args.total_memory_budget_mb =
+        utils::system_memory_mb() * args.ratio_total_memory;
   }
 
   LOG_TRACE("Starting store command.");
@@ -420,10 +426,16 @@ void add_store(CLI::App& app) {
   add_tiledb_uri_option(cmd, args->uri);
   cmd->add_option("-t,--threads", args->num_threads, "Number of threads");
   cmd->add_option(
-      "-m,--total-memory-budget-mb",
-      args->total_memory_budget_mb,
-      "The total memory budget for ingestion (MiB). Default = 50% of system "
-      "memory.");
+         "-m,--total-memory-budget-mb",
+         args->total_memory_budget_mb,
+         "The total memory budget for ingestion (MiB)")
+      ->check(CLI::Range(512u, utils::system_memory_mb()));
+  cmd->add_option(
+         "-M,--total-memory-ratio",
+         args->ratio_total_memory,
+         "Ratio of total system memory used for ingestion "
+         "(overrides '--total-memory-budget-mb')")
+      ->check(CLI::Range(0.0, 1.0));
   cmd->add_flag(
       "--resume",
       args->resume_sample_partial_ingestion,
@@ -471,6 +483,30 @@ void add_store(CLI::App& app) {
       "Enable TileDB stats for vcf header array usage");
 
   cmd->option_defaults()->group("Advanced options");
+  cmd->add_option(
+      "--max-tiledb-memory-mb",
+      args->max_tiledb_memory_mb,
+      "Maximum memory allocated to TileDB (MiB)");
+  cmd->add_option(
+         "--ratio-tiledb-memory",
+         args->ratio_tiledb_memory,
+         "Ratio of memory budget allocated to TileDB")
+      ->check(CLI::Range(0.01, 0.99));
+  cmd->add_option(
+         "--ratio-input-memory",
+         args->ratio_input_memory,
+         "Ratio of memory budget allocated to VCF record buffers")
+      ->check(CLI::Range(0.01, 0.99));
+  cmd->add_option(
+         "--avg-bcf-record-size",
+         args->avg_bcf_record_size,
+         "Average BCF record size (bytes)")
+      ->check(CLI::Range(1, 4096));
+  cmd->add_option(
+         "--ratio-task-size",
+         args->ratio_task_size,
+         "Ratio of worker task size to computed task size")
+      ->check(CLI::Range(0.01, 1.0));
 
   cmd->option_defaults()->group("Contig options");
   cmd->add_flag(

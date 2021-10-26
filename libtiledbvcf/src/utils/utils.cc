@@ -558,9 +558,17 @@ const std::string& version_info() {
   return version;
 }
 
-size_t system_memory_mb() {
 #ifdef _WIN32
-  return 0;
+#include <windows.h>
+#endif
+
+uint32_t system_memory_mb() {
+#ifdef _WIN32
+  // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex
+  MEMORYSTATUSEX statex;
+  statex.dwLength = sizeof(statex);
+  GlobalMemoryStatusEx(&statex);
+  return statex.ullTotalPhys;
 #else
   return (sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE)) >> 20;
 #endif
