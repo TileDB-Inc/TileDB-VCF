@@ -395,7 +395,9 @@ void Writer::ingest_samples() {
 
   // Check records ingested matches total records in VCF files, unless resume
   // is enabled because resume may not ingest all records in the VCF files
-  if (!ingestion_params_.resume_sample_partial_ingestion) {
+  // (check not implemented for V2/V3)
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4 &&
+      !ingestion_params_.resume_sample_partial_ingestion) {
     if (records_ingested != total_records_expected_) {
       LOG_ERROR(
           "QACheck: Total records ingested ({}) != total records in VCF files "
