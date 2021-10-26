@@ -393,9 +393,26 @@ void Writer::ingest_samples() {
       time_sec,
       records_ingested / time_sec));
 
-  assert(records_ingested == total_records_expected_);
-  LOG_INFO(
-      "QA Check: Total records ingested == total records in VCF files: PASS");
+  // Check records ingested matches total records in VCF files, unless resume
+  // is enabled because resume may not ingest all records in the VCF files
+  if (!ingestion_params_.resume_sample_partial_ingestion) {
+    if (records_ingested != total_records_expected_) {
+      LOG_ERROR(
+          "QACheck: Total records ingested ({}) != total records in VCF files "
+          "({}): FAIL",
+          records_ingested,
+          total_records_expected_);
+      throw std::runtime_error(
+          "Total records ingested != total records in VCF files");
+      assert(false);
+    } else {
+      LOG_INFO(
+          "QACheck: Total records ingested ({}) == total records in VCF files "
+          "({}): PASS",
+          records_ingested,
+          total_records_expected_);
+    }
+  }
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
