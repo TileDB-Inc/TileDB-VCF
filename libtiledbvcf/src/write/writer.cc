@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <sys/resource.h>
 #include <future>
 
 #include "dataset/attribute_buffer_set.h"
@@ -197,6 +198,33 @@ void Writer::ingest_samples() {
 
   if (ingestion_params_.resume_sample_partial_ingestion) {
     ingestion_params_.load_data_array_fragment_info = true;
+  }
+
+  // Reset expected total record count
+  total_records_expected_ = 0;
+
+  // Set open file soft limit to hard limit
+  struct rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+    LOG_WARN("Unable to read open file limit");
+  } else {
+    LOG_DEBUG("Open file limit = {}", limit.rlim_cur);
+    limit.rlim_cur = limit.rlim_max;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+      LOG_WARN("Unable to set open file limit");
+    } else {
+      if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        LOG_WARN("Unable to read new open file limit");
+      } else {
+        LOG_DEBUG("New open file limit = {}", limit.rlim_cur);
+      }
+    }
+  }
+
+  // Override total memory budget if ratio_total_memory is provided
+  if (ingestion_params_.ratio_total_memory > 0) {
+    ingestion_params_.total_memory_budget_mb =
+        utils::system_memory_mb() * ingestion_params_.ratio_total_memory;
   }
 
   // Distribute memory budget
@@ -399,14 +427,13 @@ void Writer::ingest_samples() {
   if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4 &&
       !ingestion_params_.resume_sample_partial_ingestion) {
     if (records_ingested != total_records_expected_) {
-      LOG_ERROR(
+      std::string message = fmt::format(
           "QACheck: Total records ingested ({}) != total records in VCF files "
           "({}): FAIL",
           records_ingested,
           total_records_expected_);
-      throw std::runtime_error(
-          "Total records ingested != total records in VCF files");
-      assert(false);
+      LOG_ERROR(message);
+      throw std::runtime_error(message);
     } else {
       LOG_INFO(
           "QACheck: Total records ingested ({}) == total records in VCF files "
@@ -708,7 +735,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   if (regions_v4.empty())
     return {0, 0};
 
-  // Estimate the number of records that will fit the output buffer.
+  // Estimate the number of records that will fill the output buffer
   uint32_t output_buffer_records =
       (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
       params.avg_bcf_record_size;

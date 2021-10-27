@@ -75,7 +75,7 @@ void do_register(const RegistrationParams& args, const CLI::App& cmd) {
 }
 
 /** Store/ingest. */
-void do_store(IngestionParams& args, const CLI::App& cmd) {
+void do_store(const IngestionParams& args, const CLI::App& cmd) {
   if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
     std::cerr
         << "ERROR: RequiredError: VCF URIs or --sample-file is required\n";
@@ -84,12 +84,6 @@ void do_store(IngestionParams& args, const CLI::App& cmd) {
 
   if (args.verbose) {
     LOG_SET_LEVEL("debug");
-  }
-
-  // override  total memory budget
-  if (args.ratio_total_memory > 0) {
-    args.total_memory_budget_mb =
-        utils::system_memory_mb() * args.ratio_total_memory;
   }
 
   LOG_TRACE("Starting store command.");

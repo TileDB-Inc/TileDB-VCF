@@ -335,11 +335,10 @@ class Dataset(object):
         self,
         sample_uris=None,
         threads=None,
-        thread_task_size=None,
         memory_budget_mb=None,
+        memory_budget_ratio=None,
         scratch_space_path=None,
         scratch_space_size=None,
-        record_limit=None,
         sample_batch_size=None,
         resume=False,
         contig_fragment_merging=True,
@@ -351,17 +350,12 @@ class Dataset(object):
         :param list of str sample_uris: CSV list of sample names to include in
             the count.
         :param int threads: Set the number of threads used for ingestion.
-        :param int thread_task_size: Set the max length (# columns) of an
-            ingestion task. Affects load balancing of ingestion work across
-            threads, and total memory consumption.
-        :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing
-            (default = 1024).
+        :param int memory_budget_mb: The total memory budget for ingestion (MiB)
+        :param float memory_budget_ratio: Ratio of total system memory used for ingestion (overrides 'memory_budget_mb')
         :param str scratch_space_path: Directory used for local storage of
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
             for downloading remote samples (MB).
-        :param int record_limit: Limit the number of VCF records read into memory
-            per file (default 50000)
         :param int sample_batch_size: Number of samples per batch for ingestion (default 10).
         :param bool resume: Whether to check and attempt to resume a partial completed ingestion
         :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
@@ -378,11 +372,11 @@ class Dataset(object):
         if threads is not None:
             self.writer.set_num_threads(threads)
 
-        if thread_task_size is not None:
-            self.writer.set_thread_task_size(thread_task_size)
-
         if memory_budget_mb is not None:
             self.writer.set_memory_budget(memory_budget_mb)
+
+        if memory_budget_ratio is not None:
+            self.writer.set_memory_budget_ratio(memory_budget_ratio)
 
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
@@ -390,9 +384,6 @@ class Dataset(object):
             raise Exception(
                 "Must set both scratch_space_path and scratch_space_size to use scratch space"
             )
-
-        if record_limit is not None:
-            self.writer.set_max_num_records(record_limit)
 
         if sample_batch_size is not None:
             self.writer.set_sample_batch_size(sample_batch_size)
