@@ -71,14 +71,13 @@ void WriterWorkerV4::insert_record(
     VCFV4* vcf,
     const std::string& contig,
     const std::string& sample_name) {
-  // If a record exists but it's outside the region max, skip it.
-  const uint32_t local_end_pos =
-      VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
-  if (local_end_pos > region_.max)
+  // If a record starts outside the region max, skip it.
+  const uint32_t start_pos = record->pos;
+  if (start_pos > region_.max)
     return;
 
-  const uint32_t end_pos = local_end_pos;
-  const uint32_t start_pos = record->pos;
+  const uint32_t end_pos =
+      VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
   record_heap_.insert(
       vcf,
       RecordHeapV4::NodeType::Record,
@@ -147,9 +146,15 @@ bool WriterWorkerV4::resume() {
     const std::string sample_name = top.sample_name;
     VCFV4* vcf = top.vcf;
 
-    // Copy the record into the buffers. If the record caused the buffers to
-    // exceed the max memory allocation, we'll stop processing at this record.
-    bool overflowed = !buffer_record(top);
+    // If the top record is inside the region, copy the record into the buffers.
+    // If the record caused the buffers to exceed the max memory allocation,
+    // we'll stop processing at this record.
+    bool overflowed = false;
+    const uint32_t local_end_pos =
+        VCFUtils::get_end_pos(vcf->hdr(), top.record.get(), &val_);
+    if (local_end_pos <= region_.max) {
+      overflowed = !buffer_record(top);
+    }
 
     // Determine if this is the last node for the record.
     const bool is_end_node =

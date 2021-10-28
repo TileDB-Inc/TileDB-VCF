@@ -61,6 +61,7 @@ void VCFV4::open(const std::string& file, const std::string& index_file) {
         "Cannot open VCF file; must be compressed with BGZF and indexed.");
   }
 
+  LOG_DEBUG("Reading VCF header {}", file);
   hdr_ = bcf_hdr_read(fh.get());
   if (hdr_ == nullptr) {
     close();
