@@ -62,7 +62,8 @@ struct IngestionParams {
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
   // Max number of VCF records to read into memory
-  uint32_t max_record_buffer_size = 50000;
+  uint32_t max_record_buffer_size = 50000;         // legacy option
+  bool use_legacy_max_record_buffer_size = false;  // if true, use legacy option
   std::vector<std::string> tiledb_config;
   bool tiledb_stats_enabled = false;
   bool tiledb_stats_enabled_vcf_header_array = false;
@@ -71,23 +72,22 @@ struct IngestionParams {
    * Max length (# columns) of an ingestion "task". This value is derived
    * empirically to optimize ingestion performance. It affects available
    * parallelism as well as load balancing of ingestion work across threads.
-   * (not used in V4)
    */
-  unsigned thread_task_size = 5000000;
+  unsigned thread_task_size = 5000000;           // legacy option
+  unsigned use_legacy_thread_task_size = false;  // if true, use legacy option
 
-  // Total memory budget
-  uint32_t total_memory_budget_mb = utils::system_memory_mb() * 0.5;
+  // Total memory budget parameters
+  uint32_t total_memory_budget_mb = utils::system_memory_mb() * 0.75;
   float ratio_total_memory = 0.0;
+
+  // Parameters used to distribute the memory budget
+  uint32_t input_record_buffer_mb = 1;  // per sample, per thread
+  uint32_t max_tiledb_memory_mb = 4096;
+  float ratio_tiledb_memory = 0.5;
 
   // Components of total memory budget
   uint32_t tiledb_memory_budget_mb;  // sm.mem.total_budget
-  uint32_t input_memory_budget_mb;   // VCF record queues
   uint32_t output_memory_budget_mb;  // record heap, attribute buffers
-
-  // Parameters used to distribute the memory budget
-  uint32_t max_tiledb_memory_mb = 4096;
-  float ratio_tiledb_memory = 0.5;
-  float ratio_input_memory = 0.02;
 
   // Average bcf record size used to estimate the number of records that
   // fit in the output memory.
@@ -96,10 +96,14 @@ struct IngestionParams {
   // Scaling factor for the worker task range. Scaling the task range avoids
   // flushing the attribute buffers before the record heap is empty.
   // (performance optimization)
-  float ratio_task_size = 0.8;
+  float ratio_task_size = 0.75;
 
   // Max size of TileDB buffers before flushing. Defaults to 1GB
-  uint32_t max_tiledb_buffer_size_mb = 1024;
+  uint32_t max_tiledb_buffer_size_mb = 1024;  // legacy if provided by user
+  bool use_legacy_max_tiledb_buffer_size_mb =
+      false;  // if true, use legacy option
+  float ratio_output_buffer_flush =
+      0.75;  // ratio of output buffer memory that triggers a flush to TileDB
 
   // Number of samples per batch for ingestion (default: 10).
   uint32_t sample_batch_size = 10;
@@ -176,6 +180,13 @@ class Writer {
    * @param params uri URI of array
    */
   void init(const std::string& uri, const std::string& config_str = "");
+
+  /**
+   * Update parameters computed from other parameters.
+   *
+   * @param params IngesttionParams& Ingestion params (will be modified)
+   */
+  void update_params(IngestionParams& params);
 
   /**
    * Set writer tiledb config parameters, these can also be passed directly on

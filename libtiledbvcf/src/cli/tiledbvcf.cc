@@ -478,19 +478,18 @@ void add_store(CLI::App& app) {
 
   cmd->option_defaults()->group("Advanced options");
   cmd->add_option(
-      "--max-tiledb-memory-mb",
-      args->max_tiledb_memory_mb,
-      "Maximum memory allocated to TileDB (MiB)");
-  cmd->add_option(
          "--ratio-tiledb-memory",
          args->ratio_tiledb_memory,
-         "Ratio of memory budget allocated to TileDB")
+         "Ratio of memory budget allocated to TileDB::sm.mem.total_budget")
       ->check(CLI::Range(0.01, 0.99));
   cmd->add_option(
-         "--ratio-input-memory",
-         args->ratio_input_memory,
-         "Ratio of memory budget allocated to VCF record buffers")
-      ->check(CLI::Range(0.01, 0.99));
+      "--max-tiledb-memory-mb",
+      args->max_tiledb_memory_mb,
+      "Maximum memory allocated to TileDB::sm.mem.total_budget (MiB)");
+  cmd->add_option(
+      "--input-record-buffer-mb",
+      args->input_record_buffer_mb,
+      "Size of input record buffer for each sample file (MiB)");
   cmd->add_option(
          "--avg-bcf-record-size",
          args->avg_bcf_record_size,
@@ -500,6 +499,11 @@ void add_store(CLI::App& app) {
          "--ratio-task-size",
          args->ratio_task_size,
          "Ratio of worker task size to computed task size")
+      ->check(CLI::Range(0.01, 1.0));
+  cmd->add_option(
+         "--ratio-output-flush",
+         args->ratio_output_buffer_flush,
+         "Ratio of output buffer memory that triggers a flush to TileDB")
       ->check(CLI::Range(0.01, 1.0));
 
   cmd->option_defaults()->group("Contig options");
@@ -534,25 +538,30 @@ void add_store(CLI::App& app) {
   cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
 
-  cmd->option_defaults()->group("V2/V3 options");
-  cmd->add_option(
+  cmd->option_defaults()->group("Legacy options");
+  cmd->add_option_function<unsigned>(
       "-n,--max-record-buff",
-      args->max_record_buffer_size,
+      [args](const unsigned& value) {
+        args->max_record_buffer_size = value;
+        args->use_legacy_max_record_buffer_size = true;
+      },
       "Max number of BCF records to buffer per file");
-  //  CLI::retire_option(cmd, "--max-record-buff");
-  cmd->add_option(
+  cmd->add_option_function<unsigned>(
       "-k,--thread-task-size",
-      args->thread_task_size,
+      [args](const unsigned& value) {
+        args->thread_task_size = value;
+        args->use_legacy_thread_task_size = true;
+      },
       "Max length (# columns) of an ingestion task. Affects load "
       "balancing of ingestion work across threads, and total "
       "memory consumption.");
-  //  CLI::retire_option(cmd, "--thread-task-size");
-  cmd->add_option(
+  cmd->add_option_function<unsigned>(
       "-b,--mem-budget-mb",
-      args->max_tiledb_buffer_size_mb,
-      "The total memory budget (MB) used when submitting TileDB "
-      "queries.");
-  //  CLI::retire_option(cmd, "--mem-budget-mb");
+      [args](const unsigned& value) {
+        args->max_tiledb_buffer_size_mb = value;
+        args->use_legacy_max_tiledb_buffer_size_mb = true;
+      },
+      "The maximum size of TileDB buffers before flushing (MiB)");
 
   // register function to implement this command
   cmd->callback([args, cmd]() { do_store(*args, *cmd); });

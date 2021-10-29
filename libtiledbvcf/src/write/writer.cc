@@ -183,6 +183,68 @@ void Writer::register_samples() {
   }
 }
 
+void Writer::update_params(IngestionParams& params) {
+  // Override total memory budget if ratio_total_memory is provided
+  if (params.ratio_total_memory > 0) {
+    params.total_memory_budget_mb =
+        utils::system_memory_mb() * params.ratio_total_memory;
+  }
+
+  // Distribute memory budget
+  uint32_t total_mb = params.total_memory_budget_mb;
+  uint32_t tiledb_mb = total_mb * params.ratio_tiledb_memory;
+  tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
+  uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
+                      params.sample_batch_size;
+  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
+
+  params.tiledb_memory_budget_mb = tiledb_mb;
+  params.output_memory_budget_mb = output_mb;
+
+  LOG_INFO(
+      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
+      "output={} MiB",
+      total_mb,
+      tiledb_mb,
+      input_mb,
+      output_mb);
+
+  // Set per thread, per sample vcf input buffer size
+  if (params.use_legacy_max_record_buffer_size) {
+    LOG_INFO(
+        "Using legacy option: --max-record-buff={}",
+        params.max_record_buffer_size);
+    params.max_record_buffer_size =
+        params.max_record_buffer_size * params.avg_bcf_record_size;
+  } else {
+    params.max_record_buffer_size = params.input_record_buffer_mb << 20;
+  }
+
+  LOG_INFO(
+      "Input buffers = {} threads * {} samples * {} MiB",
+      params.num_threads,
+      params.sample_batch_size,
+      params.max_record_buffer_size >> 20);
+
+  // Set per thread output buffer size
+  if (params.use_legacy_max_tiledb_buffer_size_mb) {
+    LOG_INFO(
+        "Using legacy option: --mem-budget-mb={}",
+        params.max_tiledb_buffer_size_mb);
+    LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
+
+  } else {
+    params.max_tiledb_buffer_size_mb = params.ratio_output_buffer_flush *
+                                       params.output_memory_budget_mb /
+                                       params.num_threads;
+    LOG_INFO(
+        "Output buffers = {} threads * {} MiB (flush = {} MiB)",
+        params.num_threads,
+        output_mb / params.num_threads,
+        params.max_tiledb_buffer_size_mb);
+  }
+}
+
 void Writer::ingest_samples() {
   auto start_all = std::chrono::steady_clock::now();
 
@@ -221,31 +283,7 @@ void Writer::ingest_samples() {
     }
   }
 
-  // Override total memory budget if ratio_total_memory is provided
-  if (ingestion_params_.ratio_total_memory > 0) {
-    ingestion_params_.total_memory_budget_mb =
-        utils::system_memory_mb() * ingestion_params_.ratio_total_memory;
-  }
-
-  // Distribute memory budget
-  uint32_t total_mb = ingestion_params_.total_memory_budget_mb;
-  uint32_t tiledb_mb = total_mb * ingestion_params_.ratio_tiledb_memory;
-  tiledb_mb = std::min(tiledb_mb, ingestion_params_.max_tiledb_memory_mb);
-  uint32_t input_mb = total_mb * ingestion_params_.ratio_input_memory;
-  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
-
-  ingestion_params_.tiledb_memory_budget_mb = tiledb_mb;
-  ingestion_params_.input_memory_budget_mb = input_mb;
-  ingestion_params_.output_memory_budget_mb = output_mb;
-
-  LOG_INFO(
-      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
-      "output={} MiB",
-      total_mb,
-      tiledb_mb,
-      input_mb,
-      output_mb);
-
+  update_params(ingestion_params_);
   init(ingestion_params_);
 
   if (ingestion_params_.resume_sample_partial_ingestion &&
@@ -428,16 +466,16 @@ void Writer::ingest_samples() {
       !ingestion_params_.resume_sample_partial_ingestion) {
     if (records_ingested != total_records_expected_) {
       std::string message = fmt::format(
-          "QACheck: Total records ingested ({}) != total records in VCF files "
-          "({}): FAIL",
+          "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
+          "files ({})",
           records_ingested,
           total_records_expected_);
       LOG_ERROR(message);
       throw std::runtime_error(message);
     } else {
       LOG_INFO(
-          "QACheck: Total records ingested ({}) == total records in VCF files "
-          "({}): PASS",
+          "QACheck: [PASS] Total records ingested ({}) == total records in VCF "
+          "files ({})",
           records_ingested,
           total_records_expected_);
     }
@@ -584,25 +622,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
-  // Set per thread, per sample vcf input buffer size
-  ingestion_params_.max_record_buffer_size =
-      (params.input_memory_budget_mb << 20) / params.num_threads /
-      samples.size();
-
-  // Set per thread output buffer size
-  ingestion_params_.max_tiledb_buffer_size_mb =
-      params.output_memory_budget_mb / params.num_threads;
-
-  LOG_INFO(
-      "Input buffers = {} threads * {} samples * {} MiB",
-      params.num_threads,
-      samples.size(),
-      ingestion_params_.max_record_buffer_size >> 20);
-  LOG_INFO(
-      "Output buffers = {} threads * {} MiB",
-      params.num_threads,
-      ingestion_params_.max_tiledb_buffer_size_mb);
-
   // TODO: workers can be reused across space tiles
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
@@ -610,7 +629,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_bytes(
-        ingestion_params_.max_tiledb_buffer_size_mb * 1024 * 1024);
+        params.max_tiledb_buffer_size_mb * 1024 * 1024);
   }
 
   // First compose the set of contigs that are nonempty.
@@ -737,10 +756,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   // Estimate the number of records that will fill the output buffer
   uint32_t output_buffer_records =
-      (ingestion_params_.max_tiledb_buffer_size_mb << 20) /
-      params.avg_bcf_record_size;
+      (params.max_tiledb_buffer_size_mb << 20) / params.avg_bcf_record_size;
 
   LOG_DEBUG("Output buffer records = {}", output_buffer_records);
+
+  if (params.use_legacy_thread_task_size) {
+    LOG_INFO(
+        "Using legacy option: --thread-task-size={}", params.thread_task_size);
+  }
 
   // Set worker task size for each contig
   std::map<std::string, uint32_t> contig_task_size;
@@ -752,7 +775,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       task_size = params.ratio_task_size * region.max * output_buffer_records /
                   total_records;
     }
-    contig_task_size[region.seq_name] = task_size;
+    contig_task_size[region.seq_name] = params.use_legacy_thread_task_size ?
+                                            params.thread_task_size :
+                                            task_size;
   }
 
   regions = prepare_region_list(regions_v4, contig_task_size);
