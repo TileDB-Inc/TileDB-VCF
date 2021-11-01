@@ -623,6 +623,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
   // TODO: workers can be reused across space tiles
+  // TODO: use multiple threads for vcf open, currenly serial with num_threads *
+  // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
     workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
@@ -699,7 +701,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
 
-      LOG_DEBUG(fmt::format(
+      LOG_TRACE(fmt::format(
           std::locale(""),
           "Sample {} contig {}: {:L} positions {:L} records",
           sample_name,

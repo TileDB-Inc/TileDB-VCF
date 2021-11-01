@@ -41,6 +41,7 @@ using namespace tiledb::vcf;
 //==================================================================
 
 void config_to_log(const CLI::App& cmd) {
+  LOG_INFO("Version:\n{}", utils::version_info());
   LOG_INFO("Command options:\n{}", cmd.config_to_str(true));
 }
 
