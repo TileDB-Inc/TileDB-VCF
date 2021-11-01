@@ -1451,6 +1451,8 @@ TEST_CASE(
     Writer writer;
     IngestionParams params;
     params.uri = dataset_uri;
+    // use 1 thread so fragments are generated in a deterministic order
+    params.num_threads = 1;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
     params.contig_fragment_merging = false;
@@ -1676,6 +1678,8 @@ TEST_CASE(
     Writer writer;
     IngestionParams params;
     params.uri = dataset_uri;
+    // use 1 thread so fragments are generated in a deterministic order
+    params.num_threads = 1;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
     params.contig_fragment_merging = true;
