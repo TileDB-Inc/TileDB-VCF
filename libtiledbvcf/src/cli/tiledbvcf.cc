@@ -664,6 +664,10 @@ void add_export(CLI::App& app) {
       args->debug_params.print_tiledb_query_ranges,
       "Enable debug printing of tiledb query ranges used in read. "
       "Requires verbose mode");
+  cmd->add_flag(
+      "--exact-region-match",
+      args->report_exact_match_only,
+      "Force exact match for regions on export instead of intersection");
 
   // register function to implement this command
   cmd->callback([args, cmd]() { do_export(*args, *cmd); });

@@ -78,6 +78,8 @@ void Reader::reset_buffers() {
 
 void Reader::set_all_params(const ExportParams& params) {
   params_ = params;
+  if (params_.report_exact_match_only)
+    LOG_WARN("Exact match for regions of query mode enabled");
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -1219,6 +1221,11 @@ bool Reader::process_query_results_v4() {
       // is further away from the region_start than the anchor gap discard
       if (anchor_gap < reg_min && start < reg_min - anchor_gap)
         continue;
+
+      if (params_.report_exact_match_only &&
+          !(real_start == reg_min && end == reg_max)) {
+        continue;
+      }
 
       // If we overflow when reporting this cell, save the index of the
       // current region so that we restart from the same position on the
