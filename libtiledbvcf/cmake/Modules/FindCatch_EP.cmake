@@ -48,8 +48,8 @@ if (NOT CATCH_FOUND AND SUPERBUILD)
   message(STATUS "Adding Catch as an external project")
   ExternalProject_Add(ep_catch
     PREFIX "externals"
-    URL "https://github.com/catchorg/Catch2/archive/v2.13.1.zip"
-    URL_HASH SHA1=7efd0a2ac05b61649153c6279bfc9554b2c02195
+    URL "https://github.com/catchorg/Catch2/archive/v2.13.7.zip"
+    URL_HASH SHA1=c167985cc91899ecaba3bce924acf1563b15284a
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

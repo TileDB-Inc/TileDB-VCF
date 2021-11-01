@@ -51,7 +51,7 @@ TSVExporter::TSVExporter(
       if (utils::starts_with(f, "I:")) {
         need_headers_ = true;
         output_fields_.emplace_back(OutputField::Type::Info, name);
-      } else if (utils::starts_with(f, "S:")) {
+      } else if (utils::starts_with(f, "F:")) {
         need_headers_ = true;
         output_fields_.emplace_back(OutputField::Type::Fmt, name);
       } else if (utils::starts_with(f, "Q:")) {
@@ -286,7 +286,7 @@ void TSVExporter::init_output_stream() {
         os << "I:";
         break;
       case OutputField::Type::Fmt:
-        os << "S:";
+        os << "F:";
         break;
       case OutputField::Type::Query:
         os << "Q:";
