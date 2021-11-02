@@ -59,7 +59,7 @@ class TSVExporter : public Exporter {
 
  private:
   struct OutputField {
-    enum class Type { Regular, Info, Fmt, Query };
+    enum class Type { Regular, Info, FmtF, FmtS, Query };
     OutputField(Type type, const std::string& name)
         : type(type)
         , name(name) {

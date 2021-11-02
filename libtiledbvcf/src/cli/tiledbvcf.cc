@@ -544,7 +544,7 @@ void add_export(CLI::App& app) {
          "the TSV. A field name can be one of 'SAMPLE', 'ID', 'REF', "
          "'ALT', 'QUAL', 'POS', 'CHR', 'FILTER'. Additionally, INFO "
          "fields can be specified by 'I:<name>' and FMT fields with "
-         "'S:<name>'. To export the intersecting query region for each "
+         "'F:<name>'. To export the intersecting query region for each "
          "row in the output, use the field names 'Q:POS', 'Q:END' and "
          "'Q:LINE'.")
       ->delimiter(',');

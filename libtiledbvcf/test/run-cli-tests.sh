@@ -301,6 +301,17 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 
 echo "Export records with a null fmt attribute (#142)"
 create_register_ingest ingested_null_attr ${input_dir}/small3.bcf ${input_dir}/small.bcf
+$tilevcf export -u ingested_null_attr -Ot -tPOS,F:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
+diff -uw /tmp/pfx.tsv <(
+cat <<EOF
+SAMPLE	POS	F:MIN_DP
+HG00280	69511	.
+HG00280	69512	24
+EOF
+) || exit 1
+rm -f /tmp/pfx.tsv
+
+echo "Export records with a null fmt attribute with old FORMAT prefix (S:)"
 $tilevcf export -u ingested_null_attr -Ot -tPOS,S:MIN_DP -r1:69511-69512 -v -o pfx.tsv -d /tmp/ || exit 1
 diff -uw /tmp/pfx.tsv <(
 cat <<EOF
