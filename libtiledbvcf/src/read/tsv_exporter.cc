@@ -53,7 +53,10 @@ TSVExporter::TSVExporter(
         output_fields_.emplace_back(OutputField::Type::Info, name);
       } else if (utils::starts_with(f, "F:")) {
         need_headers_ = true;
-        output_fields_.emplace_back(OutputField::Type::Fmt, name);
+        output_fields_.emplace_back(OutputField::Type::FmtF, name);
+      } else if (utils::starts_with(f, "S:")) {
+        need_headers_ = true;
+        output_fields_.emplace_back(OutputField::Type::FmtS, name);
       } else if (utils::starts_with(f, "Q:")) {
         output_fields_.emplace_back(OutputField::Type::Query, name);
       } else {
@@ -168,7 +171,8 @@ bool TSVExporter::export_record(
         }
         break;
       }
-      case OutputField::Type::Fmt: {
+      case OutputField::Type::FmtF:
+      case OutputField::Type::FmtS: {
         int tag_id = bcf_hdr_id2int(hdr, BCF_DT_ID, field.name.c_str());
         if (!bcf_hdr_idinfo_exists(hdr, BCF_HL_FMT, tag_id))
           throw std::runtime_error(
@@ -285,8 +289,11 @@ void TSVExporter::init_output_stream() {
       case OutputField::Type::Info:
         os << "I:";
         break;
-      case OutputField::Type::Fmt:
+      case OutputField::Type::FmtF:
         os << "F:";
+        break;
+      case OutputField::Type::FmtS:
+        os << "S:";
         break;
       case OutputField::Type::Query:
         os << "Q:";
