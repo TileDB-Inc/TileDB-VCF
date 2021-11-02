@@ -126,6 +126,64 @@ void Writer::set_num_threads(const uint32_t threads) {
   check_error(writer, tiledb_vcf_writer_set_num_threads(writer, threads));
 }
 
+void Writer::set_total_memory_budget_mb(const uint32_t total_memory_budget_mb) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_total_memory_budget_mb(
+          writer, total_memory_budget_mb));
+}
+
+void Writer::set_total_memory_percentage(const float total_memory_percentage) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_total_memory_percentage(
+          writer, total_memory_percentage));
+}
+
+void Writer::set_ratio_tiledb_memory(const float ratio_tiledb_memory) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_ratio_tiledb_memory(writer, ratio_tiledb_memory));
+}
+
+void Writer::set_max_tiledb_memory_mb(const uint32_t max_tiledb_memory_mb) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_max_tiledb_memory_mb(writer, max_tiledb_memory_mb));
+}
+
+void Writer::set_input_record_buffer_mb(const uint32_t input_record_buffer_mb) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_input_record_buffer_mb(
+          writer, input_record_buffer_mb));
+}
+
+void Writer::set_avg_vcf_record_size(const uint32_t avg_vcf_record_size) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_avg_vcf_record_size(writer, avg_vcf_record_size));
+}
+
+void Writer::set_ratio_task_size(const float ratio_task_size) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_ratio_task_size(writer, ratio_task_size));
+}
+
+void Writer::set_ratio_output_flush(const float ratio_output_flush) {
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_set_ratio_output_flush(writer, ratio_output_flush));
+}
+
 void Writer::set_thread_task_size(const uint32_t size) {
   auto writer = ptr.get();
   check_error(writer, tiledb_vcf_writer_set_thread_task_size(writer, size));

@@ -1199,6 +1199,109 @@ int32_t tiledb_vcf_writer_set_num_threads(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_total_memory_budget_mb(
+    tiledb_vcf_writer_t* writer, uint32_t total_memory_budget_mb) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_total_memory_budget_mb(total_memory_budget_mb)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_total_memory_percentage(
+    tiledb_vcf_writer_t* writer, float total_memory_percentage) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_total_memory_percentage(
+              total_memory_percentage)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_ratio_tiledb_memory(
+    tiledb_vcf_writer_t* writer, float ratio_tiledb_memory) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_ratio_tiledb_memory(ratio_tiledb_memory)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_max_tiledb_memory_mb(
+    tiledb_vcf_writer_t* writer, uint32_t max_tiledb_memory_mb) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_max_tiledb_memory_mb(max_tiledb_memory_mb)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_input_record_buffer_mb(
+    tiledb_vcf_writer_t* writer, uint32_t input_record_buffer_mb) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_input_record_buffer_mb(input_record_buffer_mb)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_avg_vcf_record_size(
+    tiledb_vcf_writer_t* writer, uint32_t avg_vcf_record_size) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_avg_vcf_record_size(avg_vcf_record_size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_ratio_task_size(
+    tiledb_vcf_writer_t* writer, float ratio_task_size) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_ratio_task_size(ratio_task_size)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_ratio_output_flush(
+    tiledb_vcf_writer_t* writer, float ratio_output_flush) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_ratio_output_flush(ratio_output_flush)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_thread_task_size(
     tiledb_vcf_writer_t* writer, uint32_t size) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)

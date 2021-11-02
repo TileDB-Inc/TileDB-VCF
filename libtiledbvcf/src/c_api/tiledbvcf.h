@@ -1206,6 +1206,95 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_num_threads(
     tiledb_vcf_writer_t* writer, uint32_t threads);
 
 /**
+ * Set the total memory budget for ingestion (MiB)
+ *
+ * @param writer VCF writer object
+ * @param total_memory_budget_mb The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_total_memory_budget_mb(
+    tiledb_vcf_writer_t* writer, uint32_t total_memory_budget_mb);
+
+/**
+ * Set the percentage of total system memory used for ingestion
+ * (overrides 'total_memory_budget_mb')
+ *
+ * @param writer VCF writer object
+ * @param total_memory_percentage The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_total_memory_percentage(
+    tiledb_vcf_writer_t* writer, float total_memory_percentage);
+
+/**
+ * Set the ratio of memory budget allocated to TileDB::sm.mem.total_budget
+ *
+ * @param writer VCF writer object
+ * @param ratio_tiledb_memory The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_ratio_tiledb_memory(
+    tiledb_vcf_writer_t* writer, float ratio_tiledb_memory);
+
+/**
+ * Set the maximum memory allocated to TileDB::sm.mem.total_budget (MiB)
+ *
+ * @param writer VCF writer object
+ * @param max_tiledb_memory_mb The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_max_tiledb_memory_mb(
+    tiledb_vcf_writer_t* writer, uint32_t max_tiledb_memory_mb);
+
+/**
+ * Set the size of input record buffer for each sample file (MiB)
+ *
+ * @param writer VCF writer object
+ * @param input_record_buffer_mb The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_input_record_buffer_mb(
+    tiledb_vcf_writer_t* writer, uint32_t input_record_buffer_mb);
+
+/**
+ * Set the average VCF record size (bytes)
+ *
+ * @param writer VCF writer object
+ * @param avg_vcf_record_size The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_avg_vcf_record_size(
+    tiledb_vcf_writer_t* writer, uint32_t avg_vcf_record_size);
+
+/**
+ * Set the ratio of worker task size to computed task size
+ *
+ * @param writer VCF writer object
+ * @param ratio_task_size The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_ratio_task_size(
+    tiledb_vcf_writer_t* writer, float ratio_task_size);
+
+/**
+ * Set the ratio of output buffer capacity that triggers a flush to TileDB
+ *
+ * @param writer VCF writer object
+ * @param ratio_output_flush The
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_ratio_output_flush(
+    tiledb_vcf_writer_t* writer, float ratio_output_flush);
+
+/**
  * Set max length (# columns) of an ingestion task. Affects load balancing of
  * ingestion work across threads, and total memory consumption.
  *

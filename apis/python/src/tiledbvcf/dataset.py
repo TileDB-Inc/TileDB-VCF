@@ -335,8 +335,14 @@ class Dataset(object):
         self,
         sample_uris=None,
         threads=None,
-        memory_budget_mb=None,
-        memory_budget_ratio=None,
+        total_memory_budget_mb=None,
+        total_memory_percentage=None,
+        ratio_tiledb_memory=None,
+        max_tiledb_memory_mb=None,
+        input_record_buffer_mb=None,
+        avg_vcf_record_size=None,
+        ratio_task_size=None,
+        ratio_output_flush=None,
         scratch_space_path=None,
         scratch_space_size=None,
         sample_batch_size=None,
@@ -344,14 +350,23 @@ class Dataset(object):
         contig_fragment_merging=True,
         contigs_to_keep_separate=None,
         contigs_to_allow_merging=None,
+        thread_task_size=None,
+        memory_budget_mb=None,
+        record_limit=None,
     ):
         """Ingest samples
 
         :param list of str sample_uris: CSV list of sample names to include in
             the count.
         :param int threads: Set the number of threads used for ingestion.
-        :param int memory_budget_mb: The total memory budget for ingestion (MiB)
-        :param float memory_budget_ratio: Ratio of total system memory used for ingestion (overrides 'memory_budget_mb')
+        :param int total_memory_budget_mb: Total memory budget for ingestion (MiB)
+        :param float total_memory_percentage: Percentage of total system memory used for ingestion (overrides 'total_memory_budget_mb')
+        :param float ratio_tiledb_memory: Ratio of memory budget allocated to TileDB::sm.mem.total_budget
+        :param int max_tiledb_memory_mb: Maximum memory allocated to TileDB::sm.mem.total_budget (MiB)
+        :param int input_record_buffer_mb: Size of input record buffer for each sample file (MiB)
+        :param int avg_vcf_record_size: Average VCF record size (bytes)
+        :param float ratio_task_size: Ratio of worker task size to computed task size
+        :param float ratio_output_flush: Ratio of output buffer capacity that triggers a flush to TileDB
         :param str scratch_space_path: Directory used for local storage of
             downloaded remote samples.
         :param int scratch_space_size: Amount of local storage that can be used
@@ -361,6 +376,14 @@ class Dataset(object):
         :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
         :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.
         :param list contigs_to_allow_merging: List of contigs that should be allowed to be merged into combined fragments.
+
+        :param int thread_task_size: Set the max length (# columns) of an
+            ingestion task. Affects load balancing of ingestion work across
+            threads, and total memory consumption. (Legacy option)
+        :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing
+            (Legacy option)
+        :param int record_limit: Limit the number of VCF records read into memory
+            per file (Legacy option)
         """
 
         if self.mode != "w":
@@ -372,11 +395,35 @@ class Dataset(object):
         if threads is not None:
             self.writer.set_num_threads(threads)
 
+        if total_memory_budget_mb is not None:
+            self.writer.set_total_memory_budget_mb(total_memory_budget_mb)
+
+        if total_memory_percentage is not None:
+            self.writer.set_total_memory_percentage(total_memory_percentage)
+
+        if ratio_tiledb_memory is not None:
+            self.writer.set_ratio_tiledb_memory(ratio_tiledb_memory)
+
+        if max_tiledb_memory_mb is not None:
+            self.writer.set_max_tiledb_memory_mb(max_tiledb_memory_mb)
+
+        if input_record_buffer_mb is not None:
+            self.writer.set_input_record_buffer_mb(input_record_buffer_mb)
+
+        if avg_vcf_record_size is not None:
+            self.writer.set_avg_vcf_record_size(avg_vcf_record_size)
+
+        if ratio_task_size is not None:
+            self.writer.set_ratio_task_size(ratio_task_size)
+
+        if ratio_output_flush is not None:
+            self.writer.set_ratio_output_flush(ratio_output_flush)
+
+        if thread_task_size is not None:
+            self.writer.set_thread_task_size(thread_task_size)
+
         if memory_budget_mb is not None:
             self.writer.set_memory_budget(memory_budget_mb)
-
-        if memory_budget_ratio is not None:
-            self.writer.set_memory_budget_ratio(memory_budget_ratio)
 
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
@@ -384,6 +431,9 @@ class Dataset(object):
             raise Exception(
                 "Must set both scratch_space_path and scratch_space_size to use scratch space"
             )
+
+        if record_limit is not None:
+            self.writer.set_max_num_records(record_limit)
 
         if sample_batch_size is not None:
             self.writer.set_sample_batch_size(sample_batch_size)

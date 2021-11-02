@@ -426,9 +426,9 @@ void add_store(CLI::App& app) {
          "The total memory budget for ingestion (MiB)")
       ->check(CLI::Range(512u, utils::system_memory_mb()));
   cmd->add_option(
-         "-M,--total-memory-ratio",
-         args->ratio_total_memory,
-         "Ratio of total system memory used for ingestion "
+         "-M,--total-memory-percentage",
+         args->total_memory_percentage,
+         "Percentage of total system memory used for ingestion "
          "(overrides '--total-memory-budget-mb')")
       ->check(CLI::Range(0.0, 1.0));
   cmd->add_flag(
@@ -492,9 +492,9 @@ void add_store(CLI::App& app) {
       args->input_record_buffer_mb,
       "Size of input record buffer for each sample file (MiB)");
   cmd->add_option(
-         "--avg-bcf-record-size",
-         args->avg_bcf_record_size,
-         "Average BCF record size (bytes)")
+         "--avg-vcf-record-size",
+         args->avg_vcf_record_size,
+         "Average VCF record size (bytes)")
       ->check(CLI::Range(1, 4096));
   cmd->add_option(
          "--ratio-task-size",
@@ -503,8 +503,8 @@ void add_store(CLI::App& app) {
       ->check(CLI::Range(0.01, 1.0));
   cmd->add_option(
          "--ratio-output-flush",
-         args->ratio_output_buffer_flush,
-         "Ratio of output buffer memory that triggers a flush to TileDB")
+         args->ratio_output_flush,
+         "Ratio of output buffer capacity that triggers a flush to TileDB")
       ->check(CLI::Range(0.01, 1.0));
 
   cmd->option_defaults()->group("Contig options");
@@ -546,7 +546,7 @@ void add_store(CLI::App& app) {
         args->max_record_buffer_size = value;
         args->use_legacy_max_record_buffer_size = true;
       },
-      "Max number of BCF records to buffer per file");
+      "Max number of VCF records to buffer per file");
   cmd->add_option_function<unsigned>(
       "-k,--thread-task-size",
       [args](const unsigned& value) {

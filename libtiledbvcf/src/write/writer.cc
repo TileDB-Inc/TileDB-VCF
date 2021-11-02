@@ -94,6 +94,7 @@ void Writer::init(const IngestionParams& params) {
   (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
                                              << 20;
   (*tiledb_config_)["sm.compute_concurrency_level"] = params.num_threads;
+  (*tiledb_config_)["sm.io_concurrency_level"] = params.num_threads;
 
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
@@ -184,10 +185,10 @@ void Writer::register_samples() {
 }
 
 void Writer::update_params(IngestionParams& params) {
-  // Override total memory budget if ratio_total_memory is provided
-  if (params.ratio_total_memory > 0) {
+  // Override total memory budget if total_memory_percentage is provided
+  if (params.total_memory_percentage > 0) {
     params.total_memory_budget_mb =
-        utils::system_memory_mb() * params.ratio_total_memory;
+        utils::system_memory_mb() * params.total_memory_percentage;
   }
 
   // Distribute memory budget
@@ -215,7 +216,7 @@ void Writer::update_params(IngestionParams& params) {
         "Using legacy option: --max-record-buff={}",
         params.max_record_buffer_size);
     params.max_record_buffer_size =
-        params.max_record_buffer_size * params.avg_bcf_record_size;
+        params.max_record_buffer_size * params.avg_vcf_record_size;
   } else {
     params.max_record_buffer_size = params.input_record_buffer_mb << 20;
   }
@@ -234,7 +235,7 @@ void Writer::update_params(IngestionParams& params) {
     LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
 
   } else {
-    params.max_tiledb_buffer_size_mb = params.ratio_output_buffer_flush *
+    params.max_tiledb_buffer_size_mb = params.ratio_output_flush *
                                        params.output_memory_budget_mb /
                                        params.num_threads;
     LOG_INFO(
@@ -758,7 +759,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   // Estimate the number of records that will fill the output buffer
   uint32_t output_buffer_records =
-      (params.max_tiledb_buffer_size_mb << 20) / params.avg_bcf_record_size;
+      (params.max_tiledb_buffer_size_mb << 20) / params.avg_vcf_record_size;
 
   LOG_DEBUG("Output buffer records = {}", output_buffer_records);
 
@@ -1151,15 +1152,50 @@ void Writer::set_num_threads(const unsigned threads) {
   ingestion_params_.num_threads = threads;
 }
 
+void Writer::set_total_memory_budget_mb(const uint32_t total_memory_budget_mb) {
+  ingestion_params_.total_memory_budget_mb = total_memory_budget_mb;
+}
+
+void Writer::set_total_memory_percentage(const float total_memory_percentage) {
+  ingestion_params_.total_memory_percentage = total_memory_percentage;
+}
+
+void Writer::set_ratio_tiledb_memory(const float ratio_tiledb_memory) {
+  ingestion_params_.ratio_tiledb_memory = ratio_tiledb_memory;
+}
+
+void Writer::set_max_tiledb_memory_mb(const uint32_t max_tiledb_memory_mb) {
+  ingestion_params_.max_tiledb_memory_mb = max_tiledb_memory_mb;
+}
+
+void Writer::set_input_record_buffer_mb(const uint32_t input_record_buffer_mb) {
+  ingestion_params_.input_record_buffer_mb = input_record_buffer_mb;
+}
+
+void Writer::set_avg_vcf_record_size(const uint32_t avg_vcf_record_size) {
+  ingestion_params_.avg_vcf_record_size = avg_vcf_record_size;
+}
+
+void Writer::set_ratio_task_size(const float ratio_task_size) {
+  ingestion_params_.ratio_task_size = ratio_task_size;
+}
+
+void Writer::set_ratio_output_flush(const float ratio_output_flush) {
+  ingestion_params_.ratio_output_flush = ratio_output_flush;
+}
+
 void Writer::set_thread_task_size(const unsigned size) {
+  ingestion_params_.use_legacy_thread_task_size = true;
   ingestion_params_.thread_task_size = size;
 }
 
 void Writer::set_memory_budget(const unsigned mb) {
+  ingestion_params_.use_legacy_max_tiledb_buffer_size_mb = true;
   ingestion_params_.max_tiledb_buffer_size_mb = mb;
 }
 
 void Writer::set_record_limit(const uint64_t max_num_records) {
+  ingestion_params_.use_legacy_max_record_buffer_size = true;
   ingestion_params_.max_record_buffer_size = max_num_records;
 }
 

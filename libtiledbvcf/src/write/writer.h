@@ -78,7 +78,7 @@ struct IngestionParams {
 
   // Total memory budget parameters
   uint32_t total_memory_budget_mb = utils::system_memory_mb() * 0.75;
-  float ratio_total_memory = 0.0;
+  float total_memory_percentage = 0.0;
 
   // Parameters used to distribute the memory budget
   uint32_t input_record_buffer_mb = 1;  // per sample, per thread
@@ -89,9 +89,9 @@ struct IngestionParams {
   uint32_t tiledb_memory_budget_mb;  // sm.mem.total_budget
   uint32_t output_memory_budget_mb;  // record heap, attribute buffers
 
-  // Average bcf record size used to estimate the number of records that
-  // fit in the output memory.
-  int avg_bcf_record_size = 512;
+  // Average vcf record size used to estimate the number of records that
+  // fit in memory.
+  int avg_vcf_record_size = 512;
 
   // Scaling factor for the worker task range. Scaling the task range avoids
   // flushing the attribute buffers before the record heap is empty.
@@ -99,11 +99,11 @@ struct IngestionParams {
   float ratio_task_size = 0.75;
 
   // Max size of TileDB buffers before flushing. Defaults to 1GB
-  uint32_t max_tiledb_buffer_size_mb = 1024;  // legacy if provided by user
+  uint32_t max_tiledb_buffer_size_mb = 1024;  // legacy option
   bool use_legacy_max_tiledb_buffer_size_mb =
       false;  // if true, use legacy option
-  float ratio_output_buffer_flush =
-      0.75;  // ratio of output buffer memory that triggers a flush to TileDB
+  float ratio_output_flush =
+      0.75;  // ratio of output buffer capacity that triggers a flush to TileDB
 
   // Number of samples per batch for ingestion (default: 10).
   uint32_t sample_batch_size = 10;
@@ -256,6 +256,31 @@ class Writer {
 
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
+
+  /** Set the total memory budget for ingestion (MiB) */
+  void set_total_memory_budget_mb(const uint32_t total_memory_budget_mb);
+
+  /** Set the percentage of total system memory used for ingestion
+   * (overrides 'total_memory_budget_mb') */
+  void set_total_memory_percentage(const float total_memory_percentage);
+
+  /** Set the ratio of memory budget allocated to TileDB::sm.mem.total_budget */
+  void set_ratio_tiledb_memory(const float ratio_tiledb_memory);
+
+  /** Set the maximum memory allocated to TileDB::sm.mem.total_budget (MiB) */
+  void set_max_tiledb_memory_mb(const uint32_t max_tiledb_memory_mb);
+
+  /** Set the size of input record buffer for each sample file (MiB) */
+  void set_input_record_buffer_mb(const uint32_t input_record_buffer_mb);
+
+  /** Set the average VCF record size (bytes) */
+  void set_avg_vcf_record_size(const uint32_t avg_vcf_record_size);
+
+  /** Set the ratio of worker task size to computed task size */
+  void set_ratio_task_size(const float ratio_task_size);
+
+  /** Set the ratio of output buffer capacity that triggers a flush to TileDB */
+  void set_ratio_output_flush(const float ratio_output_flush);
 
   /** Set the max length of an ingestion task. */
   void set_thread_task_size(const unsigned size);
