@@ -25,6 +25,7 @@
  */
 
 #include "vcf/vcf_v4.h"
+#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
@@ -60,6 +61,7 @@ void VCFV4::open(const std::string& file, const std::string& index_file) {
         "Cannot open VCF file; must be compressed with BGZF and indexed.");
   }
 
+  LOG_DEBUG("Reading VCF header {}", file);
   hdr_ = bcf_hdr_read(fh.get());
   if (hdr_ == nullptr) {
     close();
@@ -190,6 +192,10 @@ std::string VCFV4::sample_name() const {
 }
 
 bool VCFV4::contig_has_records(const std::string& contig_name) const {
+  return record_count(contig_name) > 0;
+}
+
+size_t VCFV4::record_count(const std::string& contig_name) const {
   if (!open_)
     throw std::runtime_error(
         "Error checking empty contig in VCF; file not open.");
@@ -207,7 +213,7 @@ bool VCFV4::contig_has_records(const std::string& contig_name) const {
 
   uint64_t records, unused;
   hts_idx_get_stat(idx, region_id, &records, &unused);
-  return records > 0;
+  return records;
 }
 
 void VCFV4::set_max_record_buff_size(uint64_t max_record_buffer_size) {
@@ -276,7 +282,8 @@ void VCFV4::read_records() {
     std::queue<SafeSharedBCFRec>().swap(record_queue_);
 
   SafeBCFRec tmp_r(bcf_init1(), bcf_destroy);
-  while (record_queue_.size() < max_record_buffer_size_) {
+  size_t record_buffer_size = 0;
+  while (record_buffer_size < max_record_buffer_size_) {
     if (!record_iter_.next(tmp_r.get()))
       break;
 
@@ -300,6 +307,15 @@ void VCFV4::read_records() {
       bcf_unpack(r.get(), BCF_UN_ALL);
       record_queue_.emplace(std::move(r));
     }
+    record_buffer_size += sizeof(bcf1_t) + record_queue_.front()->shared.m +
+                          record_queue_.front()->indiv.m;
+  }
+  if (record_buffer_size) {
+    LOG_TRACE(
+        "Filled VCF record queue: bytes={} records={} avg record bytes={}",
+        record_buffer_size,
+        record_queue_.size(),
+        record_buffer_size / record_queue_.size());
   }
 }
 

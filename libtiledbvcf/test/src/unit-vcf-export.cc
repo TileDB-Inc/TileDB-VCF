@@ -1466,10 +1466,20 @@ TEST_CASE(
 
     REQUIRE(fragmentInfo.fragment_num() == 42);
 
-    // Get the last fragment
-    std::string uri = fragmentInfo.fragment_uri(41);
-    vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    // Find the fragment containing contig chrX and remove it
+    std::string remove_contig = "chrX";
+    for (uint64_t i = 0; i < fragmentInfo.fragment_num(); i++) {
+      //      std::cout << "fragment[" << i << "] contigs= ["
+      //                << fragmentInfo.non_empty_domain_var(i, 0).first << ","
+      //                << fragmentInfo.non_empty_domain_var(i, 0).second << "]"
+      //                << std::endl;
+      if (fragmentInfo.non_empty_domain_var(i, 0).second.find(remove_contig) !=
+          std::string::npos) {
+        std::string uri = fragmentInfo.fragment_uri(i);
+        vfs.remove_dir(uri);
+        vfs.remove_file(uri + ".ok");
+      }
+    }
   }
 
   // Query for a record from the deleted fragment
@@ -1691,14 +1701,20 @@ TEST_CASE(
 
     REQUIRE(fragmentInfo.fragment_num() == 36);
 
-    // Get the last fragment
-    //    for(uint64_t i = 0; i < fragmentInfo.fragment_num(); i++)
-    //      std::cout << "fragment[" << i << "] contigs= ["<<
-    //      fragmentInfo.non_empty_domain_var(i, 0).first << "," <<
-    //      fragmentInfo.non_empty_domain_var(i, 0).second << "]" << std::endl;
-    std::string uri = fragmentInfo.fragment_uri(34);
-    vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    // Find the fragment containing contig chrUn and remove it
+    std::string remove_contig = "chrUn";
+    for (uint64_t i = 0; i < fragmentInfo.fragment_num(); i++) {
+      //      std::cout << "fragment[" << i << "] contigs= ["
+      //                << fragmentInfo.non_empty_domain_var(i, 0).first << ","
+      //                << fragmentInfo.non_empty_domain_var(i, 0).second << "]"
+      //                << std::endl;
+      if (fragmentInfo.non_empty_domain_var(i, 0).second.find(remove_contig) !=
+          std::string::npos) {
+        std::string uri = fragmentInfo.fragment_uri(i);
+        vfs.remove_dir(uri);
+        vfs.remove_file(uri + ".ok");
+      }
+    }
   }
 
   // Query for a record from the deleted fragment
@@ -1756,7 +1772,7 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 40 fragments created
+  // Check that there are only 36 fragments created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
@@ -1825,7 +1841,7 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 40 fragments
+  // Check that there are only 36 fragments
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();

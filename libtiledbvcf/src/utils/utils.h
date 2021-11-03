@@ -426,6 +426,11 @@ bool is_local_uri(const std::string& uri);
  */
 const std::string& version_info();
 
+/**
+ * Returns total system memory in MiB
+ */
+uint32_t system_memory_mb();
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <sys/resource.h>
 #include <future>
 
 #include "dataset/attribute_buffer_set.h"
@@ -89,8 +90,11 @@ void Writer::init(const IngestionParams& params) {
       params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
 
   tiledb_config_.reset(new Config);
-  (*tiledb_config_)["vfs.s3.multipart_part_size"] =
-      params.part_size_mb * 1024 * 1024;
+  (*tiledb_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
+  (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
+                                             << 20;
+  (*tiledb_config_)["sm.compute_concurrency_level"] = params.num_threads;
+  (*tiledb_config_)["sm.io_concurrency_level"] = params.num_threads;
 
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
@@ -180,6 +184,68 @@ void Writer::register_samples() {
   }
 }
 
+void Writer::update_params(IngestionParams& params) {
+  // Override total memory budget if total_memory_percentage is provided
+  if (params.total_memory_percentage > 0) {
+    params.total_memory_budget_mb =
+        utils::system_memory_mb() * params.total_memory_percentage;
+  }
+
+  // Distribute memory budget
+  uint32_t total_mb = params.total_memory_budget_mb;
+  uint32_t tiledb_mb = total_mb * params.ratio_tiledb_memory;
+  tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
+  uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
+                      params.sample_batch_size;
+  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
+
+  params.tiledb_memory_budget_mb = tiledb_mb;
+  params.output_memory_budget_mb = output_mb;
+
+  LOG_INFO(
+      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
+      "output={} MiB",
+      total_mb,
+      tiledb_mb,
+      input_mb,
+      output_mb);
+
+  // Set per thread, per sample vcf input buffer size
+  if (params.use_legacy_max_record_buffer_size) {
+    LOG_INFO(
+        "Using legacy option: --max-record-buff={}",
+        params.max_record_buffer_size);
+    params.max_record_buffer_size =
+        params.max_record_buffer_size * params.avg_vcf_record_size;
+  } else {
+    params.max_record_buffer_size = params.input_record_buffer_mb << 20;
+  }
+
+  LOG_INFO(
+      "Input buffers = {} threads * {} samples * {} MiB",
+      params.num_threads,
+      params.sample_batch_size,
+      params.max_record_buffer_size >> 20);
+
+  // Set per thread output buffer size
+  if (params.use_legacy_max_tiledb_buffer_size_mb) {
+    LOG_INFO(
+        "Using legacy option: --mem-budget-mb={}",
+        params.max_tiledb_buffer_size_mb);
+    LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
+
+  } else {
+    params.max_tiledb_buffer_size_mb = params.ratio_output_flush *
+                                       params.output_memory_budget_mb /
+                                       params.num_threads;
+    LOG_INFO(
+        "Output buffers = {} threads * {} MiB (flush = {} MiB)",
+        params.num_threads,
+        output_mb / params.num_threads,
+        params.max_tiledb_buffer_size_mb);
+  }
+}
+
 void Writer::ingest_samples() {
   auto start_all = std::chrono::steady_clock::now();
 
@@ -197,6 +263,28 @@ void Writer::ingest_samples() {
     ingestion_params_.load_data_array_fragment_info = true;
   }
 
+  // Reset expected total record count
+  total_records_expected_ = 0;
+
+  // Set open file soft limit to hard limit
+  struct rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+    LOG_WARN("Unable to read open file limit");
+  } else {
+    LOG_DEBUG("Open file limit = {}", limit.rlim_cur);
+    limit.rlim_cur = limit.rlim_max;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+      LOG_WARN("Unable to set open file limit");
+    } else {
+      if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        LOG_WARN("Unable to read new open file limit");
+      } else {
+        LOG_DEBUG("New open file limit = {}", limit.rlim_cur);
+      }
+    }
+  }
+
+  update_params(ingestion_params_);
   init(ingestion_params_);
 
   if (ingestion_params_.resume_sample_partial_ingestion &&
@@ -361,14 +449,38 @@ void Writer::ingest_samples() {
       vfs_->is_file(ingestion_params_.samples_file_uri))
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
+  auto time_sec = utils::chrono_duration(start_all);
   LOG_INFO(fmt::format(
       std::locale(""),
-      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in {} "
-      "seconds.",
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+      "{:.3f} seconds = {:.1f} records/sec",
       records_ingested,
       anchors_ingested,
       samples.size(),
-      utils::chrono_duration(start_all)));
+      time_sec,
+      records_ingested / time_sec));
+
+  // Check records ingested matches total records in VCF files, unless resume
+  // is enabled because resume may not ingest all records in the VCF files
+  // (check not implemented for V2/V3)
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4 &&
+      !ingestion_params_.resume_sample_partial_ingestion) {
+    if (records_ingested != total_records_expected_) {
+      std::string message = fmt::format(
+          "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+      LOG_ERROR(message);
+      throw std::runtime_error(message);
+    } else {
+      LOG_INFO(
+          "QACheck: [PASS] Total records ingested ({}) == total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+    }
+  }
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
@@ -512,9 +624,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
   // TODO: workers can be reused across space tiles
+  // TODO: use multiple threads for vcf open, currenly serial with num_threads *
+  // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4());
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_bytes(
@@ -558,6 +672,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
+  // Total number of records in each contig for all samples.
+  std::map<std::string, uint32_t> total_contig_records;
   for (const auto& s : samples) {
     VCFV4 vcf;
     vcf.open(s.sample_uri, s.index_uri);
@@ -585,6 +701,19 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Skip empty contigs
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
+
+      LOG_TRACE(fmt::format(
+          std::locale(""),
+          "Sample {} contig {}: {:L} positions {:L} records",
+          sample_name,
+          contig_region.seq_name,
+          contig_region.max + 1,
+          vcf.record_count(contig_region.seq_name)));
+
+      total_contig_records[contig_region.seq_name] +=
+          vcf.record_count(contig_region.seq_name);
+
+      total_records_expected_ += vcf.record_count(contig_region.seq_name);
 
       // Check if the contig has already been ingested. If so we'll skip it.
       // This first check only handles non-combined contigs
@@ -628,7 +757,33 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   if (regions_v4.empty())
     return {0, 0};
 
-  regions = prepare_region_list(regions_v4, ingestion_params_);
+  // Estimate the number of records that will fill the output buffer
+  uint32_t output_buffer_records =
+      (params.max_tiledb_buffer_size_mb << 20) / params.avg_vcf_record_size;
+
+  LOG_DEBUG("Output buffer records = {}", output_buffer_records);
+
+  if (params.use_legacy_thread_task_size) {
+    LOG_INFO(
+        "Using legacy option: --thread-task-size={}", params.thread_task_size);
+  }
+
+  // Set worker task size for each contig
+  std::map<std::string, uint32_t> contig_task_size;
+  for (auto& region : regions_v4) {
+    // convert total records to task size
+    uint32_t total_records = total_contig_records[region.seq_name];
+    uint32_t task_size = region.max + 1;
+    if (total_records > output_buffer_records) {
+      task_size = params.ratio_task_size * region.max * output_buffer_records /
+                  total_records;
+    }
+    contig_task_size[region.seq_name] = params.use_legacy_thread_task_size ?
+                                            params.thread_task_size :
+                                            task_size;
+  }
+
+  regions = prepare_region_list(regions_v4, contig_task_size);
 
   // Loop over complete contig list, check for merging and if already ingested
   // to skip
@@ -742,6 +897,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   while (!finished) {
     finished = true;
 
+    auto start = std::chrono::steady_clock::now();
+    size_t prev_records = records_ingested;
     for (unsigned i = 0; i < tasks.size(); i++) {
       if (!tasks[i].valid())
         continue;
@@ -780,7 +937,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               }
               // If the contig is different the last one we wrote, and we aren't
               // suppose to merge this new one, then finalize the previous one
-              LOG_DEBUG(
+              LOG_INFO(
                   "Finalizing contig batch [{}, {}]",
                   starting_region_contig_for_merge,
                   last_region_contig);
@@ -798,7 +955,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               last_region_contig = contig;
               starting_region_contig_for_merge = contig;
             } else {
-              LOG_INFO(
+              LOG_DEBUG(
                   "last contig {} and contig {} found to be mergeable, "
                   "combining into super fragment",
                   last_region_contig,
@@ -815,8 +972,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
-          LOG_INFO(
-              "Recorded {} cells for contig {} (task {} / {})",
+          LOG_DEBUG(
+              "Recorded {:L} cells for contig {} (task {} / {})",
               worker->records_buffered(),
               contig,
               i + 1,
@@ -849,6 +1006,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           break;
         }
       }
+    }
+    if (records_ingested > prev_records) {
+      LOG_INFO(
+          "Ingestion rate = {:.3f} records/sec",
+          (records_ingested - prev_records) / utils::chrono_duration(start));
     }
   }
 
@@ -961,16 +1123,22 @@ std::vector<Region> Writer::prepare_region_list(
 
 std::vector<Region> Writer::prepare_region_list(
     const std::vector<Region>& all_contigs,
-    const IngestionParams& params) const {
+    const std::map<std::string, uint32_t>& contig_task_size) const {
   std::vector<Region> result;
 
   for (const auto& r : all_contigs) {
+    const uint32_t task_size = contig_task_size.at(r.seq_name);
     const uint32_t contig_len = r.max - r.min + 1;
-    const uint32_t ntasks = utils::ceil(contig_len, params.thread_task_size);
+    const uint32_t ntasks = utils::ceil(contig_len, task_size);
+    LOG_DEBUG(fmt::format(
+        std::locale(""),
+        "Contig {}: task size = {:L} tasks = {:L}",
+        r.seq_name,
+        task_size,
+        ntasks));
     for (uint32_t i = 0; i < ntasks; i++) {
-      uint32_t task_min = r.min + i * params.thread_task_size;
-      uint32_t task_max =
-          std::min(task_min + params.thread_task_size - 1, r.max);
+      uint32_t task_min = r.min + i * task_size;
+      uint32_t task_max = std::min(task_min + task_size - 1, r.max);
       result.emplace_back(r.seq_name, task_min, task_max);
     }
   }
@@ -984,15 +1152,50 @@ void Writer::set_num_threads(const unsigned threads) {
   ingestion_params_.num_threads = threads;
 }
 
+void Writer::set_total_memory_budget_mb(const uint32_t total_memory_budget_mb) {
+  ingestion_params_.total_memory_budget_mb = total_memory_budget_mb;
+}
+
+void Writer::set_total_memory_percentage(const float total_memory_percentage) {
+  ingestion_params_.total_memory_percentage = total_memory_percentage;
+}
+
+void Writer::set_ratio_tiledb_memory(const float ratio_tiledb_memory) {
+  ingestion_params_.ratio_tiledb_memory = ratio_tiledb_memory;
+}
+
+void Writer::set_max_tiledb_memory_mb(const uint32_t max_tiledb_memory_mb) {
+  ingestion_params_.max_tiledb_memory_mb = max_tiledb_memory_mb;
+}
+
+void Writer::set_input_record_buffer_mb(const uint32_t input_record_buffer_mb) {
+  ingestion_params_.input_record_buffer_mb = input_record_buffer_mb;
+}
+
+void Writer::set_avg_vcf_record_size(const uint32_t avg_vcf_record_size) {
+  ingestion_params_.avg_vcf_record_size = avg_vcf_record_size;
+}
+
+void Writer::set_ratio_task_size(const float ratio_task_size) {
+  ingestion_params_.ratio_task_size = ratio_task_size;
+}
+
+void Writer::set_ratio_output_flush(const float ratio_output_flush) {
+  ingestion_params_.ratio_output_flush = ratio_output_flush;
+}
+
 void Writer::set_thread_task_size(const unsigned size) {
+  ingestion_params_.use_legacy_thread_task_size = true;
   ingestion_params_.thread_task_size = size;
 }
 
 void Writer::set_memory_budget(const unsigned mb) {
+  ingestion_params_.use_legacy_max_tiledb_buffer_size_mb = true;
   ingestion_params_.max_tiledb_buffer_size_mb = mb;
 }
 
 void Writer::set_record_limit(const uint64_t max_num_records) {
+  ingestion_params_.use_legacy_max_record_buffer_size = true;
   ingestion_params_.max_record_buffer_size = max_num_records;
 }
 
