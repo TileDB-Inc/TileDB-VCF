@@ -71,6 +71,7 @@ void Reader::reset() {
     exporter_->reset();
     read_state_.need_headers = exporter_->need_headers();
   }
+  query_condition_.reset();
 }
 
 void Reader::reset_buffers() {
@@ -88,6 +89,10 @@ void Reader::set_samples(const std::string& samples) {
 
 void Reader::set_regions(const std::string& regions) {
   params_.regions = utils::split(regions, ',');
+}
+
+void Reader::set_query_condition(tiledb_query_condition_t* const qc) {
+  query_condition_.reset(new QueryCondition(*ctx_, qc));
 }
 
 void Reader::set_sort_regions(bool sort_regions) {
@@ -970,6 +975,24 @@ bool Reader::read_current_batch() {
   buffers_a->set_buffers(query, dataset_->metadata().version);
 
   do {
+    /*
+    // TODO: remove this hardcoded example
+    tiledb_query_condition_t* qc;
+    tiledb_query_condition_alloc(ctx_->ptr().get(), &qc);
+    int value = 100000;
+    tiledb_query_condition_init(
+        ctx_->ptr().get(), qc, "end_pos", &value, sizeof(value), TILEDB_GT);
+    query_condition_.reset(new QueryCondition(*ctx_, qc));
+    */
+
+    // Set optional query condition
+    if (query_condition_) {
+      LOG_DEBUG("Adding query condition");
+      query->set_condition(*query_condition_);
+    } else {
+      LOG_DEBUG("No query condition provided");
+    }
+
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
     LOG_DEBUG("reader.cc:{}: query started.", __LINE__);

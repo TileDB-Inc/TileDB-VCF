@@ -188,6 +188,7 @@ class Dataset(object):
         bed_file=None,
         skip_check_samples=False,
         enable_progress_estimation=False,
+        query_condition=None,
     ):
         """Reads data from a TileDB-VCF dataset into Pandas dataframe.
 
@@ -206,6 +207,7 @@ class Dataset(object):
         :param str bed_file: URI of a BED file of genomic regions to be read.
         :param bool skip_check_samples: Should checking the samples requested exist in the array
         :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
+        :param str query_condition: # TODO
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
         if self.mode != "r":
@@ -222,6 +224,10 @@ class Dataset(object):
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
+
+        if query_condition is not None:
+            # TODO
+            self.reader.set_query_condition(query_condition)
 
         return self.continue_read()
 
