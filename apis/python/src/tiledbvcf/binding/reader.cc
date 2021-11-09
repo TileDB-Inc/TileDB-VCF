@@ -138,7 +138,7 @@ void Reader::set_memory_budget(int32_t memory_mb) {
           reader, uint64_t(mem_budget_mb_ / 3.0 * 2.0)));
 }
 
-void Reader::set_query_condition(tiledb_query_condition_t* const qc) {
+void Reader::set_query_condition(void* qc) {
   auto reader = ptr.get();
   check_error(reader, tiledb_vcf_reader_set_query_condition(reader, qc));
 }

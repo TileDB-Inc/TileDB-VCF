@@ -1,6 +1,7 @@
 import pandas as pd
 import pyarrow as pa
 import sys
+import tiledb
 import warnings
 
 from collections import namedtuple
@@ -226,8 +227,9 @@ class Dataset(object):
             self.reader.set_bed_file(bed_file)
 
         if query_condition is not None:
-            # TODO
-            self.reader.set_query_condition(query_condition)
+            qc = tiledb.QueryCondition(query_condition)
+            # TODO: Pass tiledb_query_condition_t* to reader (use capsule?)
+            # self.reader.set_query_condition(qc.ptr())
 
         return self.continue_read()
 

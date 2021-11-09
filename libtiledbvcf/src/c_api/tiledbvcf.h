@@ -38,7 +38,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <tiledb/tiledb>
 
 #ifdef __cplusplus
 extern "C" {
@@ -217,8 +216,8 @@ tiledb_vcf_reader_set_regions(tiledb_vcf_reader_t* reader, const char* regions);
  * @param qc TileDB query condition
  * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
  */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_query_condition(
-    const tiledb_vcf_reader_t* reader, tiledb_query_condition_t* const qc);
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_set_query_condition(tiledb_vcf_reader_t* reader, void* qc);
 
 /**
  * Sets whether or not to sort the regions to be read. By default, the regions

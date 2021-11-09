@@ -190,7 +190,7 @@ class Reader {
   void set_regions(const std::string& regions);
 
   /** Sets the query condition parameter. */
-  void set_query_condition(tiledb_query_condition_t* const qc);
+  void set_query_condition(void* qc);
 
   /** Sets the sort regionsparameter. */
   void set_sort_regions(bool sort_regions);

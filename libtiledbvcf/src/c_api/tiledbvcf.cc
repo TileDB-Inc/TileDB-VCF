@@ -247,7 +247,7 @@ int32_t tiledb_vcf_reader_set_regions(
 }
 
 int32_t tiledb_vcf_reader_set_query_condition(
-    tiledb_vcf_reader_t* reader, tiledb_query_condition_t* const qc) {
+    tiledb_vcf_reader_t* reader, void* qc) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || qc == nullptr)
     return TILEDB_VCF_ERR;
 

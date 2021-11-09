@@ -91,8 +91,9 @@ void Reader::set_regions(const std::string& regions) {
   params_.regions = utils::split(regions, ',');
 }
 
-void Reader::set_query_condition(tiledb_query_condition_t* const qc) {
-  query_condition_.reset(new QueryCondition(*ctx_, qc));
+void Reader::set_query_condition(void* qc) {
+  query_condition_.reset(
+      new QueryCondition(*ctx_, static_cast<tiledb_query_condition_t*>(qc)));
 }
 
 void Reader::set_sort_regions(bool sort_regions) {
