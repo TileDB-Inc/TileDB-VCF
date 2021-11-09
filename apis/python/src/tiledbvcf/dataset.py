@@ -6,6 +6,7 @@ import warnings
 
 from collections import namedtuple
 from . import libtiledbvcf
+from .query_condition_vcf import QueryConditionVCF
 
 ReadConfig = namedtuple(
     "ReadConfig",
@@ -208,8 +209,17 @@ class Dataset(object):
         :param str bed_file: URI of a BED file of genomic regions to be read.
         :param bool skip_check_samples: Should checking the samples requested exist in the array
         :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
-        :param str query_condition: # TODO
+        :param str query_condition: Filter on attributes by setting a string representing an expression as defined by the grammar in help(tiledb.QueryCondition).
         :return: Pandas DataFrame or PyArrow Array containing results.
+
+        Example
+        -------
+        # Use `query_condition` to select for cells where `pos_start` is
+        # below 13000 and `pos_end` is below 14000
+        df = vcf_dataset.read(
+            attrs=["pos_start", "pos_end"],
+            query_condition="pos_start < 13000 and pos_end < 14000",
+        )
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -227,9 +237,9 @@ class Dataset(object):
             self.reader.set_bed_file(bed_file)
 
         if query_condition is not None:
-            qc = tiledb.QueryCondition(query_condition)
-            # TODO: Pass tiledb_query_condition_t* to reader (use capsule?)
-            # self.reader.set_query_condition(qc.ptr())
+            qc = QueryConditionVCF(query_condition)
+            qc.init_query_condition(attrs)
+            self.reader.set_query_condition(qc._c_obj)
 
         return self.continue_read()
 

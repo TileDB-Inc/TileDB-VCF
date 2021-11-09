@@ -574,7 +574,7 @@ class Reader {
   std::unique_ptr<tiledb::VFS> vfs_;
 
   /** TileDB query condition. */
-  std::unique_ptr<QueryCondition> query_condition_;
+  std::shared_ptr<QueryCondition> query_condition_;
 
   /** Handle on the dataset being exported from. */
   std::unique_ptr<TileDBVCFDataset> dataset_;

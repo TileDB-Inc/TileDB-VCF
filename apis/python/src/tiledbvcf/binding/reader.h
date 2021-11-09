@@ -75,7 +75,7 @@ class Reader {
   void set_sample_partition(int32_t partition, int32_t num_partitions);
 
   /** Sets the query condition. */
-  void set_query_condition(void* qc);
+  void set_query_condition(py::object pyqc);
 
   /** Sets the sort regions parameter of this reader. */
   void set_sort_regions(bool sort_regions);

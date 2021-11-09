@@ -1160,3 +1160,18 @@ def test_vcf_attrs(tmp_path):
     assert ds.attributes(attr_type="info") == []
     assert ds.attributes(attr_type="fmt") == []
     assert sorted(ds.attributes()) == sorted(queryable_attrs)
+
+
+def test_query_condition(test_ds):
+    df = test_ds.read(attrs=["pos_start"], query_condition="pos_start > 13400")
+    assert all(df > 13400)
+
+    df = test_ds.read(attrs=["pos_end"], query_condition="pos_end < 13400")
+    assert all(df < 13400)
+
+    df = test_ds.read(
+        attrs=["pos_start", "pos_end"],
+        query_condition="pos_start < 13000 and pos_end < 14000",
+    )
+    assert all(df["pos_start"] < 14000)
+    assert all(df["pos_end"] < 13000)
