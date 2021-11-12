@@ -409,7 +409,7 @@ diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${in
 
 # check create from vcf, count/check for 19 commas separating 20 attributes
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
-[[ "$(tiledbvcf stat -u create_test | grep Extracted | tr -cd , | wc -c)" == 19 ]] || exit 1
+[[ "$($tilevcf stat -u create_test | grep Extracted | tr -cd , | wc -c)" == 19 ]] || exit 1
 
 # Expected failures
 echo ""
