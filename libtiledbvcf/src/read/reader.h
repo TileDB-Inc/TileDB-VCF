@@ -129,8 +129,11 @@ struct ExportParams {
   // the memory overhead of super regions needs to be reduced.
   int min_super_region_size = 1;
 
-  // Instead of intersections report only exact aligned matches to query regions
+  // Report only exact start/stop matches to query regions
   bool report_exact_match_only = false;
+
+  // Report only exact start matches to query regions
+  bool report_exact_start_match_only = false;
 };
 
 /* ********************************* */

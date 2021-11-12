@@ -668,6 +668,10 @@ void add_export(CLI::App& app) {
       "--exact-region-match",
       args->report_exact_match_only,
       "Force exact match for regions on export instead of intersection");
+  cmd->add_flag(
+      "--exact-region-start-match",
+      args->report_exact_start_match_only,
+      "Force exact match on region start position instead of intersection");
 
   // register function to implement this command
   cmd->callback([args, cmd]() { do_export(*args, *cmd); });

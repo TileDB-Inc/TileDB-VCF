@@ -80,6 +80,8 @@ void Reader::set_all_params(const ExportParams& params) {
   params_ = params;
   if (params_.report_exact_match_only)
     LOG_WARN("Exact match for regions of query mode enabled");
+  if (params_.report_exact_start_match_only)
+    LOG_WARN("Exact start match for regions of query mode enabled");
 }
 
 void Reader::set_samples(const std::string& samples) {
@@ -1224,6 +1226,11 @@ bool Reader::process_query_results_v4() {
 
       if (params_.report_exact_match_only &&
           !(real_start == reg_min && end == reg_max)) {
+        continue;
+      }
+
+      if (params_.report_exact_start_match_only &&
+          !(real_start == reg_min)) {
         continue;
       }
 
