@@ -184,6 +184,60 @@ TEST_CASE("C API: Writer with extra attributes", "[capi][writer]") {
     vfs.remove_dir(dataset_uri);
 }
 
+TEST_CASE("C API: Writer with vcf attributes", "[capi][writer]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  std::string vcf_uri = INPUT_DIR + "small.vcf";
+
+  tiledb_vcf_writer_t* writer = nullptr;
+  REQUIRE(tiledb_vcf_writer_alloc(&writer) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_init(writer, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(
+      tiledb_vcf_writer_set_vcf_attributes(writer, vcf_uri.c_str()) ==
+      TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
+
+  std::string samples =
+      INPUT_DIR + "small.bcf" + "," + INPUT_DIR + "small2.bcf";
+  REQUIRE(
+      tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
+
+  tiledb::vcf::TileDBVCFDataset ds;
+  REQUIRE_NOTHROW(ds.open(dataset_uri));
+  REQUIRE(
+      ds.metadata().extra_attributes == std::vector<std::string>{
+                                            "fmt_AD",
+                                            "fmt_DP",
+                                            "fmt_GQ",
+                                            "fmt_GT",
+                                            "fmt_MIN_DP",
+                                            "fmt_PL",
+                                            "fmt_SB",
+                                            "info_BaseQRankSum",
+                                            "info_ClippingRankSum",
+                                            "info_DP",
+                                            "info_DS",
+                                            "info_END",
+                                            "info_HaplotypeScore",
+                                            "info_InbreedingCoeff",
+                                            "info_MLEAC",
+                                            "info_MLEAF",
+                                            "info_MQ",
+                                            "info_MQ0",
+                                            "info_MQRankSum",
+                                            "info_ReadPosRankSum"});
+
+  tiledb_vcf_writer_free(&writer);
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
 TEST_CASE(
     "C API: Writer store with overlapping records",
     "[capi][writer][overlapping]") {

@@ -146,6 +146,10 @@ void Writer::set_extra_attributes(const std::string& attributes) {
   creation_params_.extra_attributes = attrs;
 }
 
+void Writer::set_vcf_attributes(const std::string& vcf_uri) {
+  creation_params_.vcf_uri = vcf_uri;
+}
+
 void Writer::set_checksum_type(const int& checksum) {
   set_checksum_type((tiledb_filter_type_t)checksum);
 }

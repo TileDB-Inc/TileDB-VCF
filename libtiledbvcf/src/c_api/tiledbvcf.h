@@ -1110,6 +1110,17 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_extra_attributes(
     tiledb_vcf_writer_t* writer, const char* attributes);
 
 /**
+ * [Creation only] Sets the info and fmt fields that should be extracted as
+ * separate TileDB attributes using all fields in the provided VCF file.
+ *
+ * @param writer VCF writer object
+ * @param vcf_uri VCF file used to extract the info and fmt fields.
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_vcf_attributes(
+    tiledb_vcf_writer_t* writer, const char* vcf_uri);
+
+/**
  * [Creation only] Sets the checksum type to be used for the underlying arrays
  *
  * The checksum type can be set to TILEDB_VCF_CHECKSUM_MD5,

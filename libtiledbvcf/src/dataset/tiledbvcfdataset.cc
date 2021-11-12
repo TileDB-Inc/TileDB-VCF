@@ -146,6 +146,37 @@ void TileDBVCFDataset::lock_and_join_vcf_header_array() {
   }
 }
 
+std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
+  LOG_INFO("Reading attributes from: {}", uri);
+  std::vector<std::string> attributes;
+
+  // Read VCF header into string for parsing
+  bcf_hdr_t* hdr = VCFUtils::hdr_read_header(uri);
+  std::string hdrstr = VCFUtils::hdr_to_string(hdr);
+  const char* p = hdrstr.c_str();
+
+  // Parse header and find FORMAT/INFO records
+  bcf_hrec_t* hrec;
+  int len;
+  while (NULL != (hrec = bcf_hdr_parse_line(hdr, p, &len))) {
+    int i = bcf_hrec_find_key(hrec, "ID");
+    if (i >= 0) {
+      if (strcmp("FORMAT", hrec->key) == 0) {
+        LOG_INFO("Adding attribute: fmt_{}", hrec->vals[i]);
+        attributes.emplace_back(fmt::format("fmt_{}", hrec->vals[i]));
+      } else if (strcmp("INFO", hrec->key) == 0) {
+        LOG_INFO("Adding attribute: info_{}", hrec->vals[i]);
+        attributes.emplace_back(fmt::format("info_{}", hrec->vals[i]));
+      }
+    }
+
+    bcf_hrec_destroy(hrec);
+    p += len;
+  }
+
+  return attributes;
+}
+
 void TileDBVCFDataset::create(const CreationParams& params) {
   LOG_TRACE("Create dataset: {}", params.uri);
 
@@ -177,6 +208,12 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   metadata.anchor_gap = params.anchor_gap;
   metadata.extra_attributes = params.extra_attributes;
   metadata.free_sample_id = 0;
+
+  // Materialize all attributes in the provided VCF file
+  if (!params.vcf_uri.empty()) {
+    metadata.extra_attributes = get_vcf_attributes(params.vcf_uri);
+    check_attribute_names(metadata.extra_attributes);
+  }
 
   create_empty_metadata(ctx, params.uri, metadata, params.checksum);
   create_empty_data_array(

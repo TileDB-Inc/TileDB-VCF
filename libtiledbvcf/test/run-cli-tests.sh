@@ -27,6 +27,7 @@ function clean_up {
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
            region-map.txt pfx.tsv \
            export_test G1.bcf \
+           create_test \
     rm -rf "$upload_dir"
 }
 
@@ -405,6 +406,10 @@ $tilevcf create -u export_test
 $tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
 $tilevcf export -u export_test -Ob -s G1
 diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf) || exit 1
+
+# check create from vcf, count/check for 19 commas separating 20 attributes
+$tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
+[[ "$(tiledbvcf stat -u create_test | grep Extracted | tr -cd , | wc -c)" == 19 ]] || exit 1
 
 # Expected failures
 echo ""

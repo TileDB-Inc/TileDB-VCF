@@ -346,10 +346,16 @@ void add_create(CLI::App& app) {
   cmd->add_option(
          "-a,--attributes",
          args->extra_attributes,
-         "Info or format field names (comma-delimited) to store as separate "
-         "attributes. Names should be 'fmt_X' or 'info_X' for "
+         "INFO and/or FORMAT field names (comma-delimited) to store as "
+         "separate attributes. Names should be 'fmt_X' or 'info_X' for "
          "a field name 'X' (case sensitive).")
       ->delimiter(',');
+  cmd->add_option(
+         "-v,--vcf-attributes",
+         args->vcf_uri,
+         "Create separate attributes for all INFO and FORMAT fields in the "
+         "provided VCF file.")
+      ->excludes("--attributes");
   cmd->add_option(
       "-g,--anchor-gap", args->anchor_gap, "Anchor gap size to use");
   cmd->add_flag_function(
