@@ -407,9 +407,9 @@ $tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
 $tilevcf export -u export_test -Ob -s G1
 diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf) || exit 1
 
-# check create from vcf, count/check for 19 commas separating 20 attributes
+# check create from vcf
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
-[[ "$($tilevcf stat -u create_test | grep Extracted | tr -cd , | wc -c)" == 19 ]] || exit 1
+diff <(tiledbvcf stat -u create_test | grep Extracted) <(echo "- Extracted attributes: fmt_AD, fmt_DP, fmt_GQ, fmt_GT, fmt_MIN_DP, fmt_PL, fmt_SB, info_BaseQRankSum, info_ClippingRankSum, info_DP, info_DS, info_END, info_HaplotypeScore, info_InbreedingCoeff, info_MLEAC, info_MLEAF, info_MQ, info_MQ0, info_MQRankSum, info_ReadPosRankSum") || exit 1
 
 # Expected failures
 echo ""
