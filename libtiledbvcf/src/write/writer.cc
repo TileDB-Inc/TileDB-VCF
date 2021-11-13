@@ -1077,6 +1077,10 @@ std::vector<SampleAndIndex> Writer::prepare_sample_list_v4(
   auto sample_names =
       SampleUtils::get_sample_names(*vfs_, samples, params.scratch_space);
 
+  if (sample_names.size() == 0) {
+    throw std::runtime_error("No samples found in VCF file(s).");
+  }
+
   // Sort by sample ID
   std::vector<std::pair<SampleAndIndex, std::string>> sorted(samples.size());
   for (size_t i = 0; i < samples.size(); i++)
