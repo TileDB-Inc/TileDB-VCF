@@ -201,6 +201,7 @@ class SampleUtils {
       std::string download_dest_file = utils::uri_join(
           download_dest_dir, utils::split(s.sample_uri, '/').back());
 
+      bool found_hdr = false;
       while (true) {
         if (vfs.is_file(download_dest_file))
           vfs.remove_file(download_dest_file);
@@ -232,6 +233,7 @@ class SampleUtils {
         SafeBCFHdr hdr(VCFUtils::hdr_read_header(path), bcf_hdr_destroy);
         if (hdr != nullptr) {
           result.push_back(process(std::move(hdr)));
+          found_hdr = true;
           break;
         }
 
@@ -240,6 +242,10 @@ class SampleUtils {
         if (doubled == dl_num_bytes)
           break;
         dl_num_bytes = doubled;
+      }
+
+      if (!found_hdr) {
+        throw std::runtime_error("Invalid VCF file: " + s.sample_uri);
       }
     }
 
