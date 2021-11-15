@@ -187,6 +187,43 @@ TEST_CASE("TileDB-VCF: Test ingest", "[tiledbvcf][ingest]") {
     vfs.remove_dir(dataset_uri);
 }
 
+TEST_CASE("TileDB-VCF: Test ingest annotation VCF", "[tiledbvcf][ingest]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest bad vcf (throws)
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {
+        input_dir + "/E001_15_coreMarks_dense_filtered.bed.gz"};
+    writer.set_all_params(params);
+    REQUIRE_THROWS(writer.ingest_samples());
+  }
+
+  // Ingest vcf without sample name
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/no-sample.bcf"};
+    writer.set_all_params(params);
+    REQUIRE_THROWS(writer.ingest_samples());
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
 TEST_CASE("TileDB-VCF: Test ingest larger", "[tiledbvcf][ingest]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);

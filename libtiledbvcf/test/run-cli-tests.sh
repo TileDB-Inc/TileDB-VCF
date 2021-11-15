@@ -424,6 +424,10 @@ $tilevcf create -u ingested_bad -a GT && exit 1
 echo "Expecture failure with duplicate start pos"
 $tilevcf create -u errored_dupe_start_pos --no-duplicates || exit 1
 $tilevcf store -u errored_dupe_start_pos ${input_dir}/dupeStartPos.vcf.gz && exit 1
+
+echo "Expecture failure with invalid VCF file"
+$tilevcf store -u ingested_comb ${input_dir}/E001_15_coreMarks_dense_filtered.bed.gz && exit 1
+
 echo "** End expected error messages."
 
 # Clean up
