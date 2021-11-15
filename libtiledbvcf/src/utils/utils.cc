@@ -560,6 +560,9 @@ const std::string& version_info() {
 
 #ifdef _WIN32
 #include <windows.h>
+#elif __APPLE__
+#include <sys/sysctl.h>
+#include <sys/types.h>
 #endif
 
 uint32_t system_memory_mb() {
@@ -568,7 +571,12 @@ uint32_t system_memory_mb() {
   MEMORYSTATUSEX statex;
   statex.dwLength = sizeof(statex);
   GlobalMemoryStatusEx(&statex);
-  return statex.ullTotalPhys;
+  return statex.ullTotalPhys >> 20;
+#elif __APPLE__
+  uint64_t mem;
+  size_t len = sizeof(mem);
+  sysctlbyname("hw.memsize", &mem, &len, NULL, 0);
+  return mem >> 20;
 #else
   return (sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE)) >> 20;
 #endif
