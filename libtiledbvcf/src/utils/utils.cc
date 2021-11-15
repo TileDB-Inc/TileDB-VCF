@@ -560,6 +560,9 @@ const std::string& version_info() {
 
 #ifdef _WIN32
 #include <windows.h>
+#elif __APPLE__
+#include <sys/sysctl.h>
+#include <sys/types.h>
 #endif
 
 uint32_t system_memory_mb() {
