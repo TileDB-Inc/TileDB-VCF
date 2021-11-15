@@ -1093,6 +1093,17 @@ int32_t tiledb_vcf_writer_set_extra_attributes(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_vcf_attributes(
+    tiledb_vcf_writer_t* writer, const char* vcf_uri) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_vcf_attributes(vcf_uri)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_checksum_type(
     tiledb_vcf_writer_t* writer, tiledb_vcf_checksum_type_t checksum_type) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)

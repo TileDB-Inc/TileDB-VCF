@@ -61,6 +61,7 @@ struct CreationParams {
   std::vector<std::string> tiledb_config;
   tiledb_filter_type_t checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   bool allow_duplicates = true;
+  std::string vcf_uri;
 };
 
 /** Arguments/params for dataset registration. */
@@ -746,6 +747,11 @@ class TileDBVCFDataset {
   /* ********************************* */
   /*          STATIC METHODS           */
   /* ********************************* */
+
+  /**
+   * Creates a list of all info and format fields in the provided VCF file.
+   */
+  static std::vector<std::string> get_vcf_attributes(std::string uri);
 
   /**
    * Checks the given extracted attribute names for validity on dataset

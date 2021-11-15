@@ -291,6 +291,7 @@ class Dataset(object):
     def create_dataset(
         self,
         extra_attrs=None,
+        vcf_attrs=None,
         tile_capacity=None,
         anchor_gap=None,
         checksum_type=None,
@@ -299,7 +300,9 @@ class Dataset(object):
         """Create a new dataset
 
         :param list of str extra_attrs: CSV list of extra attributes to
-            materialize from fmt field
+            materialize from fmt and info fields.
+        :param str vcf_attrs: URI of VCF file with all fmt and info fields
+            to materialize in the dataset.
         :param int tile_capacity: Tile capacity to use for the array schema
             (default = 10000).
         :param int anchor_gap: Length of gaps between inserted anchor records in
@@ -312,8 +315,14 @@ class Dataset(object):
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
 
-        extra_attrs = "" if extra_attrs is None else extra_attrs
-        self.writer.set_extra_attributes(",".join(extra_attrs))
+        if extra_attrs is not None and vcf_attrs is not None:
+            raise Exception("Cannot provide both extra_attrs and vcf_attrs.")
+
+        if extra_attrs is not None:
+            self.writer.set_extra_attributes(",".join(extra_attrs))
+
+        if vcf_attrs is not None:
+            self.writer.set_vcf_attributes(vcf_attrs)
 
         if tile_capacity is not None:
             self.writer.set_tile_capacity(tile_capacity)

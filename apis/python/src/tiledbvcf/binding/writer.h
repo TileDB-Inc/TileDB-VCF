@@ -62,6 +62,12 @@ class Writer {
   void set_extra_attributes(const std::string& attributes);
 
   /**
+   * [Creation only] Sets the info and fmt fields that should be extracted as
+   * separate TileDB attributes using all fields in the provided VCF file.
+   */
+  void set_vcf_attributes(const std::string& vcf_uri);
+
+  /**
     [Creation only] Sets the checksum type to be used of the arrays
   */
   void set_checksum(const std::string& checksum);
