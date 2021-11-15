@@ -63,6 +63,10 @@ Logger::Logger() {
   logger_ = spdlog::get(CONSOLE_LOGGER);
   if (logger_ == nullptr) {
     logger_ = spdlog::stdout_color_mt(CONSOLE_LOGGER);
+    // change color of critical messages
+    auto console_sink = static_cast<spdlog::sinks::stdout_color_sink_mt*>(
+        logger_->sinks().back().get());
+    console_sink->set_color(spdlog::level::critical, console_sink->red_bold);
   }
   logger_->set_pattern(LOG_PATTERN);
   set_level("FATAL");
