@@ -217,7 +217,7 @@ TEST_CASE("TileDB-VCF: Test ingest annotation VCF", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/no-sample.bcf"};
     writer.set_all_params(params);
-    REQUIRE_THROWS(writer.ingest_samples());
+    writer.ingest_samples();
   }
 
   if (vfs.is_dir(dataset_uri))
