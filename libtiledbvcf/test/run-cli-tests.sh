@@ -183,7 +183,7 @@ test -e HG00280.vcf && exit 1
 diff -u <(bcftools view --no-version -r $region ${input_dir}/small.bcf) HG01762.vcf || exit 1
 
 # uneven division doesn't produce empty partitions
-$tilevcf export -u ingested_10_samples -Ov -fingested_10_samples.txt --sample-partition 5:6
+$tilevcf export -u ingested_10_samples -Ov -f ${input_dir}/ingested_10_samples.txt --sample-partition 5:6
 numvcfs=$(ls *.vcf | wc -l)
 test $numvcfs -eq 10 && exit 1
 rm *.vcf
@@ -234,8 +234,8 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,ID,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -b 512 || exit 1
-diff -uw pfx.tsv <(
-cat <<EOF
+diff -uw <(sort -k1,1 -k3,3n pfx.tsv) <(
+sort -k1,1 -k3,3n <<EOF
 SAMPLE	CHR	POS	ID  I:END	REF	ALT	FILTER
 HG00280	1	12141	.   12277	C	<NON_REF>
 HG00280	1	12546	.   12771	G	<NON_REF>
@@ -256,8 +256,8 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 -d /tmp/ -b 512 || exit 1
-diff -uw /tmp/pfx.tsv <(
-cat <<EOF
+diff -uw <(sort -k1,1 -k3,3n /tmp/pfx.tsv) <(
+sort -k1,1 -k3,3n <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
 HG00280	1	12546	12771	G	<NON_REF>
@@ -279,8 +279,8 @@ rm -f HG00280.vcf HG01762.vcf region-map.txt $upload_dir/*
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,ALT,FILTER -v -s HG01762,HG00280 --upload-dir $upload_dir -b 512 || exit 1
-diff -uw $upload_dir/pfx.tsv <(
-cat <<EOF
+diff -uw <(sort -k1,1 -k3,3n $upload_dir/pfx.tsv) <(
+sort -k1,1 -k3,3n <<EOF
 SAMPLE	CHR	POS	I:END	REF	ALT	FILTER
 HG00280	1	12141	12277	C	<NON_REF>
 HG00280	1	12546	12771	G	<NON_REF>
@@ -337,8 +337,8 @@ rm -f HG00280.vcf HG01762.vcf
 region="1\t12141\t15000\n1\t17484\t18000"
 echo -e "$region" > tmp.bed
 $tilevcf export -u ingested_1_2 -R tmp.bed -O t -o pfx.tsv -t CHR,POS,I:END,REF,Q:POS,Q:END -v -s HG01762,HG00280 || exit 1
-diff -uw pfx.tsv <(
-cat <<EOF
+diff -uw <(sort -k1,1 -k3,3n pfx.tsv) <(
+sort -k1,1 -k3,3n <<EOF
 SAMPLE	CHR	POS	I:END	REF	Q:POS	Q:END
 HG00280	1	12141	12277	C	12142	15000
 HG00280	1	12546	12771	G	12142	15000
@@ -405,7 +405,7 @@ EOF
 $tilevcf create -u export_test
 $tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
 $tilevcf export -u export_test -Ob -s G1
-diff -u <(bcftools view -H G1.bcf | sort -n -k1,1 -k2,2) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf) || exit 1
+diff -u <(bcftools view -H G1.bcf | sort -k1,1 -k2,2n) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf | sort -k1,1 -k2,2n) || exit 1
 
 # check create from vcf
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1

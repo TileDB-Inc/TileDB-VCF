@@ -276,6 +276,8 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("samples", "HG01762,HG00280")
             // .option("ranges", "1:12100-13360,1:13500-17350")
             .option("partitions", 2)
+            .option("tiledb.config.logging_level", 5)
+            .option("tiledb.vcf.log_level", "TRACE")
             .load();
 
     // Create and register the UDF
