@@ -283,9 +283,9 @@ bool WriterWorkerV2::buffer_record(
   else
     anchors_buffered_++;
 
-  // TODO: make this max buffer size check a parameter.
-  const uint64_t buffer_size = buffers_.total_size();
-  if (buffer_size > max_total_buffer_size_bytes_) {
+  // Return false if buffers are full
+  const uint64_t buffer_size_mb = buffers_.total_size() >> 20;
+  if (buffer_size_mb > max_total_buffer_size_mb_) {
     return false;
   }
 

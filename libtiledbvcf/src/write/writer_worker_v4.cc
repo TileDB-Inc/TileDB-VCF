@@ -336,8 +336,8 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
     anchors_buffered_++;
 
   // Return false if buffers are full
-  const uint64_t buffer_size = buffers_.total_size();
-  if (buffer_size > max_total_buffer_size_bytes_) {
+  const uint64_t buffer_size_mb = buffers_.total_size() >> 20;
+  if (buffer_size_mb > max_total_buffer_size_mb_) {
     return false;
   }
 
