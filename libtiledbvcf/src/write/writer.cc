@@ -509,8 +509,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     }
 
     workers[i]->init(*dataset_, params, samples);
-    workers[i]->set_max_total_buffer_size_mb(
-        params.max_tiledb_buffer_size_mb);
+    workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   }
 
   // First compose the set of contigs that are nonempty.
@@ -635,8 +634,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
-    workers[i]->set_max_total_buffer_size_mb(
-        params.max_tiledb_buffer_size_mb);
+    workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   }
 
   // First compose the set of contigs that are nonempty.
@@ -762,8 +760,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     return {0, 0};
 
   // Estimate the number of records that will fill the output buffer
-  float output_buffer_records =
-      1024.0 * 1024.0 * params.max_tiledb_buffer_size_mb / params.avg_vcf_record_size;
+  float output_buffer_records = 1024.0 * 1024.0 *
+                                params.max_tiledb_buffer_size_mb /
+                                params.avg_vcf_record_size;
 
   LOG_DEBUG("Output buffer records = {}", output_buffer_records);
   assert(output_buffer_records > 0 && output_buffer_records < UINT32_MAX);
