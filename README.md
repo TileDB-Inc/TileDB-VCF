@@ -86,8 +86,8 @@ returns results as a pandas `DataFrame`
 ## Want to Learn More?
 
 * [Check out the full documentation][vcf]
-* [Motivation](https://docs.tiledb.com/solutions/integrations/population-genomics/the-problem) and [idea behind storing VCF data in 3D sparse arrays](https://docs.tiledb.com/solutions/integrations/population-genomics/the-problem)
-* [Data Model](https://docs.tiledb.com/solutions/integrations/population-genomics/data-model)
+* [Motivation](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/the-problem) and [idea behind storing VCF data in 3D sparse arrays](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/the-solution)
+* [Data Model](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/data-model)
 
 # Code of Conduct
 
@@ -99,11 +99,11 @@ https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
 
 <!-- links -->
 [tiledb]: https://github.com/TileDB-Inc/TileDB
-[vcf]: https://docs.tiledb.com/solutions/integrations/population-genomics
+[vcf]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics
 
-[install]: https://docs.tiledb.com/solutions/integrations/population-genomics/installation/quick-install
-[build]: https://docs.tiledb.com/solutions/integrations/population-genomics/installation/building-from-source
+[install]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/quick-install
+[build]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/building-from-source
 
-[use-cli]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/cli
-[use-py]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/python
-[use-spark]: https://docs.tiledb.com/solutions/integrations/population-genomics/usage/spark
+[use-cli]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/cli
+[use-py]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/python
+[use-spark]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/spark
