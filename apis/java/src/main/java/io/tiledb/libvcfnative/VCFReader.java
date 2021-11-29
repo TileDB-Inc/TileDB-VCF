@@ -485,8 +485,11 @@ public class VCFReader implements AutoCloseable {
         LibVCFNative.tiledb_vcf_reader_get_attribute_type(
             this.readerPtr, attribute, datatype, varLen, nullable, list);
     if (rc != 0) {
+      // Warn instead of throwing an error in case an attribute specified during 
+      // dataset creation does not exist in the VCF data
       String msg = getLastErrorMessage();
-      throw new RuntimeException("Error getting attribute datatype: " + msg);
+      System.out.println("WARNING: " + msg);
+      return new AttributeTypeInfo(AttributeDatatype.UINT8, false, false, false);
     }
 
     boolean isVarLen = varLen[0] == 1;
