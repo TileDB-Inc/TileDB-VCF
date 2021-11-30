@@ -26,6 +26,8 @@
 
 #include <CLI11.hpp>
 
+#include <tiledb/tiledb>
+
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read/reader.h"
@@ -61,7 +63,9 @@ void do_register(const RegistrationParams& args, const CLI::App& cmd) {
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   if (dataset.metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset.metadata().version == TileDBVCFDataset::Version::V3)
@@ -136,7 +140,9 @@ void do_list(const ListParams& args, const CLI::App& cmd) {
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_samples_list();
   LOG_TRACE("Finished list command.");
@@ -150,7 +156,9 @@ void do_stat(const StatParams& args, const CLI::App& cmd) {
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.print_dataset_stats();
   LOG_TRACE("Finished stat command.");
@@ -162,7 +170,9 @@ void do_utils_consolidate_fragments(
   LOG_TRACE("Starting utils consolidate fragments command.");
   config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.consolidate_fragments(args);
   LOG_TRACE("Finished utils consolidate fragments command.");
@@ -173,7 +183,9 @@ void do_utils_consolidate_fragment_metadata(
   LOG_TRACE("Starting utils consolidate fragment metadata command.");
   config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.consolidate_fragment_metadata(args);
   LOG_TRACE("Finished utils consolidate fragment metadata command.");
@@ -183,7 +195,9 @@ void do_utils_vacuum_fragments(const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils vacuum fragments command.");
   config_to_log(cmd);
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.vacuum_fragments(args);
   LOG_TRACE("Finished utils vacuum fragments command.");
@@ -194,7 +208,9 @@ void do_utils_vacuum_fragment_metadata(
   LOG_TRACE("Starting utils vacuum fragment metadata command.");
   LOG_DEBUG(cmd.config_to_str(true));
   utils::set_htslib_tiledb_context(args.tiledb_config);
-  TileDBVCFDataset dataset;
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
   dataset.open(args.uri, args.tiledb_config);
   dataset.vacuum_fragment_metadata(args);
   LOG_TRACE("Finished utils vacuum fragment metadata command.");

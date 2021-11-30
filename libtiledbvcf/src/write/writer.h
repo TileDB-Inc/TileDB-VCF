@@ -349,7 +349,7 @@ class Writer {
   /* ********************************* */
 
   std::unique_ptr<Config> tiledb_config_;
-  std::unique_ptr<Context> ctx_;
+  std::shared_ptr<Context> ctx_;
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;

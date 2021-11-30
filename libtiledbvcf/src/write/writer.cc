@@ -57,7 +57,12 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
   query_.reset(nullptr);
   array_.reset(nullptr);
 
-  dataset_.reset(new TileDBVCFDataset);
+  if (tiledb_config_ != nullptr) {
+    ctx_.reset(new Context(*tiledb_config_));
+  } else {
+    ctx_.reset(new Context);
+  }
+  dataset_.reset(new TileDBVCFDataset(ctx_));
 
   std::vector<std::string> tiledb_config;
   if (!ingestion_params_.tiledb_config.empty())
@@ -80,15 +85,6 @@ void Writer::init(const IngestionParams& params) {
   query_.reset(nullptr);
   array_.reset(nullptr);
 
-  dataset_.reset(new TileDBVCFDataset);
-
-  dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
-  dataset_->set_tiledb_stats_enabled_vcf_header(
-      params.tiledb_stats_enabled_vcf_header_array);
-
-  dataset_->open(
-      params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
-
   tiledb_config_.reset(new Config);
   (*tiledb_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
   (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
@@ -99,7 +95,19 @@ void Writer::init(const IngestionParams& params) {
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
 
-  ctx_.reset(new Context(*tiledb_config_));
+  if (tiledb_config_ != nullptr) {
+    ctx_.reset(new Context(*tiledb_config_));
+  } else {
+    ctx_.reset(new Context);
+  }
+  dataset_.reset(new TileDBVCFDataset(ctx_));
+
+  dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      params.tiledb_stats_enabled_vcf_header_array);
+
+  dataset_->open(
+      params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
 
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -175,7 +183,12 @@ void Writer::create_dataset() {
 }
 
 void Writer::register_samples() {
-  dataset_.reset(new TileDBVCFDataset);
+  ctx_.reset(new Context(*tiledb_config_));
+  if (tiledb_config_ != nullptr) {
+    ctx_.reset(new Context(*tiledb_config_));
+  } else {
+    ctx_.reset(new Context);
+  }
   dataset_->open(registration_params_.uri, ingestion_params_.tiledb_config);
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)

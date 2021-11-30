@@ -98,7 +98,7 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 }
 }  // namespace
 
-TileDBVCFDataset::TileDBVCFDataset()
+TileDBVCFDataset::TileDBVCFDataset(std::shared_ptr<Context> ctx)
     : open_(false)
     , data_array_fragment_info_loaded_(false)
     , tiledb_stats_enabled_(true)
@@ -106,8 +106,13 @@ TileDBVCFDataset::TileDBVCFDataset()
     , sample_names_loaded_(false)
     , info_fmt_field_types_loaded_(false)
     , queryable_attribute_loaded_(false)
-    , materialized_attribute_loaded_(false) {
+    , materialized_attribute_loaded_(false)
+    , ctx_(ctx) {
   utils::init_htslib();
+}
+
+TileDBVCFDataset::TileDBVCFDataset(const tiledb::Config& config)
+    : TileDBVCFDataset(std::make_shared<Context>(config)) {
 }
 
 TileDBVCFDataset::~TileDBVCFDataset() {
@@ -382,6 +387,7 @@ void TileDBVCFDataset::open(
     const std::string& uri,
     const std::vector<std::string>& tiledb_config,
     const bool prefetch_data_array_fragment_info) {
+  utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&dataset_lock_));
   if (open_)
     throw std::runtime_error(
         "Cannot open TileDB-VCF dataset; dataset already open.");
@@ -395,7 +401,6 @@ void TileDBVCFDataset::open(
   cfg_.set("sm.skip_est_size_partitioning", "true");
 
   utils::set_tiledb_config(tiledb_config, &cfg_);
-  ctx_ = Context(cfg_);
 
   if (prefetch_data_array_fragment_info)
     preload_data_array_fragment_info();
@@ -771,7 +776,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = vcf_headers_uri(root_uri_, true);
     // Set up and submit query
-    array.reset(new Array(ctx_, array_uri, query_type));
+    array.reset(new Array(*ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -780,7 +785,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
       std::string array_uri = vcf_headers_uri(root_uri_, false);
 
       // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(ctx_, array_uri, query_type));
+      array = std::unique_ptr<Array>(new Array(*ctx_, array_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
@@ -799,7 +804,7 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
     // First let's try to open the metadata using proper cloud detection
     std::string array_uri = data_array_uri(root_uri_, true);
     // Set up and submit query
-    array.reset(new Array(ctx_, array_uri, query_type));
+    array.reset(new Array(*ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
       // Fall back to use s3 style paths, this handle datasets that are
@@ -808,7 +813,7 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
       std::string array_uri = data_array_uri(root_uri_, false);
 
       // Set up and submit query
-      array.reset(new Array(ctx_, array_uri, query_type));
+      array.reset(new Array(*ctx_, array_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
@@ -849,7 +854,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     throw std::runtime_error(
         "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
-  Query query(ctx_, *vcf_header_array_);
+  Query query(*ctx_, *vcf_header_array_);
 
   if (!samples.empty()) {
     // If all samples but we have a sample list we know its sorted and can use
@@ -1026,7 +1031,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     throw std::runtime_error(
         "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
-  Query query(ctx_, *vcf_header_array_);
+  Query query(*ctx_, *vcf_header_array_);
 
   std::unordered_map<uint32_t, std::string> sample_name_mapping;
   for (const auto& sample : samples) {
@@ -1920,7 +1925,7 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
         "Cannot fetch TileDB-VCF samples from vcf header array; Array object "
         "unexpectedly null");
 
-  Query query(ctx_, *vcf_header_array_);
+  Query query(*ctx_, *vcf_header_array_);
 
   auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
   if (non_empty_domain.first.empty() && non_empty_domain.second.empty())
@@ -2022,7 +2027,7 @@ void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_data_array_fragment_metadata(
@@ -2030,7 +2035,7 @@ void TileDBVCFDataset::consolidate_data_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_fragment_metadata(
@@ -2044,7 +2049,7 @@ void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragments";
-  tiledb::Array::consolidate(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_data_array_fragments(
@@ -2052,7 +2057,7 @@ void TileDBVCFDataset::consolidate_data_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragments";
-  tiledb::Array::consolidate(ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_fragments(const UtilsParams& params) {
@@ -2068,7 +2073,7 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
   // block until it's safe to close the array
   lock_and_join_vcf_header_array();
   vcf_header_array_->close();
-  tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
   vcf_header_array_ = open_vcf_array(TILEDB_READ);
 }
@@ -2081,7 +2086,7 @@ void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
   // block until it's safe to close the array
   lock_and_join_data_array();
   data_array_->close();
-  tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
 }
 
@@ -2098,7 +2103,7 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
   // block until it's safe to close the array
   lock_and_join_vcf_header_array();
   vcf_header_array_->close();
-  tiledb::Array::vacuum(ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
   vcf_header_array_ = open_vcf_array(TILEDB_READ);
 }
 
@@ -2109,7 +2114,7 @@ void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
   // block until it's safe to close the array
   lock_and_join_data_array();
   data_array_->close();
-  tiledb::Array::vacuum(ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
   data_array_ = open_data_array(TILEDB_READ);
 }
 
@@ -2239,7 +2244,7 @@ void TileDBVCFDataset::data_array_fragment_info_load() {
     return;
 
   data_array_fragment_info_ =
-      std::make_shared<tiledb::FragmentInfo>(ctx_, data_uri());
+      std::make_shared<tiledb::FragmentInfo>(*ctx_, data_uri());
   data_array_fragment_info_->load();
   data_array_fragment_info_loaded_ = true;
 }
