@@ -6,9 +6,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 /** This class wraps the low level TileDB-VCF C API with a Java API. */
 public class VCFReader implements AutoCloseable {
+  static Logger log = Logger.getLogger(VCFReader.class.getName());
+
   private long readerPtr;
 
   private class BufferInfo {
@@ -146,7 +149,14 @@ public class VCFReader implements AutoCloseable {
       int j;
       for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
       String name = new String(nameBytes, 0, j);
-      res.put(name, getAttributeDatatype(name));
+      try {
+        res.put(name, getAttributeDatatype(name));
+      } catch (Exception e) {
+        log.warning(
+            String.format(
+                "Could not get datatype for attribute %s, if this is a info/fmt, it might not might not exist in header",
+                name));
+      }
     }
 
     return res;
@@ -172,7 +182,14 @@ public class VCFReader implements AutoCloseable {
       int j;
       for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
       String name = new String(nameBytes, 0, j);
-      res.put(name, getAttributeDatatype(name));
+      try {
+        res.put(name, getAttributeDatatype(name));
+      } catch (Exception e) {
+        log.warning(
+            String.format(
+                "Could not get datatype for attribute %s, if this is a info/fmt, it might not might not exist in header",
+                name));
+      }
     }
 
     return res;
@@ -197,7 +214,14 @@ public class VCFReader implements AutoCloseable {
       int j;
       for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
       String name = new String(nameBytes, 0, j);
-      res.put(name, getAttributeDatatype(name));
+      try {
+        res.put(name, getAttributeDatatype(name));
+      } catch (Exception e) {
+        log.warning(
+            String.format(
+                "Could not get datatype for attribute %s, if this is a info/fmt, it might not might not exist in header",
+                name));
+      }
     }
 
     return res;
@@ -222,7 +246,14 @@ public class VCFReader implements AutoCloseable {
       int j;
       for (j = 0; j < nameBytes.length && nameBytes[j] != 0; j++) {}
       String name = new String(nameBytes, 0, j);
-      res.put(name, getAttributeDatatype(name));
+      try {
+        res.put(name, getAttributeDatatype(name));
+      } catch (Exception e) {
+        log.warning(
+            String.format(
+                "Could not get datatype for attribute %s, if this is a info/fmt, it might not might not exist in header",
+                name));
+      }
     }
 
     return res;
