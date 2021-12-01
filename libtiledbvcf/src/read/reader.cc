@@ -2420,25 +2420,30 @@ void Reader::set_tiledb_query_config() {
       params_.tiledb_config_map.end())
     cfg["sm.skip_est_size_partitioning"] = "true";
 
+  auto tiledb_total = params_.memory_budget_breakdown.tiledb_tile_cache +
+                      params_.memory_budget_breakdown.tiledb_memory_budget;
+  if (!params_.tiledb_config_map.count("sm.mem.total_budget") && tiledb_total) {
+    cfg["sm.mem.total_budget"] = tiledb_total;
+  }
+
   read_state_.query->set_config(cfg);
 }
 
 void Reader::compute_memory_budget_details() {
   uint64_t memory_budget = params_.memory_budget_mb * 1024 * 1024;
 
-  // Set the tile cache to 10% of total budget
+  // Set the tile cache % of total budget
   params_.memory_budget_breakdown.tiledb_tile_cache =
       memory_budget * params_.memory_budget_breakdown.tile_cache_percentage /
       100;
-  memory_budget -= params_.memory_budget_breakdown.tiledb_tile_cache;
 
-  // Set the buffers to 25% of the remaining budget
+  // Set the buffers % of the total budget
   params_.memory_budget_breakdown.buffers =
       memory_budget * params_.memory_budget_breakdown.buffers_percentage / 100;
-  memory_budget -= params_.memory_budget_breakdown.buffers;
 
-  // Set the buffers to all of the remaining budget (3x the buffers for a
-  // 25/75 split between buffers and memory budget
+  // Give the remaining memory budget to tiledb
+  memory_budget -= params_.memory_budget_breakdown.tiledb_tile_cache;
+  memory_budget -= params_.memory_budget_breakdown.buffers;
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 
   // TileDB Cloud datasets use all the memory for buffers
@@ -2454,13 +2459,17 @@ void Reader::compute_memory_budget_details() {
         params_.memory_budget_mb * 1024 * 1024;
   }
 
+  auto tiledb_total = params_.memory_budget_breakdown.tiledb_tile_cache +
+                      params_.memory_budget_breakdown.tiledb_memory_budget;
   LOG_DEBUG(
-      "Set memory budgets as follows: starting budget: {}, tile_cache: {}, "
-      "per_buffer_size: {}, tiledb_memory_budget: {}",
-      params_.memory_budget_mb * 1024 * 1024,
-      params_.memory_budget_breakdown.tiledb_tile_cache,
-      params_.memory_budget_breakdown.buffers,
-      params_.memory_budget_breakdown.tiledb_memory_budget);
+      "Set memory budgets as follows: starting budget: {:.1f} MiB, tile_cache: "
+      "{:.1f} MiB, buffer_size: {:.1f} MiB, tiledb_memory_budget: {:.1f} MiB, "
+      "tiledb_total_budget: {:.1f} MiB",
+      1.0 * params_.memory_budget_mb,
+      1.0 * (params_.memory_budget_breakdown.tiledb_tile_cache >> 20),
+      1.0 * (params_.memory_budget_breakdown.buffers >> 20),
+      1.0 * (params_.memory_budget_breakdown.tiledb_memory_budget >> 20),
+      1.0 * (tiledb_total >> 20));
 }
 
 void Reader::set_buffer_percentage(const float& buffer_percentage) {
