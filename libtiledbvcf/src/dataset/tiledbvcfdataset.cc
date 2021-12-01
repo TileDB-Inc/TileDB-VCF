@@ -101,13 +101,13 @@ FilterList default_offsets_filter_list(const Context& ctx) {
 TileDBVCFDataset::TileDBVCFDataset(std::shared_ptr<Context> ctx)
     : open_(false)
     , data_array_fragment_info_loaded_(false)
+    , ctx_(ctx)
     , tiledb_stats_enabled_(true)
     , tiledb_stats_enabled_vcf_header_(true)
     , sample_names_loaded_(false)
     , info_fmt_field_types_loaded_(false)
     , queryable_attribute_loaded_(false)
-    , materialized_attribute_loaded_(false)
-    , ctx_(ctx) {
+    , materialized_attribute_loaded_(false) {
   utils::init_htslib();
 }
 

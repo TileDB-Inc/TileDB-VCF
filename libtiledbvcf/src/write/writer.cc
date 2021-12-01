@@ -95,11 +95,7 @@ void Writer::init(const IngestionParams& params) {
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
 
-  if (tiledb_config_ != nullptr) {
-    ctx_.reset(new Context(*tiledb_config_));
-  } else {
-    ctx_.reset(new Context);
-  }
+  ctx_.reset(new Context(*tiledb_config_));
   dataset_.reset(new TileDBVCFDataset(ctx_));
 
   dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
@@ -183,12 +179,12 @@ void Writer::create_dataset() {
 }
 
 void Writer::register_samples() {
-  ctx_.reset(new Context(*tiledb_config_));
   if (tiledb_config_ != nullptr) {
     ctx_.reset(new Context(*tiledb_config_));
   } else {
     ctx_.reset(new Context);
   }
+  dataset_.reset(new TileDBVCFDataset(ctx_));
   dataset_->open(registration_params_.uri, ingestion_params_.tiledb_config);
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)

@@ -25,7 +25,6 @@
  */
 
 #include <CLI11.hpp>
-
 #include <tiledb/tiledb>
 
 #include "dataset/tiledbvcfdataset.h"

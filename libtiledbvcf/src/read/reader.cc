@@ -55,12 +55,6 @@ Reader::~Reader() {
 }
 
 void Reader::open_dataset(const std::string& dataset_uri) {
-  // TODO: adjust params_.tiledb_config as needed
-
-  // TODO: Disable estimated partition result size
-  // params_.tiledb_config.set("sm.skip_est_size_partitioning", "true");
-
-  // init ctx_ using params_
   init_tiledb();
 
   dataset_.reset(new TileDBVCFDataset(ctx_));
@@ -2292,7 +2286,6 @@ void Reader::init_tiledb() {
   params_.memory_budget_breakdown.tiledb_tile_cache =
       std::stoull(cfg.get("sm.tile_cache_size"));
 
-  // TODO: this is the first context
   ctx_.reset(new tiledb::Context(cfg));
   vfs_.reset(new tiledb::VFS(*ctx_, cfg));
 
