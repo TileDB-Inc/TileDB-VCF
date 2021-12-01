@@ -561,7 +561,7 @@ class Reader {
   ExportParams params_;
 
   /** TileDB context. */
-  std::unique_ptr<tiledb::Context> ctx_;
+  std::shared_ptr<tiledb::Context> ctx_;
 
   /** TileDB VFS instance. */
   std::unique_ptr<tiledb::VFS> vfs_;

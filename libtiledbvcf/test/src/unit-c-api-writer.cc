@@ -59,7 +59,7 @@ TEST_CASE("C API: Writer create default", "[capi][writer]") {
 
   REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
 
   tiledb_vcf_writer_free(&writer);
@@ -84,7 +84,7 @@ TEST_CASE("C API: Writer create md5 checksum", "[capi][writer]") {
 
   REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
 
   tiledb_vcf_writer_free(&writer);
@@ -109,7 +109,7 @@ TEST_CASE("C API: Writer create no checksum", "[capi][writer]") {
 
   REQUIRE(tiledb_vcf_writer_create_dataset(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
 
   tiledb_vcf_writer_free(&writer);
@@ -137,7 +137,7 @@ TEST_CASE("C API: Writer store", "[capi][writer]") {
 
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
   if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
     ds.load_sample_names_v4();
@@ -173,7 +173,7 @@ TEST_CASE("C API: Writer with extra attributes", "[capi][writer]") {
       tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
   REQUIRE(
       ds.metadata().extra_attributes ==
@@ -208,7 +208,7 @@ TEST_CASE("C API: Writer with vcf attributes", "[capi][writer]") {
       tiledb_vcf_writer_set_samples(writer, samples.c_str()) == TILEDB_VCF_OK);
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
   REQUIRE(
       ds.metadata().extra_attributes == std::vector<std::string>{
@@ -259,7 +259,7 @@ TEST_CASE(
 
   REQUIRE(tiledb_vcf_writer_store(writer) == TILEDB_VCF_OK);
 
-  tiledb::vcf::TileDBVCFDataset ds;
+  tiledb::vcf::TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   REQUIRE_NOTHROW(ds.open(dataset_uri));
   if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
     ds.load_sample_names_v4();

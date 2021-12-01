@@ -61,7 +61,7 @@ TEST_CASE("TileDB-VCF: Test create", "[tiledbvcf][ingest]") {
   TileDBVCFDataset::create(args);
   REQUIRE_NOTHROW(TileDBVCFDataset::create(args));
 
-  TileDBVCFDataset ds;
+  TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   ds.open(dataset_uri);
   REQUIRE(ds.metadata().tile_capacity == 123);
   REQUIRE(ds.metadata().anchor_gap == 1000);
@@ -99,7 +99,7 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
 
   // Reopen the dataset and check the metadata.
   {
-    TileDBVCFDataset ds;
+    TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
     ds.open(dataset_uri);
     if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
       ds.load_sample_names_v4();
@@ -132,7 +132,7 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
 
   // Check updated metadata
   {
-    TileDBVCFDataset ds;
+    TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
     ds.open(dataset_uri);
     if (ds.metadata().version == tiledb::vcf::TileDBVCFDataset::Version::V4)
       ds.load_sample_names_v4();
@@ -365,7 +365,7 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
   pclose(pipe);
 
   // Open the existing array.
-  TileDBVCFDataset ds;
+  TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));
   ds.open(dataset_uri);
 
   // Register a new sample.

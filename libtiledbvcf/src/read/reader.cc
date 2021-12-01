@@ -57,7 +57,7 @@ Reader::~Reader() {
 void Reader::open_dataset(const std::string& dataset_uri) {
   init_tiledb();
 
-  dataset_.reset(new TileDBVCFDataset);
+  dataset_.reset(new TileDBVCFDataset(ctx_));
   dataset_->open(dataset_uri, params_.tiledb_config);
   read_state_.array = dataset_->data_array();
 }

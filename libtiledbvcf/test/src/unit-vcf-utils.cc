@@ -117,7 +117,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   // Consolidate fragment metadata
   {
     LOG_TRACE("Consolidate fragment metadata");
-    TileDBVCFDataset dataset;
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
     dataset.consolidate_fragment_metadata(params);
@@ -141,7 +141,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   // Consolidate fragments
   {
     LOG_TRACE("Consolidate fragments");
-    TileDBVCFDataset dataset;
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
     dataset.consolidate_fragments(params);
@@ -165,7 +165,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   // Vacuum fragment metadata
   {
     LOG_TRACE("Vacuum fragment metadata");
-    TileDBVCFDataset dataset;
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
     dataset.vacuum_fragment_metadata(params);
@@ -189,7 +189,7 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   // Vacuum fragments
   {
     LOG_TRACE("Vacuum fragments");
-    TileDBVCFDataset dataset;
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
     dataset.vacuum_fragments(params);

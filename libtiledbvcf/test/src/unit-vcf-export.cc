@@ -88,6 +88,20 @@ struct UserBuffer {
 };
 
 template <typename T>
+void append_results(
+    const Reader& reader,
+    const std::string& attr,
+    const UserBuffer& buffer,
+    std::vector<T>& results) {
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  reader.result_size(attr, &num_offsets, &num_data_elements, &num_data_bytes);
+
+  for (unsigned i = 0; i < num_data_elements; i++) {
+    results.push_back(*(buffer.data<T>() + i));
+  }
+}
+
+template <typename T>
 void check_result(
     const Reader& reader,
     const std::string& attr,
@@ -137,6 +151,21 @@ void check_var_result(
   }
 
   REQUIRE_THAT(expected, Catch::Matchers::UnorderedEquals(actual));
+}
+
+void append_string_results(
+    const Reader& reader,
+    const std::string& attr,
+    const UserBuffer& buffer,
+    std::vector<std::string>& results) {
+  int64_t num_offsets, num_data_elements, num_data_bytes;
+  reader.result_size(attr, &num_offsets, &num_data_elements, &num_data_bytes);
+
+  for (unsigned i = 0; i < num_offsets - 1; i++) {
+    auto len = buffer.offsets()[i + 1] - buffer.offsets()[i];
+    std::string s(buffer.data<char>() + buffer.offsets()[i], len);
+    results.push_back(s);
+  }
 }
 
 void check_string_result(
@@ -1016,6 +1045,24 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     writer.ingest_samples();
   }
 
+  std::vector<std::string> actual_samples;
+  std::vector<std::string> actual_contigs;
+  std::vector<uint32_t> actual_starts;
+  std::vector<uint32_t> actual_ends;
+  std::vector<std::string> expected_samples{
+      "HG00280",
+      "HG00280",
+      "HG00280",
+      "HG00280",
+      "HG01762",
+      "HG01762",
+      "HG00280"};
+  std::vector<std::string> expected_contigs{"1", "1", "1", "1", "1", "1", "1"};
+  std::vector<uint32_t> expected_starts{
+      12546, 13354, 13375, 13396, 12546, 13354, 17319};
+  std::vector<uint32_t> expected_ends{
+      12771, 13374, 13395, 13413, 12771, 13389, 17479};
+
   // Query a few regions
   {
     Reader reader;
@@ -1053,29 +1100,38 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     reader.open_dataset(dataset_uri);
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
-    REQUIRE(reader.num_records_exported() == 3);
-    check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
-    check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
-    REQUIRE(reader.num_records_exported() == 3);
-    check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
-    check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader.num_records_exported() == 1);
-    check_string_result(reader, "sample_name", sample_name, {"HG00280"});
-    check_string_result(reader, "contig", contig, {"1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {17319});
-    check_result<uint32_t>(reader, "pos_end", end, {17479});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
+
+    REQUIRE_THAT(
+        expected_samples, Catch::Matchers::UnorderedEquals(actual_samples));
+    REQUIRE_THAT(
+        expected_contigs, Catch::Matchers::UnorderedEquals(actual_contigs));
+    REQUIRE_THAT(
+        expected_starts, Catch::Matchers::UnorderedEquals(actual_starts));
+    REQUIRE_THAT(expected_ends, Catch::Matchers::UnorderedEquals(actual_ends));
   }
 
   // Test both types of incomplete queries (TileDB as well).
@@ -1090,6 +1146,12 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     contig.offsets().resize(100);
     pos.resize(1024);
     end.resize(1024);
+
+    // Clear actual results vectors
+    actual_samples.clear();
+    actual_contigs.clear();
+    actual_starts.clear();
+    actual_ends.clear();
 
     // Set buffers on the reader
     reader.set_buffer_values(
@@ -1116,29 +1178,38 @@ TEST_CASE("TileDB-VCF: Test export incomplete queries", "[tiledbvcf][export]") {
     reader.open_dataset(dataset_uri);
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
-    REQUIRE(reader.num_records_exported() == 3);
-    check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG00280", "HG00280"});
-    check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {12546, 13354, 13375});
-    check_result<uint32_t>(reader, "pos_end", end, {12771, 13374, 13395});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::INCOMPLETE);
-    REQUIRE(reader.num_records_exported() == 3);
-    check_string_result(
-        reader, "sample_name", sample_name, {"HG00280", "HG01762", "HG01762"});
-    check_string_result(reader, "contig", contig, {"1", "1", "1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {13396, 12546, 13354});
-    check_result<uint32_t>(reader, "pos_end", end, {13413, 12771, 13389});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
 
     reader.read();
     REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
-    REQUIRE(reader.num_records_exported() == 1);
-    check_string_result(reader, "sample_name", sample_name, {"HG00280"});
-    check_string_result(reader, "contig", contig, {"1"});
-    check_result<uint32_t>(reader, "pos_start", pos, {17319});
-    check_result<uint32_t>(reader, "pos_end", end, {17479});
+    REQUIRE(reader.num_records_exported() > 0);
+    REQUIRE(reader.num_records_exported() < 7);
+    append_string_results(reader, "sample_name", sample_name, actual_samples);
+    append_string_results(reader, "contig", contig, actual_contigs);
+    append_results<uint32_t>(reader, "pos_start", pos, actual_starts);
+    append_results<uint32_t>(reader, "pos_end", end, actual_ends);
+
+    REQUIRE_THAT(
+        expected_samples, Catch::Matchers::UnorderedEquals(actual_samples));
+    REQUIRE_THAT(
+        expected_contigs, Catch::Matchers::UnorderedEquals(actual_contigs));
+    REQUIRE_THAT(
+        expected_starts, Catch::Matchers::UnorderedEquals(actual_starts));
+    REQUIRE_THAT(expected_ends, Catch::Matchers::UnorderedEquals(actual_ends));
   }
 
   if (vfs.is_dir(dataset_uri))

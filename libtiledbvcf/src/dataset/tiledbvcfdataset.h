@@ -289,7 +289,8 @@ class TileDBVCFDataset {
   /*            PUBLIC API             */
   /* ********************************* */
 
-  TileDBVCFDataset();
+  TileDBVCFDataset(std::shared_ptr<tiledb::Context> ctx);
+  TileDBVCFDataset(const tiledb::Config& config);
   ~TileDBVCFDataset();
 
   static void create(const CreationParams& params);
@@ -700,7 +701,7 @@ class TileDBVCFDataset {
   tiledb::Config cfg_;
 
   /** TileDB Context for dataset */
-  tiledb::Context ctx_;
+  std::shared_ptr<tiledb::Context> ctx_;
 
   /** TileDB stats enablement */
   bool tiledb_stats_enabled_;
@@ -710,6 +711,9 @@ class TileDBVCFDataset {
 
   /** Are sample names loaded */
   mutable bool sample_names_loaded_;
+
+  /** RWLock for dataset to serialize access to TileDB */
+  utils::RWLock dataset_lock_;
 
   /** RWLock for building type field maps for info/fmt */
   utils::RWLock type_field_rw_lock_;
