@@ -106,15 +106,15 @@ class WriterWorker {
   /** Region being parsed. */
   Region region_;
 
-  /** max bytes to buffer before flushing to TileDB. */
-  uint64_t max_total_buffer_size_bytes_;
+  /** max MiB to buffer before flushing to TileDB. */
+  uint64_t max_total_buffer_size_mb_;
 
   /**
-   * Set the max buffer size in bytes for worker
+   * Set the max buffer size in MiB for worker
    * @param size
    */
-  void set_max_total_buffer_size_bytes(uint64_t size) {
-    max_total_buffer_size_bytes_ = size;
+  void set_max_total_buffer_size_mb(uint64_t size) {
+    max_total_buffer_size_mb_ = size;
   }
 };
 
