@@ -1,4 +1,5 @@
 import pandas as pd
+import pyarrow as pa
 import sys
 import warnings
 
@@ -253,7 +254,10 @@ class Dataset(object):
             raise Exception("Dataset not open in read mode")
 
         self.reader.read(release_buffers)
-        table = self.reader.get_results_arrow()
+        try:
+            table = self.reader.get_results_arrow()
+        except:
+            table = pa.Table.from_pandas(pd.DataFrame())
         return table
 
     def read_completed(self):
