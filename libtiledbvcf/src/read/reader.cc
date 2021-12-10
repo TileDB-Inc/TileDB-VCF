@@ -2394,6 +2394,8 @@ void Reader::info_attribute_name(int32_t index, char** name) {
 
 void Reader::set_verbose(const bool& verbose) {
   params_.verbose = verbose;
+  LOG_CONFIG("debug");
+  LOG_INFO("Verbose mode enabled");
 }
 
 void Reader::set_tiledb_query_config() {
