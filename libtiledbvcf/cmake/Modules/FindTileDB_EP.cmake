@@ -46,45 +46,45 @@ else()
     endif()
 
     # Try to download prebuilt artifacts unless the user specifies to build from source
-    if(DOWNLOAD_TILEDB_PREBUILT)
-        if (WIN32) # Windows
-          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-windows-x86_64-2.5.2-f9c058f.zip")
-          SET(DOWNLOAD_SHA1 "6da1a3bc5be2855edd74cc521e6076a26f60ed19")
-        elseif(APPLE) # OSX
-
-          if (CMAKE_OSX_ARCHITECTURES STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64|amd64)|(^i.86$)")
-            SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-macos-x86_64-2.5.2-f9c058f.tar.gz")
-            SET(DOWNLOAD_SHA1 "581168df22f0f507df87b8e52cefd51630a99a70")
-          elseif (CMAKE_OSX_ARCHITECTURES STREQUAL arm64 OR CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
-            SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-macos-arm64-2.5.2-f9c058f.tar.gz")
-            SET(DOWNLOAD_SHA1 "a89bed67f30682068b7332098042890920abe919")
-          endif()
-        else() # Linux
-          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-linux-x86_64-2.5.2-f9c058f.tar.gz")
-          SET(DOWNLOAD_SHA1 "904d28e5480e0afa04ae772d75af737af2acc5e5")
-        endif()
-
-        ExternalProject_Add(ep_tiledb
-                PREFIX "externals"
-                URL ${DOWNLOAD_URL}
-                URL_HASH SHA1=${DOWNLOAD_SHA1}
-                CONFIGURE_COMMAND ""
-                BUILD_COMMAND ""
-                UPDATE_COMMAND ""
-                PATCH_COMMAND ""
-                TEST_COMMAND ""
-                INSTALL_COMMAND
-                    ${CMAKE_COMMAND} -E copy_directory ${EP_BASE}/src/ep_tiledb ${EP_INSTALL_PREFIX}
-                LOG_DOWNLOAD TRUE
-                LOG_CONFIGURE FALSE
-                LOG_BUILD FALSE
-                LOG_INSTALL FALSE
-                )
-    else() # Build from source
+#    if(DOWNLOAD_TILEDB_PREBUILT)
+#        if (WIN32) # Windows
+#          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-windows-x86_64-2.5.2-f9c058f.zip")
+#          SET(DOWNLOAD_SHA1 "6da1a3bc5be2855edd74cc521e6076a26f60ed19")
+#        elseif(APPLE) # OSX
+#
+#          if (CMAKE_OSX_ARCHITECTURES STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64|amd64)|(^i.86$)")
+#            SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-macos-x86_64-2.5.2-f9c058f.tar.gz")
+#            SET(DOWNLOAD_SHA1 "581168df22f0f507df87b8e52cefd51630a99a70")
+#          elseif (CMAKE_OSX_ARCHITECTURES STREQUAL arm64 OR CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
+#            SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-macos-arm64-2.5.2-f9c058f.tar.gz")
+#            SET(DOWNLOAD_SHA1 "a89bed67f30682068b7332098042890920abe919")
+#          endif()
+#        else() # Linux
+#          SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.5.2/tiledb-linux-x86_64-2.5.2-f9c058f.tar.gz")
+#          SET(DOWNLOAD_SHA1 "904d28e5480e0afa04ae772d75af737af2acc5e5")
+#        endif()
+#
+#        ExternalProject_Add(ep_tiledb
+#                PREFIX "externals"
+#                URL ${DOWNLOAD_URL}
+#                URL_HASH SHA1=${DOWNLOAD_SHA1}
+#                CONFIGURE_COMMAND ""
+#                BUILD_COMMAND ""
+#                UPDATE_COMMAND ""
+#                PATCH_COMMAND ""
+#                TEST_COMMAND ""
+#                INSTALL_COMMAND
+#                    ${CMAKE_COMMAND} -E copy_directory ${EP_BASE}/src/ep_tiledb ${EP_INSTALL_PREFIX}
+#                LOG_DOWNLOAD TRUE
+#                LOG_CONFIGURE FALSE
+#                LOG_BUILD FALSE
+#                LOG_INSTALL FALSE
+#                )
+#    else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/2.5.2.zip"
-          URL_HASH SHA1=2fe68a4359546ca4018758b90b05a36812159c62
+          URL "https://github.com/TileDB-Inc/TileDB/archive/lr/improve-bitmap-vectorisation/ch12721.zip"
+          #URL_HASH SHA1=2fe68a4359546ca4018758b90b05a36812159c62
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
@@ -102,7 +102,7 @@ else()
           LOG_BUILD TRUE
           LOG_INSTALL TRUE
         )
-    endif()
+#    endif()
 
     list(APPEND FORWARD_EP_CMAKE_ARGS -DEP_TILEDB_BUILT=TRUE)
     list(APPEND EXTERNAL_PROJECTS ep_tiledb)
