@@ -83,7 +83,7 @@ else()
 #    else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/lr/improve-bitmap-vectorisation/ch12721.zip"
+          URL "https://github.com/TileDB-Inc/TileDB/archive/ss/sort-ranges-test.zip"
           #URL_HASH SHA1=2fe68a4359546ca4018758b90b05a36812159c62
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
