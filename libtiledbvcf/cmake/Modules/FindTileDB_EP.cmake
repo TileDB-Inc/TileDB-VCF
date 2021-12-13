@@ -83,7 +83,7 @@ else()
 #    else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/ss/sort-ranges-test.zip"
+          URL "https://github.com/TileDB-Inc/TileDB/archive/1cbfbd96e81f730b0ea3710c335349ccf9e16807.zip"
           #URL_HASH SHA1=2fe68a4359546ca4018758b90b05a36812159c62
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
