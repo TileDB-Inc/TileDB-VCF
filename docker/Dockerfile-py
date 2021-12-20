@@ -50,7 +50,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && rm -rf /var/lib/apt/lists*
 
 # avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir cython pandas>=1.21.0 tiledb==0.10.3 
+RUN pip install --no-cache-dir cython pandas>=1.21.0 tiledb==0.11.3
 
 # Build arrow
 ENV ARROW_HOME=/usr/local
