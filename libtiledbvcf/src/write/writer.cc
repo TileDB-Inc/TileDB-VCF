@@ -1222,8 +1222,10 @@ void Writer::set_scratch_space(const std::string& path, uint64_t size) {
 
 void Writer::set_verbose(const bool& verbose) {
   ingestion_params_.verbose = verbose;
-  LOG_CONFIG("debug");
-  LOG_INFO("Verbose mode enabled");
+  if (verbose) {
+    LOG_CONFIG("debug");
+    LOG_INFO("Verbose mode enabled");
+  }
 }
 
 void Writer::set_tiledb_stats_enabled(bool stats_enabled) {
