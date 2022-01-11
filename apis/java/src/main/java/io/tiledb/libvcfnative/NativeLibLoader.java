@@ -95,7 +95,7 @@ public class NativeLibLoader {
   /** Finds and loads native HTSlib. */
   static void loadNativeHTSLib() {
     String os = getOSClassifier();
-    String versionedLibName = os.startsWith("osx") ? "libhts.1.10.dylib" : "libhts.so.1.10";
+    String versionedLibName = os.startsWith("osx") ? "libhts.1.14.dylib" : "libhts.so.1.14";
     try {
       // Don't use name mapping to get the versioned htslib
       loadNativeLib(versionedLibName, false);

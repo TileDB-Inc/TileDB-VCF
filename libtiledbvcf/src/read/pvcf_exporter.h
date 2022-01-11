@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2021 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,50 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_EXPORT_FORMAT_H
-#define TILEDB_VCF_EXPORT_FORMAT_H
+#ifndef TILEDB_PVCF_BCF_EXPORTER_H
+#define TILEDB_PVCF_BCF_EXPORTER_H
+
+#include "read/exporter.h"
+#include "vcf/vcf_merger.h"
 
 namespace tiledb {
 namespace vcf {
 
-/** For to-disk exports, the output format. */
-enum class ExportFormat { CompressedBCF, BCF, VCFGZ, VCF, TSV, PVCF };
+/** Export to pVCF. Note this class is currently not threadsafe. */
+class PVCFExporter : public Exporter {
+ public:
+  explicit PVCFExporter(const std::string& output_uri);
+
+  ~PVCFExporter();
+
+  void init(
+      const std::unordered_map<std::string, size_t>& hdrs_lookup,
+      const std::unordered_map<uint32_t, SafeBCFHdr>& hdrs);
+
+  void reset() override;
+
+  void close() override;
+
+  bool export_record(
+      const SampleAndId& sample,
+      const bcf_hdr_t* hdr,
+      const Region& query_region,
+      uint32_t contig_offset,
+      const ReadQueryResults& query_results,
+      uint64_t cell_idx) override;
+
+  std::set<std::string> array_attributes_required() const override;
+
+ private:
+  std::string uri_;
+  SafeBCFFh fp_;
+  VCFMerger merger_;
+
+  // read merged records and write the records to the output
+  void write_records();
+};
 
 }  // namespace vcf
 }  // namespace tiledb
 
-#endif  // TILEDB_VCF_EXPORT_FORMAT_H
+#endif  // TILEDB_PVCF_BCF_EXPORTER_H

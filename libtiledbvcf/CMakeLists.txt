@@ -42,9 +42,9 @@ option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
 option(ENABLE_ARROW_EXPORT "Installs an extra header for exporting in-memory results with Apache Arrow" ON)
 
-# Set C++11 as required standard for all C++ targets (required to use the TileDB
+# Set C++17 as required standard for all C++ targets (required to use the TileDB
 # C++ API).
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
@@ -80,9 +80,9 @@ string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
 if (BUILD_TYPE STREQUAL "DEBUG")
   add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
 elseif (BUILD_TYPE STREQUAL "RELEASE")
-  add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+  add_compile_options(-DNDEBUG -O3 -Wall -Werror -g3)
 endif()
-add_compile_options(-Wno-error=deprecated-declarations -Wno-error=sign-compare)
+add_compile_options(-Wno-deprecated-declarations -Wno-sign-compare)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 ############################################################

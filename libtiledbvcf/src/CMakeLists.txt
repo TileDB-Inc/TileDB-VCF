@@ -50,6 +50,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/tiledbvcfdataset.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/htslib_plugin/hfile_tiledb_vfs.c
   ${CMAKE_CURRENT_SOURCE_DIR}/read/bcf_exporter.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/read/pvcf_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/in_memory_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/read_query_results.cc
@@ -62,6 +63,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/bed_file.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/region.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_merger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v3.cc

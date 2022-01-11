@@ -10,8 +10,8 @@ fi
 # Enable tracing
 set -x
 
-build_dir=$1
-input_dir=$2
+build_dir=$(realpath $1)
+input_dir=$(realpath $2)
 tilevcf=${build_dir}/libtiledbvcf/src/tiledbvcf
 upload_dir=/tmp/tilevcf-upload-dir-$$
 
@@ -28,6 +28,7 @@ function clean_up {
            region-map.txt pfx.tsv \
            export_test G1.bcf \
            create_test \
+           combine-test
     rm -rf "$upload_dir"
 }
 
@@ -410,6 +411,30 @@ diff -u <(bcftools view -H G1.bcf | sort -k1,1 -k2,2n) <(bcftools view -H ${inpu
 # check create from vcf
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
 diff <($tilevcf stat -u create_test | grep Extracted) <(echo "- Extracted attributes: fmt_AD, fmt_DP, fmt_GQ, fmt_GT, fmt_MIN_DP, fmt_PL, fmt_SB, info_BaseQRankSum, info_ClippingRankSum, info_DP, info_DS, info_END, info_HaplotypeScore, info_InbreedingCoeff, info_MLEAC, info_MLEAF, info_MQ, info_MQ0, info_MQRankSum, info_ReadPosRankSum") || exit 1
+
+# combine vcf test
+# -------------------------------------------------------------------
+mkdir combine-test && cd combine-test || exit 1
+# compress and index input files
+bcftools view -Oz -o sample-01.vcf.gz ${input_dir}/combined/sample-01.vcf || exit 1
+bcftools index sample-01.vcf.gz || exit 1
+bcftools view -Oz -o sample-02.vcf.gz ${input_dir}/combined/sample-02.vcf || exit 1
+bcftools index sample-02.vcf.gz || exit 1
+
+# combine with bcftools
+bcftools merge -o bcftools.vcf sample-*.vcf.gz || exit 1
+
+# combine with tiledb
+rm -rf vcf.tdb
+$tilevcf create -u vcf.tdb || exit 1
+$tilevcf store -u vcf.tdb sample-*.vcf.gz || exit 1
+$tilevcf export -u vcf.tdb -Op -o tiledb.vcf --log-level info || exit 1
+
+# remove INFO/END for comparison with diff
+diff <(bcftools annotate -x INFO/END bcftools.vcf | bcftools view -H) <(bcftools annotate -x INFO/END tiledb.vcf | bcftools view -H) || exit 1
+bcftools view -H tiledb.vcf
+cd -
+# -------------------------------------------------------------------
 
 # Expected failures
 echo ""

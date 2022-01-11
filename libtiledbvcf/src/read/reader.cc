@@ -32,10 +32,13 @@
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
 #include "read/in_memory_exporter.h"
+#include "read/pvcf_exporter.h"
 #include "read/read_query_results.h"
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
+#include "span/span.hpp"
 #include "utils/logger_public.h"
+#include "utils/span.hpp"
 
 namespace tiledb {
 namespace vcf {
@@ -359,8 +362,10 @@ void Reader::read() {
     bool complete = read_current_batch();
     if (!complete) {
       read_state_.status = ReadStatus::INCOMPLETE;
+      LOG_DEBUG("Incomplete read, resume");
       return;
     }
+    LOG_DEBUG("Read complete");
     pending_work = next_read_batch();
   }
 
@@ -751,6 +756,10 @@ bool Reader::next_read_batch_v4() {
           &read_state_.current_hdrs_lookup,
           read_state_.all_samples,
           false);
+      if (params_.format == ExportFormat::PVCF) {
+        static_cast<PVCFExporter*>(exporter_.get())
+            ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
+      }
     }
   }
 
@@ -842,7 +851,13 @@ bool Reader::next_read_batch_v4() {
                  << "]" << std::endl;
   }
 
+  // Default export results are not sorted
   read_state_.query->set_layout(TILEDB_UNORDERED);
+  // If sorting export results, ask TileDB for results sorted on the anchors
+  if (params_.sort_real_start_pos) {
+    read_state_.query->set_layout(TILEDB_ROW_MAJOR);
+  }
+
   if (params_.debug_params.print_tiledb_query_ranges) {
     LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
   }
@@ -889,6 +904,11 @@ void Reader::init_exporter() {
       case ExportFormat::VCF:
         exporter_.reset(new BCFExporter(params_.format));
         break;
+      case ExportFormat::PVCF: {
+        params_.sort_real_start_pos = true;
+        exporter_.reset(new PVCFExporter(params_.tsv_output_path));
+        break;
+      }
       case ExportFormat::TSV:
         exporter_.reset(
             new TSVExporter(params_.tsv_output_path, params_.tsv_fields));
@@ -957,7 +977,7 @@ bool Reader::read_current_batch() {
     auto query_start_timer = std::chrono::steady_clock::now();
     LOG_DEBUG("reader.cc:{}: query started.", __LINE__);
     auto query_status = query->submit();
-    LOG_DEBUG(
+    LOG_INFO(
         "reader.cc:{}: query completed in {} sec.",
         __LINE__,
         utils::chrono_duration(query_start_timer));
@@ -1145,6 +1165,22 @@ bool Reader::process_query_results_v4() {
   if (num_cells == 0 || read_state_.cell_idx >= num_cells)
     return true;
 
+  // Sort all TileDB Results if asked
+  // NOTE: Records with the same real_start_pos may cross a query batch, so we
+  // buffer records in VCFMerger and only process records with the same
+  // real_start_pos when we see a record with a different real_start_pos.
+  std::vector<uint64_t> sorted_indexes;
+  if (params_.sort_real_start_pos) {
+    nonstd::span<uint32_t> real_start_pos(
+        results.buffers()->real_start_pos().data<uint32_t>(), num_cells);
+
+    auto sample_names = results.buffers()->sample_name().data();
+
+    sorted_indexes = utils::sort_indexes_pvcf<
+        nonstd::span<uint32_t>,
+        std::vector<std::string_view>>(real_start_pos, sample_names);
+  }
+
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
   // V4 querys are run on a single contig at a time, so we can grab it from
@@ -1172,7 +1208,9 @@ bool Reader::process_query_results_v4() {
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
-    const uint64_t i = read_state_.cell_idx;
+    const uint64_t i = params_.sort_real_start_pos ?
+                           sorted_indexes[read_state_.cell_idx] :
+                           read_state_.cell_idx;
 
     // Get the start, real_start and end. We don't need the contig because we
     // know the query is limited to a single contig
@@ -2394,8 +2432,10 @@ void Reader::info_attribute_name(int32_t index, char** name) {
 
 void Reader::set_verbose(const bool& verbose) {
   params_.verbose = verbose;
-  LOG_CONFIG("debug");
-  LOG_INFO("Verbose mode enabled");
+  if (verbose) {
+    LOG_CONFIG("debug");
+    LOG_INFO("Verbose mode enabled");
+  }
 }
 
 void Reader::set_tiledb_query_config() {

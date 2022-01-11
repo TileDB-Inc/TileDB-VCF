@@ -128,6 +128,9 @@ struct ExportParams {
   // time to find the first intersecting region. Increase the setting if
   // the memory overhead of super regions needs to be reduced.
   int min_super_region_size = 1;
+
+  // Should results be sorted on real_start_pos
+  bool sort_real_start_pos = false;
 };
 
 /* ********************************* */
