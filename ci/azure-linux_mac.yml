@@ -1,185 +1,202 @@
 steps:
-- script: python -m pip install --upgrade black pylint
-  displayName: 'Install black (formatter) and pylint (linter)'
+  - script: python -m pip install --upgrade black pylint
+    displayName: 'Install black (formatter) and pylint (linter)'
 
-- script: black --check .
-  displayName: 'Test Formatting'
+  - script: black --check .
+    displayName: 'Test Formatting'
 
-# pylint cannot lint all files in a directory, it requires an __init__.py file (https://github.com/PyCQA/pylint/issues/352)
-# run pylint on all directories with an __init__.py file
-- bash: |
-    set -eux pipefail
-    find . -name __init__.py | xargs dirname | xargs pylint --disable=all --enable=E1101
-  displayName: 'Check function name/signature mismatches'
+  # pylint cannot lint all files in a directory, it requires an __init__.py file (https://github.com/PyCQA/pylint/issues/352)
+  # run pylint on all directories with an __init__.py file
+  - bash: |
+      set -eux pipefail
+      find . -name __init__.py | xargs dirname | xargs pylint --disable=all --enable=E1101
+    displayName: 'Check function name/signature mismatches'
 
-- bash: |
-    set -e pipefail
-    brew install clang-format
-    src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
-    cd $BUILD_REPOSITORY_LOCALPATH
-    ci/run-clang-format.sh $src clang-format 0 \
-      $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
-    apis=$BUILD_REPOSITORY_LOCALPATH/apis
-    ci/run-clang-format.sh $apis clang-format 0 \
-      $(find $apis -name "*.cc" -or -name "*.c" -or -name "*.h")
-  condition: eq(variables['Agent.OS'], 'Darwin')
-  displayName: 'Check formatting (macOS only)'
+  - bash: |
+      set -e pipefail
+      brew install clang-format
+      src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
+      cd $BUILD_REPOSITORY_LOCALPATH
+      ci/run-clang-format.sh $src clang-format 0 \
+        $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
+      apis=$BUILD_REPOSITORY_LOCALPATH/apis
+      ci/run-clang-format.sh $apis clang-format 0 \
+        $(find $apis -name "*.cc" -or -name "*.c" -or -name "*.h")
+    condition: eq(variables['Agent.OS'], 'Darwin')
+    displayName: 'Check formatting (macOS only)'
 
-- bash: |
-    set -e pipefail
-    # Install bcftools (only required for running the CLI tests)
-    version=1.10.2
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        pushd /tmp
-        wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2
-        tar xfj bcftools-${version}.tar.bz2
-        cd bcftools-${version}
-        ./configure --prefix=/usr
-        make -j2
-        sudo make install
-        popd
-    else
-        brew install bcftools automake
-    fi
-
-    # Install autoconf/automake (required for htslib)
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        sudo apt update && sudo apt install -y automake autoconf
-    fi
-
-    # Install some extra dependencies to speed up the core TileDB build
-    if [[ "$AGENT_OS" == "Linux" ]]; then
-        sudo apt install -y libssl-dev libbz2-dev liblz4-dev libtbb-dev libcurl4-openssl-dev zlib1g-dev
-    fi
-  displayName: 'Install dependencies'
-
-- bash: |
-    ulimit -c               # should output 0 if disabled
-    ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block) 
-    ulimit -c               # should output 'unlimited' now    
-
-  
-    # azure bash does not treat intermediate failure as error
-    # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
-    set -e pipefail
-
-    # Azure sets "SYSTEM=build" for unknown reasons, which breaks the OpenSSL configure script (in TileDB itself)
-    #   - openssl configure uses ENV{SYSTEM} if available:
-    #     https://github.com/openssl/openssl/blob/6d745d740d37d680ff696486218b650512bbbbc6/config#L56
-    #   - error description:
-    #     https://developercommunity.visualstudio.com/content/problem/602584/openssl-build-error-when-using-pipelines.htm
-    unset SYSTEM
-
-    # Configure and build TileDB-VCF
-    mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
-    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
-
-    make -j4
-    make -j4 -C libtiledbvcf tiledb_vcf_unit
-    # cmake catches the segfault and blocks the core dump
-    # sudo make check
-    ./libtiledbvcf/test/tiledb_vcf_unit
-  
-    ../test/run-cli-tests.sh . ../test/inputs
-
-    make install-libtiledbvcf
-
-  displayName: 'Build and test TileDB-VCF'
-
-# Currently the core dump on linux goes to the current directory, these might be needed on other distros/osx
-# - bash: |
-#     sudo chmod -R +rwx /var/crash/* # Enable access to core dumps (doesn't need to be in same run block)
-#   condition: and(failed(), eq(variables['Agent.OS'], 'Linux')) # only run this job if the build step failed
-#   displayName: "Enable Access to core dumps (failed checks only)"
-# 
-# - bash: |
-#     sudo chmod -R +rwx /cores/* # Enable access to core dumps (doesn't need to be in same run block)
-#   condition: and(failed(), eq(variables['Agent.OS'], 'Darwin')) # only run this job if the build step failed
-#   displayName: "Enable Access to core dumps (failed checks only)"
-  
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathtoPublish: 'libtiledbvcf/build/core'
-    artifactName: '$(ARTIFACT_NAME)-coredump'
-  condition: failed() # only run this job if the build step failed
-  
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(Build.Repository.LocalPath)'
-    includeRootFolder: false
-    archiveType: 'tar' # Options: zip, 7z, tar, wim
-    tarCompression: 'gz' # Optional. Options: gz, bz2, xz, none
-    archiveFile: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
-    replaceExistingArchive: true
-    verbose: true # Optional
-  condition: or(failed(), succeeded()) # only run this job if the build step failed
-  
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
-    artifactName: 'build-dirs'
-  condition: or(failed(), succeeded()) # only run this job if the build step failed
-  
-- bash: |
-    set -e pipefail
-    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
-
-      ./gradlew checkFormat
-      ./gradlew assemble
-
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
-
-      ./gradlew test
-    fi
-
-  displayName: 'Build and test TileDB-VCF Java API'
-
-- bash: |
-    set -ex pipefail
-
-    if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-      # Add conda to PATH
-      echo "##vso[task.prependpath]$CONDA/bin"
-
-      if [[ "$AGENT_OS" == "Darwin" ]]; then
-        # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
-        # We need to take ownership if we want to update conda or install packages globally
-        sudo chown -R $USER $CONDA
+  - bash: |
+      set -e pipefail
+      # Install bcftools (only required for running the CLI tests)
+      version=1.10.2
+      if [[ "$AGENT_OS" == "Linux" ]]; then
+          pushd /tmp
+          wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2
+          tar xfj bcftools-${version}.tar.bz2
+          cd bcftools-${version}
+          ./configure --prefix=/usr
+          make -j2
+          sudo make install
+          popd
+      else
+          brew install bcftools automake
       fi
 
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
-      conda env create --file conda-env.yml
-      # Note that 'conda init' doesn't seem to work directly.
-      source $CONDA/etc/profile.d/conda.sh
-      conda activate tiledbvcf-py
-      python setup.py install --user
-      python setup.py pytest
-    fi
+      # Install autoconf/automake (required for htslib)
+      if [[ "$AGENT_OS" == "Linux" ]]; then
+          sudo apt update && sudo apt install -y automake autoconf
+      fi
 
-  displayName: 'Build and test TileDB-VCF Python API'
+      # Install some extra dependencies to speed up the core TileDB build
+      if [[ "$AGENT_OS" == "Linux" ]]; then
+          sudo apt install -y libssl-dev libbz2-dev liblz4-dev libtbb-dev libcurl4-openssl-dev zlib1g-dev
+      fi
+    displayName: 'Install dependencies'
 
-- bash: |
-    set -e pipefail
+  - bash: |
+      ulimit -c               # should output 0 if disabled
+      ulimit -c unlimited     # Enable core dumps to be captured (must be in same run block)
+      ulimit -c               # should output 'unlimited' now
 
-    if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
 
-      ./gradlew assemble
+      # azure bash does not treat intermediate failure as error
+      # https://github.com/Microsoft/azure-pipelines-yaml/issues/135
+      set -e pipefail
 
-      ./gradlew jar
+      # Azure sets "SYSTEM=build" for unknown reasons, which breaks the OpenSSL configure script (in TileDB itself)
+      #   - openssl configure uses ENV{SYSTEM} if available:
+      #     https://github.com/openssl/openssl/blob/6d745d740d37d680ff696486218b650512bbbbc6/config#L56
+      #   - error description:
+      #     https://developercommunity.visualstudio.com/content/problem/602584/openssl-build-error-when-using-pipelines.htm
+      unset SYSTEM
 
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-      ./gradlew test
+      # Configure and build TileDB-VCF
+      mkdir -p $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
+      cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
+      cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
 
-      ./gradlew checkFormat
-    fi
+      make -j4
+      make -j4 -C libtiledbvcf tiledb_vcf_unit
+      # cmake catches the segfault and blocks the core dump
+      # sudo make check
+      ./libtiledbvcf/test/tiledb_vcf_unit
 
-  displayName: 'Build and test TileDB-VCF Spark API'
+      ../test/run-cli-tests.sh . ../test/inputs
 
-- bash: |
+      make install-libtiledbvcf
+
+    displayName: 'Build and test TileDB-VCF'
+
+    # Currently the core dump on linux goes to the current directory, these might be needed on other distros/osx
+    # - bash: |
+    #     sudo chmod -R +rwx /var/crash/* # Enable access to core dumps (doesn't need to be in same run block)
+    #   condition: and(failed(), eq(variables['Agent.OS'], 'Linux')) # only run this job if the build step failed
+    #   displayName: "Enable Access to core dumps (failed checks only)"
+    #
+    # - bash: |
+    #     sudo chmod -R +rwx /cores/* # Enable access to core dumps (doesn't need to be in same run block)
+    #   condition: and(failed(), eq(variables['Agent.OS'], 'Darwin')) # only run this job if the build step failed
+    #   displayName: "Enable Access to core dumps (failed checks only)"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: 'libtiledbvcf/build/core'
+      artifactName: '$(ARTIFACT_NAME)-coredump'
+    condition: failed() # only run this job if the build step failed
+
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: '$(Build.Repository.LocalPath)'
+      includeRootFolder: false
+      archiveType: 'tar' # Options: zip, 7z, tar, wim
+      tarCompression: 'gz' # Optional. Options: gz, bz2, xz, none
+      archiveFile: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
+      replaceExistingArchive: true
+      verbose: true # Optional
+    condition: or(failed(), succeeded()) # only run this job if the build step failed
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)-build-dir.tar.gz'
+      artifactName: 'build-dirs'
+    condition: or(failed(), succeeded()) # only run this job if the build step failed
+
+  - bash: |
+      set -e pipefail
+      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+
+        pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+
+        ./gradlew checkFormat
+        ./gradlew assemble
+
+        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
+
+        ./gradlew test
+      fi
+
+    displayName: 'Build and test TileDB-VCF Java API'
+
+  - bash: |
+      set -ex pipefail
+
+      if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
+        # Add conda to PATH
+        echo "##vso[task.prependpath]$CONDA/bin"
+
+        if [[ "$AGENT_OS" == "Darwin" ]]; then
+          # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
+          # We need to take ownership if we want to update conda or install packages globally
+          sudo chown -R $USER $CONDA
+        fi
+
+        pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
+        conda env create --file conda-env.yml
+        # Note that 'conda init' doesn't seem to work directly.
+        source $CONDA/etc/profile.d/conda.sh
+        conda activate tiledbvcf-py
+        python setup.py install --user
+        python setup.py pytest
+      fi
+
+    displayName: 'Build and test TileDB-VCF Python API'
+
+  - bash: |
+      set -e pipefail
+
+      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+        pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
+
+        ./gradlew assemble
+
+        ./gradlew jar
+
+        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
+        ./gradlew test
+
+        ./gradlew checkFormat
+      fi
+
+    displayName: 'Build and test TileDB-VCF Spark API'
+
+
+  - bash: |
+      set -e pipefail
+
+      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+        pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark3
+
+        ./gradlew assemble
+
+        ./gradlew jar
+
+        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark3/build/resources/main/lib:$LD_LIBRARY_PATH
+        ./gradlew test
+      fi
+
+    displayName: 'Build and test TileDB-VCF Spark3 API'
+
+  - bash: |
       set -e pipefail
       # Display log files if the build failed
       echo "Dumping log files for failed build"
@@ -190,5 +207,5 @@ steps:
            echo "======"
            cat $f
         done;
-  condition: failed() # only run this job if the build step failed
-  displayName: "Print log files (failed build only)"
+    condition: failed() # only run this job if the build step failed
+    displayName: "Print log files (failed build only)"

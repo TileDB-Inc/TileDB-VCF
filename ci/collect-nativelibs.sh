@@ -21,3 +21,13 @@ cd ./apis/spark
 
 mkdir $BUILD_BINARIESDIRECTORY/jars
 cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars
+
+cd ../..
+
+cd ./apis/spark3
+
+./gradlew assemble
+./gradlew shadowJar
+
+mkdir $BUILD_BINARIESDIRECTORY/jars
+cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars
