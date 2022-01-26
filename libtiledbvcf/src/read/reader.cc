@@ -38,7 +38,6 @@
 #include "read/tsv_exporter.h"
 #include "span/span.hpp"
 #include "utils/logger_public.h"
-#include "utils/span.hpp"
 
 namespace tiledb {
 namespace vcf {
@@ -362,10 +361,8 @@ void Reader::read() {
     bool complete = read_current_batch();
     if (!complete) {
       read_state_.status = ReadStatus::INCOMPLETE;
-      LOG_DEBUG("Incomplete read, resume");
       return;
     }
-    LOG_DEBUG("Read complete");
     pending_work = next_read_batch();
   }
 

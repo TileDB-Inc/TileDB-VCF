@@ -389,12 +389,7 @@ void WriterWorkerV4::buffer_info_field(
     buff->append(key, strlen(key) + 1);
   buff->append(&type, sizeof(int));
   buff->append(&num_vals, sizeof(int));
-  if (val->dst) {
-    buff->append(val->dst, num_vals * utils::bcf_type_size(type));
-  } else {
-    int dummy = 0;
-    buff->append(&dummy, num_vals * utils::bcf_type_size(type));
-  }
+  buff->append(val->dst, num_vals * utils::bcf_type_size(type));
 }
 
 void WriterWorkerV4::buffer_fmt_field(
