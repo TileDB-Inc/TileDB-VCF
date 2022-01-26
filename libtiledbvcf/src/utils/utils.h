@@ -443,7 +443,7 @@ uint32_t system_memory_mb();
  * @return
  */
 template <typename T, typename U>
-std::vector<uint64_t> sort_indexes_pvcf(
+std::vector<size_t> sort_indexes_pvcf(
     const T& start_pos, const U& sample_names) {
   assert(start_pos.size() == sample_names.size());
   // initialize original index locations
