@@ -14,6 +14,7 @@ mv *.dylib lib
 # Linux
 mv *.so lib
 
+# Spark2
 cd ./apis/spark
 
 ./gradlew assemble
@@ -22,6 +23,7 @@ cd ./apis/spark
 mkdir $BUILD_BINARIESDIRECTORY/jars
 cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars
 
+# Spark3
 cd ../..
 
 cd ./apis/spark3
