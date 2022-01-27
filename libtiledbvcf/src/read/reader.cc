@@ -1166,7 +1166,7 @@ bool Reader::process_query_results_v4() {
   // NOTE: Records with the same real_start_pos may cross a query batch, so we
   // buffer records in VCFMerger and only process records with the same
   // real_start_pos when we see a record with a different real_start_pos.
-  std::vector<uint64_t> sorted_indexes;
+  std::vector<size_t> sorted_indexes;
   if (params_.sort_real_start_pos) {
     nonstd::span<uint32_t> real_start_pos(
         results.buffers()->real_start_pos().data<uint32_t>(), num_cells);

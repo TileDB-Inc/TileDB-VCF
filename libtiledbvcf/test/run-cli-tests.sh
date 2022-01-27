@@ -427,7 +427,7 @@ bcftools merge -o bcftools.vcf sample-*.vcf.gz || exit 1
 # combine with tiledb
 rm -rf vcf.tdb
 $tilevcf create -u vcf.tdb || exit 1
-$tilevcf store -u vcf.tdb sample-01.vcf.gz sample-02.vcf.gz --log-level trace || exit 1
+$tilevcf store -u vcf.tdb sample-01.vcf.gz sample-02.vcf.gz --log-level info || exit 1
 $tilevcf export -u vcf.tdb -Op -o tiledb.vcf --log-level info || exit 1
 
 # remove INFO/END for comparison with diff
