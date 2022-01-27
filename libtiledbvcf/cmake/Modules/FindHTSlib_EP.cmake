@@ -66,9 +66,9 @@ if (NOT HTSLIB_FOUND)
     message(STATUS "Adding HTSlib as an external project")
     # Use explicit soname to avoid having to use library symlinks (easier for embedding).
     if (APPLE)
-      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.10.dylib")
+      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.14.dylib")
     else()
-      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.10")
+      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.14")
     endif()
     SET(CFLAGS "")
     string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
@@ -83,8 +83,8 @@ if (NOT HTSLIB_FOUND)
 
     ExternalProject_Add(ep_htslib
       PREFIX "externals"
-      URL "https://github.com/samtools/htslib/archive/1.10.zip"
-      URL_HASH SHA1=3f4c5a18ac5f91e7ff69ec6d347b0b60e3621af5
+      URL "https://github.com/samtools/htslib/releases/download/1.14/htslib-1.14.tar.bz2"
+      URL_HASH SHA1=8f731170c6f5d4b0f50a83b3bc83cc75ac4a74fa
       UPDATE_COMMAND ""
       CONFIGURE_COMMAND
           autoheader
@@ -97,7 +97,6 @@ if (NOT HTSLIB_FOUND)
       INSTALL_COMMAND
         $(MAKE) install
       PATCH_COMMAND
-        patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-1.10-config.patch
       BUILD_IN_SOURCE TRUE
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE

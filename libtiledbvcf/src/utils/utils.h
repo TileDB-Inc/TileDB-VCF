@@ -27,8 +27,10 @@
 #ifndef TILEDB_VCF_UTILS_H
 #define TILEDB_VCF_UTILS_H
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -430,6 +432,72 @@ const std::string& version_info();
  * Returns total system memory in MiB
  */
 uint32_t system_memory_mb();
+
+/**
+ *
+ * Given a vector of T return an a vector if indexes, sorted by ascending values
+ *
+ * inspired by: https://stackoverflow.com/a/12399290/11562375
+ * @tparam T
+ * @param v
+ * @return
+ */
+template <typename T, typename U>
+std::vector<size_t> sort_indexes_pvcf(
+    const T& start_pos, const U& sample_names) {
+  assert(start_pos.size() == sample_names.size());
+  // initialize original index locations
+  std::vector<size_t> idx(start_pos.size());
+  std::iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  // using std::stable_sort instead of std::sort
+  // to avoid unnecessary index re-orderings
+  // when v contains elements of equal values
+  std::stable_sort(
+      idx.begin(),
+      idx.end(),
+      [&start_pos, &sample_names](size_t i1, size_t i2) {
+        if (start_pos[i1] == start_pos[i2])
+          return sample_names[i1] < sample_names[i2];
+
+        return start_pos[i1] < start_pos[i2];
+      });
+
+  return idx;
+}
+
+/**
+ * @brief Search for item in vec. If not found push item to the back of vec.
+ *
+ * @tparam T type of item
+ * @param vec vector of type T
+ * @param item item to add to vector
+ * @return int index of item in vec
+ */
+template <class T>
+int push_unique(std::vector<T>& vec, T item) {
+  auto find_it = std::find(vec.begin(), vec.end(), item);
+  if (find_it == vec.end()) {
+    vec.push_back(item);
+    return vec.size() - 1;
+  }
+  return find_it - vec.begin();
+}
+
+/**
+ * @brief Search for item in vec. Return true if found, false otherwise.
+ *
+ * @tparam T type of item
+ * @param vec vector of type T
+ * @param item item to search for
+ * @return true item found in vec
+ * @return false item not found in vec
+ */
+template <class T>
+bool contains(std::vector<T>& vec, T& item) {
+  return std::find(vec.begin(), vec.end(), item) != vec.end();
+}
 
 }  // namespace utils
 }  // namespace vcf

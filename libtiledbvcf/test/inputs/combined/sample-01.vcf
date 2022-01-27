@@ -1,0 +1,160 @@
+##fileformat=VCFv4.3
+##FILTER=<ID=PASS,Description="All filters passed">
+##FILTER=<ID=F1,Description="">
+##FILTER=<ID=F2,Description="">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
+##INFO=<ID=FL1,Number=0,Type=Flag,Description="">
+##INFO=<ID=FL2,Number=0,Type=Flag,Description="">
+##INFO=<ID=I1,Number=1,Type=Integer,Description="">
+##INFO=<ID=I3,Number=3,Type=Integer,Description="">
+##INFO=<ID=IA,Number=A,Type=Integer,Description="">
+##INFO=<ID=IG,Number=G,Type=Integer,Description="">
+##INFO=<ID=IR,Number=R,Type=Integer,Description="">
+##INFO=<ID=IV,Number=.,Type=Integer,Description="">
+##INFO=<ID=F1,Number=1,Type=Float,Description="">
+##INFO=<ID=F3,Number=3,Type=Float,Description="">
+##INFO=<ID=FA,Number=A,Type=Float,Description="">
+##INFO=<ID=FG,Number=G,Type=Float,Description="">
+##INFO=<ID=FR,Number=R,Type=Float,Description="">
+##INFO=<ID=FV,Number=.,Type=Float,Description="">
+##INFO=<ID=C1,Number=1,Type=Character,Description="">
+##INFO=<ID=C3,Number=3,Type=Character,Description="">
+##INFO=<ID=CA,Number=A,Type=Character,Description="">
+##INFO=<ID=CG,Number=G,Type=Character,Description="">
+##INFO=<ID=CR,Number=R,Type=Character,Description="">
+##INFO=<ID=CV,Number=.,Type=Character,Description="">
+##INFO=<ID=S1,Number=1,Type=String,Description="">
+##INFO=<ID=S3,Number=3,Type=String,Description="">
+##INFO=<ID=SA,Number=A,Type=String,Description="">
+##INFO=<ID=SG,Number=G,Type=String,Description="">
+##INFO=<ID=SR,Number=R,Type=String,Description="">
+##INFO=<ID=SV,Number=.,Type=String,Description="">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=I1,Number=1,Type=Integer,Description="">
+##FORMAT=<ID=I3,Number=3,Type=Integer,Description="">
+##FORMAT=<ID=IA,Number=A,Type=Integer,Description="">
+##FORMAT=<ID=IG,Number=G,Type=Integer,Description="">
+##FORMAT=<ID=IR,Number=R,Type=Integer,Description="">
+##FORMAT=<ID=IV,Number=.,Type=Integer,Description="">
+##FORMAT=<ID=F1,Number=1,Type=Float,Description="">
+##FORMAT=<ID=F3,Number=3,Type=Float,Description="">
+##FORMAT=<ID=FA,Number=A,Type=Float,Description="">
+##FORMAT=<ID=FG,Number=G,Type=Float,Description="">
+##FORMAT=<ID=FR,Number=R,Type=Float,Description="">
+##FORMAT=<ID=FV,Number=.,Type=Float,Description="">
+##FORMAT=<ID=C1,Number=1,Type=Character,Description="">
+##FORMAT=<ID=C3,Number=3,Type=Character,Description="">
+##FORMAT=<ID=CA,Number=A,Type=Character,Description="">
+##FORMAT=<ID=CG,Number=G,Type=Character,Description="">
+##FORMAT=<ID=CR,Number=R,Type=Character,Description="">
+##FORMAT=<ID=CV,Number=.,Type=Character,Description="">
+##FORMAT=<ID=S1,Number=1,Type=String,Description="">
+##FORMAT=<ID=S3,Number=3,Type=String,Description="">
+##FORMAT=<ID=SA,Number=A,Type=String,Description="">
+##FORMAT=<ID=SG,Number=G,Type=String,Description="">
+##FORMAT=<ID=SR,Number=R,Type=String,Description="">
+##FORMAT=<ID=SV,Number=.,Type=String,Description="">
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr2,length=242193529>
+##contig=<ID=chr3,length=198295559>
+##contig=<ID=chr4,length=190214555>
+##comment="failing records"
+##comment="chr2	170	P2	A	C,G	5	PASS	CG=a,b,c,d,.,f	GT	0/0"
+##comment="chr2	230	P2	A	C,G	5	PASS	SG=aaa,bbb,ccc,ddd,.,fff	GT	0/0"
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample-01
+chr1	10	P1	A	C	1	PASS	.	GT	0|0
+chr1	20	P1	C	G	2	F1	.	GT:I1	0|1:1
+chr1	30	P1	G	T	3	F2	.	GT:I3	1|0:1,2,3
+chr1	40	P1	T	A	4	.	.	GT:IA	1/1:1
+chr1	50	P1	A	C,G	5	PASS	.	GT:IG	0/0:1,2,.,4,5,6
+chr1	60	P1	C	G,T	6	F1	.	GT:IR	0/1:1,.,3
+chr1	70	P1	G	T	7	F2	.	GT:IV	1|0:1,.,3,4,5,.,7
+chr1	80	P1	C	G	8	F1	.	GT:F1	0|1:1.1
+chr1	90	P1	G	T	9	F2	.	GT:F3	1|0:1.1,2.2,3.3
+chr1	100	P1	T	A	8	.	.	GT:FA	1/1:1.1
+chr1	110	P1	A	C,G	7	PASS	.	GT:FG	0/0:1.1,2.2,.,4.4,5.5,6.6
+chr1	120	P1	C	G,T	6	F1	.	GT:FR	0/1:1.1,.,3.3
+chr1	130	P1	G	T	5	F2	.	GT:FV	1|0:1.1,.,3.3,4.4,5.5,.,7.7
+chr1	140	P1	C	G	4	F1	.	GT:C1	0|1:a
+chr1	150	P1	G	T	3	F2	.	GT:C3	1|0:a,b,c
+chr1	160	P1	T	A	2	.	.	GT:CA	1/1:a
+chr1	170	P1	A	C,G	1	PASS	.	GT:CG	0/0:a,b,.,c,d,e
+chr1	180	P1	C	G,T	2	F1	.	GT:CR	0/1:a,b,.
+chr1	190	P1	G	T	3	F2	.	GT:CV	1|0:a,b,c,d,e,f,g,.,i
+chr1	200	P1	C	G	4	F1	.	GT:S1	0|1:aaa
+chr1	210	P1	G	T	3	F2	.	GT:S3	1|0:aaa,bbb,ccc
+chr1	220	P1	T	A	2	.	.	GT:SA	1/1:aaa
+chr1	230	P1	A	C,G	1	PASS	.	GT:SG	0/0:aaa,bbb,.,ccc,ddd,eee
+chr1	240	P1	C	G,T	2	F1	.	GT:SR	0/1:aaa,bbb,.
+chr1	250	P1	G	T	3	F2	.	GT:SV	1|0:aaa,bbb,ccc,ddd,.,fff,ggg,hhh,iii
+chr2	10	P1	A	C	1	PASS	FL1	GT	0|0
+chr2	20	P1	C	G	2	F1	I1=1	GT	0|1
+chr2	30	P1	G	T	3	F2	I3=1,2,3	GT	1|0
+chr2	40	P1	T	A	4	.	IA=1	GT	1/1
+chr2	50	P1	A	C,G	5	PASS	IG=1,2,3,4,.,6	GT	0/0
+chr2	60	P1	C	G,T	6	F1	IR=1,2,3	GT	0/1
+chr2	70	P1	G	T	7	F2	IV=1,2,3,.,5,.,7	GT	1|0
+chr2	80	P1	C	G	2	F1	F1=1.1	GT	0|1
+chr2	90	P1	G	T	3	F2	F3=1.1,2.2,3.3	GT	1|0
+chr2	100	P1	T	A	4	.	FA=1.1	GT	1/1
+chr2	110	P1	A	C,G	5	PASS	FG=1.1,2.2,3.3,4.4,.,6.6	GT	0/0
+chr2	120	P1	C	G,T	6	F1	FR=1.1,2.2,3.3	GT	0/1
+chr2	130	P1	G	T	7	F2	FV=1.1,2.2,3.3,.,5.5,.,7.7	GT	1|0
+chr2	140	P1	C	G	2	F1	C1=a	GT	0|1
+chr2	150	P1	G	T	3	F2	C3=a,b,c	GT	1|0
+chr2	160	P1	T	A	4	.	CA=a	GT	1/1
+chr2	180	P1	C	G,T	6	F1	CR=a,b,c	GT	0/1
+chr2	190	P1	G	T	7	F2	CV=a,b,c,d,e,.,g	GT	1|0
+chr2	200	P1	C	G	2	F1	S1=aaa	GT	0|1
+chr2	210	P1	G	T	3	F2	S3=aaa,bbb,ccc	GT	1|0
+chr2	220	P1	T	A	4	.	SA=aaa	GT	1/1
+chr2	240	P1	C	G,T	6	F1	SR=aaa,bbb,ccc	GT	0/1
+chr2	250	P1	G	T	7	F2	SV=aaa,bbb,ccc,ddd,eee,.,ggg	GT	1|0
+chr3	10	P1	A	C,G	1	PASS	.	GT	0|0
+chr3	20	P1	C	G,T	2	F1	.	GT:I1	0|1:1
+chr3	30	P1	G	T,A	3	F2	.	GT:I3	1|0:1,2,3
+chr3	40	P1	T	A,G	4	.	.	GT:IA	1/1:1,2
+chr3	50	P1	AA	AC,AG	5	PASS	.	GT:IG	0/0:1,2,.,4,5,6
+chr3	60	P1	CC	CG,CT	6	F1	.	GT:IR	0/1:1,.,3
+chr3	70	P1	G	T,A	7	F2	.	GT:IV	1|0:1,.,3,4,5,.,7
+chr3	80	P1	C	G,T	8	F1	.	GT:F1	0|1:1.1
+chr3	90	P1	G	T,A	9	F2	.	GT:F3	1|0:1.1,2.2,3.3
+chr3	100	P1	T	A,G	8	.	.	GT:FA	1/1:1.1,2.2
+chr3	110	P1	AA	AC,AG	7	PASS	.	GT:FG	0/0:1.1,2.2,.,4.4,5.5,6.6
+chr3	120	P1	CC	CG,CT	6	F1	.	GT:FR	0/1:1.1,.,3.3
+chr3	130	P1	G	T,A	5	F2	.	GT:FV	1|0:1.1,.,3.3,4.4,5.5,.,7.7
+chr3	140	P1	C	G,T	4	F1	.	GT:C1	0|1:a
+chr3	150	P1	G	T,A	3	F2	.	GT:C3	1|0:a,b,c
+chr3	160	P1	T	A,G	2	.	.	GT:CA	1/1:a,b
+chr3	170	P1	AA	AC,AG	1	PASS	.	GT:CG	0/0:a,b,.,c,d,e
+chr3	180	P1	CC	CG,CT	2	F1	.	GT:CR	0/1:a,b,.
+chr3	190	P1	G	T,A	3	F2	.	GT:CV	1|0:a,b,c,d,e,f,g,.,i
+chr3	200	P1	C	G,T	4	F1	.	GT:S1	0|1:aaa
+chr3	210	P1	G	T,A	3	F2	.	GT:S3	1|0:aaa,bbb,ccc
+chr3	220	P1	T	A,G	2	.	.	GT:SA	1/1:aaa,bbb
+chr3	230	P1	AA	AC,AG	1	PASS	.	GT:SG	0/0:aaa,bbb,.,ccc,ddd,eee
+chr3	240	P1	CC	CG,CT	2	F1	.	GT:SR	0/1:aaa,bbb,.
+chr3	250	P1	G	T,A	3	F2	.	GT:SV	1|0:aaa,bbb,ccc,ddd,.,fff,ggg,hhh,iii
+chr4	10	P1	A	C,G	1	PASS	FL1	GT	0|0
+chr4	20	P1	C	G,T	2	F1	I1=1	GT	0|1
+chr4	30	P1	G	T,A	3	F2	I3=1,2,3	GT	1|0
+chr4	40	P1	T	A,C	4	.	IA=1,2	GT	1/1
+chr4	50	P1	AA	AC,AG	5	PASS	IG=1,2,3,4,.,6	GT	0/0
+chr4	60	P1	CC	CG,CT	6	F1	IR=1,2,3	GT	0/1
+chr4	70	P1	G	T,A	7	F2	IV=1,2,3,.,5,.,7	GT	1|0
+chr4	80	P1	C	G,T	2	F1	F1=1.1	GT	0|1
+chr4	90	P1	G	T,A	3	F2	F3=1.1,2.2,3.3	GT	1|0
+chr4	100	P1	T	A,C	4	.	FA=1.1,2.2	GT	1/1
+chr4	110	P1	AA	AC,AG	5	PASS	FG=1.1,2.2,3.3,4.4,.,6.6	GT	0/0
+chr4	120	P1	CC	CG,CT	6	F1	FR=1.1,2.2,3.3	GT	0/1
+chr4	130	P1	G	T,A	7	F2	FV=1.1,2.2,3.3,.,5.5,.,7.7	GT	1|0
+chr4	140	P1	C	G,T	2	F1	C1=a	GT	0|1
+chr4	150	P1	G	T,A	3	F2	C3=a,b,c	GT	1|0
+chr4	160	P1	T	A,C	4	.	CA=a,b	GT	1/1
+chr4	180	P1	CC	CG,CT	6	F1	CR=a,b,c	GT	0/1
+chr4	190	P1	G	T,A	7	F2	CV=a,b,c,d,e,.,g	GT	1|0
+chr4	200	P1	C	G,T	2	F1	S1=aaa	GT	0|1
+chr4	210	P1	G	T,A	3	F2	S3=aaa,bbb,ccc	GT	1|0
+chr4	220	P1	T	A,C	4	.	SA=aaa,bbb	GT	1/1
+chr4	240	P1	CC	CG,CT	6	F1	SR=aaa,bbb,ccc	GT	0/1
+chr4	250	P1	G	T,A	7	F2	SV=aaa,bbb,ccc,ddd,eee,.,ggg	GT	1|0
