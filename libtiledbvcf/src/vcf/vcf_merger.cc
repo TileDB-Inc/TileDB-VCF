@@ -31,15 +31,15 @@ void VCFMerger::init(
   hdrs_.clear();
 
   for (const auto& [name, hdr_key] : sorted_hdrs) {
-    LOG_DEBUG("Adding sample_num {} : '{}'", hdrs_.size(), name);
+    LOG_DEBUG("Adding sample_num {}: {}", hdrs_.size(), name);
     sample_map_[name] = hdrs_.size();
     auto hdr = hdr_map.at(hdr_key).get();
     hdrs_.push_back(hdr);
     if (bcf_hdr_merge(hdr_.get(), hdr) == NULL) {
-      LOG_FATAL("Error merging header from sample: '{}'", name);
+      LOG_FATAL("Error merging header from sample: {}", name);
     }
     if (bcf_hdr_add_sample(hdr_.get(), name.c_str()) < 0) {
-      LOG_FATAL("Error adding sample to merged header: '{}'", name);
+      LOG_FATAL("Error adding sample to merged header: {}", name);
     }
   }
 

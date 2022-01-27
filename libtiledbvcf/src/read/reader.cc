@@ -753,7 +753,7 @@ bool Reader::next_read_batch_v4() {
           &read_state_.current_hdrs_lookup,
           read_state_.all_samples,
           false);
-      if (params_.format == ExportFormat::PVCF) {
+      if (params_.export_combined_vcf) {
         static_cast<PVCFExporter*>(exporter_.get())
             ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
       }
@@ -894,26 +894,26 @@ bool Reader::next_read_batch_v4() {
 
 void Reader::init_exporter() {
   if (params_.export_to_disk) {
-    switch (params_.format) {
-      case ExportFormat::CompressedBCF:
-      case ExportFormat::BCF:
-      case ExportFormat::VCFGZ:
-      case ExportFormat::VCF:
-        exporter_.reset(new BCFExporter(params_.format));
-        break;
-      case ExportFormat::PVCF: {
-        params_.sort_real_start_pos = true;
-        exporter_.reset(new PVCFExporter(params_.tsv_output_path));
-        break;
+    if (params_.export_combined_vcf) {
+      params_.sort_real_start_pos = true;
+      exporter_.reset(new PVCFExporter(params_.output_path, params_.format));
+    } else {
+      switch (params_.format) {
+        case ExportFormat::CompressedBCF:
+        case ExportFormat::BCF:
+        case ExportFormat::VCFGZ:
+        case ExportFormat::VCF:
+          exporter_.reset(new BCFExporter(params_.format));
+          break;
+        case ExportFormat::TSV:
+          exporter_.reset(
+              new TSVExporter(params_.output_path, params_.tsv_fields));
+          break;
+        default:
+          throw std::runtime_error(
+              "Error exporting records; unknown export format.");
+          break;
       }
-      case ExportFormat::TSV:
-        exporter_.reset(
-            new TSVExporter(params_.tsv_output_path, params_.tsv_fields));
-        break;
-      default:
-        throw std::runtime_error(
-            "Error exporting records; unknown export format.");
-        break;
     }
     exporter_->set_output_dir(params_.output_dir);
   }

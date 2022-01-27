@@ -230,8 +230,7 @@ std::map<std::string, ExportFormat> format_map{
     {"u", ExportFormat::BCF},
     {"z", ExportFormat::VCFGZ},
     {"v", ExportFormat::VCF},
-    {"t", ExportFormat::TSV},
-    {"p", ExportFormat::PVCF}};
+    {"t", ExportFormat::TSV}};
 
 // add helper functions to CLI::detail namespace
 namespace CLI {
@@ -603,12 +602,15 @@ void add_export(CLI::App& app) {
          "-O,--output-format",
          args->format,
          "Export format. Options are: 'b': bcf (compressed); 'u': bcf; "
-         "'z': vcf.gz; 'v': vcf; 't': TSV; 'p': pvcf.")
+         "'z': vcf.gz; 'v': vcf; 't': TSV")
       ->transform(CLI::CheckedTransformer(format_map));
   cmd->add_option(
       "-o,--output-path",
-      args->tsv_output_path,
-      "[TSV export only] The name of the output TSV file.");
+      args->output_path,
+      "[TSV or combined VCF export only] The name of the output file.");
+  cmd->add_flag(
+         "-m,--merge", args->export_combined_vcf, "Export combined VCF file.")
+      ->needs("--output-path");
   cmd->add_option(
          "-t,--tsv-fields",
          args->tsv_fields,

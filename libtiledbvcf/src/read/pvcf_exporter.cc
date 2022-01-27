@@ -34,10 +34,26 @@
 namespace tiledb {
 namespace vcf {
 
-PVCFExporter::PVCFExporter(const std::string& output_uri)
+PVCFExporter::PVCFExporter(const std::string& output_uri, ExportFormat fmt)
     : uri_(output_uri)
     , fp_(nullptr, hts_close) {
   need_headers_ = true;
+  switch (fmt) {
+    case ExportFormat::CompressedBCF:
+      fmt_code_ = "b";
+      break;
+    case ExportFormat::BCF:
+      fmt_code_ = "bu";
+      break;
+    case ExportFormat::VCFGZ:
+      fmt_code_ = "z";
+      break;
+    case ExportFormat::VCF:
+      fmt_code_ = "";
+      break;
+    default:
+      LOG_FATAL("Error initializing PVCFExporter: unknown format.");
+  }
 }
 
 PVCFExporter::~PVCFExporter() {
@@ -53,7 +69,8 @@ void PVCFExporter::init(
 
   merger_.init(sorted_hdrs, hdrs);
 
-  fp_.reset(bcf_open(uri_.c_str(), "w"));
+  std::string mode = "w" + fmt_code_;
+  fp_.reset(bcf_open(uri_.c_str(), mode.c_str()));
   if (fp_.get() == nullptr) {
     LOG_FATAL("Error creating VCF output file '{}'", uri_);
   }

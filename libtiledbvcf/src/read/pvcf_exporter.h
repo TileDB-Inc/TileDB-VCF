@@ -36,7 +36,7 @@ namespace vcf {
 /** Export to pVCF. Note this class is currently not threadsafe. */
 class PVCFExporter : public Exporter {
  public:
-  explicit PVCFExporter(const std::string& output_uri);
+  explicit PVCFExporter(const std::string& output_uri, ExportFormat fmt);
 
   ~PVCFExporter();
 
@@ -60,6 +60,7 @@ class PVCFExporter : public Exporter {
 
  private:
   std::string uri_;
+  std::string fmt_code_;
   SafeBCFFh fp_;
   VCFMerger merger_;
 
