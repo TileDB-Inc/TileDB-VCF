@@ -10,8 +10,8 @@ fi
 # Enable tracing
 set -x
 
-build_dir=$(realpath $1)
-input_dir=$(realpath $2)
+build_dir=$PWD/$1
+input_dir=$PWD/$2
 tilevcf=${build_dir}/libtiledbvcf/src/tiledbvcf
 upload_dir=/tmp/tilevcf-upload-dir-$$
 
