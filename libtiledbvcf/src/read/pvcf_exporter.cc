@@ -100,8 +100,14 @@ void PVCFExporter::write_records() {
 }
 
 void PVCFExporter::close() {
-  merger_.close();
+  // finish merging records
+  merger_.finish();
+  // write last records to the vcf file
   write_records();
+  // close the merger
+  merger_.close();
+  // close the the vcf file
+  fp_.reset(nullptr);
 }
 
 bool PVCFExporter::export_record(

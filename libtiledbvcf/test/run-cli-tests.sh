@@ -190,9 +190,12 @@ test $numvcfs -eq 10 && exit 1
 rm *.vcf
 
 # each sample is uniquely assigned to a partition
+rm -f exported_samples.txt
 for i in {0..5}; do
+  echo "run $i"
   $tilevcf export -u ingested_10_samples -Ov --sample-partition $i:6
   ls *.vcf >> exported_samples.txt
+  grep CHROM *vcf
   rm *.vcf
 done
 

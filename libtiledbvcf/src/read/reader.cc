@@ -972,11 +972,10 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
-    LOG_DEBUG("reader.cc:{}: query started.", __LINE__);
+    LOG_DEBUG("TileDB query started.");
     auto query_status = query->submit();
     LOG_INFO(
-        "reader.cc:{}: query completed in {} sec.",
-        __LINE__,
+        "TileDB query completed in {} sec.",
         utils::chrono_duration(query_start_timer));
 
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
@@ -2435,6 +2434,39 @@ void Reader::set_verbose(const bool& verbose) {
   }
 }
 
+void Reader::set_export_to_disk(const bool export_to_disk) {
+  params_.export_to_disk = export_to_disk;
+  if (!export_to_disk) {
+    params_.export_combined_vcf = false;
+  }
+}
+
+void Reader::set_merge(const bool merge) {
+  params_.export_combined_vcf = merge;
+}
+
+void Reader::set_output_format(const std::string& output_format) {
+  const std::map<std::string, ExportFormat> format_map{
+      {"b", ExportFormat::CompressedBCF},
+      {"u", ExportFormat::BCF},
+      {"z", ExportFormat::VCFGZ},
+      {"v", ExportFormat::VCF}};
+
+  try {
+    params_.format = format_map.at(output_format);
+  } catch (...) {
+    LOG_FATAL("Illegal output_format code: {}", output_format);
+  }
+}
+
+void Reader::set_output_path(const std::string& output_path) {
+  params_.output_path = output_path;
+}
+
+void Reader::set_output_dir(const std::string& output_dir) {
+  params_.output_dir = output_dir;
+}
+
 void Reader::set_tiledb_query_config() {
   assert(read_state_.query != nullptr);
   assert(buffers_a != nullptr);
@@ -2530,7 +2562,7 @@ void Reader::set_check_samples_exist(const bool check_samples_exist) {
 
 void Reader::set_enable_progress_estimation(
     const bool& enable_progress_estimation) {
-  LOG_INFO(
+  LOG_DEBUG(
       "setting enable_progress_estimation to {}", enable_progress_estimation);
   params_.enable_progress_estimation = enable_progress_estimation;
 }

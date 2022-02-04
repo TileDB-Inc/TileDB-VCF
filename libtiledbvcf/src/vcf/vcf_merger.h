@@ -111,6 +111,12 @@ class VCFMerger {
    * record to finish merging.
    *
    */
+  void finish();
+
+  /**
+   * @brief Close the VCFMerger.
+   *
+   */
   void close();
 
   /**
@@ -164,6 +170,14 @@ class VCFMerger {
    */
   std::tuple<int, int, int> get_number_type_values(
       int id, int hdr_type, int sample_num = -1);
+
+  /**
+   * @brief Get the missing vector end object
+   *
+   * @param type field type (BCF_HT_*)
+   * @return std::tuple<int, int> [missing, vector_end]
+   */
+  std::tuple<int, int> get_missing_vector_end(int type);
 
   /**
    * @brief Try to merge records in the merge buffer

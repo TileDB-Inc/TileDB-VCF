@@ -14,14 +14,6 @@ VCFMerger::VCFMerger()
 }
 
 VCFMerger::~VCFMerger() {
-  LOG_DEBUG(
-      "VCFMerger closed: writes = {} reads = {}", write_count_, read_count_);
-  assert(merge_buffer_.size() == 0);
-  assert(output_buffer_.size() == 0);
-
-  if (dst_) {
-    free(dst_);
-  }
 }
 
 void VCFMerger::init(
@@ -58,8 +50,21 @@ void VCFMerger::reset() {
   contig_ = -1;
 }
 
-void VCFMerger::close() {
+void VCFMerger::finish() {
   try_merge(true);
+}
+
+void VCFMerger::close() {
+  assert(merge_buffer_.size() == 0);
+  assert(output_buffer_.size() == 0);
+  LOG_INFO(
+      "VCFMerger closed: {} records in {} records out",
+      write_count_,
+      read_count_);
+
+  if (dst_) {
+    free(dst_);
+  }
 }
 
 void VCFMerger::write(const std::string& sample_name, SafeBCFRec rec) {
@@ -218,6 +223,21 @@ std::tuple<int, int, int> VCFMerger::get_number_type_values(
   return {number, type, values};
 }
 
+std::tuple<int, int> VCFMerger::get_missing_vector_end(int type) {
+  int missing = bcf_int32_missing;
+  int vector_end = bcf_int32_vector_end;
+
+  if (type == BCF_HT_REAL) {
+    missing = bcf_float_missing;
+    vector_end = bcf_float_vector_end;
+  } else if (type == BCF_HT_STR) {
+    missing = bcf_str_missing;
+    vector_end = bcf_str_vector_end;
+  }
+
+  return {missing, vector_end};
+}
+
 void VCFMerger::merge_record(int sample_num, SafeBCFRec input) {
   // CHROM and POS
   md_.rid = input->rid;
@@ -308,17 +328,20 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
       const char* key_str = hdr_->id[BCF_DT_ID][key].key;
 
       auto [number, type, values] = get_number_type_values(key, BCF_HL_INFO);
-      auto missing =
-          type == BCF_HT_REAL ? bcf_float_missing : bcf_int32_missing;
+      auto [missing, _] = get_missing_vector_end(type);
 
       int values_read = bcf_get_info_values(
           hdrs_[sample_num], rec.get(), key_str, (void**)(&dst_), &ndst_, type);
       int* data = (int*)(dst_);
 
-      // for variable length field, set expected values to number of values
-      // read
+      // set expected values to number of values read
       if (number == BCF_VL_VAR || type == BCF_HT_FLAG) {
         values = values_read;
+
+        // data contains 4 char values per int
+        if (type == BCF_HT_STR) {
+          values = ceil(values / 4.0);
+        }
       }
 
       if (number == BCF_VL_FIXED || number == BCF_VL_VAR) {
@@ -420,29 +443,29 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
     }
 
     auto [number, type, values] = get_number_type_values(key, BCF_HL_FMT);
+    auto [missing, vector_end] = get_missing_vector_end(type);
 
-    buffer_.clear();
+    // init buffer with the expected number of missing/vector end values.
+    // for variable length fields, init buffer after reading the first field
+    if (number != BCF_VL_VAR) {
+      buffer_.clear();
 
-    auto missing = type == BCF_HT_REAL ? bcf_float_missing : bcf_int32_missing;
-    auto vector_end =
-        type == BCF_HT_REAL ? bcf_float_vector_end : bcf_int32_vector_end;
-
-    // fill buffer with empty values
-    for (int i = 0; i < num_samples_; i++) {
-      // add missing values
-      buffer_.append(&missing, utils::bcf_type_size(type));
-      for (int j = 1; j < values; j++) {
-        buffer_.append(&vector_end, utils::bcf_type_size(type));
+      // fill buffer with empty values
+      for (int i = 0; i < num_samples_; i++) {
+        // add missing values
+        buffer_.append(&missing, utils::bcf_type_size(type));
+        for (int j = 1; j < values; j++) {
+          buffer_.append(&vector_end, utils::bcf_type_size(type));
+        }
       }
     }
-
-    auto dst = buffer_.data<int>();
 
     if (type == BCF_HT_STR) {
       sample_strings = std::vector<std::string>(num_samples_, ".");
       max_string_len = 1;
     }
 
+    bool first_variable_length = true;
     for (const auto& [sample_num, rec_in] : md_.samples) {
       int values_read = bcf_get_format_values(
           hdrs_[sample_num],
@@ -460,9 +483,24 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
       // read
       if (number == BCF_VL_VAR) {
         values = values_read;
+
+        // init buffer with the expected number of missing/vector end values
+        if (first_variable_length) {
+          buffer_.clear();
+          // fill buffer with empty values
+          for (int i = 0; i < num_samples_; i++) {
+            // add missing values
+            buffer_.append(&missing, utils::bcf_type_size(type));
+            for (int j = 1; j < values; j++) {
+              buffer_.append(&vector_end, utils::bcf_type_size(type));
+            }
+          }
+          first_variable_length = false;
+        }
       }
 
       int* src = dst_;
+      auto dst = buffer_.data<int>();
 
       // merge string
       if (type == BCF_HT_STR) {
