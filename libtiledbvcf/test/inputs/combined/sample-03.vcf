@@ -61,7 +61,7 @@
 ##comment="failing records"
 ##comment="chr2	170	P2	A	C,G	5	PASS	CG=a,b,c,d,.,f	GT	0/0"
 ##comment="chr2	230	P2	A	C,G	5	PASS	SG=aaa,bbb,ccc,ddd,.,fff	GT	0/0"
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample-02
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample-03
 chr1	10	P2	A	C	1	PASS	.	GT	0|0
 chr1	20	P2	C	G	2	F1	.	GT:I1	0|1:11
 chr1	30	P2	G	T	3	F2	.	GT:I3	1|0:11,22,33
@@ -157,4 +157,4 @@ chr4	210	P2	G	T,A	3	F2	S3=AAA,BBB,CCC	GT	1|0
 chr4	220	P2	T	A,C	4	.	SA=AAA,BBB	GT	1/1
 chr4	240	P2	CC	CG,CT	6	F1	SR=AAA,BBB,CCC	GT	0/1
 chr4	250	P2	G	T,A	7	F2	SV=AAA,BBB,CCC,DDD,EEE,.,GGG	GT	1|0
-chr4	300	P2	CCT	C	9	F1	.	GT	1|0
+chr4	300	P3	C	<NON_REF>	9	F1	.	GT	1|0

@@ -154,8 +154,11 @@ void VCFMerger::merge_alleles(int sample_num, bcf1_t* input) {
       // new REF is longer, extend existing merged alleles
       md_.suffix = new_ref.substr(md_.ref.length());
       md_.ref = new_ref;
-      for (unsigned int i = 0; i < md_.alleles.size(); i++) {
-        md_.alleles[i] += md_.suffix;
+      for (auto& allele : md_.alleles) {
+        // do not extend <NON_REF> alleles
+        if (allele[0] != '<') {
+          allele += md_.suffix;
+        }
       }
       md_.suffix = "";
     } else if (new_ref.length() < md_.ref.length()) {

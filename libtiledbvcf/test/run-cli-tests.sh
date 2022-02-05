@@ -195,7 +195,14 @@ for i in {0..5}; do
   echo "run $i"
   $tilevcf export -u ingested_10_samples -Ov --sample-partition $i:6
   ls *.vcf >> exported_samples.txt
-  grep CHROM *vcf
+  grep CHROM *.vcf
+  rm *.vcf
+done
+
+for i in {0..5}; do
+  echo "debug run $i"
+  $tilevcf export -u ingested_10_samples -Ov -s G9
+  grep CHROM *.vcf
   rm *.vcf
 done
 
@@ -423,6 +430,8 @@ bcftools view -Oz -o sample-01.vcf.gz ${input_dir}/combined/sample-01.vcf || exi
 bcftools index sample-01.vcf.gz || exit 1
 bcftools view -Oz -o sample-02.vcf.gz ${input_dir}/combined/sample-02.vcf || exit 1
 bcftools index sample-02.vcf.gz || exit 1
+bcftools view -Oz -o sample-03.vcf.gz ${input_dir}/combined/sample-03.vcf || exit 1
+bcftools index sample-03.vcf.gz || exit 1
 
 # combine with bcftools
 bcftools merge -o bcftools.vcf sample-*.vcf.gz || exit 1
@@ -430,7 +439,7 @@ bcftools merge -o bcftools.vcf sample-*.vcf.gz || exit 1
 # combine with tiledb
 rm -rf vcf.tdb
 $tilevcf create -u vcf.tdb || exit 1
-$tilevcf store -u vcf.tdb sample-01.vcf.gz sample-02.vcf.gz --log-level info || exit 1
+$tilevcf store -u vcf.tdb sample-01.vcf.gz sample-02.vcf.gz sample-03.vcf.gz --log-level info || exit 1
 $tilevcf export -u vcf.tdb --merge -Ov -o tiledb.vcf --log-level info || exit 1
 
 # remove INFO/END for comparison with diff
