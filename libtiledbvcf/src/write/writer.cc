@@ -635,6 +635,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
+  if (ingestion_params_.contig_mode != IngestionParams::ContigMode::ALL &&
+      ingestion_params_.contigs_to_allow_merging.size()) {
+    LOG_FATAL("Cannot set contigs_to_allow_merging with contig_mode != all");
+  }
+
   // TODO: workers can be reused across space tiles
   // TODO: use multiple threads for vcf open, currenly serial with num_threads *
   // samples.size() vcf open calls
@@ -712,6 +717,26 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Skip empty contigs
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
+
+      // Ingesting MERGED contigs, skip contigs in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) !=
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      // Ingesting SEPARATE contigs, skip contigs not in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::SEPARATE &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) ==
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
 
       LOG_TRACE(fmt::format(
           std::locale(""),

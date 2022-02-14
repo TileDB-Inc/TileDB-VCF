@@ -138,6 +138,14 @@ struct IngestionParams {
   // fragments By default we use the blacklist since usually there are less
   // non-mergeable contigs
   std::set<std::string> contigs_to_allow_merging = {};
+
+  enum class ContigMode { ALL, SEPARATE, MERGED };
+
+  // Controls which contigs are ingested:
+  //  ALL = all contigs
+  //  SEPARATE = contigs in the contigs_to_keep_separate
+  //  MERGED = contigs not in the contigs_to_keep_separate
+  ContigMode contig_mode = ContigMode::ALL;
 };
 
 /* ********************************* */
