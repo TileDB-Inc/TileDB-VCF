@@ -454,6 +454,8 @@ class Writer {
    * @return true if contig is allowed to be merged based on whitelist/blacklist
    */
   bool check_contig_mergeable(const std::string& contig);
+
+  int get_merged_fragment_index(const std::string& contig);
 };
 
 }  // namespace vcf

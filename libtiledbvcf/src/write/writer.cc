@@ -929,6 +929,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
+  int last_merged_fragment_index = 0;
   std::string last_region_contig = workers[0]->region().seq_name;
   std::string starting_region_contig_for_merge = workers[0]->region().seq_name;
   bool finished = tasks.empty();
@@ -953,25 +954,41 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           const bool contig_mergeable = check_contig_mergeable(contig);
           const bool last_contig_mergeable =
               check_contig_mergeable(last_region_contig);
-          // If the contig is different the last one we wrote, and we aren't
-          // suppose to merge this new one, then finalize the previous one
+          bool finalize_merged_fragment = false;
+
+          // If ingesting merged contigs only, finalize on fragment boundaries
+          if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED) {
+            int merged_fragment_index = get_merged_fragment_index(contig);
+            finalize_merged_fragment =
+                merged_fragment_index != last_merged_fragment_index;
+            last_merged_fragment_index = merged_fragment_index;
+          }
+          //  If the contig is different the last one we wrote, and we aren't
+          //  suppose to merge this new one, then finalize the previous one
           if (last_region_contig != contig) {
-            if (!last_contig_mergeable || !contig_mergeable) {
-              if (LOG_DEBUG_ENABLED()) {
-                if (!last_contig_mergeable) {
-                  LOG_DEBUG(
-                      "Previous contig {} found to NOT be mergeable, "
-                      "finalizing previous fragment and starting new write for "
-                      "{}",
-                      last_region_contig,
-                      contig);
-                } else if (!contig_mergeable) {
-                  LOG_DEBUG(
-                      "Contig {0} found to NOT be mergeable, "
-                      "finalizing previous fragment and starting new write for "
-                      "{0}",
-                      contig);
-                }
+            if (!last_contig_mergeable || !contig_mergeable ||
+                finalize_merged_fragment) {
+              if (!last_contig_mergeable) {
+                LOG_DEBUG(
+                    "Previous contig {} found to NOT be mergeable, "
+                    "finalizing previous fragment and starting new write for "
+                    "{}",
+                    last_region_contig,
+                    contig);
+              } else if (!contig_mergeable) {
+                LOG_DEBUG(
+                    "Contig {0} found to NOT be mergeable, "
+                    "finalizing previous fragment and starting new write for "
+                    "{0}",
+                    contig);
+              } else if (finalize_merged_fragment) {
+                LOG_DEBUG(
+                    "Previous contig {} found to be end of mergeable fragment, "
+                    "finalizing previous fragment and starting new write for "
+                    "{}",
+                    last_region_contig,
+                    contig);
               }
               // If the contig is different the last one we wrote, and we aren't
               // suppose to merge this new one, then finalize the previous one
@@ -1313,6 +1330,18 @@ bool Writer::check_contig_mergeable(const std::string& contig) {
 
   // In all other cases we are mergeable
   return true;
+}
+
+int Writer::get_merged_fragment_index(const std::string& contig) {
+  int result = 0;
+  for (auto& separate_contig : ingestion_params_.contigs_to_keep_separate) {
+    if (contig > separate_contig) {
+      result++;
+    } else {
+      break;
+    }
+  }
+  return result;
 }
 
 void Writer::set_contig_fragment_merging(const bool contig_fragment_merging) {
