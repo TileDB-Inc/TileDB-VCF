@@ -455,6 +455,12 @@ class Writer {
    */
   bool check_contig_mergeable(const std::string& contig);
 
+  /**
+   * @brief Get the merged fragment index for the contig
+   *
+   * @param contig Contig name
+   * @return int Merged fragment index
+   */
   int get_merged_fragment_index(const std::string& contig);
 };
 
