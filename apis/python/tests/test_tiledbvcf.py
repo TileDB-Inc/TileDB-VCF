@@ -1163,10 +1163,17 @@ def test_vcf_attrs(tmp_path):
 
 
 def test_query_condition(test_ds):
+    df = test_ds.read(attrs=["id"], query_condition="id == '.'")
+    assert all(df == ".")
+
+    df = test_ds.read(attrs=["alleles"], query_condition="alleles == '[G, <NON_REF>]'")
+    assert all(df == "[G, <NON_REF>]")
+
     df = test_ds.read(attrs=["pos_start"], query_condition="pos_start > 13400")
     assert all(df > 13400)
 
-    df = test_ds.read(attrs=["pos_end"], query_condition="pos_end < 13400")
+    df = test_ds.read(attrs=["pos_end"], query_condition="9000 <= pos_end < 13400")
+    assert all(9000 <= df)
     assert all(df < 13400)
 
     df = test_ds.read(

@@ -239,7 +239,7 @@ class Dataset(object):
         if query_condition is not None:
             qc = QueryConditionVCF(query_condition)
             qc.init_query_condition(attrs)
-            self.reader.set_query_condition(qc._c_obj)
+            self.reader.set_query_condition(qc.c_obj)
 
         return self.continue_read()
 
