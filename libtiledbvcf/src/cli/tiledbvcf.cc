@@ -232,6 +232,11 @@ std::map<std::string, ExportFormat> format_map{
     {"v", ExportFormat::VCF},
     {"t", ExportFormat::TSV}};
 
+std::map<std::string, IngestionParams::ContigMode> contig_mode_map{
+    {"all", IngestionParams::ContigMode::ALL},
+    {"separate", IngestionParams::ContigMode::SEPARATE},
+    {"merged", IngestionParams::ContigMode::MERGED}};
+
 // add helper functions to CLI::detail namespace
 namespace CLI {
 namespace detail {
@@ -269,6 +274,18 @@ std::ostream& operator<<(std::ostream& os, const tiledb_filter_type_t& value) {
 
 std::ostream& operator<<(std::ostream& os, const ExportFormat& value) {
   for (auto it : format_map) {
+    if (it.second == value) {
+      os << it.first;
+      return os;
+    }
+  }
+  os << "UNKNOWN";
+  return os;
+}
+
+std::ostream& operator<<(
+    std::ostream& os, const IngestionParams::ContigMode& value) {
+  for (auto it : contig_mode_map) {
     if (it.second == value) {
       os << it.first;
       return os;
@@ -554,6 +571,12 @@ void add_store(CLI::App& app) {
       ->delimiter(',')
       ->excludes("--disable-contig-fragment-merging")
       ->excludes("--contigs-to-keep-separate");
+  cmd->add_option(
+         "--contig-mode",
+         args->contig_mode,
+         "Select which contigs are ingested: 'separate', 'merged', or 'all' "
+         "contigs")
+      ->transform(CLI::CheckedTransformer(contig_mode_map));
 
   cmd->option_defaults()->group("Debug options");
   add_logging_options(cmd, args->log_level, args->log_file);

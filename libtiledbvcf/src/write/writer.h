@@ -138,6 +138,14 @@ struct IngestionParams {
   // fragments By default we use the blacklist since usually there are less
   // non-mergeable contigs
   std::set<std::string> contigs_to_allow_merging = {};
+
+  enum class ContigMode { ALL, SEPARATE, MERGED };
+
+  // Controls which contigs are ingested:
+  //  ALL = all contigs
+  //  SEPARATE = contigs in the contigs_to_keep_separate
+  //  MERGED = contigs not in the contigs_to_keep_separate
+  ContigMode contig_mode = ContigMode::ALL;
 };
 
 /* ********************************* */
@@ -446,6 +454,14 @@ class Writer {
    * @return true if contig is allowed to be merged based on whitelist/blacklist
    */
   bool check_contig_mergeable(const std::string& contig);
+
+  /**
+   * @brief Get the merged fragment index for the contig
+   *
+   * @param contig Contig name
+   * @return int Merged fragment index
+   */
+  int get_merged_fragment_index(const std::string& contig);
 };
 
 }  // namespace vcf
