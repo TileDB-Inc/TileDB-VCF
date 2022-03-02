@@ -12,7 +12,7 @@ done
 mv *.dylib lib
 
 # Linux
-mv *.so lib
+mv *.so* lib
 
 cd ./apis/spark
 
