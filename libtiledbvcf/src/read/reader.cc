@@ -994,14 +994,13 @@ bool Reader::read_current_batch() {
 
     read_state_.cell_idx = 0;
 
+    // TODO: This condition is normal in TileDB 2.5-2.6, revisit in 2.7+
+    /*
     if (read_state_.query_results.num_cells() == 0 &&
         read_state_.query_results.query_status() ==
             tiledb::Query::Status::INCOMPLETE)
-      throw std::runtime_error(
-          "Error exporting region on sample range " +
-          std::to_string(read_state_.sample_min) + "-" +
-          std::to_string(read_state_.sample_max) +
-          "; incomplete TileDB query with 0 results.");
+      throw std::runtime_error("Incomplete TileDB query with 0 results.");
+    */
 
     // Process the query results.
     auto old_num_exported = read_state_.last_num_records_exported;
