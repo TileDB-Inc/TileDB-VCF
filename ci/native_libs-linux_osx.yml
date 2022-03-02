@@ -72,9 +72,9 @@ steps:
 
 
         if [[ ( "$AGENT_OS" == "Linux" ) ]]; then
-          cp $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build/externals/install/lib/*.so $BUILD_BINARIESDIRECTORY
-          cp $BUILD_REPOSITORY_LOCALPATH/dist/lib/*.so $BUILD_BINARIESDIRECTORY
-          cp $BUILD_REPOSITORY_LOCALPATH/apis/java/build/install/lib/*.so $BUILD_BINARIESDIRECTORY
+          cp $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build/externals/install/lib/*.so* $BUILD_BINARIESDIRECTORY
+          cp $BUILD_REPOSITORY_LOCALPATH/dist/lib/*.so* $BUILD_BINARIESDIRECTORY
+          cp $BUILD_REPOSITORY_LOCALPATH/apis/java/build/install/lib/*.so* $BUILD_BINARIESDIRECTORY
         fi
 
         if [[ ( "$AGENT_OS" == "Darwin" ) ]]; then
