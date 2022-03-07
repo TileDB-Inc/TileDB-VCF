@@ -649,6 +649,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+    workers[i]->init_ingestion_tasks(ctx_, params.uri);
   }
 
   // First compose the set of contigs that are nonempty.
@@ -1002,6 +1003,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
                   std::launch::async, finalize_query, std::move(query_))));
 
+              worker->flush_ingestion_tasks();
+
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
               query_->set_layout(TILEDB_GLOBAL_ORDER);
@@ -1077,6 +1080,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Finalize fragment for this contig
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
+
+  // Flush worker's ingestion task data at the end of the batch
+  // for (const auto& worker : workers) {
+  // worker->flush_ingestion_tasks();
+  // }
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));

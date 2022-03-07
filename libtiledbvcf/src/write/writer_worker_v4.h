@@ -40,6 +40,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
+#include "write/allele_counter.h"
 #include "write/record_heap_v4.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
@@ -98,6 +99,10 @@ class WriterWorkerV4 : public WriterWorker {
   /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
 
+  void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
+  void flush_ingestion_tasks();
+  // void finalize_ingestion_tasks();
+
  private:
   /** Worker id */
   int id_;
@@ -122,6 +127,8 @@ class WriterWorkerV4 : public WriterWorker {
 
   /** Record heap for sorting records across samples. */
   RecordHeapV4 record_heap_;
+
+  AlleleCounter ac_;
 
   /**
    * Inserts a record (non-anchor) into the heap if it fits

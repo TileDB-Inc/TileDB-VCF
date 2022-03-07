@@ -75,6 +75,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/allele_counter.cc
 )
 
 set(TILEDB_VCF_EXTERNAL_SOURCES

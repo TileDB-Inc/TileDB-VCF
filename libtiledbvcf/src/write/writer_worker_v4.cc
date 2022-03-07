@@ -223,6 +223,15 @@ bool WriterWorkerV4::resume() {
   return true;
 }
 
+void WriterWorkerV4::init_ingestion_tasks(
+    std::shared_ptr<Context> ctx, std::string uri) {
+  ac_.init(ctx, uri);
+}
+
+void WriterWorkerV4::flush_ingestion_tasks() {
+  ac_.flush();
+}
+
 bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   VCFV4* vcf = node.vcf;
   bcf1_t* r = node.record.get();
@@ -232,6 +241,8 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t col = node.start_pos;
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
+
+  ac_.process(hdr, sample_name, contig, pos, r);
 
   buffers_.sample_name().offsets().push_back(buffers_.sample_name().size());
   buffers_.sample_name().append(sample_name.c_str(), sample_name.length());
