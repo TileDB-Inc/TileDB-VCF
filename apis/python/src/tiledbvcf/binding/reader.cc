@@ -208,10 +208,6 @@ void Reader::alloc_buffers(const bool release_buffs) {
     alloc_size_bytes = 10;  // Some small value
   } else {
     alloc_size_bytes = (budget_mb * 1024 * 1024) / num_buffers;
-    if (alloc_size_bytes < (10 * 1024 * 1024))
-      throw std::runtime_error(
-          "TileDB-VCF-Py: buffer allocation size is below the minimum of 10MB. "
-          "Try increasing the memory budget.");
   }
 
   for (const auto& attr : attributes_) {
