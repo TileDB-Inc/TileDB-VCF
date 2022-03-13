@@ -82,7 +82,7 @@ if (BUILD_TYPE STREQUAL "DEBUG")
 elseif (BUILD_TYPE STREQUAL "RELEASE")
   add_compile_options(-DNDEBUG -O3 -Wall -Werror)
 endif()
-add_compile_options(-Wno-error=deprecated-declarations -Wno-error=sign-compare)
+add_compile_options(-Wno-deprecated-declarations -Wno-sign-compare)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 ############################################################

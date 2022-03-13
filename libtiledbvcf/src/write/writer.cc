@@ -107,9 +107,19 @@ void Writer::init(const IngestionParams& params) {
 
   // Set htslib global config and context based on user passed TileDB config
   // options
-  utils::set_htslib_tiledb_context(params.tiledb_config);
+  std::vector<std::string> vfs_config = params.tiledb_config;
+  try {
+    auto vcf_region = tiledb_config_->get("vcf.s3.region");
+    vfs_config.push_back("vfs.s3.region=" + vcf_region);
+    LOG_INFO("VFS and htslib reading data from S3 region: {}", vcf_region);
+  } catch (...) {
+  }
+  utils::set_htslib_tiledb_context(vfs_config);
 
-  vfs_.reset(new VFS(*ctx_, *tiledb_config_));
+  vfs_config_.reset(new Config);
+  utils::set_tiledb_config(vfs_config, vfs_config_.get());
+
+  vfs_.reset(new VFS(*ctx_, *vfs_config_));
   array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
