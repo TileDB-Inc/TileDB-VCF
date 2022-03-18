@@ -1,7 +1,9 @@
 #ifndef TILEDB_VCF_ALLELE_COUNTER_H
 #define TILEDB_VCF_ALLELE_COUNTER_H
 
+#include <atomic>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -19,13 +21,20 @@ class AlleleCounter : public IngestionTask {
 
   ~AlleleCounter();
 
-  // create array
+  // Create array
   static void create(
       Context& ctx, std::string root_uri, tiledb_filter_type_t checksum);
 
-  // open array
-  void init(std::shared_ptr<Context> ctx, std::string root_uri);
+  // Open array and create query object
+  static void init(std::shared_ptr<Context> ctx, std::string root_uri);
 
+  // Finalize open query
+  static void finalize();
+
+  // Close array
+  static void close();
+
+  // Add record to buffer
   void process(
       bcf_hdr_t* hdr,
       const std::string& sample_name,
@@ -33,20 +42,21 @@ class AlleleCounter : public IngestionTask {
       uint32_t pos,
       bcf1_t* record);
 
-  // create query, write, finalize
+  // Write results to array and reset buffers
   void flush();
-
-  void finalize();
 
  private:
   inline static const std::string AC_URI = "allele_count";
   inline static const std::string AC_CONTIG = "contig";  // dim: str
   inline static const std::string AC_POS = "pos";        // dim: int
-  inline static const std::string AC_ALLELE = "allele";  // attr: str
-  inline static const std::string AC_COUNT = "count";    // attr: int
+  inline static const std::string AC_ALLELE = "allele";  // dim: str
+  inline static const std::string AC_COUNT = "ac";       // attr: int
 
-  std::shared_ptr<Context> ctx_ = nullptr;
-  std::unique_ptr<Array> array_ = nullptr;
+  static std::atomic_int contig_records_;
+  static std::unique_ptr<Array> array_;
+  static std::shared_ptr<Query> query_;
+  static std::mutex query_lock_;
+
   std::map<std::string, int> allele_count_;
   std::string contig_;
   uint32_t pos_;
@@ -67,6 +77,8 @@ class AlleleCounter : public IngestionTask {
 
   // Update results with data at the previous locus
   void update_results();
+
+  void debug(std::string msg);
 };
 
 }  // namespace tiledb::vcf

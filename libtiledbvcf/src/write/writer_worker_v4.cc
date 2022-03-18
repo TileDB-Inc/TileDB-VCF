@@ -223,11 +223,6 @@ bool WriterWorkerV4::resume() {
   return true;
 }
 
-void WriterWorkerV4::init_ingestion_tasks(
-    std::shared_ptr<Context> ctx, std::string uri) {
-  ac_.init(ctx, uri);
-}
-
 void WriterWorkerV4::flush_ingestion_tasks() {
   ac_.flush();
 }

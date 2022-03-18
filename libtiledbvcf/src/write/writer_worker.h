@@ -86,9 +86,6 @@ class WriterWorker {
    */
   virtual bool resume() = 0;
 
-  virtual void init_ingestion_tasks(
-      std::shared_ptr<Context> ctx, std::string uri) {
-  }
   virtual void flush_ingestion_tasks() {
   }
 
