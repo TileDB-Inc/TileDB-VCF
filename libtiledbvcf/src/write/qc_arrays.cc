@@ -183,22 +183,57 @@ void QCArrays::process(
     pos_ = pos;
   }
 
-  // TODO: should we normalize REF, ALT alleles?
-  // ngt = 2 for diploid, 1 for haploid
+  // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
-  for (int i = 0; i < ngt; i++) {
-    // Skip missing and REF alleles
-    if (bcf_gt_is_missing(dst_[i]) || bcf_gt_allele(dst_[i]) == 0) {
-      continue;
-    }
-    std::string allele = rec->d.allele[bcf_gt_allele(dst_[i])];
-    values_[allele][AC]++;
 
-    // TODO: update all attr values
-    values_[allele][N_HOM] = -1;
-    values_[allele][N_CALLED] = -2;
-    values_[allele][N_NOT_CALLED] = -3;
-    values_[allele][N_PASS] = -4;
+  // Update called/not_called only for the REF allele
+  auto ref = rec->d.allele[0];
+  if (bcf_gt_is_missing(dst_[0])) {
+    values_[ref][N_NOT_CALLED]++;
+    return;
+  } else {
+    values_[ref][N_CALLED]++;
+  }
+
+  // Did this record's FILTER contain PASS?
+  // static char pass_str[] = "PASS";
+  // bool pass = bcf_has_filter(hdr, rec, pass_str) == 1;
+  bool pass = rec->d.n_flt == 0 || (rec->d.n_flt == 1 && rec->d.flt[0] == 0);
+
+  int gt0 = bcf_gt_allele(dst_[0]);
+  std::string allele0 = rec->d.allele[gt0];
+
+  // Increment allele count for GT[0]
+  values_[allele0][AC]++;
+
+  // Increment pass count for GT[0], if not REF
+  if (gt0 > 0 && pass) {
+    values_[allele0][N_PASS]++;
+  }
+
+  if (ngt == 2) {
+    int gt1 = bcf_gt_allele(dst_[1]);
+    std::string allele1 = rec->d.allele[gt1];
+
+    // Increment allele count for GT[1]
+    values_[allele1][AC]++;
+
+    // Update homozygote count, only diploid genotype calls are counted
+    if (gt0 == gt1) {
+      values_[allele1][N_HOM]++;
+    } else {
+      // Increment pass count for GT[1], if not REF and not homozygote
+      if (gt1 > 0 && pass) {
+        values_[allele1][N_PASS]++;
+      }
+    }
+  } else if (ngt > 2) {
+    LOG_FATAL(
+        "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
+        sample_name,
+        contig,
+        pos,
+        ngt);
   }
 }
 
