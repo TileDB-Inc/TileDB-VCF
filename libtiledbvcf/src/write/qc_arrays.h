@@ -1,5 +1,5 @@
-#ifndef TILEDB_VCF_ALLELE_COUNTER_H
-#define TILEDB_VCF_ALLELE_COUNTER_H
+#ifndef TILEDB_VCF_QC_ARRAYS_H
+#define TILEDB_VCF_QC_ARRAYS_H
 
 #include <atomic>
 #include <map>
@@ -15,11 +15,11 @@ namespace tiledb::vcf {
 // Future expansion of ingestion tasks
 class IngestionTask {};
 
-class AlleleCounter : public IngestionTask {
+class QCArrays : public IngestionTask {
  public:
-  AlleleCounter();
+  QCArrays();
 
-  ~AlleleCounter();
+  ~QCArrays();
 
   // Create array
   static void create(
@@ -46,29 +46,33 @@ class AlleleCounter : public IngestionTask {
   void flush();
 
  private:
-  inline static const std::string AC_URI = "allele_count";
-  inline static const std::string AC_CONTIG = "contig";  // dim: str
-  inline static const std::string AC_POS = "pos";        // dim: int
-  inline static const std::string AC_ALLELE = "allele";  // dim: str
-  inline static const std::string AC_COUNT = "ac";       // attr: int
+  inline static const std::string VARIANT_QC_URI = "variant_qc";
+
+  enum Dim { CONTIG, POS, ALLELE };
+  inline static const std::vector<std::string> DIM_STR = {
+      "contig", "pos", "allele"};
+
+  enum Attr { AC = 0, N_HOM, N_CALLED, N_NOT_CALLED, N_PASS, LAST_ };
+  inline static const std::vector<std::string> ATTR_STR = {
+      "ac", "n_hom", "n_called", "n_not_called", "n_pass"};
 
   static std::atomic_int contig_records_;
   static std::unique_ptr<Array> array_;
   static std::shared_ptr<Query> query_;
   static std::mutex query_lock_;
 
-  // map allele -> allele count
-  std::map<std::string, int> allele_count_;
+  // map allele -> (map attr -> value)
+  std::map<std::string, std::unordered_map<int, int32_t>> values_;
   std::string contig_;
   uint32_t pos_;
 
   // Buffers for tiledb write
-  std::string ac_contig_;
-  std::vector<uint64_t> ac_contig_offsets_;
-  std::vector<int32_t> ac_pos_;
-  std::string ac_allele_;
-  std::vector<uint64_t> ac_allele_offsets_;
-  std::vector<int32_t> ac_count_;
+  std::string contig_buffer_;
+  std::vector<uint64_t> contig_offsets_;
+  std::vector<int32_t> pos_buffer_;
+  std::string allele_buffer_;
+  std::vector<uint64_t> allele_offsets_;
+  std::unordered_map<int, std::vector<int32_t>> attr_buffers_;
 
   // Reusable htslib buffer for bcf_get_* functions
   int* dst_ = nullptr;

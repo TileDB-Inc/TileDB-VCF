@@ -36,7 +36,7 @@
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
-#include "write/allele_counter.h"
+#include "write/qc_arrays.h"
 
 namespace tiledb {
 namespace vcf {
@@ -227,7 +227,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
   write_metadata_v4(ctx, params.uri, metadata);
 
-  AlleleCounter::create(ctx, params.uri, params.checksum);
+  QCArrays::create(ctx, params.uri, params.checksum);
 }
 
 void TileDBVCFDataset::check_attribute_names(

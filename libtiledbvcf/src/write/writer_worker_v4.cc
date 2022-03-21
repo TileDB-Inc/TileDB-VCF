@@ -224,7 +224,7 @@ bool WriterWorkerV4::resume() {
 }
 
 void WriterWorkerV4::flush_ingestion_tasks() {
-  ac_.flush();
+  qc_.flush();
 }
 
 bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
@@ -237,7 +237,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  ac_.process(hdr, sample_name, contig, pos, r);
+  qc_.process(hdr, sample_name, contig, pos, r);
 
   buffers_.sample_name().offsets().push_back(buffers_.sample_name().size());
   buffers_.sample_name().append(sample_name.c_str(), sample_name.length());

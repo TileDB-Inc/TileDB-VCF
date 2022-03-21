@@ -127,7 +127,7 @@ void Writer::init(const IngestionParams& params) {
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
 
-  AlleleCounter::init(ctx_, params.uri);
+  QCArrays::init(ctx_, params.uri);
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -461,7 +461,7 @@ void Writer::ingest_samples() {
       "All finalize tasks successfully completed. Waited for {} sec.",
       utils::chrono_duration(t0));
 
-  AlleleCounter::close();
+  QCArrays::close();
   array_->close();
 
   // Clean up
@@ -1015,7 +1015,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
                   std::launch::async, finalize_query, std::move(query_))));
 
-              AlleleCounter::finalize();
+              QCArrays::finalize();
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
@@ -1096,7 +1096,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
 
-  AlleleCounter::finalize();
+  QCArrays::finalize();
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));
