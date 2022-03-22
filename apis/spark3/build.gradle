@@ -1,0 +1,141 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'maven-publish'
+    id 'com.github.sherter.google-java-format' version '0.8'
+    id 'com.github.johnrengelman.shadow' version '4.0.3'
+}
+
+group 'io.tiledb'
+version '0.13.1'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+    test {
+        java {
+            srcDir 'test/java'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compileOnly 'org.apache.spark:spark-sql_2.12:3.2.0'
+    compileOnly 'org.apache.spark:spark-core_2.12:3.2.0'
+    compile group: 'io.tiledb', name: 'tiledb-vcf-java', version: version
+    compile 'com.amazonaws:aws-java-sdk:1.11.650'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+// Make sure all the compileOnly packagse (spark) are included for testing
+configurations {
+    testCompile.extendsFrom compileOnly
+}
+
+test {
+    minHeapSize = "8192m"
+    maxHeapSize = "8192m"
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+shadowJar {
+    zip64 true
+}
+
+tasks.jar.configure {
+    classifier = 'default'
+}
+
+tasks.shadowJar.configure {
+    classifier = null
+}
+
+import com.github.sherter.googlejavaformatgradleplugin.GoogleJavaFormat
+import com.github.sherter.googlejavaformatgradleplugin.VerifyGoogleJavaFormat
+
+task pathConfig {
+    ext.root = file("../..").absolutePath
+    ext.vcfJavaPath = "${root}/apis/java"
+}
+
+task makeVCFJava(type: Exec) {
+    workingDir = "${pathConfig.vcfJavaPath}"
+    executable = "./gradlew"
+    args "clean"
+    args "assemble"
+    args "publishToMavenLocal"
+    if (project.hasProperty("FORCE_EXTERNAL_HTSLIB")) {
+        args "-PFORCE_EXTERNAL_HTSLIB=${project.property('FORCE_EXTERNAL_HTSLIB')}"
+    }
+    if (project.hasProperty("FORCE_EXTERNAL_TILEDB")) {
+        args "-PFORCE_EXTERNAL_TILEDB=${project.property('FORCE_EXTERNAL_TILEDB')}"
+    }
+    if (project.hasProperty("DOWNLOAD_TILEDB_PREBUILT")) {
+        args "-PDOWNLOAD_TILEDB_PREBUILT=${project.property('DOWNLOAD_TILEDB_PREBUILT')}"
+    }
+    if (project.hasProperty("CMAKE_BUILD_TYPE")) {
+        args "-PCMAKE_BUILD_TYPE=${project.property('CMAKE_BUILD_TYPE')}"
+    }
+}
+
+task format(type: GoogleJavaFormat) {
+    source = sourceSets*.allJava
+    include '**/*.java'
+}
+
+task checkFormat(type: VerifyGoogleJavaFormat) {
+    source = sourceSets*.allJava
+    include '**/*.java'
+    ignoreFailures false
+}
+
+allprojects {
+    afterEvaluate {
+        for(def task in it.tasks)
+            if(task != rootProject.tasks.makeVCFJava)
+                task.dependsOn makeVCFJava
+    }
+}
+
+task sourceJar(type: Jar) {
+    classifier "sources"
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives jar
+    archives sourceJar
+    archives javadocJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+            artifact sourceJar
+            artifact javadocJar
+        }
+    shadow(MavenPublication) { publication ->
+        project.shadow.component(publication)
+        }
+    }
+}

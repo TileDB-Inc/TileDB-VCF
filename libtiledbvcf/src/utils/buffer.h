@@ -86,6 +86,20 @@ class Buffer {
     return (T*)data_;
   }
 
+  /**
+   * Fetch a string value as a string_view to avoid copy
+   *
+   * @param element_index
+   * @return
+   */
+  std::string_view value(uint64_t element_index) const;
+
+  /**
+   * Fetch data as a string_view in vector
+   * @return
+   */
+  std::vector<std::string_view> data() const;
+
   template <typename T>
   T value(uint64_t element_index) const {
     const auto offset = element_index * sizeof(T);

@@ -62,40 +62,7 @@ AttributeBufferSet::BufferSizeByType AttributeBufferSet::compute_buffer_size(
         case TILEDB_UINT8:
           num_uint8_buffers += 1;
           break;
-        case TILEDB_INT8:
-        case TILEDB_INT16:
-        case TILEDB_UINT16:
-        case TILEDB_INT64:
-        case TILEDB_UINT64:
-        case TILEDB_FLOAT64:
-        case TILEDB_STRING_UTF8:
-        case TILEDB_STRING_UTF16:
-        case TILEDB_STRING_UTF32:
-        case TILEDB_STRING_UCS2:
-        case TILEDB_STRING_UCS4:
-        case TILEDB_ANY:
-        case TILEDB_DATETIME_YEAR:
-        case TILEDB_DATETIME_MONTH:
-        case TILEDB_DATETIME_WEEK:
-        case TILEDB_DATETIME_DAY:
-        case TILEDB_DATETIME_HR:
-        case TILEDB_DATETIME_MIN:
-        case TILEDB_DATETIME_SEC:
-        case TILEDB_DATETIME_MS:
-        case TILEDB_DATETIME_US:
-        case TILEDB_DATETIME_NS:
-        case TILEDB_DATETIME_PS:
-        case TILEDB_DATETIME_FS:
-        case TILEDB_DATETIME_AS:
-        case TILEDB_TIME_HR:
-        case TILEDB_TIME_MIN:
-        case TILEDB_TIME_SEC:
-        case TILEDB_TIME_MS:
-        case TILEDB_TIME_US:
-        case TILEDB_TIME_NS:
-        case TILEDB_TIME_PS:
-        case TILEDB_TIME_FS:
-        case TILEDB_TIME_AS: {
+        default: {
           const char* datatype_str;
           tiledb_datatype_to_str(datatype, &datatype_str);
           throw std::runtime_error(

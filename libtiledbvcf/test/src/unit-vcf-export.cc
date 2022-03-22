@@ -789,7 +789,7 @@ TEST_CASE("TileDB-VCF: Test export to TSV", "[tiledbvcf][export]") {
     params.regions = {"1:12700-13400", "1:17000-17400"};
     params.export_to_disk = true;
     params.format = ExportFormat::TSV;
-    params.tsv_output_path = "out.tsv";
+    params.output_path = "out.tsv";
     reader.set_all_params(params);
     reader.open_dataset(dataset_uri);
     reader.read();

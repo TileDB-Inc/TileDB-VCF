@@ -90,13 +90,14 @@ struct ExportParams {
   std::vector<std::string> regions;
   std::string output_dir;
   std::string upload_dir;
-  std::string tsv_output_path;
+  std::string output_path;
   std::vector<std::string> tsv_fields;
   PartitionInfo sample_partitioning;
   PartitionInfo region_partitioning;
   ExportFormat format = ExportFormat::CompressedBCF;
   bool verbose = false;
   bool export_to_disk = false;
+  bool export_combined_vcf = false;
   bool cli_count_only = false;
   bool sort_regions = true;
   uint64_t max_num_records = std::numeric_limits<uint64_t>::max();
@@ -128,6 +129,9 @@ struct ExportParams {
   // time to find the first intersecting region. Increase the setting if
   // the memory overhead of super regions needs to be reduced.
   int min_super_region_size = 1;
+
+  // Should results be sorted on real_start_pos
+  bool sort_real_start_pos = false;
 };
 
 /* ********************************* */

@@ -32,9 +32,11 @@
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
 #include "read/in_memory_exporter.h"
+#include "read/pvcf_exporter.h"
 #include "read/read_query_results.h"
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
+#include "span/span.hpp"
 #include "utils/logger_public.h"
 
 namespace tiledb {
@@ -751,6 +753,10 @@ bool Reader::next_read_batch_v4() {
           &read_state_.current_hdrs_lookup,
           read_state_.all_samples,
           false);
+      if (params_.export_combined_vcf) {
+        static_cast<PVCFExporter*>(exporter_.get())
+            ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
+      }
     }
   }
 
@@ -842,7 +848,13 @@ bool Reader::next_read_batch_v4() {
                  << "]" << std::endl;
   }
 
+  // Default export results are not sorted
   read_state_.query->set_layout(TILEDB_UNORDERED);
+  // If sorting export results, ask TileDB for results sorted on the anchors
+  if (params_.sort_real_start_pos) {
+    read_state_.query->set_layout(TILEDB_ROW_MAJOR);
+  }
+
   if (params_.debug_params.print_tiledb_query_ranges) {
     LOG_DEBUG("query_ranges:\n{}", debug_ranges.str());
   }
@@ -882,21 +894,26 @@ bool Reader::next_read_batch_v4() {
 
 void Reader::init_exporter() {
   if (params_.export_to_disk) {
-    switch (params_.format) {
-      case ExportFormat::CompressedBCF:
-      case ExportFormat::BCF:
-      case ExportFormat::VCFGZ:
-      case ExportFormat::VCF:
-        exporter_.reset(new BCFExporter(params_.format));
-        break;
-      case ExportFormat::TSV:
-        exporter_.reset(
-            new TSVExporter(params_.tsv_output_path, params_.tsv_fields));
-        break;
-      default:
-        throw std::runtime_error(
-            "Error exporting records; unknown export format.");
-        break;
+    if (params_.export_combined_vcf) {
+      params_.sort_real_start_pos = true;
+      exporter_.reset(new PVCFExporter(params_.output_path, params_.format));
+    } else {
+      switch (params_.format) {
+        case ExportFormat::CompressedBCF:
+        case ExportFormat::BCF:
+        case ExportFormat::VCFGZ:
+        case ExportFormat::VCF:
+          exporter_.reset(new BCFExporter(params_.format));
+          break;
+        case ExportFormat::TSV:
+          exporter_.reset(
+              new TSVExporter(params_.output_path, params_.tsv_fields));
+          break;
+        default:
+          throw std::runtime_error(
+              "Error exporting records; unknown export format.");
+          break;
+      }
     }
     exporter_->set_output_dir(params_.output_dir);
   }
@@ -957,7 +974,7 @@ bool Reader::read_current_batch() {
     auto query_start_timer = std::chrono::steady_clock::now();
     LOG_DEBUG("reader.cc:{}: query started.", __LINE__);
     auto query_status = query->submit();
-    LOG_DEBUG(
+    LOG_INFO(
         "reader.cc:{}: query completed in {} sec.",
         __LINE__,
         utils::chrono_duration(query_start_timer));
@@ -1144,6 +1161,22 @@ bool Reader::process_query_results_v4() {
   if (num_cells == 0 || read_state_.cell_idx >= num_cells)
     return true;
 
+  // Sort all TileDB Results if asked
+  // NOTE: Records with the same real_start_pos may cross a query batch, so we
+  // buffer records in VCFMerger and only process records with the same
+  // real_start_pos when we see a record with a different real_start_pos.
+  std::vector<size_t> sorted_indexes;
+  if (params_.sort_real_start_pos) {
+    nonstd::span<uint32_t> real_start_pos(
+        results.buffers()->real_start_pos().data<uint32_t>(), num_cells);
+
+    auto sample_names = results.buffers()->sample_name().data();
+
+    sorted_indexes = utils::sort_indexes_pvcf<
+        nonstd::span<uint32_t>,
+        std::vector<std::string_view>>(real_start_pos, sample_names);
+  }
+
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;
 
   // V4 querys are run on a single contig at a time, so we can grab it from
@@ -1171,7 +1204,9 @@ bool Reader::process_query_results_v4() {
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
-    const uint64_t i = read_state_.cell_idx;
+    const uint64_t i = params_.sort_real_start_pos ?
+                           sorted_indexes[read_state_.cell_idx] :
+                           read_state_.cell_idx;
 
     // Get the start, real_start and end. We don't need the contig because we
     // know the query is limited to a single contig
