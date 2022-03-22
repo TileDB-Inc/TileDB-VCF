@@ -186,14 +186,14 @@ void QCArrays::process(
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
 
-  // Update called/not_called only for the REF allele
-  auto ref = rec->d.allele[0];
+  // Skip missing GT
   if (bcf_gt_is_missing(dst_[0])) {
-    values_[ref][N_NOT_CALLED]++;
     return;
-  } else {
-    values_[ref][N_CALLED]++;
   }
+
+  // Update called for the REF allele
+  auto ref = rec->d.allele[0];
+  values_[ref][N_CALLED]++;
 
   // Did this record's FILTER contain PASS?
   // static char pass_str[] = "PASS";

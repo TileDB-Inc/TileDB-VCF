@@ -52,9 +52,9 @@ class QCArrays : public IngestionTask {
   inline static const std::vector<std::string> DIM_STR = {
       "contig", "pos", "allele"};
 
-  enum Attr { AC = 0, N_HOM, N_CALLED, N_NOT_CALLED, N_PASS, LAST_ };
+  enum Attr { AC = 0, N_HOM, N_CALLED, N_PASS, LAST_ };
   inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "n_hom", "n_called", "n_not_called", "n_pass"};
+      "ac", "n_hom", "n_called", "n_pass"};
 
   static std::atomic_int contig_records_;
   static std::unique_ptr<Array> array_;
