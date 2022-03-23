@@ -6,7 +6,7 @@ namespace tiledb::vcf {
 
 // Define static variables
 std::unique_ptr<Array> QCArrays::array_ = nullptr;
-std::shared_ptr<Query> QCArrays::query_ = nullptr;
+std::unique_ptr<Query> QCArrays::query_ = nullptr;
 std::mutex QCArrays::query_lock_;
 std::atomic_int QCArrays::contig_records_ = 0;
 
@@ -75,7 +75,7 @@ void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
   LOG_DEBUG("QCArrays: Open array");
 
   auto uri = utils::uri_join(root_uri, VARIANT_QC_URI, '/');
-  array_.reset(new Array(*ctx, uri, TILEDB_WRITE));
+  array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
   if (array_ == nullptr) {
     LOG_FATAL("QCArrays: error opening array '{}'", uri);
   }
@@ -84,7 +84,7 @@ void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
     LOG_FATAL("QCArrays::init called when query still open.");
   }
 
-  query_.reset(new Query(*ctx, *array_));
+  query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
@@ -186,8 +186,17 @@ void QCArrays::process(
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
 
+  if (ngt < 0) {
+    LOG_FATAL(
+        "HTSlib error reading GT from sample={} locus={}:{} error_code={}",
+        sample_name,
+        contig,
+        pos,
+        ngt);
+  }
+
   // Skip missing GT
-  if (bcf_gt_is_missing(dst_[0])) {
+  if (ngt == 0 || bcf_gt_is_missing(dst_[0])) {
     return;
   }
 

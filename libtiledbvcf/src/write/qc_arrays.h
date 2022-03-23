@@ -58,7 +58,7 @@ class QCArrays : public IngestionTask {
 
   static std::atomic_int contig_records_;
   static std::unique_ptr<Array> array_;
-  static std::shared_ptr<Query> query_;
+  static std::unique_ptr<Query> query_;
   static std::mutex query_lock_;
 
   // map allele -> (map attr -> value)
