@@ -45,6 +45,7 @@ Writer::Writer() {
 
 Writer::~Writer() {
   utils::free_htslib_tiledb_context();
+  QCArrays::close();
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {

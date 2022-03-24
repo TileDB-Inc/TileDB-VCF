@@ -60,6 +60,7 @@ class QCArrays : public IngestionTask {
   static std::unique_ptr<Array> array_;
   static std::unique_ptr<Query> query_;
   static std::mutex query_lock_;
+  static bool enabled_;
 
   // map allele -> (map attr -> value)
   std::map<std::string, std::unordered_map<int, int32_t>> values_;

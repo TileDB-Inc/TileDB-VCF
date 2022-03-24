@@ -9,6 +9,7 @@ std::unique_ptr<Array> QCArrays::array_ = nullptr;
 std::unique_ptr<Query> QCArrays::query_ = nullptr;
 std::mutex QCArrays::query_lock_;
 std::atomic_int QCArrays::contig_records_ = 0;
+bool QCArrays::enabled_ = false;
 
 QCArrays::QCArrays() {
 }
@@ -74,14 +75,15 @@ void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("QCArrays: Open array");
 
+  // TODO: add fallback to s3 style paths like TileDBVCFDataset::open_vcf_array
   auto uri = utils::uri_join(root_uri, VARIANT_QC_URI, '/');
-  array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
-  if (array_ == nullptr) {
-    LOG_FATAL("QCArrays: error opening array '{}'", uri);
-  }
-
-  if (query_ != nullptr) {
-    LOG_FATAL("QCArrays::init called when query still open.");
+  try {
+    array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
+    enabled_ = true;
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_DEBUG("QCArrays: QC disabled, arrays not found.");
+    enabled_ = false;
+    return;
   }
 
   query_ = std::make_unique<Query>(*ctx, *array_);
@@ -89,6 +91,10 @@ void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
 }
 
 void QCArrays::finalize() {
+  if (!enabled_) {
+    return;
+  }
+
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("QCArrays: Finalize query with {} records", contig_records_);
   contig_records_ = 0;
@@ -96,17 +102,31 @@ void QCArrays::finalize() {
 }
 
 void QCArrays::close() {
+  if (!enabled_) {
+    return;
+  }
+
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("QCArrays: Close array");
 
-  query_->finalize();
-  array_->close();
+  if (query_ != nullptr) {
+    query_->finalize();
+    query_ = nullptr;
+  }
 
-  query_ = nullptr;
-  array_ = nullptr;
+  if (array_ != nullptr) {
+    array_->close();
+    array_ = nullptr;
+  }
+
+  enabled_ = false;
 }
 
 void QCArrays::flush() {
+  if (!enabled_) {
+    return;
+  }
+
   // Update results for the last locus before flushing
   update_results();
 
@@ -172,6 +192,10 @@ void QCArrays::process(
     const std::string& contig,
     uint32_t pos,
     bcf1_t* rec) {
+  if (!enabled_) {
+    return;
+  }
+
   // Check if locus has changed
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
@@ -189,17 +213,8 @@ void QCArrays::process(
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
 
-  if (ngt < 0) {
-    LOG_FATAL(
-        "HTSlib error reading GT from sample={} locus={}:{} error_code={}",
-        sample_name,
-        contig,
-        pos,
-        ngt);
-  }
-
   // Skip missing GT
-  if (ngt == 0 || bcf_gt_is_missing(dst_[0])) {
+  if (ngt <= 0 || bcf_gt_is_missing(dst_[0])) {
     return;
   }
 
