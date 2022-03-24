@@ -1049,7 +1049,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               i + 1,
               tasks.size());
 
-          // Flush ingestion tasks (AlleleCounter)
+          // Flush ingestion tasks
           worker->flush_ingestion_tasks();
         } else {
           LOG_DEBUG("No records found for {}", worker->region().seq_name);

@@ -101,7 +101,6 @@ class WriterWorkerV4 : public WriterWorker {
 
   void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
   void flush_ingestion_tasks();
-  // void finalize_ingestion_tasks();
 
  private:
   /** Worker id */
