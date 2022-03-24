@@ -237,7 +237,10 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  qc_.process(hdr, sample_name, contig, pos, r);
+  // Process each record once, the first time it is buffered
+  if (pos == node.start_pos) {
+    qc_.process(hdr, sample_name, contig, pos, r);
+  }
 
   buffers_.sample_name().offsets().push_back(buffers_.sample_name().size());
   buffers_.sample_name().append(sample_name.c_str(), sample_name.length());

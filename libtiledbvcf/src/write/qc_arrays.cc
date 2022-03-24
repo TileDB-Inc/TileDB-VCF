@@ -177,6 +177,9 @@ void QCArrays::process(
     if (contig != contig_) {
       LOG_DEBUG(
           "QCArrays: process old contig = {} new contig = {}", contig_, contig);
+    } else if (pos < pos_) {
+      LOG_ERROR(
+          "QCArrays: contig {} pos out of order {} < {}", contig, pos, pos_);
     }
     update_results();
     contig_ = contig;
