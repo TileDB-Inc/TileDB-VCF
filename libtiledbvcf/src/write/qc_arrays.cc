@@ -1,24 +1,38 @@
+/**
+ * @section LICENSE
+ *
+ * The MIT License
+ *
+ * @copyright Copyright (c) 2022 TileDB, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 #include "write/qc_arrays.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
 namespace tiledb::vcf {
 
-// Define static variables
-std::unique_ptr<Array> QCArrays::array_ = nullptr;
-std::unique_ptr<Query> QCArrays::query_ = nullptr;
-std::mutex QCArrays::query_lock_;
-std::atomic_int QCArrays::contig_records_ = 0;
-bool QCArrays::enabled_ = false;
-
-QCArrays::QCArrays() {
-}
-
-QCArrays::~QCArrays() {
-  if (dst_ != nullptr) {
-    free(dst_);
-  }
-}
+//===================================================================
+//= public static functions
+//===================================================================
 
 void QCArrays::create(
     Context& ctx, std::string root_uri, tiledb_filter_type_t checksum) {
@@ -26,7 +40,6 @@ void QCArrays::create(
 
   // Create filters
   Filter zstd(ctx, TILEDB_FILTER_ZSTD);
-  zstd.set_option(TILEDB_COMPRESSION_LEVEL, 22);
 
   FilterList filters_1(ctx);
   FilterList filters_2(ctx);
@@ -122,6 +135,19 @@ void QCArrays::close() {
   enabled_ = false;
 }
 
+//===================================================================
+//= public functions
+//===================================================================
+
+QCArrays::QCArrays() {
+}
+
+QCArrays::~QCArrays() {
+  if (dst_ != nullptr) {
+    free(dst_);
+  }
+}
+
 void QCArrays::flush() {
   if (!enabled_) {
     return;
@@ -170,22 +196,6 @@ void QCArrays::flush() {
   }
 }
 
-void QCArrays::update_results() {
-  if (values_.size() > 0) {
-    for (auto& [allele, value] : values_) {
-      contig_offsets_.push_back(contig_buffer_.size());
-      contig_buffer_ += contig_;
-      pos_buffer_.push_back(pos_);
-      allele_offsets_.push_back(allele_buffer_.size());
-      allele_buffer_ += allele;
-      for (int i = 0; i < LAST_; i++) {
-        attr_buffers_[i].push_back(value[i]);
-      }
-    }
-    values_.clear();
-  }
-}
-
 void QCArrays::process(
     bcf_hdr_t* hdr,
     const std::string& sample_name,
@@ -225,6 +235,7 @@ void QCArrays::process(
   // Did this record's FILTER contain PASS?
   // static char pass_str[] = "PASS";
   // bool pass = bcf_has_filter(hdr, rec, pass_str) == 1;
+  // unrolled version of bcf_has_filer
   bool pass = rec->d.n_flt == 0 || (rec->d.n_flt == 1 && rec->d.flt[0] == 0);
 
   int gt0 = bcf_gt_allele(dst_[0]);
@@ -261,6 +272,26 @@ void QCArrays::process(
         contig,
         pos,
         ngt);
+  }
+}
+
+//===================================================================
+//= private functions
+//===================================================================
+
+void QCArrays::update_results() {
+  if (values_.size() > 0) {
+    for (auto& [allele, value] : values_) {
+      contig_offsets_.push_back(contig_buffer_.size());
+      contig_buffer_ += contig_;
+      pos_buffer_.push_back(pos_);
+      allele_offsets_.push_back(allele_buffer_.size());
+      allele_buffer_ += allele;
+      for (int i = 0; i < LAST_; i++) {
+        attr_buffers_[i].push_back(value[i]);
+      }
+    }
+    values_.clear();
   }
 }
 
