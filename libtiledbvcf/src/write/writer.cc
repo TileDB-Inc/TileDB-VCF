@@ -45,7 +45,7 @@ Writer::Writer() {
 
 Writer::~Writer() {
   utils::free_htslib_tiledb_context();
-  QCArrays::close();
+  VariantStats::close();
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {
@@ -128,7 +128,7 @@ void Writer::init(const IngestionParams& params) {
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
 
-  QCArrays::init(ctx_, params.uri);
+  VariantStats::init(ctx_, params.uri);
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -462,7 +462,7 @@ void Writer::ingest_samples() {
       "All finalize tasks successfully completed. Waited for {} sec.",
       utils::chrono_duration(t0));
 
-  QCArrays::close();
+  VariantStats::close();
   array_->close();
 
   // Clean up
@@ -1016,7 +1016,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
                   std::launch::async, finalize_query, std::move(query_))));
 
-              QCArrays::finalize();
+              VariantStats::finalize();
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
@@ -1097,7 +1097,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
 
-  QCArrays::finalize();
+  VariantStats::finalize();
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));

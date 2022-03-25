@@ -48,6 +48,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/attribute_buffer_set.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/tiledbvcfdataset.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/dataset/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/htslib_plugin/hfile_tiledb_vfs.c
   ${CMAKE_CURRENT_SOURCE_DIR}/read/bcf_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/pvcf_exporter.cc
@@ -75,7 +76,6 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/write/qc_arrays.cc
 )
 
 set(TILEDB_VCF_EXTERNAL_SOURCES

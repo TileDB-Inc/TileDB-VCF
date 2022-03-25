@@ -38,9 +38,9 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "dataset/variant_stats.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
-#include "write/qc_arrays.h"
 #include "write/record_heap_v4.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
@@ -127,7 +127,7 @@ class WriterWorkerV4 : public WriterWorker {
   /** Record heap for sorting records across samples. */
   RecordHeapV4 record_heap_;
 
-  QCArrays qc_;
+  VariantStats vs_;
 
   /**
    * Inserts a record (non-anchor) into the heap if it fits

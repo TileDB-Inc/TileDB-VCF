@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_QC_ARRAYS_H
-#define TILEDB_VCF_QC_ARRAYS_H
+#ifndef TILEDB_VCF_VARIANT_STATS_H
+#define TILEDB_VCF_VARIANT_STATS_H
 
 #include <atomic>
 #include <map>
@@ -39,8 +39,8 @@
 namespace tiledb::vcf {
 
 /**
- * @brief The QCArrays class adds useful variant stats to arrays at ingestion
- * time.
+ * @brief The VariantStats class adds useful variant stats to arrays at
+ * ingestion time.
  *
  * The variant stats arrays contain data that is used to efficiently compute
  * population wide statistics for each variant (allele count, allele frequency,
@@ -58,7 +58,7 @@ namespace tiledb::vcf {
  *
  */
 
-class QCArrays {
+class VariantStats {
  public:
   //===================================================================
   //= public static functions
@@ -100,9 +100,9 @@ class QCArrays {
   //===================================================================
   //= public functions
   //===================================================================
-  QCArrays();
+  VariantStats();
 
-  ~QCArrays();
+  ~VariantStats();
 
   //   * The write query layout is TILEDB_GLOBAL_ORDER. Since multiple threads
   //   can
@@ -135,7 +135,7 @@ class QCArrays {
 
  private:
   // Array config
-  inline static const std::string VARIANT_QC_URI = "variant_qc";
+  inline static const std::string VARIANT_STATS_URI = "variant_stats";
 
   enum Dim { CONTIG, POS, ALLELE };
   inline static const std::vector<std::string> DIM_STR = {
@@ -151,8 +151,7 @@ class QCArrays {
   inline static std::mutex query_lock_;
   inline static bool enabled_ = false;
 
-  // Stats for each allele at the current locus
-  // map allele -> (map attr -> value)
+  // Stats per allele at the current locus: map allele -> (map attr -> value)
   std::map<std::string, std::unordered_map<int, int32_t>> values_;
 
   // Contig of the current locus
@@ -161,12 +160,22 @@ class QCArrays {
   // Position of the current locus
   uint32_t pos_;
 
-  // Buffers for tiledb write
+  // Buffer for contigs
   std::string contig_buffer_;
+
+  // Buffer for contig offsets
   std::vector<uint64_t> contig_offsets_;
+
+  // Buffer for positions
   std::vector<int32_t> pos_buffer_;
+
+  // Buffer for alleles
   std::string allele_buffer_;
+
+  // Buffer for allele offsets
   std::vector<uint64_t> allele_offsets_;
+
+  // Buffer for attribute values: map Attr -> value
   std::unordered_map<int, std::vector<int32_t>> attr_buffers_;
 
   // Reusable htslib buffer for bcf_get_* functions

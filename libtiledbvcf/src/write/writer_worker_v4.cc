@@ -224,7 +224,7 @@ bool WriterWorkerV4::resume() {
 }
 
 void WriterWorkerV4::flush_ingestion_tasks() {
-  qc_.flush();
+  vs_.flush();
 }
 
 bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
@@ -239,7 +239,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
 
   // Process each record once, the first time it is buffered
   if (pos == node.start_pos) {
-    qc_.process(hdr, sample_name, contig, pos, r);
+    vs_.process(hdr, sample_name, contig, pos, r);
   }
 
   buffers_.sample_name().offsets().push_back(buffers_.sample_name().size());

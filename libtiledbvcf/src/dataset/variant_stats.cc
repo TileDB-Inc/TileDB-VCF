@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "write/qc_arrays.h"
+#include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -34,9 +34,9 @@ namespace tiledb::vcf {
 //= public static functions
 //===================================================================
 
-void QCArrays::create(
+void VariantStats::create(
     Context& ctx, std::string root_uri, tiledb_filter_type_t checksum) {
-  LOG_DEBUG("QCArrays: Create array");
+  LOG_DEBUG("VariantStats: Create array");
 
   // Create filters
   Filter zstd(ctx, TILEDB_FILTER_ZSTD);
@@ -80,21 +80,23 @@ void QCArrays::create(
   // Create array
   // TODO: create utils function
   auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
-  auto uri = utils::uri_join(root_uri, VARIANT_QC_URI, delim);
+  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
   Array::create(uri, schema);
 }
 
-void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
+void VariantStats::init(std::shared_ptr<Context> ctx, std::string root_uri) {
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("QCArrays: Open array");
+  LOG_DEBUG("VariantStats: Open array");
 
   // TODO: add fallback to s3 style paths like TileDBVCFDataset::open_vcf_array
-  auto uri = utils::uri_join(root_uri, VARIANT_QC_URI, '/');
+  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, '/');
   try {
     array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
     enabled_ = true;
   } catch (const tiledb::TileDBError& ex) {
-    LOG_DEBUG("QCArrays: QC disabled, arrays not found.");
+    LOG_DEBUG(
+        "VariantStats: Variant stat ingestion disabled, because stat array not "
+        "found in dataset.");
     enabled_ = false;
     return;
   }
@@ -103,24 +105,24 @@ void QCArrays::init(std::shared_ptr<Context> ctx, std::string root_uri) {
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
-void QCArrays::finalize() {
+void VariantStats::finalize() {
   if (!enabled_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("QCArrays: Finalize query with {} records", contig_records_);
+  LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
   contig_records_ = 0;
   query_->finalize();
 }
 
-void QCArrays::close() {
+void VariantStats::close() {
   if (!enabled_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("QCArrays: Close array");
+  LOG_DEBUG("VariantStats: Close array");
 
   if (query_ != nullptr) {
     query_->finalize();
@@ -139,16 +141,16 @@ void QCArrays::close() {
 //= public functions
 //===================================================================
 
-QCArrays::QCArrays() {
+VariantStats::VariantStats() {
 }
 
-QCArrays::~QCArrays() {
+VariantStats::~VariantStats() {
   if (dst_ != nullptr) {
     free(dst_);
   }
 }
 
-void QCArrays::flush() {
+void VariantStats::flush() {
   if (!enabled_) {
     return;
   }
@@ -159,11 +161,11 @@ void QCArrays::flush() {
   int buffered_records = attr_buffers_[AC].size();
 
   if (buffered_records == 0) {
-    LOG_DEBUG("QCArrays: flush called with 0 records ");
+    LOG_DEBUG("VariantStats: flush called with 0 records ");
     return;
   }
 
-  LOG_DEBUG("QCArrays: flush {} records", buffered_records);
+  LOG_DEBUG("VariantStats: flush {} records", buffered_records);
   contig_records_ += buffered_records;
 
   {
@@ -181,7 +183,7 @@ void QCArrays::flush() {
     auto st = query_->submit();
 
     if (st != Query::Status::COMPLETE) {
-      LOG_FATAL("QCArrays: error submitting TileDB write query");
+      LOG_FATAL("VariantStats: error submitting TileDB write query");
     }
   }
 
@@ -196,7 +198,7 @@ void QCArrays::flush() {
   }
 }
 
-void QCArrays::process(
+void VariantStats::process(
     bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
@@ -210,10 +212,15 @@ void QCArrays::process(
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
       LOG_DEBUG(
-          "QCArrays: process old contig = {} new contig = {}", contig_, contig);
+          "VariantStats: process old contig = {} new contig = {}",
+          contig_,
+          contig);
     } else if (pos < pos_) {
       LOG_ERROR(
-          "QCArrays: contig {} pos out of order {} < {}", contig, pos, pos_);
+          "VariantStats: contig {} pos out of order {} < {}",
+          contig,
+          pos,
+          pos_);
     }
     update_results();
     contig_ = contig;
@@ -279,7 +286,7 @@ void QCArrays::process(
 //= private functions
 //===================================================================
 
-void QCArrays::update_results() {
+void VariantStats::update_results() {
   if (values_.size() > 0) {
     for (auto& [allele, value] : values_) {
       contig_offsets_.push_back(contig_buffer_.size());
