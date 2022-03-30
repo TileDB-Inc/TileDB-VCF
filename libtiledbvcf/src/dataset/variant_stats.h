@@ -108,10 +108,6 @@ class VariantStats {
 
   ~VariantStats();
 
-  //   * The write query layout is TILEDB_GLOBAL_ORDER. Since multiple threads
-  //   can
-  //   * be writing to the same query, all data for the fragment
-
   /**
    * @brief Add a record to the stats computation buffer.
    *

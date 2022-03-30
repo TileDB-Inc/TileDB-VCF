@@ -117,21 +117,22 @@ void VariantStats::finalize() {
 
   // Write fragment uri -> sample names to array metadata
   auto frag_num = query_->fragment_num();
-  auto uri = query_->fragment_uri(frag_num - 1);
-  std::string samples;
-  for (auto& sample : fragment_sample_names_) {
-    samples += sample + ",";
-  }
-  samples.pop_back();
-  LOG_DEBUG(
-      "VariantStats: fragment_num = {} uri = {} samples = {}",
-      frag_num,
-      uri,
-      samples);
-  array_->put_metadata(
-      uri, TILEDB_STRING_ASCII, samples.size(), samples.c_str());
+  if (frag_num > 0) {
+    auto uri = query_->fragment_uri(frag_num - 1);
+    std::string samples;
+    for (auto& sample : fragment_sample_names_) {
+      samples += sample + ",";
+    }
+    LOG_DEBUG(
+        "VariantStats: fragment_num = {} uri = {} samples = {}",
+        frag_num,
+        uri,
+        samples);
+    array_->put_metadata(
+        uri, TILEDB_STRING_ASCII, samples.size(), samples.c_str());
 
-  fragment_sample_names_.clear();
+    fragment_sample_names_.clear();
+  }
 }
 
 void VariantStats::close() {
