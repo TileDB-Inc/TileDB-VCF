@@ -56,12 +56,16 @@ namespace tiledb::vcf {
  * protect the query, but in theory is not needed because the threads need/have
  * a cooporation mechanism to ensure data is written in GLOBAL_ORDER.
  *
+ * The array metadata contains a CSV list of sample names (metadat value)
+ * included in each fragment (metadata key). This mapping of fragment uri to
+ * sample name can be used to clean up after an ingestion failure or to remove
+ * sample data from the array.
  */
 
 class VariantStats {
  public:
   //===================================================================
-  //= public static functions
+  //= public static
   //===================================================================
   /**
    * @brief Create the array.
@@ -98,7 +102,7 @@ class VariantStats {
   static void close();
 
   //===================================================================
-  //= public functions
+  //= public non-static
   //===================================================================
   VariantStats();
 
@@ -134,22 +138,47 @@ class VariantStats {
   void flush();
 
  private:
+  //===================================================================
+  //= private static
+  //===================================================================
+
   // Array config
   inline static const std::string VARIANT_STATS_URI = "variant_stats";
 
+  // Array dimensions
   enum Dim { CONTIG, POS, ALLELE };
   inline static const std::vector<std::string> DIM_STR = {
       "contig", "pos", "allele"};
 
+  // Array attributes
   enum Attr { AC = 0, N_HOM, N_CALLED, N_PASS, LAST_ };
   inline static const std::vector<std::string> ATTR_STR = {
       "ac", "n_hom", "n_called", "n_pass"};
 
+  // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
+
+  // TileDB array pointer
   inline static std::unique_ptr<Array> array_ = nullptr;
+
+  // TileDB query pointer
   inline static std::unique_ptr<Query> query_ = nullptr;
+
+  // Mutex to protect query_ and fragment_sample_names_
   inline static std::mutex query_lock_;
+
+  // Enable flag, disabled when the array does not exist
   inline static bool enabled_ = false;
+
+  // Sample names included in the fragment
+  inline static std::set<std::string> fragment_sample_names_;
+
+  //===================================================================
+  //= private non-static
+  //===================================================================
+
+  // Set of sample names in this query (per thread)
+  std::set<std::string> sample_names_;
 
   // Stats per allele at the current locus: map allele -> (map attr -> value)
   std::map<std::string, std::unordered_map<int, int32_t>> values_;

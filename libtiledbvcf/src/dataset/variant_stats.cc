@@ -114,6 +114,24 @@ void VariantStats::finalize() {
   LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
   contig_records_ = 0;
   query_->finalize();
+
+  // Write fragment uri -> sample names to array metadata
+  auto frag_num = query_->fragment_num();
+  auto uri = query_->fragment_uri(frag_num - 1);
+  std::string samples;
+  for (auto& sample : fragment_sample_names_) {
+    samples += sample + ",";
+  }
+  samples.pop_back();
+  LOG_DEBUG(
+      "VariantStats: fragment_num = {} uri = {} samples = {}",
+      frag_num,
+      uri,
+      samples);
+  array_->put_metadata(
+      uri, TILEDB_STRING_ASCII, samples.size(), samples.c_str());
+
+  fragment_sample_names_.clear();
 }
 
 void VariantStats::close() {
@@ -185,6 +203,10 @@ void VariantStats::flush() {
     if (st != Query::Status::COMPLETE) {
       LOG_FATAL("VariantStats: error submitting TileDB write query");
     }
+
+    // Insert sample names from this query into the set of fragment sample names
+    fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
+    sample_names_.clear();
   }
 
   // Clear buffers
@@ -234,6 +256,9 @@ void VariantStats::process(
   if (ngt <= 0 || bcf_gt_is_missing(dst_[0])) {
     return;
   }
+
+  // Add sample name to the set of sample name in this query
+  sample_names_.insert(sample_name);
 
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
