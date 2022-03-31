@@ -1043,12 +1043,20 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
-          LOG_DEBUG(
-              "Recorded {:L} cells for contig {} (task {} / {})",
-              worker->records_buffered(),
-              contig,
-              i + 1,
-              tasks.size());
+          {
+            auto first = worker->buffers().start_pos().value<uint32_t>(0);
+            auto nelts = worker->buffers().start_pos().nelts<uint32_t>();
+            auto last =
+                worker->buffers().start_pos().value<uint32_t>(nelts - 1);
+            LOG_DEBUG(
+                "Recorded {:L} cells from {}:{}-{} (task {} / {})",
+                worker->records_buffered(),
+                contig,
+                first,
+                last,
+                i + 1,
+                tasks.size());
+          }
 
           // Flush ingestion tasks
           worker->flush_ingestion_tasks();

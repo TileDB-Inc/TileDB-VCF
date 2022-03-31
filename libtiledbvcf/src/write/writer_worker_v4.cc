@@ -95,6 +95,9 @@ bool WriterWorkerV4::parse(const Region& region) {
 
   region_ = region;
 
+  LOG_DEBUG(
+      "WriteWorker4: parse {}:{}-{}", region.seq_name, region.min, region.max);
+
   // Initialize the record heap with the first record from each sample.
   for (auto& vcf : vcfs_) {
     // If seek returns false there is no records for this contig
@@ -149,12 +152,7 @@ bool WriterWorkerV4::resume() {
     // If the top record is inside the region, copy the record into the buffers.
     // If the record caused the buffers to exceed the max memory allocation,
     // we'll stop processing at this record.
-    bool overflowed = false;
-    const uint32_t local_end_pos =
-        VCFUtils::get_end_pos(vcf->hdr(), top.record.get(), &val_);
-    if (local_end_pos <= region_.max) {
-      overflowed = !buffer_record(top);
-    }
+    bool overflowed = !buffer_record(top);
 
     // Determine if this is the last node for the record.
     const bool is_end_node =
@@ -209,14 +207,14 @@ bool WriterWorkerV4::resume() {
 
     if (overflowed) {
       LOG_DEBUG(
-          "Worker {}: flush, output buffer size = {} MiB",
+          "Worker {}: buffer full, output buffer size = {} MiB",
           id_,
           buffers_.total_size() >> 20);
       return false;
     }
   }
 
-  LOG_DEBUG(
+  LOG_TRACE(
       "Worker {}: record heap empty, output buffer size = {} MiB",
       id_,
       buffers_.total_size() >> 20);
@@ -237,8 +235,8 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  // Process each record once, the first time it is buffered
-  if (pos == node.start_pos) {
+  // Process only NodeType::Record
+  if (node.type == RecordHeapV4::NodeType::Record) {
     vs_.process(hdr, sample_name, contig, pos, r);
   }
 

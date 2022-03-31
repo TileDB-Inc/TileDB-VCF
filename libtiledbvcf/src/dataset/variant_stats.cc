@@ -78,7 +78,6 @@ void VariantStats::create(
   }
 
   // Create array
-  // TODO: create utils function
   auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
   auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
   Array::create(uri, schema);
@@ -88,8 +87,9 @@ void VariantStats::init(std::shared_ptr<Context> ctx, std::string root_uri) {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Open array");
 
-  // TODO: add fallback to s3 style paths like TileDBVCFDataset::open_vcf_array
-  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, '/');
+  // Open array
+  auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
+  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
   try {
     array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
     enabled_ = true;
@@ -184,11 +184,17 @@ void VariantStats::flush() {
     return;
   }
 
-  LOG_DEBUG("VariantStats: flush {} records", buffered_records);
-  contig_records_ += buffered_records;
-
   {
     std::lock_guard<std::mutex> lock(query_lock_);
+    contig_records_ += buffered_records;
+
+    LOG_DEBUG(
+        "VariantStats: flushing {} records from {}:{}-{}",
+        buffered_records,
+        contig_buffer_.substr(0, contig_offsets_[1]),
+        pos_buffer_.front(),
+        pos_buffer_.back());
+
     query_->set_data_buffer(DIM_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(DIM_STR[CONTIG], contig_offsets_)
         .set_data_buffer(DIM_STR[POS], pos_buffer_)
@@ -325,6 +331,11 @@ void VariantStats::update_results() {
       }
     }
     values_.clear();
+
+    // Flush buffers to TileDB query to limit buffer memory usage
+    if (pos_buffer_.size() >= record_flush_threshold_) {
+      flush();
+    }
   }
 }
 

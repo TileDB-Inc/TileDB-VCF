@@ -169,6 +169,10 @@ class VariantStats {
   // Sample names included in the fragment
   inline static std::set<std::string> fragment_sample_names_;
 
+  // Threshold number of records used to call `flush()` in
+  // `update_results()`, which limits memory usage.
+  inline static unsigned int record_flush_threshold_ = 1000000;
+
   //===================================================================
   //= private non-static
   //===================================================================
