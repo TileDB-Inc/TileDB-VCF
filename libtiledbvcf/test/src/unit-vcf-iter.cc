@@ -316,15 +316,6 @@ TEST_CASE("VCF: Test basic V4 iterator", "[tiledbvcf][iter][v4]") {
   check_iter_v4(
       &vcf,
       {{
-          Tup{"1", 12545, 12770},
-          Tup{"1", 13353, 13388},
-      }});
-  REQUIRE(!vcf.front_record());
-
-  REQUIRE(vcf.seek("1", 13388));
-  check_iter_v4(
-      &vcf,
-      {{
           Tup{"1", 13353, 13388},
       }});
   REQUIRE(!vcf.front_record());
