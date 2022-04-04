@@ -81,6 +81,10 @@ void VariantStats::create(
   auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
   auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
   Array::create(uri, schema);
+
+  // Write metadata
+  Array array(ctx, uri, TILEDB_WRITE);
+  array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
 }
 
 void VariantStats::init(std::shared_ptr<Context> ctx, std::string root_uri) {

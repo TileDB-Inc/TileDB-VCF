@@ -141,6 +141,9 @@ class VariantStats {
   // Array config
   inline static const std::string VARIANT_STATS_URI = "variant_stats";
 
+  // Array version
+  inline static const int VARIANT_STATS_VERSION = 1;
+
   // Array dimensions
   enum Dim { CONTIG, POS, ALLELE };
   inline static const std::vector<std::string> DIM_STR = {

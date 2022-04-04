@@ -278,12 +278,6 @@ bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
   // We want to seek to the first record with rec.pos >= pos, so we
   // pop records where rec.pos < pos.
   while (front_record() != nullptr && front_record()->pos < pos) {
-    LOG_DEBUG(
-        "VCVF4: seek to {}:{} skipping {}:{}",
-        contig_name,
-        pos,
-        contig_name,
-        front_record()->pos);
     pop_record();
   }
 
