@@ -10,7 +10,6 @@ namespace vcf {
 VCFMerger::VCFMerger()
     : hdr_(nullptr, bcf_hdr_destroy)
     , rec_(bcf_init(), bcf_destroy) {
-  assert(rec_ != nullptr);
 }
 
 VCFMerger::~VCFMerger() {
@@ -55,8 +54,12 @@ void VCFMerger::finish() {
 }
 
 void VCFMerger::close() {
-  assert(merge_buffer_.size() == 0);
-  assert(output_buffer_.size() == 0);
+  if (merge_buffer_.size()) {
+    LOG_ERROR("VCFMerger closed but merge buffer is not empty.");
+  }
+  if (output_buffer_.size()) {
+    LOG_ERROR("VCFMerger closed but output buffer is not empty.");
+  }
   LOG_INFO(
       "VCFMerger closed: {} records in {} records out",
       write_count_,
@@ -80,8 +83,7 @@ void VCFMerger::write(const std::string& sample_name, SafeBCFRec rec) {
 
   auto sample_num = sample_map_[sample_name];
   // Write new record to merge buffer
-  int variant_type = bcf_get_variant_types(rec.get());
-  merge_buffer_.push_back({std::move(rec), sample_num, variant_type});
+  merge_buffer_.push_back({std::move(rec), sample_num});
 
   // Merge without flushing
   try_merge(false);
@@ -241,7 +243,14 @@ std::tuple<int, int> VCFMerger::get_missing_vector_end(int type) {
   return {missing, vector_end};
 }
 
+bool VCFMerger::can_merge_record(SafeBCFRec& record) {
+  // Add more complex merging logic here
+  return true;
+}
+
 void VCFMerger::merge_record(int sample_num, SafeBCFRec input) {
+  md_.merged_samples.insert(sample_num);
+
   // CHROM and POS
   md_.rid = input->rid;
   md_.pos = input->pos;
@@ -270,7 +279,9 @@ void VCFMerger::merge_record(int sample_num, SafeBCFRec input) {
 
   // INFO and FORMAT handled in finish_merge
 
-  // mark sample_num as present in the formats
+  // mark format id as present in the formats
+  // TODO: Switch to string version of format id, since samples may use
+  // different VCF headers with different id numbers
   for (int i = 0; i < input->n_fmt; i++) {
     utils::push_unique(md_.format_keys, input->d.fmt[i].id);
   }
@@ -609,31 +620,26 @@ void VCFMerger::merge_records() {
   auto start = merge_buffer_.front().record->pos;
 
   // While more records to be merged
-  // like bcftools: while(can_merge())
   while (!merge_buffer_.empty() && merge_buffer_.front().record->pos == start) {
     md_.reset(num_samples_);
 
-    // Find variant types of records to be merged
-    for (const auto& record : merge_buffer_) {
-      if (record.record->pos == start) {
-        md_.variant_types |= record.variant_type;
-      }
-    }
-
-    for (auto it = merge_buffer_.begin(); it != merge_buffer_.end();) {
-      // No more records to merge
-      if (it->record->pos != start) {
-        // This must be the last record in the merge buffer
-        assert(++it == merge_buffer_.end());
-        break;
-      }
-
-      // Reorder variants so SNPs come first
-      if (it->variant_type & VCF_INDEL) {
-        if (!(it->variant_type & VCF_SNP) && (md_.variant_types & VCF_SNP)) {
+    for (auto it = merge_buffer_.begin();
+         it != merge_buffer_.end() && it->record->pos == start;) {
+      // If not the first record being merged
+      if (md_.merged_samples.size()) {
+        // Skip record if merged data already includes a record from this sample
+        if (md_.merged_samples.count(it->sample_num)) {
           it++;
           continue;
         }
+
+        // Placeholder for more complex merging logic
+        /*
+        if (!can_merge_record(it->record)) {
+          it++;
+          continue;
+        }
+        */
       }
 
       merge_record(it->sample_num, std::move(it->record));
@@ -658,7 +664,9 @@ void VCFMerger::try_merge(bool flush) {
   // Flush remaining records in the merge buffer
   if (flush && !merge_buffer_.empty()) {
     merge_records();
-    assert(merge_buffer_.size() == 0);
+    if (merge_buffer_.size()) {
+      LOG_ERROR("VCFMerger merge buffer not empty after flush.");
+    }
   }
 }
 

@@ -38,6 +38,7 @@
 #include "read/tsv_exporter.h"
 #include "span/span.hpp"
 #include "utils/logger_public.h"
+#include "utils/utils.h"
 
 namespace tiledb {
 namespace vcf {
@@ -506,10 +507,15 @@ void Reader::init_for_reads_v4() {
 
   init_exporter();
 
+  LOG_TRACE("Calling prepare_regions: (VmRSS = {})", utils::memory_usage_str());
   prepare_regions_v4(
       &read_state_.regions,
       &read_state_.regions_index_per_contig,
       &read_state_.query_regions_v4);
+
+  LOG_TRACE(
+      "Calling prepare_attribute_buffers: (VmRSS = {})",
+      utils::memory_usage_str());
   prepare_attribute_buffers();
 
   if (LOG_DEBUG_ENABLED()) {
@@ -972,7 +978,7 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
-    LOG_DEBUG("TileDB query started.");
+    LOG_DEBUG("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
     LOG_INFO(
         "TileDB query completed in {} sec.",

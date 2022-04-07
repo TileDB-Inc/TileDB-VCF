@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 from fileinput import FileInput
+from subprocess import run
 from urllib.request import urlopen
 
 
@@ -21,17 +22,34 @@ def hash_url_file(url):
             hash.update(data)
 
 
+def get_version_hash(version):
+    cmd = "git ls-remote --tags https://github.com/TileDB-Inc/TileDB.git"
+    output = run(cmd, shell=True, capture_output=True).stdout.decode()
+
+    m = re.search(rf"\s(\S+)\s+refs/tags/{version}\s", output)
+    if m:
+        return m.group(1)[0:7]
+
+    print(output)
+    print(f"Error: version {version} not found.")
+    exit(1)
+
+
 def main(args):
     old_version = None
     old_hash = None
     sha1 = None
+
+    new_hash = get_version_hash(args.version)
 
     filepath = (
         f"{os.path.dirname(__file__)}/../libtiledbvcf/cmake/Modules/FindTileDB_EP.cmake"
     )
     filepath = os.path.realpath(filepath)
     print(f"Updating {filepath}")
+    print(f"  new version = {args.version}-{new_hash}")
 
+    # all "print" statements in this "with" block go to the "fp" file
     with FileInput(filepath, inplace=True) as fp:
         for line in fp:
             line = line.rstrip()
@@ -46,7 +64,7 @@ def main(args):
                 # modify url
                 if "https://" in line:
                     line = line.replace(old_version, args.version)
-                    line = line.replace(old_hash, args.hash)
+                    line = line.replace(old_hash, new_hash)
 
                 # update sha1 value computed on previous line
                 if sha1 is not None:
@@ -63,13 +81,14 @@ def main(args):
             # print line to file
             print(line)
 
+    print(f"  old version = {old_version}-{old_hash}")
+
 
 if __name__ == "__main__":
-    description = "Update FindTileDB_EP.cmake with a new TileDB version and hash"
-    epilog = f"Example: {__file__} 2.5.4 eef8309"
+    description = "Update FindTileDB_EP.cmake with a new TileDB version"
+    epilog = f"Example: {__file__} 2.5.4"
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument("version", help="new TileDB version")
-    parser.add_argument("hash", help="new TileDB hash")
     args = parser.parse_args()
 
     main(args)

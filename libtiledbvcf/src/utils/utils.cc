@@ -32,6 +32,7 @@
 #include <mutex>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 
 namespace tiledb {
@@ -580,6 +581,18 @@ uint32_t system_memory_mb() {
 #else
   return (sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE)) >> 20;
 #endif
+}
+
+std::string memory_usage_str() {
+  std::string filename = "/proc/self/statm";
+  std::ifstream ifs(filename);
+  if (!ifs.is_open()) {
+    return "NA";
+  }
+  std::string line;
+  getline(ifs, line);
+  float usage_gb = 4.0 * std::stoi(split(line, " ")[1]) / (1 << 20);
+  return fmt::format("{:.3f} GiB", usage_gb);
 }
 
 }  // namespace utils
