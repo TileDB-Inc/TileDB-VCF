@@ -584,6 +584,7 @@ uint32_t system_memory_mb() {
 }
 
 std::string memory_usage_str() {
+#ifdef __linux__
   std::string filename = "/proc/self/statm";
   std::ifstream ifs(filename);
   if (!ifs.is_open()) {
@@ -593,6 +594,9 @@ std::string memory_usage_str() {
   getline(ifs, line);
   float usage_gb = 4.0 * std::stoi(split(line, " ")[1]) / (1 << 20);
   return fmt::format("{:.3f} GiB", usage_gb);
+#else
+  return "NA";
+#endif
 }
 
 }  // namespace utils
