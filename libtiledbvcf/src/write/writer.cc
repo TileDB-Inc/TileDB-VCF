@@ -223,18 +223,21 @@ void Writer::update_params(IngestionParams& params) {
   tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
   uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
                       params.sample_batch_size;
-  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
+  float output_ratio = 0.5;
+  uint32_t output_mb = (total_mb - tiledb_mb - input_mb) * output_ratio;
+  uint32_t stats_mb = (total_mb - tiledb_mb - input_mb) * (1.0 - output_ratio);
 
   params.tiledb_memory_budget_mb = tiledb_mb;
   params.output_memory_budget_mb = output_mb;
 
   LOG_INFO(
       "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
-      "output={} MiB",
+      "output={} MiB + stats={} MiB",
       total_mb,
       tiledb_mb,
       input_mb,
-      output_mb);
+      output_mb,
+      stats_mb);
 
   // Set per thread, per sample vcf input buffer size
   if (params.use_legacy_max_record_buffer_size) {
@@ -1004,19 +1007,24 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                     last_region_contig,
                     contig);
               }
-              // If the contig is different the last one we wrote, and we aren't
-              // suppose to merge this new one, then finalize the previous one
-              LOG_INFO(
-                  "Finalizing contig batch [{}, {}]",
-                  starting_region_contig_for_merge,
-                  last_region_contig);
 
-              // Finalize fragment for this contig async
-              // it is okay to move the query because we reset it next.
-              TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
-                  std::launch::async, finalize_query, std::move(query_))));
+              // If the contig is different the last one we wrote, and we
+              // aren't suppose to merge this new one, then finalize the
+              // previous one. If this is the first contig, last_region_contig
+              // will be empty and we can skip the finalize.
+              if (!last_region_contig.empty()) {
+                LOG_INFO(
+                    "Finalizing contig batch [{}, {}]",
+                    starting_region_contig_for_merge,
+                    last_region_contig);
 
-              VariantStats::finalize();
+                // Finalize fragment for this contig async
+                // it is okay to move the query because we reset it next.
+                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
+                    std::launch::async, finalize_query, std::move(query_))));
+
+                VariantStats::finalize();
+              }
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));

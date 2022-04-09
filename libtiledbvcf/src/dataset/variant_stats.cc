@@ -127,6 +127,9 @@ void VariantStats::finalize() {
     for (auto& sample : fragment_sample_names_) {
       samples += sample + ",";
     }
+    if (!samples.empty()) {
+      samples.pop_back();
+    }
     LOG_DEBUG(
         "VariantStats: fragment_num = {} uri = {} samples = {}",
         frag_num,
@@ -244,10 +247,7 @@ void VariantStats::process(
   // Check if locus has changed
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
-      LOG_DEBUG(
-          "VariantStats: process old contig = {} new contig = {}",
-          contig_,
-          contig);
+      LOG_DEBUG("VariantStats: new contig = {}", contig);
     } else if (pos < pos_) {
       LOG_ERROR(
           "VariantStats: contig {} pos out of order {} < {}",
@@ -271,26 +271,11 @@ void VariantStats::process(
   // Add sample name to the set of sample name in this query
   sample_names_.insert(sample_name);
 
-  // Update called for the REF allele
-  auto ref = rec->d.allele[0];
-  values_[ref][N_CALLED]++;
-
-  // Did this record's FILTER contain PASS?
-  // static char pass_str[] = "PASS";
-  // bool pass = bcf_has_filter(hdr, rec, pass_str) == 1;
-  // unrolled version of bcf_has_filer
-  bool pass = rec->d.n_flt == 0 || (rec->d.n_flt == 1 && rec->d.flt[0] == 0);
-
   int gt0 = bcf_gt_allele(dst_[0]);
   std::string allele0 = rec->d.allele[gt0];
 
   // Increment allele count for GT[0]
   values_[allele0][AC]++;
-
-  // Increment pass count for GT[0], if not REF
-  if (gt0 > 0 && pass) {
-    values_[allele0][N_PASS]++;
-  }
 
   if (ngt == 2) {
     int gt1 = bcf_gt_allele(dst_[1]);
@@ -298,16 +283,6 @@ void VariantStats::process(
 
     // Increment allele count for GT[1]
     values_[allele1][AC]++;
-
-    // Update homozygote count, only diploid genotype calls are counted
-    if (gt0 == gt1) {
-      values_[allele1][N_HOM]++;
-    } else {
-      // Increment pass count for GT[1], if not REF and not homozygote
-      if (gt1 > 0 && pass) {
-        values_[allele1][N_PASS]++;
-      }
-    }
   } else if (ngt > 2) {
     LOG_FATAL(
         "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
@@ -335,11 +310,6 @@ void VariantStats::update_results() {
       }
     }
     values_.clear();
-
-    // Flush buffers to TileDB query to limit buffer memory usage
-    if (pos_buffer_.size() >= record_flush_threshold_) {
-      flush();
-    }
   }
 }
 

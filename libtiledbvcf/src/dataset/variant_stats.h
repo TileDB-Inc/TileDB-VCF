@@ -150,9 +150,8 @@ class VariantStats {
       "contig", "pos", "allele"};
 
   // Array attributes
-  enum Attr { AC = 0, N_HOM, N_CALLED, N_PASS, LAST_ };
-  inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "n_hom", "n_called", "n_pass"};
+  enum Attr { AC = 0, LAST_ };
+  inline static const std::vector<std::string> ATTR_STR = {"ac"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -171,10 +170,6 @@ class VariantStats {
 
   // Sample names included in the fragment
   inline static std::set<std::string> fragment_sample_names_;
-
-  // Threshold number of records used to call `flush()` in
-  // `update_results()`, which limits memory usage.
-  inline static unsigned int record_flush_threshold_ = 1000000;
 
   //===================================================================
   //= private non-static
