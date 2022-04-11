@@ -56,7 +56,9 @@ void check_iter_v2(
     REQUIRE(r != nullptr);
     REQUIRE(bcf_seqname(vcf->hdr(), r) == std::get<0>(tup));
     REQUIRE(r->pos == std::get<1>(tup));
-    REQUIRE(VCFUtils::get_end_pos(vcf->hdr(), r, &val) == std::get<2>(tup));
+    REQUIRE(
+        VCFUtils::get_end_pos(vcf->hdr(), r, &val) ==
+        static_cast<uint32_t>(std::get<2>(tup)));
 
     bool b = vcf->next();
     if (i < expected.size() - 1)
@@ -78,7 +80,8 @@ void check_iter_v3(
     REQUIRE(bcf_seqname(vcf->hdr(), r.get()) == std::get<0>(tup));
     REQUIRE(r->pos == std::get<1>(tup));
     REQUIRE(
-        VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val) == std::get<2>(tup));
+        VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val) ==
+        static_cast<uint32_t>(std::get<2>(tup)));
   }
 
   REQUIRE(vcf->front_record() == nullptr);
@@ -96,7 +99,8 @@ void check_iter_v4(
     REQUIRE(bcf_seqname(vcf->hdr(), r.get()) == std::get<0>(tup));
     REQUIRE(r->pos == std::get<1>(tup));
     REQUIRE(
-        VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val) == std::get<2>(tup));
+        VCFUtils::get_end_pos(vcf->hdr(), r.get(), &val) ==
+        static_cast<uint32_t>(std::get<2>(tup)));
   }
 
   REQUIRE(vcf->front_record() == nullptr);

@@ -25,9 +25,9 @@
 # THE SOFTWARE.
 #
 
-find_package(HTSlib_EP REQUIRED)
+find_package(HTSlib REQUIRED)
 find_package(TileDB_EP REQUIRED)
-find_package(Catch_EP REQUIRED)
+find_package(Catch REQUIRED)
 
 ############################################################
 # Unit test executable

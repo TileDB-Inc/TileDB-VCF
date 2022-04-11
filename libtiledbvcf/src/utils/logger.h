@@ -229,6 +229,7 @@ class Logger {
   /** The logger object. */
   std::shared_ptr<spdlog::logger> logger_;
   spdlog::level::level_enum level_;
+  std::string logfile_;
 };
 
 /* ********************************* */

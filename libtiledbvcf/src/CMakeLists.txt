@@ -4,10 +4,10 @@ message(STATUS "Starting TileDB-VCF build.")
 # Find required dependencies
 ############################################################
 
-find_package(CLI11_EP REQUIRED)
-find_package(HTSlib_EP REQUIRED)
+find_package(CLI11 REQUIRED)
+find_package(HTSlib REQUIRED)
 find_package(TileDB_EP REQUIRED)
-find_package(Spdlog_EP REQUIRED)
+find_package(Spdlog REQUIRED)
 
 ############################################################
 # Get source commit hash
