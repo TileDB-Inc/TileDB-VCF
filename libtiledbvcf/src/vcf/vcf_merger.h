@@ -15,11 +15,8 @@
 namespace tiledb {
 namespace vcf {
 
-class MergeData {
+class MergedData {
  public:
-  // all variant types contained in the merged records
-  int variant_types;
-
   // CHROM: contig id of the merged record
   int rid;
 
@@ -68,13 +65,15 @@ class MergeData {
   // vector of {sample_num, rec} in the merged record
   std::vector<std::tuple<int, SafeBCFRec>> samples;
 
+  // set of sample numbers included in the merged data
+  std::unordered_set<int> merged_samples;
+
   /**
    * @brief Clear the data structure and prepare to merge.
    *
    * @param num_samples total number of samples
    */
   void reset(int num_samples) {
-    variant_types = 0;
     rid = -1;
     pos = -1;
     ids.clear();
@@ -91,6 +90,7 @@ class MergeData {
     format_keys.clear();
     allele_maps.clear();
     samples.clear();
+    merged_samples.clear();
   }
 };
 
@@ -109,6 +109,12 @@ class VCFMerger {
   /**
    * @brief Finish merging data in the merge buffer. Call after writing the last
    * record to finish merging.
+   *
+   */
+  void finish();
+
+  /**
+   * @brief Close the VCFMerger.
    *
    */
   void close();
@@ -166,6 +172,14 @@ class VCFMerger {
       int id, int hdr_type, int sample_num = -1);
 
   /**
+   * @brief Get the missing vector end object
+   *
+   * @param type field type (BCF_HT_*)
+   * @return std::tuple<int, int> [missing, vector_end]
+   */
+  std::tuple<int, int> get_missing_vector_end(int type);
+
+  /**
    * @brief Try to merge records in the merge buffer
    *
    * @param flush if true, merge until merge buffer is empty
@@ -187,6 +201,15 @@ class VCFMerger {
    * @param input sample record to be merged
    */
   void merge_alleles(int sample_num, bcf1_t* input);
+
+  /**
+   * @brief Check if record can be merged into the existing merged data.
+   *
+   * @param record VCF record
+   * @return true Record can be merged
+   * @return false Record cannot be merged
+   */
+  bool can_merge_record(SafeBCFRec& record);
 
   /**
    * @brief Merge input record with the merged data structure.
@@ -237,7 +260,7 @@ class VCFMerger {
   int pass_filter_id_;
 
   // merged data
-  MergeData md_;
+  MergedData md_;
 
   // number of samples being combined
   int num_samples_ = -1;

@@ -30,6 +30,19 @@ ReadConfig = namedtuple(
 ReadConfig.__new__.__defaults__ = (None,) * 8  # len(ReadConfig._fields)
 
 
+def config_logging(level="fatal", log_file=""):
+    """Configure tiledbvcf logging.
+
+    :param str level: log level "fatal,error,warn,info,debug,trace"
+    :param str log_file: log message file
+    """
+
+    if level not in ["fatal", "error", "warn", "info", "debug", "trace"]:
+        raise Exception(f"Unsupported log level: {level}")
+
+    libtiledbvcf.config_logging(level, log_file)
+
+
 class Dataset(object):
     """A handle on a TileDB-VCF dataset."""
 
@@ -166,6 +179,7 @@ class Dataset(object):
             raise Exception("Dataset not open in read mode")
 
         self.reader.reset()
+        self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
         regions = "" if regions is None else regions
@@ -212,6 +226,7 @@ class Dataset(object):
             raise Exception("Dataset not open in read mode")
 
         self.reader.reset()
+        self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
         regions = "" if regions is None else regions
@@ -224,6 +239,60 @@ class Dataset(object):
             self.reader.set_bed_file(bed_file)
 
         return self.continue_read()
+
+    def export(
+        self,
+        samples=None,
+        regions=None,
+        samples_file=None,
+        bed_file=None,
+        skip_check_samples=False,
+        enable_progress_estimation=False,
+        merge=False,
+        output_format="z",
+        output_path="",
+        output_dir=".",
+    ):
+        """Exports data from a TileDB-VCF dataset to multiple VCF files or a combined VCF file.
+
+        :param list of str samples: CSV list of sample names to be read.
+        :param list of str regions: CSV list of genomic regions to be read.
+        :param str samples_file: URI of file containing sample names to be read,
+            one per line.
+        :param str bed_file: URI of a BED file of genomic regions to be read.
+        :param bool skip_check_samples: Should checking the samples requested exist in the array
+        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
+        :param bool merge: Merge samples to create a combined VCF file.
+        :param str output_format: Export file format: 'b': bcf (compressed), 'u': bcf, 'z': vcf.gz, 'v': vcf
+        :param str output_path: Combined VCF output file.
+        :param str output_dir: Directory used for local output of exported samples.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+
+        self.reader.reset()
+        self.reader.set_export_to_disk(True)
+        self._set_samples(samples, samples_file)
+
+        regions = "" if regions is None else regions
+        self.reader.set_regions(",".join(regions))
+        # self.reader.set_attributes(attrs)
+        self.reader.set_check_samples_exist(not skip_check_samples)
+        self.reader.set_enable_progress_estimation(enable_progress_estimation)
+        self.reader.set_merge(merge)
+        self.reader.set_output_format(output_format)
+        self.reader.set_output_path(output_path)
+        self.reader.set_output_dir(output_dir)
+
+        if merge and not output_path:
+            raise Exception("output_path required when merge=True")
+
+        if bed_file is not None:
+            self.reader.set_bed_file(bed_file)
+
+        self.reader.read()
+        if not self.read_completed():
+            raise Exception("Unexpected read status during export.")
 
     def read_iter(
         self, attrs, samples=None, regions=None, samples_file=None, bed_file=None
@@ -280,6 +349,7 @@ class Dataset(object):
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
         self.reader.reset()
+        self.reader.set_export_to_disk(False)
 
         samples = "" if samples is None else samples
         regions = "" if regions is None else regions
@@ -556,6 +626,8 @@ class Dataset(object):
         elif samples_file is not None:
             self.reader.set_samples("")
             self.reader.set_samples_file(samples_file)
+        else:
+            self.reader.set_samples("")
 
     def version(self):
         if self.mode == "r":

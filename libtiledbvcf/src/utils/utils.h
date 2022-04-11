@@ -434,6 +434,13 @@ const std::string& version_info();
 uint32_t system_memory_mb();
 
 /**
+ * @brief Return memory usage by the current process.
+ *
+ * @return std::string Memory usage for log file.
+ */
+std::string memory_usage_str();
+
+/**
  *
  * Given a vector of T return an a vector if indexes, sorted by ascending values
  *

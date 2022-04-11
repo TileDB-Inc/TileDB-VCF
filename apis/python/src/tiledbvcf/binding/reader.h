@@ -39,6 +39,8 @@ namespace py = pybind11;
 
 namespace tiledbvcfpy {
 
+void config_logging(const std::string& level, const std::string& logfile);
+
 /**
  * The Reader class is the main interface to the TileDB-VCF reader C API.
  */
@@ -131,12 +133,23 @@ class Reader {
   /** Retrieve list of registered samples names */
   std::vector<std::string> get_sample_names();
 
-  /**
-   * Set reader verbose output mode
-   *
-   * @param verbose mode
-   */
+  /** Set reader verbose output mode */
   void set_verbose(bool verbose);
+
+  /** Set export to disk mode */
+  void set_export_to_disk(bool export_to_disk);
+
+  /** Set export merge mode */
+  void set_merge(bool merge);
+
+  /** Set export output format */
+  void set_output_format(const std::string& output_format);
+
+  /** Set export output path */
+  void set_output_path(const std::string& output_path);
+
+  /** Set export output directory */
+  void set_output_dir(const std::string& output_dir);
 
   /** Set the TileDB query buffer memory percentage */
   void set_buffer_percentage(float buffer_percentage);
