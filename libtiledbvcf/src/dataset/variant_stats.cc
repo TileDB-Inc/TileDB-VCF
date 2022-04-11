@@ -271,6 +271,10 @@ void VariantStats::process(
   // Add sample name to the set of sample name in this query
   sample_names_.insert(sample_name);
 
+  // Update called for the REF allele
+  auto ref = rec->d.allele[0];
+  values_[ref][N_CALLED]++;
+
   int gt0 = bcf_gt_allele(dst_[0]);
   std::string allele0 = rec->d.allele[gt0];
 
@@ -283,6 +287,11 @@ void VariantStats::process(
 
     // Increment allele count for GT[1]
     values_[allele1][AC]++;
+
+    // Update homozygote count, only diploid genotype calls are counted
+    if (gt0 == gt1) {
+      values_[allele1][N_HOM]++;
+    }
   } else if (ngt > 2) {
     LOG_FATAL(
         "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
