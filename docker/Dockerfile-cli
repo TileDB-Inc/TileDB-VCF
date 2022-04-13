@@ -19,6 +19,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     autoconf \
     patch \
     build-essential \
+    pip \
+    && pip install cmake>=3.22 \
     && apt-get clean \
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
@@ -30,8 +32,8 @@ COPY .git .git
 
 WORKDIR /tmp/libtiledbvcf/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
-             -DCMAKE_INSTALL_PREFIX=/usr/local \
-             -DOVERRIDE_INSTALL_PREFIX=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DOVERRIDE_INSTALL_PREFIX=OFF \
     && make -j$(nproc) \
     && make install-libtiledbvcf
 

@@ -38,6 +38,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 using namespace tiledb::vcf;
 
@@ -423,7 +424,8 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     // Get the last fragment
     std::string uri = fragmentInfo.fragment_uri(41);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
   }
 
   // Ingest the sample again, this should add only the missing data
@@ -449,17 +451,20 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     // Remove fragment 21
     std::string uri = fragmentInfo.fragment_uri(21);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
 
     // Remove fragment 22
     uri = fragmentInfo.fragment_uri(22);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
 
     // Remove fragment 23
     uri = fragmentInfo.fragment_uri(23);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
   }
 
   // Ingest the sample again, this should add only the missing data
@@ -658,7 +663,8 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     // Get the last fragment
     std::string uri = fragmentInfo.fragment_uri(35);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
   }
 
   // Ingest the sample again, this should add only the missing data
@@ -686,17 +692,20 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     // Remove fragment 17
     std::string uri = fragmentInfo.fragment_uri(17);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
 
     // Remove fragment 18
     uri = fragmentInfo.fragment_uri(18);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
 
     // Remove fragment 19
     uri = fragmentInfo.fragment_uri(19);
     vfs.remove_dir(uri);
-    vfs.remove_file(uri + ".ok");
+    uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+    vfs.remove_file(uri + ".wrt");
   }
 
   // Ingest the sample again, this should add only the missing data
