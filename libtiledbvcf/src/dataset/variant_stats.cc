@@ -38,42 +38,61 @@ void VariantStats::create(
     Context& ctx, std::string root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("VariantStats: Create array");
 
-  // Create filters
-  Filter zstd(ctx, TILEDB_FILTER_ZSTD);
+  // Create filter lists
+  FilterList rle_coord_filters(ctx);
+  FilterList int_coord_filters(ctx);
+  FilterList str_coord_filters(ctx);
+  FilterList offset_filters(ctx);
+  FilterList int_attr_filters(ctx);
 
-  FilterList filters_1(ctx);
-  FilterList filters_2(ctx);
-  filters_1.add_filter(zstd);
-  filters_2.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA});
-  filters_2.add_filter(zstd);
+  rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
+  int_coord_filters.add_filter({ctx, TILEDB_FILTER_POSITIVE_DELTA})
+      .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+  str_coord_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
+  offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
+      .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+  int_attr_filters.add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+
   if (checksum) {
-    filters_1.add_filter({ctx, checksum});
-    filters_2.add_filter({ctx, checksum});
+    // rle_coord_filters.add_filter({ctx, checksum});
+    int_coord_filters.add_filter({ctx, checksum});
+    str_coord_filters.add_filter({ctx, checksum});
+    offset_filters.add_filter({ctx, checksum});
+    int_attr_filters.add_filter({ctx, checksum});
   }
 
   // Create schema and domain
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
   schema.set_allows_dups(true);
+  schema.set_offsets_filter_list(offset_filters);
 
   Domain domain(ctx);
   const uint32_t pos_min = 0;
   const uint32_t pos_max = std::numeric_limits<uint32_t>::max() - 1;
   const uint32_t pos_extent = pos_max - pos_min + 1;
+
   auto contig = Dimension::create(
       ctx, DIM_STR[CONTIG], TILEDB_STRING_ASCII, nullptr, nullptr);
+  contig.set_filter_list(rle_coord_filters);  // d0
+
   auto pos = Dimension::create<uint32_t>(
       ctx, DIM_STR[POS], {{pos_min, pos_max}}, pos_extent);
+  pos.set_filter_list(int_coord_filters);  // d1
+
   auto allele = Dimension::create(
       ctx, DIM_STR[ALLELE], TILEDB_STRING_ASCII, nullptr, nullptr);
+  allele.set_filter_list(str_coord_filters);  // d2
+
   domain.add_dimensions(contig, pos, allele);
   schema.set_domain(domain);
-  schema.set_coords_filter_list(filters_2);
-  schema.set_offsets_filter_list(filters_2);
 
   // Create attributes
   for (int i = 0; i < LAST_; i++) {
-    auto attr = Attribute::create<int32_t>(ctx, ATTR_STR[i], filters_2);
+    auto attr = Attribute::create<int32_t>(ctx, ATTR_STR[i], int_attr_filters);
     schema.add_attributes(attr);
   }
 
