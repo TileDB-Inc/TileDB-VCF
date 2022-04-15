@@ -273,6 +273,14 @@ bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
   // Buffer the next records into `record_queue_`.
   read_records();
 
+  // HTSlib seek finds interescting records, which can include records
+  // with rec.pos < pos && rec.end > pos.
+  // We want to seek to the first record with rec.pos >= pos, so we
+  // pop records where rec.pos < pos.
+  while (front_record() != nullptr && front_record()->pos < pos) {
+    pop_record();
+  }
+
   // Return true if any records were buffered.
   return !record_queue_.empty();
 }

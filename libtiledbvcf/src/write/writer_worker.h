@@ -86,6 +86,9 @@ class WriterWorker {
    */
   virtual bool resume() = 0;
 
+  virtual void flush_ingestion_tasks() {
+  }
+
   /** Return a handle to the attribute buffers */
   virtual const AttributeBufferSet& buffers() const = 0;
 

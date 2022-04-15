@@ -38,6 +38,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "dataset/variant_stats.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
 #include "write/record_heap_v4.h"
@@ -98,6 +99,9 @@ class WriterWorkerV4 : public WriterWorker {
   /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
 
+  void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
+  void flush_ingestion_tasks();
+
  private:
   /** Worker id */
   int id_;
@@ -122,6 +126,8 @@ class WriterWorkerV4 : public WriterWorker {
 
   /** Record heap for sorting records across samples. */
   RecordHeapV4 record_heap_;
+
+  VariantStats vs_;
 
   /**
    * Inserts a record (non-anchor) into the heap if it fits

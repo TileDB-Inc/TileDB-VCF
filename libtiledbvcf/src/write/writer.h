@@ -357,6 +357,7 @@ class Writer {
   /* ********************************* */
 
   std::unique_ptr<Config> tiledb_config_;
+  std::unique_ptr<Config> vfs_config_;
   std::shared_ptr<Context> ctx_;
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;

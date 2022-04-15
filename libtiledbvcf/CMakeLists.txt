@@ -82,6 +82,7 @@ if (BUILD_TYPE STREQUAL "DEBUG")
 elseif (BUILD_TYPE STREQUAL "RELEASE")
   add_compile_options(-DNDEBUG -O3 -Wall -Werror)
 endif()
+message(WARNING "Building without deprecation warnings")
 add_compile_options(-Wno-deprecated-declarations)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 

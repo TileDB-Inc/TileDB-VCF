@@ -32,6 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
@@ -225,6 +226,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   create_empty_data_array(
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
   write_metadata_v4(ctx, params.uri, metadata);
+
+  VariantStats::create(ctx, params.uri, params.checksum);
 }
 
 void TileDBVCFDataset::check_attribute_names(
