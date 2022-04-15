@@ -114,6 +114,7 @@ void Writer::init(const IngestionParams& params) {
     vfs_config.push_back("vfs.s3.region=" + vcf_region);
     LOG_INFO("VFS and htslib reading data from S3 region: {}", vcf_region);
   } catch (...) {
+    // tiledb_config_ is not defined in "vcf.s3.region", no action required
   }
   utils::set_htslib_tiledb_context(vfs_config);
 

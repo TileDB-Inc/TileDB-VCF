@@ -46,7 +46,7 @@ void VariantStats::create(
   FilterList int_attr_filters(ctx);
 
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
-  int_coord_filters.add_filter({ctx, TILEDB_FILTER_POSITIVE_DELTA})
+  int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
   str_coord_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
