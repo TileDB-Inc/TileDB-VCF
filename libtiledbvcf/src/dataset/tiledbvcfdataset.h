@@ -495,6 +495,25 @@ class TileDBVCFDataset {
   void set_tiledb_stats_enabled_vcf_header(const bool stats_enabled);
 
   /**
+   * Consolidate commits of the vcf header array
+   * @param params
+   */
+  void consolidate_vcf_header_array_commits(const UtilsParams& params);
+
+  /**
+   * Consolidate commits of the data array
+   * @param params
+   */
+  void consolidate_data_array_commits(const UtilsParams& params);
+
+  /**
+   * Consolidate commits of all arrays (vcf header array and data
+   * array)
+   * @param params
+   */
+  void consolidate_commits(const UtilsParams& params);
+
+  /**
    * Consolidate fragment metadata of the vcf header array
    * @param params
    */
@@ -531,6 +550,24 @@ class TileDBVCFDataset {
    * @param params
    */
   void consolidate_fragments(const UtilsParams& params);
+
+  /**
+   * Vacuum commits of the vcf header array
+   * @param params
+   */
+  void vacuum_vcf_header_array_commits(const UtilsParams& params);
+
+  /**
+   * Vacuum commits of the data array
+   * @param params
+   */
+  void vacuum_data_array_commits(const UtilsParams& params);
+
+  /**
+   * Vacuum fragment metadata of all arrays (vcf header array and data array)
+   * @param params
+   */
+  void vacuum_commits(const UtilsParams& params);
 
   /**
    * Vacuum fragment metadata of the vcf header array
