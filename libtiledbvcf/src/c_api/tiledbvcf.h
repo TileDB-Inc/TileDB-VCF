@@ -107,6 +107,9 @@ typedef struct tiledb_vcf_bed_file_t tiledb_vcf_bed_file_t;
  */
 TILEDBVCF_EXPORT void tiledb_vcf_version(const char** version);
 
+TILEDBVCF_EXPORT void tiledb_vcf_config_logging(
+    const char* level, const char* logfile);
+
 /* ********************************* */
 /*              READER               */
 /* ********************************* */
@@ -874,6 +877,46 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_sample_name(
  */
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_verbose(tiledb_vcf_reader_t* reader, bool verbose);
+
+/**
+ * Sets export to disk mode on or off
+ * @param reader VCF reader object
+ * @param export_to_disk setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_export_to_disk(
+    tiledb_vcf_reader_t* reader, bool export_to_disk);
+
+/**
+ * Sets export to combined VCF mode on or off
+ * @param reader VCF reader object
+ * @param merge setting
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_set_merge(tiledb_vcf_reader_t* reader, bool merge);
+
+/**
+ * Sets export output format
+ * @param reader VCF reader object
+ * @param output_format setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_output_format(
+    tiledb_vcf_reader_t* reader, const char* output_format);
+
+/**
+ * Sets export output path
+ * @param reader VCF reader object
+ * @param output_path setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_output_path(
+    tiledb_vcf_reader_t* reader, const char* output_path);
+
+/**
+ * Sets export output directory
+ * @param reader VCF reader object
+ * @param output_path setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_output_dir(
+    tiledb_vcf_reader_t* reader, const char* output_dir);
 
 /**
  * Sets verbose mode on or off

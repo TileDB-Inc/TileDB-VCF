@@ -143,6 +143,10 @@ void tiledb_vcf_version(const char** version) {
   *version = version_str.c_str();
 }
 
+void tiledb_vcf_config_logging(const char* level, const char* logfile) {
+  LOG_CONFIG(level, logfile);
+}
+
 /* ********************************* */
 /*              READER               */
 /* ********************************* */
@@ -867,6 +871,62 @@ int32_t tiledb_vcf_reader_set_debug_print_tiledb_query_ranges(
           reader,
           reader->reader_->set_debug_print_tiledb_query_ranges(
               print_tiledb_query_ranges)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_export_to_disk(
+    tiledb_vcf_reader_t* reader, bool export_to_disk) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_export_to_disk(export_to_disk)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_merge(tiledb_vcf_reader_t* reader, bool merge) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_merge(merge)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_output_format(
+    tiledb_vcf_reader_t* reader, const char* output_format) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_output_format(output_format)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_output_path(
+    tiledb_vcf_reader_t* reader, const char* output_path) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_output_path(output_path)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_output_dir(
+    tiledb_vcf_reader_t* reader, const char* output_dir) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_output_dir(output_dir)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;

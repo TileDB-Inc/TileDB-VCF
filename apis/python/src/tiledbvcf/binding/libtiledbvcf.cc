@@ -14,6 +14,8 @@ using namespace tiledbvcfpy;
 PYBIND11_MODULE(libtiledbvcf, m) {
   m.doc() = "Python binding of the TileDB-VCF library C API.";
 
+  m.def("config_logging", &config_logging);
+
   py::class_<Reader>(m, "Reader")
       .def(py::init())
       .def("init", &Reader::init)
@@ -32,6 +34,11 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_attributes", &Reader::set_attributes)
       .def("set_tiledb_stats_enabled", &Reader::set_tiledb_stats_enabled)
       .def("set_verbose", &Reader::set_verbose)
+      .def("set_export_to_disk", &Reader::set_export_to_disk)
+      .def("set_merge", &Reader::set_merge)
+      .def("set_output_format", &Reader::set_output_format)
+      .def("set_output_path", &Reader::set_output_path)
+      .def("set_output_dir", &Reader::set_output_dir)
       .def("read", &Reader::read, py::arg("release_buffs") = true)
       .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)

@@ -397,6 +397,36 @@ class Reader {
   void set_verbose(const bool& verbose);
 
   /**
+   * Sets export to disk mode on or off
+   * @param export_to_disk setting
+   */
+  void set_export_to_disk(const bool export_to_disk);
+
+  /**
+   * Sets combine VCF mode on or off
+   * @param merge setting
+   */
+  void set_merge(const bool merge);
+
+  /**
+   * Sets export output format
+   * @param output_format setting
+   */
+  void set_output_format(const std::string& output_format);
+
+  /**
+   * Sets export output path
+   * @param output_path setting
+   */
+  void set_output_path(const std::string& output_path);
+
+  /**
+   * Sets export output directory
+   * @param output_dir setting
+   */
+  void set_output_dir(const std::string& output_dir);
+
+  /**
    * Sets disabling of progress estimation in verbose mode
    * @param enable_progress_estimation setting
    */

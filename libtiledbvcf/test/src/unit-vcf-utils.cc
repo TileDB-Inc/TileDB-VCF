@@ -45,7 +45,9 @@ using namespace tiledb::vcf;
 
 static const std::string input_dir = TILEDB_VCF_TEST_INPUT_DIR;
 
-TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
+TEST_CASE(
+    "TileDB-VCF: Test consolidate and vacuum fragment metadata and fragments",
+    "[tiledbvcf][utils]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
@@ -196,6 +198,128 @@ TEST_CASE("TileDB-VCF: Test consolidate and vacuum", "[tiledbvcf][utils]") {
   }
 
   // Check count operation after consolidating fragments
+  {
+    LOG_TRACE("Check count");
+    Reader reader;
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.sample_names = {"HG00280", "HG01762"};
+    params.regions = {"1:12700-13400", "1:17000-17400"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 7);
+  }
+
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+}
+
+TEST_CASE(
+    "TileDB-VCF: Test consolidate and vacuum commits", "[tiledbvcf][utils]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  create_args.tile_capacity = 10000;
+  create_args.allow_duplicates = false;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest
+  {
+    LOG_TRACE("Ingest");
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
+    params.max_record_buffer_size = 1;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check count operation
+  {
+    LOG_TRACE("Check count");
+    Reader reader;
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.sample_names = {"HG00280", "HG01762"};
+    params.regions = {"1:12700-13400", "1:17000-17400"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 7);
+  }
+
+  // Ingest a second time to double the fragments
+  {
+    LOG_TRACE("Ingest again");
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/small.bcf", input_dir + "/small2.bcf"};
+    params.max_record_buffer_size = 1;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check count operation to make sure results are the same as before.
+  // Duplicates are disabled so this should be true
+  {
+    LOG_TRACE("Check count");
+    Reader reader;
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.sample_names = {"HG00280", "HG01762"};
+    params.regions = {"1:12700-13400", "1:17000-17400"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 7);
+  }
+
+  // Consolidate commits
+  {
+    LOG_TRACE("Consolidate commits");
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
+    dataset.open(dataset_uri);
+    UtilsParams params;
+    dataset.consolidate_commits(params);
+  }
+
+  // Check count operation after consolidating commits
+  {
+    LOG_TRACE("Check count");
+    Reader reader;
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.sample_names = {"HG00280", "HG01762"};
+    params.regions = {"1:12700-13400", "1:17000-17400"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 7);
+  }
+
+  // Vacuum commits
+  {
+    LOG_TRACE("Vacuum commits");
+    TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
+    dataset.open(dataset_uri);
+    UtilsParams params;
+    dataset.vacuum_commits(params);
+  }
+
+  // Check count operation after vacuuming commits
   {
     LOG_TRACE("Check count");
     Reader reader;

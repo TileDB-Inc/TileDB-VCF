@@ -164,6 +164,19 @@ void do_stat(const StatParams& args, const CLI::App& cmd) {
 }
 
 /** Utils. */
+void do_utils_consolidate_commits(
+    const UtilsParams& args, const CLI::App& cmd) {
+  LOG_TRACE("Starting utils consolidate commits command.");
+  config_to_log(cmd);
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
+  dataset.open(args.uri, args.tiledb_config);
+  dataset.consolidate_commits(args);
+  LOG_TRACE("Finished utils consolidate commits command.");
+}
+
 void do_utils_consolidate_fragments(
     const UtilsParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting utils consolidate fragments command.");
@@ -188,6 +201,18 @@ void do_utils_consolidate_fragment_metadata(
   dataset.open(args.uri, args.tiledb_config);
   dataset.consolidate_fragment_metadata(args);
   LOG_TRACE("Finished utils consolidate fragment metadata command.");
+}
+
+void do_utils_vacuum_commits(const UtilsParams& args, const CLI::App& cmd) {
+  LOG_TRACE("Starting utils vacuum commits command.");
+  config_to_log(cmd);
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+  TileDBVCFDataset dataset(cfg);
+  dataset.open(args.uri, args.tiledb_config);
+  dataset.vacuum_commits(args);
+  LOG_TRACE("Finished utils vacuum commits command.");
 }
 
 void do_utils_vacuum_fragments(const UtilsParams& args, const CLI::App& cmd) {
@@ -232,6 +257,11 @@ std::map<std::string, ExportFormat> format_map{
     {"v", ExportFormat::VCF},
     {"t", ExportFormat::TSV}};
 
+std::map<std::string, IngestionParams::ContigMode> contig_mode_map{
+    {"all", IngestionParams::ContigMode::ALL},
+    {"separate", IngestionParams::ContigMode::SEPARATE},
+    {"merged", IngestionParams::ContigMode::MERGED}};
+
 // add helper functions to CLI::detail namespace
 namespace CLI {
 namespace detail {
@@ -269,6 +299,18 @@ std::ostream& operator<<(std::ostream& os, const tiledb_filter_type_t& value) {
 
 std::ostream& operator<<(std::ostream& os, const ExportFormat& value) {
   for (auto it : format_map) {
+    if (it.second == value) {
+      os << it.first;
+      return os;
+    }
+  }
+  os << "UNKNOWN";
+  return os;
+}
+
+std::ostream& operator<<(
+    std::ostream& os, const IngestionParams::ContigMode& value) {
+  for (auto it : contig_mode_map) {
     if (it.second == value) {
       os << it.first;
       return os;
@@ -554,6 +596,12 @@ void add_store(CLI::App& app) {
       ->delimiter(',')
       ->excludes("--disable-contig-fragment-merging")
       ->excludes("--contigs-to-keep-separate");
+  cmd->add_option(
+         "--contig-mode",
+         args->contig_mode,
+         "Select which contigs are ingested: 'separate', 'merged', or 'all' "
+         "contigs")
+      ->transform(CLI::CheckedTransformer(contig_mode_map));
 
   cmd->option_defaults()->group("Debug options");
   add_logging_options(cmd, args->log_level, args->log_file);
@@ -786,6 +834,12 @@ void add_utils(CLI::App& app) {
       cmd->add_subcommand("consolidate", "Consolidate TileDB-VCF dataset");
   c_cmd->require_subcommand(1, 1);
 
+  auto c_c_cmd = c_cmd->add_subcommand(
+      "commits", "Consolidate TileDB-VCF dataset commits");
+  add_util_options(c_c_cmd, *args);
+  c_c_cmd->callback(
+      [args, cmd]() { do_utils_consolidate_commits(*args, *cmd); });
+
   auto c_f_cmd = c_cmd->add_subcommand(
       "fragments", "Consolidate TileDB-VCF dataset fragments");
   add_util_options(c_f_cmd, *args);
@@ -800,6 +854,11 @@ void add_utils(CLI::App& app) {
 
   auto v_cmd = cmd->add_subcommand("vacuum", "Vacuum TileDB-VCF dataset");
   v_cmd->require_subcommand(1, 1);
+
+  auto v_c_cmd =
+      v_cmd->add_subcommand("commits", "Vacuum TileDB-VCF dataset commits");
+  add_util_options(v_c_cmd, *args);
+  v_c_cmd->callback([args, cmd]() { do_utils_vacuum_commits(*args, *cmd); });
 
   auto v_f_cmd =
       v_cmd->add_subcommand("fragments", "Vacuum TileDB-VCF dataset fragments");

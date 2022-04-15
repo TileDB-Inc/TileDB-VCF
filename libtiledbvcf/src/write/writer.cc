@@ -45,6 +45,7 @@ Writer::Writer() {
 
 Writer::~Writer() {
   utils::free_htslib_tiledb_context();
+  VariantStats::close();
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {
@@ -107,15 +108,28 @@ void Writer::init(const IngestionParams& params) {
 
   // Set htslib global config and context based on user passed TileDB config
   // options
-  utils::set_htslib_tiledb_context(params.tiledb_config);
+  std::vector<std::string> vfs_config = params.tiledb_config;
+  try {
+    auto vcf_region = tiledb_config_->get("vcf.s3.region");
+    vfs_config.push_back("vfs.s3.region=" + vcf_region);
+    LOG_INFO("VFS and htslib reading data from S3 region: {}", vcf_region);
+  } catch (...) {
+    // tiledb_config_ is not defined in "vcf.s3.region", no action required
+  }
+  utils::set_htslib_tiledb_context(vfs_config);
 
-  vfs_.reset(new VFS(*ctx_, *tiledb_config_));
+  vfs_config_.reset(new Config);
+  utils::set_tiledb_config(vfs_config, vfs_config_.get());
+
+  vfs_.reset(new VFS(*ctx_, *vfs_config_));
   array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
+
+  VariantStats::init(ctx_, params.uri);
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -210,18 +224,21 @@ void Writer::update_params(IngestionParams& params) {
   tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
   uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
                       params.sample_batch_size;
-  uint32_t output_mb = total_mb - tiledb_mb - input_mb;
+  float output_ratio = 0.5;
+  uint32_t output_mb = (total_mb - tiledb_mb - input_mb) * output_ratio;
+  uint32_t stats_mb = (total_mb - tiledb_mb - input_mb) * (1.0 - output_ratio);
 
   params.tiledb_memory_budget_mb = tiledb_mb;
   params.output_memory_budget_mb = output_mb;
 
   LOG_INFO(
       "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
-      "output={} MiB",
+      "output={} MiB + stats={} MiB",
       total_mb,
       tiledb_mb,
       input_mb,
-      output_mb);
+      output_mb,
+      stats_mb);
 
   // Set per thread, per sample vcf input buffer size
   if (params.use_legacy_max_record_buffer_size) {
@@ -449,6 +466,7 @@ void Writer::ingest_samples() {
       "All finalize tasks successfully completed. Waited for {} sec.",
       utils::chrono_duration(t0));
 
+  VariantStats::close();
   array_->close();
 
   // Clean up
@@ -635,6 +653,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
+  if (ingestion_params_.contig_mode != IngestionParams::ContigMode::ALL &&
+      ingestion_params_.contigs_to_allow_merging.size()) {
+    LOG_FATAL("Cannot set contigs_to_allow_merging with contig_mode != all");
+  }
+
   // TODO: workers can be reused across space tiles
   // TODO: use multiple threads for vcf open, currenly serial with num_threads *
   // samples.size() vcf open calls
@@ -712,6 +735,26 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Skip empty contigs
       if (!vcf.contig_has_records(contig_region.seq_name))
         continue;
+
+      // Ingesting MERGED contigs, skip contigs in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) !=
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      // Ingesting SEPARATE contigs, skip contigs not in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::SEPARATE &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) ==
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
 
       LOG_TRACE(fmt::format(
           std::locale(""),
@@ -904,6 +947,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
+  int last_merged_fragment_index = 0;
   std::string last_region_contig = workers[0]->region().seq_name;
   std::string starting_region_contig_for_merge = workers[0]->region().seq_name;
   bool finished = tasks.empty();
@@ -928,37 +972,60 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           const bool contig_mergeable = check_contig_mergeable(contig);
           const bool last_contig_mergeable =
               check_contig_mergeable(last_region_contig);
-          // If the contig is different the last one we wrote, and we aren't
-          // suppose to merge this new one, then finalize the previous one
-          if (last_region_contig != contig) {
-            if (!last_contig_mergeable || !contig_mergeable) {
-              if (LOG_DEBUG_ENABLED()) {
-                if (!last_contig_mergeable) {
-                  LOG_DEBUG(
-                      "Previous contig {} found to NOT be mergeable, "
-                      "finalizing previous fragment and starting new write for "
-                      "{}",
-                      last_region_contig,
-                      contig);
-                } else if (!contig_mergeable) {
-                  LOG_DEBUG(
-                      "Contig {0} found to NOT be mergeable, "
-                      "finalizing previous fragment and starting new write for "
-                      "{0}",
-                      contig);
-                }
-              }
-              // If the contig is different the last one we wrote, and we aren't
-              // suppose to merge this new one, then finalize the previous one
-              LOG_INFO(
-                  "Finalizing contig batch [{}, {}]",
-                  starting_region_contig_for_merge,
-                  last_region_contig);
+          bool finalize_merged_fragment = false;
 
-              // Finalize fragment for this contig async
-              // it is okay to move the query because we reset it next.
-              TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
-                  std::launch::async, finalize_query, std::move(query_))));
+          // If ingesting merged contigs only, finalize on fragment boundaries
+          if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED) {
+            int merged_fragment_index = get_merged_fragment_index(contig);
+            finalize_merged_fragment =
+                merged_fragment_index != last_merged_fragment_index;
+            last_merged_fragment_index = merged_fragment_index;
+          }
+          //  If the contig is different the last one we wrote, and we aren't
+          //  suppose to merge this new one, then finalize the previous one
+          if (last_region_contig != contig) {
+            if (!last_contig_mergeable || !contig_mergeable ||
+                finalize_merged_fragment) {
+              if (!last_contig_mergeable) {
+                LOG_DEBUG(
+                    "Previous contig {} found to NOT be mergeable, "
+                    "finalizing previous fragment and starting new write for "
+                    "{}",
+                    last_region_contig,
+                    contig);
+              } else if (!contig_mergeable) {
+                LOG_DEBUG(
+                    "Contig {0} found to NOT be mergeable, "
+                    "finalizing previous fragment and starting new write for "
+                    "{0}",
+                    contig);
+              } else if (finalize_merged_fragment) {
+                LOG_DEBUG(
+                    "Previous contig {} found to be end of mergeable fragment, "
+                    "finalizing previous fragment and starting new write for "
+                    "{}",
+                    last_region_contig,
+                    contig);
+              }
+
+              // If the contig is different the last one we wrote, and we
+              // aren't suppose to merge this new one, then finalize the
+              // previous one. If this is the first contig, last_region_contig
+              // will be empty and we can skip the finalize.
+              if (!last_region_contig.empty()) {
+                LOG_INFO(
+                    "Finalizing contig batch [{}, {}]",
+                    starting_region_contig_for_merge,
+                    last_region_contig);
+
+                // Finalize fragment for this contig async
+                // it is okay to move the query because we reset it next.
+                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
+                    std::launch::async, finalize_query, std::move(query_))));
+
+                VariantStats::finalize();
+              }
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
@@ -985,12 +1052,23 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
-          LOG_DEBUG(
-              "Recorded {:L} cells for contig {} (task {} / {})",
-              worker->records_buffered(),
-              contig,
-              i + 1,
-              tasks.size());
+          {
+            auto first = worker->buffers().start_pos().value<uint32_t>(0);
+            auto nelts = worker->buffers().start_pos().nelts<uint32_t>();
+            auto last =
+                worker->buffers().start_pos().value<uint32_t>(nelts - 1);
+            LOG_DEBUG(
+                "Recorded {:L} cells from {}:{}-{} (task {} / {})",
+                worker->records_buffered(),
+                contig,
+                first,
+                last,
+                i + 1,
+                tasks.size());
+          }
+
+          // Flush ingestion tasks
+          worker->flush_ingestion_tasks();
         } else {
           LOG_DEBUG("No records found for {}", worker->region().seq_name);
         }
@@ -1035,6 +1113,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Finalize fragment for this contig
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
+
+  VariantStats::finalize();
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));
@@ -1288,6 +1368,18 @@ bool Writer::check_contig_mergeable(const std::string& contig) {
 
   // In all other cases we are mergeable
   return true;
+}
+
+int Writer::get_merged_fragment_index(const std::string& contig) {
+  int result = 0;
+  for (auto& separate_contig : ingestion_params_.contigs_to_keep_separate) {
+    if (contig > separate_contig) {
+      result++;
+    } else {
+      break;
+    }
+  }
+  return result;
 }
 
 void Writer::set_contig_fragment_merging(const bool contig_fragment_merging) {

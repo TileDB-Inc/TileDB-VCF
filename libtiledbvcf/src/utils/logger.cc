@@ -129,17 +129,17 @@ void Logger::set_level(const std::string& level_in) {
 }
 
 void Logger::set_logfile(const std::string& filename) {
-  // check for existing file logger
-  if (spdlog::get(FILE_LOGGER) != nullptr) {
-    LOG_WARN("File logger already exists");
+  if (!logfile_.empty()) {
+    LOG_WARN("Already logging messages to {}", logfile_);
     return;
   }
+
+  logfile_ = filename;
 
   try {
     auto file_logger = spdlog::basic_logger_mt(FILE_LOGGER, filename);
     file_logger->set_pattern(LOG_PATTERN);
     file_logger->set_level(level_);
-    file_logger->flush_on(spdlog::level::warn);
   } catch (spdlog::spdlog_ex& e) {
     // log message and exit if file logger cannot be created
     LOG_FATAL(e.what());
@@ -149,6 +149,7 @@ void Logger::set_logfile(const std::string& filename) {
   // (https://github.com/gabime/spdlog/wiki/4.-Sinks)
   auto file_sink = spdlog::get(FILE_LOGGER)->sinks().back();
   logger_->sinks().push_back(file_sink);
+  logger_->flush_on(spdlog::level::info);
 }
 
 bool Logger::debug_enabled() {

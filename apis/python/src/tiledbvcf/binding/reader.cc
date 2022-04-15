@@ -59,6 +59,10 @@ void check_arrow_error(const arrow::Status& st) {
 
 namespace tiledbvcfpy {
 
+void config_logging(const std::string& level, const std::string& logfile) {
+  tiledb_vcf_config_logging(level.c_str(), logfile.c_str());
+}
+
 Reader::Reader()
     : ptr(nullptr, deleter)
     , mem_budget_mb_(2 * 1024) {
@@ -167,6 +171,36 @@ void Reader::set_verbose(bool verbose) {
   check_error(reader, tiledb_vcf_reader_set_verbose(reader, verbose));
 }
 
+void Reader::set_export_to_disk(bool export_to_disk) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_export_to_disk(reader, export_to_disk));
+}
+
+void Reader::set_merge(bool merge) {
+  auto reader = ptr.get();
+  check_error(reader, tiledb_vcf_reader_set_merge(reader, merge));
+}
+
+void Reader::set_output_format(const std::string& output_format) {
+  auto reader = ptr.get();
+  check_error(
+      reader,
+      tiledb_vcf_reader_set_output_format(reader, output_format.c_str()));
+}
+
+void Reader::set_output_path(const std::string& output_path) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_output_path(reader, output_path.c_str()));
+}
+
+void Reader::set_output_dir(const std::string& output_dir) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_output_dir(reader, output_dir.c_str()));
+}
+
 void Reader::read(const bool release_buffs) {
   auto reader = ptr.get();
   alloc_buffers(release_buffs);
@@ -214,10 +248,6 @@ void Reader::alloc_buffers(const bool release_buffs) {
     alloc_size_bytes = 10;  // Some small value
   } else {
     alloc_size_bytes = (budget_mb * 1024 * 1024) / num_buffers;
-    if (alloc_size_bytes < (10 * 1024 * 1024))
-      throw std::runtime_error(
-          "TileDB-VCF-Py: buffer allocation size is below the minimum of 10MB. "
-          "Try increasing the memory budget.");
   }
 
   for (const auto& attr : attributes_) {

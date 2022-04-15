@@ -32,6 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
@@ -225,6 +226,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   create_empty_data_array(
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
   write_metadata_v4(ctx, params.uri, metadata);
+
+  VariantStats::create(ctx, params.uri, params.checksum);
 }
 
 void TileDBVCFDataset::check_attribute_names(
@@ -2022,6 +2025,27 @@ void TileDBVCFDataset::set_tiledb_stats_enabled_vcf_header(
   tiledb_stats_enabled_vcf_header_ = stats_enabled;
 }
 
+void TileDBVCFDataset::consolidate_vcf_header_array_commits(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "commits";
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_data_array_commits(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "commits";
+  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
+}
+
+void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
+  consolidate_data_array_commits(params);
+  consolidate_vcf_header_array_commits(params);
+}
+
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
     const UtilsParams& params) {
   Config cfg;
@@ -2063,6 +2087,35 @@ void TileDBVCFDataset::consolidate_data_array_fragments(
 void TileDBVCFDataset::consolidate_fragments(const UtilsParams& params) {
   consolidate_data_array_fragments(params);
   consolidate_vcf_header_array_fragments(params);
+}
+
+void TileDBVCFDataset::vacuum_vcf_header_array_commits(
+    const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "commits";
+  // block until it's safe to close the array
+  lock_and_join_vcf_header_array();
+  vcf_header_array_->close();
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
+  data_array_ = open_data_array(TILEDB_READ);
+  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_data_array_commits(const UtilsParams& params) {
+  Config cfg;
+  utils::set_tiledb_config(params.tiledb_config, &cfg);
+  cfg["sm.vacuum.mode"] = "commits";
+  // block until it's safe to close the array
+  lock_and_join_data_array();
+  data_array_->close();
+  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
+  data_array_ = open_data_array(TILEDB_READ);
+}
+
+void TileDBVCFDataset::vacuum_commits(const UtilsParams& params) {
+  vacuum_data_array_commits(params);
+  vacuum_vcf_header_array_commits(params);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(

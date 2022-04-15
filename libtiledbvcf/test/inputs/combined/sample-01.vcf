@@ -158,3 +158,4 @@ chr4	210	P1	G	T,A	3	F2	S3=aaa,bbb,ccc	GT	1|0
 chr4	220	P1	T	A,C	4	.	SA=aaa,bbb	GT	1/1
 chr4	240	P1	CC	CG,CT	6	F1	SR=aaa,bbb,ccc	GT	0/1
 chr4	250	P1	G	T,A	7	F2	SV=aaa,bbb,ccc,ddd,eee,.,ggg	GT	1|0
+chr4	300	P1	C	<NON_REF>	9	F1	.	GT	1|0

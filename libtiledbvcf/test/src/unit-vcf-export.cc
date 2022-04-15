@@ -39,6 +39,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 using namespace tiledb::vcf;
 
@@ -1548,7 +1549,8 @@ TEST_CASE(
           std::string::npos) {
         std::string uri = fragmentInfo.fragment_uri(i);
         vfs.remove_dir(uri);
-        vfs.remove_file(uri + ".ok");
+        uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+        vfs.remove_file(uri + ".wrt");
       }
     }
   }
@@ -1783,7 +1785,8 @@ TEST_CASE(
           std::string::npos) {
         std::string uri = fragmentInfo.fragment_uri(i);
         vfs.remove_dir(uri);
-        vfs.remove_file(uri + ".ok");
+        uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
+        vfs.remove_file(uri + ".wrt");
       }
     }
   }
