@@ -99,8 +99,18 @@ class WriterWorkerV4 : public WriterWorker {
   /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
 
+  /** Initialize ingestion tasks, like allele count ingestion. */
   void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
+
+  /** Flush ingestion tasks. */
   void flush_ingestion_tasks();
+
+  /** Drain local heap of anchors into the anchor worker. */
+  void drain_anchors(WriterWorkerV4& anchor_worker);
+
+  /** Move all records in the anchor heap to the local buffers and return the
+   * number of records buffered. */
+  size_t buffer_anchors();
 
  private:
   /** Worker id */
@@ -113,7 +123,7 @@ class WriterWorkerV4 : public WriterWorker {
   const TileDBVCFDataset* dataset_;
 
   /** Vector of VCF files being parsed. */
-  std::vector<std::unique_ptr<VCFV4>> vcfs_;
+  std::vector<std::shared_ptr<VCFV4>> vcfs_;
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
@@ -126,6 +136,9 @@ class WriterWorkerV4 : public WriterWorker {
 
   /** Record heap for sorting records across samples. */
   RecordHeapV4 record_heap_;
+
+  /** Record heap for storing anchors. */
+  RecordHeapV4 anchor_heap_;
 
   VariantStats vs_;
 
@@ -140,7 +153,7 @@ class WriterWorkerV4 : public WriterWorker {
    */
   void insert_record(
       const SafeSharedBCFRec& record,
-      VCFV4* vcf,
+      std::shared_ptr<VCFV4> vcf,
       const std::string& contig,
       const std::string& sample_name);
 

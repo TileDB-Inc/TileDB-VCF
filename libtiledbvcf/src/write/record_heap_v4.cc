@@ -40,7 +40,7 @@ bool RecordHeapV4::empty() const {
 }
 
 void RecordHeapV4::insert(
-    VCFV4* vcf,
+    std::shared_ptr<VCFV4> vcf,
     NodeType type,
     SafeSharedBCFRec record,
     const std::string& contig,
@@ -72,12 +72,27 @@ void RecordHeapV4::insert(
   heap_.push(std::move(node));
 }
 
+void RecordHeapV4::insert(const Node& node) {
+  insert(
+      node.vcf,
+      node.type,
+      node.record,
+      node.contig,
+      node.start_pos,
+      node.end_pos,
+      node.sample_name);
+}
+
 const RecordHeapV4::Node& RecordHeapV4::top() const {
   return *heap_.top();
 }
 
 void RecordHeapV4::pop() {
   heap_.pop();
+}
+
+size_t RecordHeapV4::size() {
+  return heap_.size();
 }
 
 }  // namespace vcf

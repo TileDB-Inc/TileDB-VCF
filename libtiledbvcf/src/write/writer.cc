@@ -669,6 +669,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   }
 
+  // Create a worker for buffering anchors
+  WriterWorkerV4 anchor_worker(params.num_threads);
+  anchor_worker.init(*dataset_, params, samples);
+  anchor_worker.set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+
   // First compose the set of contigs that are nonempty.
   // This can significantly speed things up in the common case that the sample
   // headers list many contigs that do not actually have any records.
@@ -947,6 +952,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
+  uint32_t last_start_pos = 0;
   int last_merged_fragment_index = 0;
   std::string last_region_contig = workers[0]->region().seq_name;
   std::string starting_region_contig_for_merge = workers[0]->region().seq_name;
@@ -1027,6 +1033,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 VariantStats::finalize();
               }
 
+              // Write anchors stored in the anchor worker.
+              anchors_ingested += write_anchors(anchor_worker);
+
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
               query_->set_layout(TILEDB_GLOBAL_ORDER);
@@ -1043,6 +1052,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               // Set the last contig to the current one if we are merging
               last_region_contig = contig;
             }
+
+            // Reset the global order checker moving to a new contig
+            last_start_pos = 0;
           }
 
           worker->buffers().set_buffers(
@@ -1065,6 +1077,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 last,
                 i + 1,
                 tasks.size());
+
+            if (last_start_pos > first) {
+              LOG_FATAL(
+                  "VCF global order check failed: {} > {}",
+                  last_start_pos,
+                  first);
+            }
+            last_start_pos = last;
           }
 
           // Flush ingestion tasks
@@ -1073,7 +1093,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           LOG_DEBUG("No records found for {}", worker->region().seq_name);
         }
         records_ingested += worker->records_buffered();
-        anchors_ingested += worker->anchors_buffered();
+
+        // Drain anchors from the worker into the anchor_worker
+        static_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
@@ -1114,6 +1136,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
 
+  // Write anchors stored in the anchor worker.
+  anchors_ingested += write_anchors(anchor_worker);
+
   VariantStats::finalize();
 
   // Start new query for new fragment for next contig
@@ -1121,6 +1146,31 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   return {records_ingested, anchors_ingested};
+}
+
+size_t Writer::write_anchors(WriterWorkerV4& worker) {
+  // Buffer anchor records in the anchor worker
+  int records = worker.buffer_anchors();
+
+  if (records) {
+    LOG_DEBUG("Write {} anchor records.", records);
+
+    // Reset the query
+    query_.reset(new Query(*ctx_, *array_));
+    query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+    // Set the query buffers
+    worker.buffers().set_buffers(query_.get(), dataset_->metadata().version);
+
+    // Submit and finalize the query
+    auto st = query_->submit();
+    if (st != Query::Status::COMPLETE) {
+      LOG_FATAL("Error submitting TileDB write query: status = {}", st);
+    }
+    query_->finalize();
+  }
+
+  return records;
 }
 
 std::vector<SampleAndIndex> Writer::prepare_sample_list(
