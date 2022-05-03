@@ -41,6 +41,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
+#include "write/writer_worker_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -48,6 +49,9 @@ namespace vcf {
 /* ********************************* */
 /*       AUXILIARY DATATYPES         */
 /* ********************************* */
+
+// Forward declaration
+class WriterWorkerV4;
 
 /** Arguments/params for dataset ingestion. */
 struct IngestionParams {
@@ -463,6 +467,13 @@ class Writer {
    * @return int Merged fragment index
    */
   int get_merged_fragment_index(const std::string& contig);
+
+  /**
+   * @brief Write anchors to a TileDB fragment.
+   *
+   * @param worker Writer worker containing the anchors.
+   */
+  size_t write_anchors(WriterWorkerV4& worker);
 };
 
 }  // namespace vcf
