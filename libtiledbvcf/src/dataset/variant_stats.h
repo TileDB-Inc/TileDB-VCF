@@ -75,7 +75,7 @@ class VariantStats {
    * @param checksum TileDB checksum filter
    */
   static void create(
-      Context& ctx, std::string root_uri, tiledb_filter_type_t checksum);
+      Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum);
 
   /**
    * @brief Open array and create query object.
@@ -86,7 +86,7 @@ class VariantStats {
    * @param ctx TileDB context
    * @param root_uri TileDB-VCF dataset uri
    */
-  static void init(std::shared_ptr<Context> ctx, std::string root_uri);
+  static void init(std::shared_ptr<Context> ctx, const std::string& root_uri);
 
   /**
    * @brief Finalize the currently open write query.
@@ -94,12 +94,43 @@ class VariantStats {
    */
   static void finalize();
 
-  // Close array
   /**
    * @brief Finalize the query and close the array.
    *
    */
   static void close();
+
+  /**
+   * @brief Get the uri for the array
+   *
+   * @param root_uri
+   * @return std::string
+   */
+  static std::string get_uri(const std::string& root_uri);
+
+  /**
+   * @brief Consolidate commits
+   *
+   * @param ctx TileDB context
+   * @param tiledb_config TileDB config
+   * @param root_uri URI for the VCF dataset
+   */
+  static void consolidate_commits(
+      std::shared_ptr<Context> ctx,
+      const std::vector<std::string>& tiledb_config,
+      const std::string& root_uri);
+
+  /**
+   * @brief Consolidate fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param tiledb_config TileDB config
+   * @param root_uri URI for the VCF dataset
+   */
+  static void consolidate_fragment_metadata(
+      std::shared_ptr<Context> ctx,
+      const std::vector<std::string>& tiledb_config,
+      const std::string& root_uri);
 
   //===================================================================
   //= public non-static
