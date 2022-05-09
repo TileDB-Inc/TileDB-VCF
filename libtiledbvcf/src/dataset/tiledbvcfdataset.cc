@@ -2044,6 +2044,7 @@ void TileDBVCFDataset::consolidate_data_array_commits(
 void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   consolidate_data_array_commits(params);
   consolidate_vcf_header_array_commits(params);
+  VariantStats::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
@@ -2066,6 +2067,8 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
     const UtilsParams& params) {
   consolidate_data_array_fragment_metadata(params);
   consolidate_vcf_header_array_fragment_metadata(params);
+  VariantStats::consolidate_fragment_metadata(
+      ctx_, params.tiledb_config, root_uri_);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
