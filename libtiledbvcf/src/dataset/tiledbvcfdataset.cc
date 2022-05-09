@@ -476,8 +476,9 @@ void TileDBVCFDataset::open(
   // Preloading runs on a background stl thread
   // We can ignore the returns because the core TileDB library will cache the
   // non-empty-domain after its loaded the first time
-  preload_data_array_non_empty_domain();
-  preload_vcf_header_array_non_empty_domain();
+  // TODO: revisit preloading after sc-17632 is addressed
+  // preload_data_array_non_empty_domain();
+  // preload_vcf_header_array_non_empty_domain();
 
   // only v2/v3 arrays preload sample list
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
