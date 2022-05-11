@@ -476,8 +476,9 @@ void TileDBVCFDataset::open(
   // Preloading runs on a background stl thread
   // We can ignore the returns because the core TileDB library will cache the
   // non-empty-domain after its loaded the first time
-  preload_data_array_non_empty_domain();
-  preload_vcf_header_array_non_empty_domain();
+  // TODO: revisit preloading after sc-17632 is addressed
+  // preload_data_array_non_empty_domain();
+  // preload_vcf_header_array_non_empty_domain();
 
   // only v2/v3 arrays preload sample list
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3) {
@@ -2044,6 +2045,7 @@ void TileDBVCFDataset::consolidate_data_array_commits(
 void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   consolidate_data_array_commits(params);
   consolidate_vcf_header_array_commits(params);
+  VariantStats::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
@@ -2066,6 +2068,8 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
     const UtilsParams& params) {
   consolidate_data_array_fragment_metadata(params);
   consolidate_vcf_header_array_fragment_metadata(params);
+  VariantStats::consolidate_fragment_metadata(
+      ctx_, params.tiledb_config, root_uri_);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
@@ -2355,12 +2359,12 @@ TileDBVCFDataset::fragment_contig_sample_list_v4() {
         fragment_sample_range.first, fragment_sample_range.second);
     auto contigs = std::make_pair(
         fragment_contig_range.first, fragment_contig_range.second);
-    if (results.find(samples) == results.end()) {
+    if (results.find(contigs) == results.end()) {
       results.emplace(
-          samples, std::vector<std::pair<std::string, std::string>>{contigs});
+          contigs, std::vector<std::pair<std::string, std::string>>{samples});
     } else {
-      auto& vec = results.at(samples);
-      vec.emplace_back(contigs);
+      auto& vec = results.at(contigs);
+      vec.emplace_back(samples);
     }
   }
 

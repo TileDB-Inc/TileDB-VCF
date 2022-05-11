@@ -44,6 +44,9 @@
 namespace tiledb {
 namespace vcf {
 
+// Forward declaration
+struct IngestionParams;
+
 /**
  * A WriterWorker is responsible for parsing a particular genomic region from a
  * set of VCFs, into a set of attribute buffers that will be used to submit

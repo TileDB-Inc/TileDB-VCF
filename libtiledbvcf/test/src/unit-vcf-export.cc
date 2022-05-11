@@ -1530,13 +1530,13 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there were 42 fragments created
+  // Check that there were 44 fragments created
   // Then remove the last fragment
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 42);
+    REQUIRE(fragmentInfo.fragment_num() == 44);
 
     // Find the fragment containing contig chrX and remove it
     std::string remove_contig = "chrX";
@@ -1610,12 +1610,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 42 fragments created
+  // Check that there are only 44 fragments created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 42);
+    REQUIRE(fragmentInfo.fragment_num() == 44);
   }
 
   // Query for record that should now exist
@@ -1679,12 +1679,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 42 fragments
+  // Check that there are only 44 fragments
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 42);
+    REQUIRE(fragmentInfo.fragment_num() == 44);
   }
 
   // Query should still return a single record
@@ -1766,13 +1766,13 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there were 36 fragments created
+  // Check that there were 38 fragments created
   // Then remove the last fragment
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 36);
+    REQUIRE(fragmentInfo.fragment_num() == 38);
 
     // Find the fragment containing contig chrUn and remove it
     std::string remove_contig = "chrUn";
@@ -1846,12 +1846,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 36 fragments created
+  // Check that there are only 38 fragments created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 36);
+    REQUIRE(fragmentInfo.fragment_num() == 38);
   }
 
   // Query for record that should now exist
@@ -1915,12 +1915,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there are only 36 fragments
+  // Check that there are only 38 fragments
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 36);
+    REQUIRE(fragmentInfo.fragment_num() == 38);
   }
 
   // Query should still return a single record
@@ -2003,12 +2003,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there were 2 fragments created
+  // Check that there were 3 fragments created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 2);
+    REQUIRE(fragmentInfo.fragment_num() == 3);
   }
 
   // Query should still return a single record
@@ -2083,12 +2083,12 @@ TEST_CASE(
     writer.ingest_samples();
   }
 
-  // Check that there were 42 fragments created
+  // Check that there were 44 fragments created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 42);
+    REQUIRE(fragmentInfo.fragment_num() == 44);
   }
 
   // Query should still return a single record

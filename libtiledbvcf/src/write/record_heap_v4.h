@@ -48,7 +48,7 @@ class RecordHeapV4 {
         , sample_name() {
     }
 
-    VCFV4* vcf;
+    std::shared_ptr<VCFV4> vcf;
     NodeType type;
     SafeSharedBCFRec record;
     std::string contig;
@@ -62,7 +62,7 @@ class RecordHeapV4 {
   bool empty() const;
 
   void insert(
-      VCFV4* vcf,
+      std::shared_ptr<VCFV4> vcf,
       NodeType type,
       SafeSharedBCFRec record,
       const std::string& contig,
@@ -70,9 +70,13 @@ class RecordHeapV4 {
       uint32_t end_pos,
       const std::string& sample_name);
 
+  void insert(const Node& node);
+
   const Node& top() const;
 
   void pop();
+
+  size_t size();
 
  private:
   /**

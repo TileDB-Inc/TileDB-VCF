@@ -44,10 +44,10 @@ void WriterWorkerV4::init(
   dataset_ = &dataset;
 
   for (const auto& s : samples) {
-    std::unique_ptr<VCFV4> vcf(new VCFV4);
+    auto vcf = std::make_shared<VCFV4>();
     vcf->set_max_record_buff_size(params.max_record_buffer_size);
     vcf->open(s.sample_uri, s.index_uri);
-    vcfs_.push_back(std::move(vcf));
+    vcfs_.push_back(vcf);
   }
 
   for (const auto& attr : dataset.metadata().extra_attributes)
@@ -68,7 +68,7 @@ uint64_t WriterWorkerV4::anchors_buffered() const {
 
 void WriterWorkerV4::insert_record(
     const SafeSharedBCFRec& record,
-    VCFV4* vcf,
+    std::shared_ptr<VCFV4> vcf,
     const std::string& contig,
     const std::string& sample_name) {
   // If a record starts outside the region max, skip it.
@@ -111,7 +111,7 @@ bool WriterWorkerV4::parse(const Region& region) {
     }
     vcf->pop_record();
 
-    insert_record(r, vcf.get(), region.seq_name, vcf->sample_name());
+    insert_record(r, vcf, region.seq_name, vcf->sample_name());
   }
 
   // Start buffering records (which can possibly be incomplete if the buffers
@@ -132,27 +132,49 @@ bool WriterWorkerV4::resume() {
   // are sorted on the `record_heap_` because anchor points may not be ordered
   // for overlapping records.
   //
-  // 1. Pop the top record from `record_heap_` and buffer a number of bytes
-  //    up to the length of the anchor gap.
+  // 1. Pop the top record from `record_heap_`. If the record is a
+  //    NodeType::Record, add it to the attribute buffers.
   // 2. If there are no remaining bytes for the record (an "end node"):
   //     a. Pop the next record from the VCF reader and insert it on the heap.
   //    Else
-  //     a. Re-insert the record on the heap with a start position advanced
-  //        by the length of the anchor gap.
-  //     b. front the next record from the VCF read. If it has a start position
+  //     a. Re-insert the record on the record_heap_ as NodeType::Anchor with a
+  //        start position advanced by the length of the anchor gap.
+  //     b. Insert the record on the anchor_heap_ as NodeType::Anchor with a
+  //        start position advanced by the length of the anchor gap.
+  //     c. front the next record from the VCF read. If it has a start position
   //        less than the start position of the anchor in step (a), insert it
   //        on the heap.
   // 3. Repeat step (1) until the heap is empty.
+  //
+  // When this worker is done processing the region, upstream logic will use an
+  // "anchor worker" to:
+  //
+  // 1. Drain anchors from this anchor_heap_ and add them to the anchor worker's
+  //    anchor_heap_, along with all anchors in the current (or merged) contig.
+  // 2. Drain anchors from the anchor worker's anchor_heap_ and add them to the
+  //    attribute buffers.
+  // 3. Write all anchors for the current (or merged) contig to a TileDB
+  //    fragment.
+  //
   while (!record_heap_.empty()) {
     RecordHeapV4::Node& top =
         const_cast<RecordHeapV4::Node&>(record_heap_.top());
     const std::string sample_name = top.sample_name;
-    VCFV4* vcf = top.vcf;
+    auto vcf = top.vcf;
 
-    // If the top record is inside the region, copy the record into the buffers.
-    // If the record caused the buffers to exceed the max memory allocation,
-    // we'll stop processing at this record.
-    bool overflowed = !buffer_record(top);
+    // If top is type Record and inside the region, copy the record into the
+    // buffers. If the record caused the buffers to exceed the max memory
+    // allocation, we'll stop processing at this record.
+    bool overflowed = false;
+    if (top.type == RecordHeapV4::NodeType::Record) {
+      if (top.start_pos > region_.max) {
+        LOG_FATAL(
+            "WriterWorker4: Top record starts outside of the region: {} > {}",
+            top.start_pos,
+            region_.max);
+      }
+      overflowed = !buffer_record(top);
+    }
 
     // Determine if this is the last node for the record.
     const bool is_end_node =
@@ -184,6 +206,20 @@ bool WriterWorkerV4::resume() {
           vcf,
           RecordHeapV4::NodeType::Anchor,
           top.record,
+          top.contig,
+          anchor_start,
+          top.end_pos,
+          sample_name);
+
+      // Add the anchor to the anchor heap for buffering and writing at the end
+      // of the contig. Duplicate top.record because the worker deletes the
+      // record contents when it is done processing the region.
+      SafeSharedBCFRec dup_record(bcf_dup(top.record.get()), bcf_destroy);
+      bcf_unpack(dup_record.get(), BCF_UN_ALL);
+      anchor_heap_.insert(
+          vcf,
+          RecordHeapV4::NodeType::Anchor,
+          std::move(dup_record),
           top.contig,
           anchor_start,
           top.end_pos,
@@ -225,8 +261,37 @@ void WriterWorkerV4::flush_ingestion_tasks() {
   vs_.flush();
 }
 
+void WriterWorkerV4::drain_anchors(WriterWorkerV4& anchor_worker) {
+  int count = 0;
+
+  // Drain anchors from the anchor_heap and add them to the anchor worker
+  while (!anchor_heap_.empty()) {
+    anchor_worker.anchor_heap_.insert(anchor_heap_.top());
+    anchor_heap_.pop();
+    count++;
+  }
+  if (count) {
+    LOG_DEBUG("Worker {}: Drained {} anchors.", id_, count);
+  }
+}
+
+size_t WriterWorkerV4::buffer_anchors() {
+  buffers_.clear();
+  anchors_buffered_ = 0;
+
+  size_t records = anchor_heap_.size();
+
+  // Drain all records in the anchor_heap and add them to the buffers
+  while (!anchor_heap_.empty()) {
+    buffer_record(anchor_heap_.top());
+    anchor_heap_.pop();
+  }
+
+  return records;
+}
+
 bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
-  VCFV4* vcf = node.vcf;
+  auto vcf = node.vcf;
   bcf1_t* r = node.record.get();
   bcf_hdr_t* hdr = vcf->hdr();
   const std::string contig = vcf->contig_name(r);

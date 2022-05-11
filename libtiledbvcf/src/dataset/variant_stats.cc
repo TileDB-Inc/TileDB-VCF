@@ -35,7 +35,7 @@ namespace tiledb::vcf {
 //===================================================================
 
 void VariantStats::create(
-    Context& ctx, std::string root_uri, tiledb_filter_type_t checksum) {
+    Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("VariantStats: Create array");
 
   // Create filter lists
@@ -97,8 +97,7 @@ void VariantStats::create(
   }
 
   // Create array
-  auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
-  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
+  auto uri = get_uri(root_uri);
   Array::create(uri, schema);
 
   // Write metadata
@@ -106,13 +105,13 @@ void VariantStats::create(
   array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
 }
 
-void VariantStats::init(std::shared_ptr<Context> ctx, std::string root_uri) {
+void VariantStats::init(
+    std::shared_ptr<Context> ctx, const std::string& root_uri) {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Open array");
 
   // Open array
-  auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
-  auto uri = utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
+  auto uri = get_uri(root_uri);
   try {
     array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
     enabled_ = true;
@@ -180,6 +179,31 @@ void VariantStats::close() {
   }
 
   enabled_ = false;
+}
+
+std::string VariantStats::get_uri(const std::string& root_uri) {
+  auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
+  return utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
+}
+
+void VariantStats::consolidate_commits(
+    std::shared_ptr<Context> ctx,
+    const std::vector<std::string>& tiledb_config,
+    const std::string& root_uri) {
+  Config cfg;
+  utils::set_tiledb_config(tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "commits";
+  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+}
+
+void VariantStats::consolidate_fragment_metadata(
+    std::shared_ptr<Context> ctx,
+    const std::vector<std::string>& tiledb_config,
+    const std::string& root_uri) {
+  Config cfg;
+  utils::set_tiledb_config(tiledb_config, &cfg);
+  cfg["sm.consolidation.mode"] = "fragment_meta";
+  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
 }
 
 //===================================================================
