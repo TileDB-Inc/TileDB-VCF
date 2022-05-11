@@ -282,7 +282,7 @@ setup(
         "pybind11>=2.3.0",
         "setuptools_scm_git_archive",
     ],
-    install_requires=["tiledb>=0.11.2"],
+    install_requires=["tiledb>=0.14.4"],
     tests_require=[],
     test_suite="tests",
     ext_modules=get_ext_modules(),

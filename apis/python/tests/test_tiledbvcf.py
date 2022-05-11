@@ -399,7 +399,7 @@ def test_read_filters(test_ds):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [None, None, ["LowQual"], None, None, None],
                 )
             ),
@@ -440,7 +440,7 @@ def test_read_var_length_filters(tmp_path):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["PASS"],
                         ["PASS"],
@@ -493,7 +493,7 @@ def test_read_alleles(test_ds):
             ),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["C", "<NON_REF>"],
                         ["C", "<NON_REF>"],
@@ -533,14 +533,14 @@ def test_read_multiple_alleles(tmp_path):
             "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
                 )
             ),
             "id": pd.Series([".", "rs1497816"]),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["LowQual"], ["LowQual"]],
                 )
             ),
@@ -1163,16 +1163,26 @@ def test_vcf_attrs(tmp_path):
 
 
 def test_query_condition(test_ds):
-    df = test_ds.read(attrs=["id"], query_condition="id == '.'")
+    zero = b".\x00"
+    df = test_ds.read(attrs=["id"], query_condition=f"id == {zero}")
+    assert not df.empty
     assert all(df == ".")
 
-    df = test_ds.read(attrs=["alleles"], query_condition="alleles == '[G, <NON_REF>]'")
-    assert all(df == "[G, <NON_REF>]")
+    alleles = b"G,<NON_REF>\x00"
+    df = test_ds.read(attrs=["alleles"], query_condition=f"alleles == {alleles}")
+    assert not df.empty
+    assert df.size == 6
+
+    df = test_ds.read(attrs=["alleles"], query_condition=f"alleles != {alleles}")
+    assert not df.empty
+    assert df.size == 8
 
     df = test_ds.read(attrs=["pos_start"], query_condition="pos_start > 13400")
+    assert not df.empty
     assert all(df > 13400)
 
     df = test_ds.read(attrs=["pos_end"], query_condition="9000 <= pos_end < 13400")
+    assert not df.empty
     assert all(9000 <= df)
     assert all(df < 13400)
 
@@ -1180,5 +1190,6 @@ def test_query_condition(test_ds):
         attrs=["pos_start", "pos_end"],
         query_condition="pos_start < 13000 and pos_end < 14000",
     )
+    assert not df.empty
     assert all(df["pos_start"] < 14000)
     assert all(df["pos_end"] < 13000)

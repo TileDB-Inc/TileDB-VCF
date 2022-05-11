@@ -144,7 +144,7 @@ void Reader::set_memory_budget(int32_t memory_mb) {
 
 void Reader::set_query_condition(py::object pyqc) {
   auto reader = ptr.get();
-  auto qc = (py::capsule)pyqc.attr("get_capsule")();
+  auto qc = (py::capsule)pyqc.attr("__capsule__")();
   check_error(reader, tiledb_vcf_reader_set_query_condition(reader, qc));
 }
 
