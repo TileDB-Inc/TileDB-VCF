@@ -44,7 +44,7 @@ option(ENABLE_ARROW_EXPORT "Installs an extra header for exporting in-memory res
 
 # Set C++11 as required standard for all C++ targets (required to use the TileDB
 # C++ API).
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 

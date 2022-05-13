@@ -2302,12 +2302,12 @@ TileDBVCFDataset::fragment_contig_sample_list_v4() {
         fragment_sample_range.first, fragment_sample_range.second);
     auto contigs = std::make_pair(
         fragment_contig_range.first, fragment_contig_range.second);
-    if (results.find(samples) == results.end()) {
+    if (results.find(contigs) == results.end()) {
       results.emplace(
-          samples, std::vector<std::pair<std::string, std::string>>{contigs});
+          contigs, std::vector<std::pair<std::string, std::string>>{samples});
     } else {
-      auto& vec = results.at(samples);
-      vec.emplace_back(contigs);
+      auto& vec = results.at(contigs);
+      vec.emplace_back(samples);
     }
   }
 
