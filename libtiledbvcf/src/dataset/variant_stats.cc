@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include <tiledb/tiledb_experimental>  // for the new group api
+
 #include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
@@ -103,6 +105,10 @@ void VariantStats::create(
   // Write metadata
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
+
+  // Add array to root group
+  Group root_group(ctx, root_uri, TILEDB_WRITE);
+  root_group.add_member(VARIANT_STATS_ARRAY, true);
 }
 
 void VariantStats::init(
@@ -183,7 +189,7 @@ void VariantStats::close() {
 
 std::string VariantStats::get_uri(const std::string& root_uri) {
   auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
-  return utils::uri_join(root_uri, VARIANT_STATS_URI, delim);
+  return utils::uri_join(root_uri, VARIANT_STATS_ARRAY, delim);
 }
 
 void VariantStats::consolidate_commits(

@@ -170,7 +170,7 @@ class VariantStats {
   //===================================================================
 
   // Array config
-  inline static const std::string VARIANT_STATS_URI = "variant_stats";
+  inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
 
   // Array version
   inline static const int VARIANT_STATS_VERSION = 1;

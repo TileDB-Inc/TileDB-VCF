@@ -30,6 +30,8 @@
 #include <string>
 #include <vector>
 
+#include <tiledb/tiledb_experimental>  // for the new group api
+
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "dataset/variant_stats.h"
@@ -208,6 +210,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
     throw std::runtime_error(
         "Cannot create TileDB-VCF dataset; directory exists.");
   }
+
+  // Create root group, which creates the root directory
   create_group(ctx, params.uri);
 
   Metadata metadata;
@@ -222,12 +226,17 @@ void TileDBVCFDataset::create(const CreationParams& params) {
     check_attribute_names(metadata.extra_attributes);
   }
 
+  // Create arrays and subgroups and add them to the root group
   create_empty_metadata(ctx, params.uri, metadata, params.checksum);
   create_empty_data_array(
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
+  VariantStats::create(ctx, params.uri, params.checksum);
+
   write_metadata_v4(ctx, params.uri, metadata);
 
-  VariantStats::create(ctx, params.uri, params.checksum);
+  // Log the group structure
+  tiledb::Group group(ctx, params.uri, TILEDB_READ);
+  LOG_INFO("TileDB Groups: \n{}", group.dump(true));
 }
 
 void TileDBVCFDataset::check_attribute_names(
@@ -262,8 +271,18 @@ void TileDBVCFDataset::create_empty_metadata(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum) {
-  create_group(ctx, utils::uri_join(root_uri, "metadata"));
+  // Create the metadata group and arrays
+  auto group_uri = utils::uri_join(root_uri, METADATA_GROUP);
+  create_group(ctx, group_uri);
   create_sample_header_array(ctx, root_uri, checksum);
+
+  // Add arrays to the metadata group
+  Group group(ctx, group_uri, TILEDB_WRITE);
+  group.add_member(VCF_HEADER_ARRAY, true);
+
+  // Add the metadata group to the root group
+  Group root_group(ctx, root_uri, TILEDB_WRITE);
+  root_group.add_member(METADATA_GROUP, true);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
@@ -348,6 +367,10 @@ void TileDBVCFDataset::create_empty_data_array(
   }
 
   Array::create(data_array_uri(root_uri), schema);
+
+  // Add the array to the root group
+  tiledb::Group root_group(ctx, root_uri, TILEDB_WRITE);
+  root_group.add_member(DATA_ARRAY, true);
 }
 
 void TileDBVCFDataset::create_sample_header_array(
@@ -1857,7 +1880,7 @@ std::string TileDBVCFDataset::data_array_uri(
   if (check_for_cloud && cloud_dataset(root_uri))
     delimiter = '-';
 
-  return utils::uri_join(root_uri, "data", delimiter);
+  return utils::uri_join(root_uri, DATA_ARRAY, delimiter);
 }
 
 std::string TileDBVCFDataset::vcf_headers_uri(
@@ -1869,8 +1892,8 @@ std::string TileDBVCFDataset::vcf_headers_uri(
   if (check_for_cloud && cloud_dataset(root_uri))
     delimiter = '-';
 
-  auto grp = utils::uri_join(root_uri, "metadata", delimiter);
-  return utils::uri_join(grp, "vcf_headers", delimiter);
+  auto grp = utils::uri_join(root_uri, METADATA_GROUP, delimiter);
+  return utils::uri_join(grp, VCF_HEADER_ARRAY, delimiter);
 }
 
 bool TileDBVCFDataset::cloud_dataset(const std::string& root_uri) {

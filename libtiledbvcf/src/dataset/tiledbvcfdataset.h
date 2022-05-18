@@ -692,6 +692,10 @@ class TileDBVCFDataset {
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
 
+  inline static const std::string DATA_ARRAY = "data";
+  inline static const std::string METADATA_GROUP = "metadata";
+  inline static const std::string VCF_HEADER_ARRAY = "vcf_headers";
+
   /** The URI of the dataset root directory (which is a TileDB group). */
   std::string root_uri_;
 
