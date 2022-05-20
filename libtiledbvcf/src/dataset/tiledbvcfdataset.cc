@@ -193,23 +193,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
 
-  VFS vfs(ctx);
-
   check_attribute_names(params.extra_attributes);
-
-  if (vfs.is_dir(params.uri)) {
-    // If the directory exists, check if it's a dataset. If so, return with no
-    // error (allows for multiple no-op create calls).
-    if (vfs.is_dir(data_array_uri(params.uri))) {
-      LOG_TRACE("Dataset exists: {}", params.uri);
-      return;
-    }
-
-    LOG_ERROR(
-        "Cannot create TileDB-VCF dataset; directory exists: {}", params.uri);
-    throw std::runtime_error(
-        "Cannot create TileDB-VCF dataset; directory exists.");
-  }
 
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
@@ -271,18 +255,25 @@ void TileDBVCFDataset::create_empty_metadata(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum) {
-  // Create the metadata group and arrays
-  auto group_uri = utils::uri_join(root_uri, METADATA_GROUP);
-  create_group(ctx, group_uri);
+  create_group(ctx, metadata_group_uri(root_uri));
   create_sample_header_array(ctx, root_uri, checksum);
 
-  // Add arrays to the metadata group
-  Group group(ctx, group_uri, TILEDB_WRITE);
-  group.add_member(VCF_HEADER_ARRAY, true);
+  // Group assests use full paths for tiledb cloud, relative paths otherwise
+  bool relative = !cloud_dataset(root_uri);
 
   // Add the metadata group to the root group
+  auto group_uri = metadata_group_uri(root_uri, relative);
+  LOG_DEBUG("Adding group '{}' to group '{}'", group_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(METADATA_GROUP, true);
+  root_group.add_member(group_uri, relative, METADATA_GROUP);
+
+  // Add arrays to the root group
+  // We create the metadata group to maintain the existing directory structure,
+  // but add the vcf_header array to the root group to simplify array opening.
+  Group group(ctx, root_uri, TILEDB_WRITE);
+  auto array_uri = vcf_headers_uri(root_uri, relative);
+  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+  group.add_member(array_uri, relative, VCF_HEADER_ARRAY);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
@@ -369,8 +360,12 @@ void TileDBVCFDataset::create_empty_data_array(
   Array::create(data_array_uri(root_uri), schema);
 
   // Add the array to the root group
-  tiledb::Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(DATA_ARRAY, true);
+  // Group assests use full paths for tiledb cloud, relative paths otherwise
+  bool relative = !cloud_dataset(root_uri);
+  auto array_uri = data_array_uri(root_uri, relative);
+  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+  Group root_group(ctx, root_uri, TILEDB_WRITE);
+  root_group.add_member(array_uri, relative, DATA_ARRAY);
 }
 
 void TileDBVCFDataset::create_sample_header_array(
@@ -796,51 +791,42 @@ std::string TileDBVCFDataset::root_uri() const {
   return root_uri_;
 }
 
-std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
-    tiledb_query_type_t query_type) {
+std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
+    tiledb_query_type_t query_type,
+    const std::string& member_name,
+    const std::string& uri_path,
+    const std::string& legacy_uri) {
   std::unique_ptr<Array> array = nullptr;
-  try {
-    // First let's try to open the metadata using proper cloud detection
-    std::string array_uri = vcf_headers_uri(root_uri_, true);
-    // Set up and submit query
-    array.reset(new Array(*ctx_, array_uri, query_type));
-  } catch (const tiledb::TileDBError& ex) {
-    try {
-      // Fall back to use s3 style paths, this handle datasets that are
-      // registered on the cloud but not with the proper naming scheme. Allows
-      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
-      std::string array_uri = vcf_headers_uri(root_uri_, false);
+  std::string array_uri = uri_path;
 
-      // Set up and submit query
-      array = std::unique_ptr<Array>(new Array(*ctx_, array_uri, query_type));
-    } catch (const tiledb::TileDBError& ex) {
-      throw std::runtime_error(
-          "Cannot open TileDB-VCF vcf headers; dataset '" + root_uri_ +
-          "' or its metadata does not exist. TileDB error message: " +
-          std::string(ex.what()));
+  try {
+    tiledb::Group group(*ctx_, root_uri_, TILEDB_READ);
+    auto member = group.member(member_name);
+    array_uri = member.uri();
+
+    // If the group member uri is a cloud uri and the root uri is not,
+    // use the uri_path instead of the group member uri
+    if (cloud_dataset(array_uri) && !cloud_dataset(root_uri_)) {
+      array_uri = uri_path;
+      LOG_DEBUG(
+          "Override group uri '{}'. Open {} using uri path '{}'",
+          member.uri(),
+          member_name,
+          array_uri);
+    } else {
+      LOG_DEBUG("Open {} using group uri '{}'", member_name, array_uri);
     }
+  } catch (const tiledb::TileDBError& ex) {
+    LOG_DEBUG("Open {} using uri path '{}'", member_name, array_uri);
   }
 
-  return array;
-}
-
-std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
-    tiledb_query_type_t query_type) {
-  std::shared_ptr<Array> array = nullptr;
   try {
-    // First let's try to open the metadata using proper cloud detection
-    std::string array_uri = data_array_uri(root_uri_, true);
-    // Set up and submit query
-    array.reset(new Array(*ctx_, array_uri, query_type));
+    // Open the array with the uri detemined above
+    array = std::unique_ptr<Array>(new Array(*ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
     try {
-      // Fall back to use s3 style paths, this handle datasets that are
-      // registered on the cloud but not with the proper naming scheme. Allows
-      // tiledb://namespace/s3://bucket/tiledbvcf_array style access
-      std::string array_uri = data_array_uri(root_uri_, false);
-
-      // Set up and submit query
-      array.reset(new Array(*ctx_, array_uri, query_type));
+      // Last chance, try the legacy uri to support legacy cloud arrays
+      array = std::unique_ptr<Array>(new Array(*ctx_, legacy_uri, query_type));
     } catch (const tiledb::TileDBError& ex) {
       throw std::runtime_error(
           "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
@@ -850,6 +836,24 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
   }
 
   return array;
+}
+
+std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
+    tiledb_query_type_t query_type) {
+  return open_array(
+      query_type,
+      VCF_HEADER_ARRAY,
+      vcf_headers_uri(root_uri_),
+      vcf_headers_uri(root_uri_, false, true));
+}
+
+std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
+    tiledb_query_type_t query_type) {
+  return open_array(
+      query_type,
+      DATA_ARRAY,
+      data_array_uri(root_uri_),
+      data_array_uri(root_uri_, false, true));
 }
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
@@ -1872,28 +1876,25 @@ const char* TileDBVCFDataset::sample_name(const int32_t index) const {
 }
 
 std::string TileDBVCFDataset::data_array_uri(
-    const std::string& root_uri, bool check_for_cloud) {
-  char delimiter = '/';
-  // Check if we want to use the cloud array naming format which does not
-  // support slashes This will be replaced in the future with more proper
-  // group support in the cloud
-  if (check_for_cloud && cloud_dataset(root_uri))
-    delimiter = '-';
+    const std::string& root_uri, bool relative, bool legacy) {
+  char delimiter = legacy ? '-' : '/';
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, DATA_ARRAY, delimiter);
+}
 
-  return utils::uri_join(root_uri, DATA_ARRAY, delimiter);
+std::string TileDBVCFDataset::metadata_group_uri(
+    const std::string& root_uri, bool relative, bool legacy) {
+  char delimiter = legacy ? '-' : '/';
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, METADATA_GROUP, delimiter);
 }
 
 std::string TileDBVCFDataset::vcf_headers_uri(
-    const std::string& root_uri, bool check_for_cloud) {
-  char delimiter = '/';
-  // Check if we want to use the cloud array naming format which does not
-  // support slashes This will be replaced in the future with more proper
-  // group support in the cloud
-  if (check_for_cloud && cloud_dataset(root_uri))
-    delimiter = '-';
-
-  auto grp = utils::uri_join(root_uri, METADATA_GROUP, delimiter);
-  return utils::uri_join(grp, VCF_HEADER_ARRAY, delimiter);
+    const std::string& root_uri, bool relative, bool legacy) {
+  char delimiter = legacy ? '-' : '/';
+  auto root = relative ? "" : root_uri;
+  auto group = metadata_group_uri(root, relative, legacy);
+  return utils::uri_join(group, VCF_HEADER_ARRAY, delimiter);
 }
 
 bool TileDBVCFDataset::cloud_dataset(const std::string& root_uri) {

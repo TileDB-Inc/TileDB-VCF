@@ -107,8 +107,12 @@ void VariantStats::create(
   array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
 
   // Add array to root group
+  // Group assests use full paths for tiledb cloud, relative paths otherwise
+  auto relative = !utils::starts_with(root_uri, "tiledb://");
+  auto array_uri = get_uri(root_uri, relative);
+  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(VARIANT_STATS_ARRAY, true);
+  root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
 }
 
 void VariantStats::init(
@@ -187,9 +191,9 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
-std::string VariantStats::get_uri(const std::string& root_uri) {
-  auto delim = utils::starts_with(root_uri, "tiledb://") ? '-' : '/';
-  return utils::uri_join(root_uri, VARIANT_STATS_ARRAY, delim);
+std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, VARIANT_STATS_ARRAY);
 }
 
 void VariantStats::consolidate_commits(

@@ -106,7 +106,8 @@ class VariantStats {
    * @param root_uri
    * @return std::string
    */
-  static std::string get_uri(const std::string& root_uri);
+  static std::string get_uri(
+      const std::string& root_uri, bool relative = false);
 
   /**
    * @brief Consolidate commits
