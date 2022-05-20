@@ -220,7 +220,13 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   // Log the group structure
   tiledb::Group group(ctx, params.uri, TILEDB_READ);
-  LOG_INFO("TileDB Groups: \n{}", group.dump(true));
+  LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
+
+  for (uint64_t i = 0; i < group.member_count(); i++) {
+    auto member = group.member(i);
+    LOG_DEBUG(
+        "Group member name='{}' uri='{}'", member.name().value(), member.uri());
+  }
 }
 
 void TileDBVCFDataset::check_attribute_names(
@@ -261,19 +267,26 @@ void TileDBVCFDataset::create_empty_metadata(
   // Group assests use full paths for tiledb cloud, relative paths otherwise
   bool relative = !cloud_dataset(root_uri);
 
-  // Add the metadata group to the root group
-  auto group_uri = metadata_group_uri(root_uri, relative);
-  LOG_DEBUG("Adding group '{}' to group '{}'", group_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(group_uri, relative, METADATA_GROUP);
-
   // Add arrays to the root group
   // We create the metadata group to maintain the existing directory structure,
   // but add the vcf_header array to the root group to simplify array opening.
-  Group group(ctx, root_uri, TILEDB_WRITE);
+  Group root_group(ctx, root_uri, TILEDB_WRITE);
   auto array_uri = vcf_headers_uri(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
-  group.add_member(array_uri, relative, VCF_HEADER_ARRAY);
+  LOG_DEBUG(
+      "Adding array name='{}' uri='{}' to group uri='{}'",
+      VCF_HEADER_ARRAY,
+      array_uri,
+      root_uri);
+  root_group.add_member(array_uri, relative, VCF_HEADER_ARRAY);
+
+  // Add the metadata group to the root group
+  auto group_uri = metadata_group_uri(root_uri, relative);
+  LOG_DEBUG(
+      "Adding group name='{}' uri='{}' to group uri='{}'",
+      METADATA_GROUP,
+      group_uri,
+      root_uri);
+  root_group.add_member(group_uri, relative, METADATA_GROUP);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
@@ -363,7 +376,11 @@ void TileDBVCFDataset::create_empty_data_array(
   // Group assests use full paths for tiledb cloud, relative paths otherwise
   bool relative = !cloud_dataset(root_uri);
   auto array_uri = data_array_uri(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+  LOG_DEBUG(
+      "Adding array name='{}' uri='{}' to group uri='{}'",
+      DATA_ARRAY,
+      array_uri,
+      root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, DATA_ARRAY);
 }
@@ -799,25 +816,29 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
   std::unique_ptr<Array> array = nullptr;
   std::string array_uri = uri_path;
 
+  LOG_DEBUG(
+      "Lookup member name='{}' in group uri='{}'", member_name, root_uri_);
+
   try {
     tiledb::Group group(*ctx_, root_uri_, TILEDB_READ);
     auto member = group.member(member_name);
     array_uri = member.uri();
+    LOG_DEBUG("Found group member name='{}' uri='{}'", member_name, array_uri);
 
     // If the group member uri is a cloud uri and the root uri is not,
     // use the uri_path instead of the group member uri
     if (cloud_dataset(array_uri) && !cloud_dataset(root_uri_)) {
       array_uri = uri_path;
       LOG_DEBUG(
-          "Override group uri '{}'. Open {} using uri path '{}'",
+          "Override group uri '{}'. Open '{}' using uri path '{}'",
           member.uri(),
           member_name,
           array_uri);
     } else {
-      LOG_DEBUG("Open {} using group uri '{}'", member_name, array_uri);
+      LOG_DEBUG("Open '{}' using group uri '{}'", member_name, array_uri);
     }
   } catch (const tiledb::TileDBError& ex) {
-    LOG_DEBUG("Open {} using uri path '{}'", member_name, array_uri);
+    LOG_DEBUG("Open '{}' using uri path '{}'", member_name, array_uri);
   }
 
   try {
