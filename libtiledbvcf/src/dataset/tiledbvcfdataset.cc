@@ -277,63 +277,85 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
   schema.set_allows_dups(allow_duplicates);
 
+  // Create filter lists
+  FilterList contig_coord_filters(ctx);
+  FilterList pos_coord_filters(ctx);
+  FilterList sample_coord_filters(ctx);
+  FilterList str_attr_filters(ctx);
+  FilterList int_attr_filters(ctx);
+  FilterList float_attr_filters(ctx);
+  FilterList byte_attr_filters(ctx);
+
+  Filter compression(ctx, TILEDB_FILTER_ZSTD);
+  compression.set_option(TILEDB_COMPRESSION_LEVEL, 4);
+
+  contig_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
+  pos_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
+      .add_filter(compression);
+  sample_coord_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY});
+
+  str_attr_filters.add_filter(compression);
+  int_attr_filters.add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE})
+      .add_filter(compression);
+  float_attr_filters.add_filter(compression);
+  byte_attr_filters.add_filter(compression);
+
+  auto offsets_filters = pos_coord_filters;
+
+  if (checksum != TILEDB_FILTER_NONE) {
+    Filter checksum_filter(ctx, checksum);
+
+    // contig_coord_filters.add_filter(checksum_filter);
+    pos_coord_filters.add_filter(checksum_filter);
+    // sample_coord_filters.add_filter(checksum_filter);
+    str_attr_filters.add_filter(checksum_filter);
+    int_attr_filters.add_filter(checksum_filter);
+    float_attr_filters.add_filter(checksum_filter);
+    byte_attr_filters.add_filter(checksum_filter);
+  }
+  schema.set_offsets_filter_list(offsets_filters);
+
+  // Create domain and add dimensions
   Domain domain(ctx);
   {
+    auto contig = Dimension::create(
+        ctx, DimensionNames::V4::contig, TILEDB_STRING_ASCII, nullptr, nullptr);
+    contig.set_filter_list(contig_coord_filters);  // d0
+
     const uint32_t start_pos_min = 0;
     const uint32_t start_pos_max = std::numeric_limits<uint32_t>::max() - 1;
     const uint32_t start_pos_extent = start_pos_max - start_pos_min + 1;
-    auto sample = Dimension::create(
-        ctx, DimensionNames::V4::sample, TILEDB_STRING_ASCII, nullptr, nullptr);
-    auto contig = Dimension::create(
-        ctx, DimensionNames::V4::contig, TILEDB_STRING_ASCII, nullptr, nullptr);
     auto start_pos = Dimension::create<uint32_t>(
         ctx,
         DimensionNames::V4::start_pos,
         {{start_pos_min, start_pos_max}},
         start_pos_extent);
+    start_pos.set_filter_list(pos_coord_filters);  // d1
+
+    auto sample = Dimension::create(
+        ctx, DimensionNames::V4::sample, TILEDB_STRING_ASCII, nullptr, nullptr);
+    sample.set_filter_list(sample_coord_filters);  // d2
+
     domain.add_dimensions(contig, start_pos, sample);
   }
   schema.set_domain(domain);
-  auto offsets_filter_list = default_offsets_filter_list(ctx);
-
-  // Set coords filters
-  FilterList coords_filter_list(ctx);
-  coords_filter_list.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
-
-  // Create a byteshuffle -> zstd filter list used by a few attributes
-  FilterList byteshuffle_zstd_filters(ctx);
-  byteshuffle_zstd_filters.add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
-
-  auto attribute_filter_list = default_attribute_filter_list(ctx);
-  if (checksum != TILEDB_FILTER_NONE) {
-    Filter checksum_filter(ctx, checksum);
-
-    attribute_filter_list.add_filter(checksum_filter);
-    byteshuffle_zstd_filters.add_filter(checksum_filter);
-    coords_filter_list.add_filter(checksum_filter);
-    offsets_filter_list.add_filter(checksum_filter);
-  }
-  schema.set_coords_filter_list(coords_filter_list);
-  schema.set_offsets_filter_list(offsets_filter_list);
 
   auto real_start_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V4::real_start_pos, byteshuffle_zstd_filters);
+      ctx, AttrNames::V4::real_start_pos, int_attr_filters);  // a0
   auto end_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V4::end_pos, byteshuffle_zstd_filters);
-  auto qual =
-      Attribute::create<float>(ctx, AttrNames::V4::qual, attribute_filter_list);
+      ctx, AttrNames::V4::end_pos, int_attr_filters);  // a1
+  auto qual = Attribute::create<float>(
+      ctx, AttrNames::V4::qual, float_attr_filters);  // a2
   auto alleles = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V4::alleles, attribute_filter_list);
+      ctx, AttrNames::V4::alleles, byte_attr_filters);  // a3
   auto id = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V4::id, attribute_filter_list);
+      ctx, AttrNames::V4::id, byte_attr_filters);  // a4
   auto filters_ids = Attribute::create<std::vector<int32_t>>(
-      ctx, AttrNames::V4::filter_ids, byteshuffle_zstd_filters);
+      ctx, AttrNames::V4::filter_ids, int_attr_filters);  // a5
   auto info = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V4::info, attribute_filter_list);
+      ctx, AttrNames::V4::info, byte_attr_filters);  // a6
   auto fmt = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V4::fmt, attribute_filter_list);
+      ctx, AttrNames::V4::fmt, byte_attr_filters);  // a7
   schema.add_attributes(
       real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
@@ -343,8 +365,8 @@ void TileDBVCFDataset::create_empty_data_array(
     if (used.count(attr))
       continue;
     used.insert(attr);
-    schema.add_attribute(Attribute::create<std::vector<uint8_t>>(
-        ctx, attr, attribute_filter_list));
+    schema.add_attribute(
+        Attribute::create<std::vector<uint8_t>>(ctx, attr, byte_attr_filters));
   }
 
   Array::create(data_array_uri(root_uri), schema);
