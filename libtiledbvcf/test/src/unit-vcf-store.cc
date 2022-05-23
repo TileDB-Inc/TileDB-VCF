@@ -58,8 +58,10 @@ TEST_CASE("TileDB-VCF: Test create", "[tiledbvcf][ingest]") {
   args.extra_attributes = {"a1", "a2"};
   REQUIRE_THROWS(TileDBVCFDataset::create(args));
 
+  if (vfs.is_dir(dataset_uri))
+    vfs.remove_dir(dataset_uri);
+
   args.extra_attributes = {"info_a1", "fmt_a2"};
-  TileDBVCFDataset::create(args);
   REQUIRE_NOTHROW(TileDBVCFDataset::create(args));
 
   TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));

@@ -692,6 +692,10 @@ class TileDBVCFDataset {
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
 
+  inline static const std::string DATA_ARRAY = "data";
+  inline static const std::string METADATA_GROUP = "metadata";
+  inline static const std::string VCF_HEADER_ARRAY = "vcf_headers";
+
   /** The URI of the dataset root directory (which is a TileDB group). */
   std::string root_uri_;
 
@@ -912,11 +916,15 @@ class TileDBVCFDataset {
 
   /** Returns the URI of the sample data array for the dataset. */
   static std::string data_array_uri(
-      const std::string& root_uri, bool check_for_cloud = true);
+      const std::string& root_uri, bool relative = false, bool legacy = false);
+
+  /** Returns the URI of the metadata group for the dataset. */
+  static std::string metadata_group_uri(
+      const std::string& root_uri, bool relative = false, bool legacy = false);
 
   /** Returns the URI of the VCF header data array for the dataset. */
   static std::string vcf_headers_uri(
-      const std::string& root_uri, bool check_for_cloud = true);
+      const std::string& root_uri, bool relative = false, bool legacy = false);
 
   /** Returns true if the array starts with the tiledb:// URI **/
   static bool cloud_dataset(const std::string& root_uri);
@@ -940,6 +948,25 @@ class TileDBVCFDataset {
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
   void load_field_type_maps_v4(const bcf_hdr_t* hdr) const;
+
+  /**
+   * @brief Open an array using the uri from the root group member with name
+   * `member_name`. If the group member does not exist or is a tiledb:// uri
+   *  when the root uri is not a tiledb:// uri, open the array at the
+   * `uri_path`. If these uris fail, try the `legacy_uri` before throwing and
+   * error.
+   *
+   * @param query_type query type
+   * @param member_name member name in root group
+   * @param uri_path non tiledb:// uri for the array
+   * @param legacy_uri legacy tiledb:// uri
+   * @return std::unique_ptr<tiledb::Array> unique ptr to open array
+   */
+  std::unique_ptr<tiledb::Array> open_array(
+      tiledb_query_type_t query_type,
+      const std::string& member_name,
+      const std::string& uri_path,
+      const std::string& legacy_uri);
 
   /**
    * Open the VCF header array
