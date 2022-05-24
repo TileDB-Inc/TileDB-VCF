@@ -1540,6 +1540,19 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_keep_separate(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
     tiledb_vcf_writer_t* writer, const char** contigs, const uint64_t len);
 
+/**
+ * Set contig ingestion mode.
+ *  0 = all contigs
+ *  1 = separate contigs (chromosomes)
+ *  2 = merged contigs (pseudo-contigs)
+ *
+ * @param writer VCF writer object
+ * @param contig_mode contig ingestion mode
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_set_contig_mode(tiledb_vcf_writer_t* writer, int contig_mode);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

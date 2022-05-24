@@ -1370,5 +1370,10 @@ void Writer::set_contigs_to_allow_merging(
   ingestion_params_.contigs_to_allow_merging = contigs_to_allow_merging;
 }
 
+void Writer::set_contig_mode(int contig_mode) {
+  ingestion_params_.contig_mode =
+      static_cast<IngestionParams::ContigMode>(contig_mode);
+}
+
 }  // namespace vcf
 }  // namespace tiledb

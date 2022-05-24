@@ -215,6 +215,11 @@ class Writer {
   void set_contigs_to_allow_merging(
       const std::vector<std::string>& contigs_to_allow_merging);
 
+  /**
+    [Store only] Set contig ingestion mode
+  */
+  void set_contig_mode(int contig_mode);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

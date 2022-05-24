@@ -323,4 +323,10 @@ void Writer::set_contigs_to_allow_merging(
           writer, contigs.data(), contigs.size()));
 }
 
+void Writer::set_contig_mode(int contig_mode) {
+  auto writer = ptr.get();
+
+  check_error(writer, tiledb_vcf_writer_set_contig_mode(writer, contig_mode));
+}
+
 }  // namespace tiledbvcfpy
