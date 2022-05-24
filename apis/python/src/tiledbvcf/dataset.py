@@ -433,6 +433,7 @@ class Dataset(object):
         contig_fragment_merging=True,
         contigs_to_keep_separate=None,
         contigs_to_allow_merging=None,
+        contig_mode="all",
         thread_task_size=None,
         memory_budget_mb=None,
         record_limit=None,
@@ -459,6 +460,7 @@ class Dataset(object):
         :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
         :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.
         :param list contigs_to_allow_merging: List of contigs that should be allowed to be merged into combined fragments.
+        :param list contig_mode: Select which contigs are ingested: 'all', 'separate', or 'merged' contigs (default 'all').
 
         :param int thread_task_size: Set the max length (# columns) of an
             ingestion task. Affects load balancing of ingestion work across
@@ -537,6 +539,13 @@ class Dataset(object):
                 raise Exception("contigs_to_allow_merging must be a list")
 
             self.writer.set_contigs_to_allow_merging(contigs_to_allow_merging)
+
+        if contig_mode is not None:
+            contig_mode_map = {"all": 0, "separate": 1, "merged": 2}
+            if contig_mode not in contig_mode_map:
+                raise Exception("contig_mode must be 'all', 'separate' or 'merged'")
+
+            self.writer.set_contig_mode(contig_mode_map[contig_mode])
 
         self.writer.set_samples(",".join(sample_uris))
 

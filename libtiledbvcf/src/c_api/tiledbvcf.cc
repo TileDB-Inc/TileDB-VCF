@@ -1583,6 +1583,17 @@ int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_contig_mode(
+    tiledb_vcf_writer_t* writer, int contig_mode) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(writer, writer->writer_->set_contig_mode(contig_mode)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

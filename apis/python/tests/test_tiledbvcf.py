@@ -1014,6 +1014,44 @@ def test_ingest_merging(tmp_path):
     assert ds.count(regions=["chrX:9032893-9032893"]) == 1
 
 
+def test_ingest_mode_merged(tmp_path):
+    # tiledbvcf.config_logging("debug")
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_merging")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds.create_dataset()
+    # ingest only merged contigs (pseudo-contigs)
+    ds.ingest_samples(samples, contig_mode="merged")
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 19
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 0
+
+
+def test_ingest_mode_separate(tmp_path):
+    # tiledbvcf.config_logging("debug")
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset_merging")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [
+        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
+    ]
+    ds.create_dataset()
+    # ingest only merged contigs (pseudo-contigs)
+    ds.ingest_samples(
+        samples, contigs_to_keep_separate=["chr1"], contig_mode="separate"
+    )
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 17
+    assert ds.count(regions=["chrX:9032893-9032893"]) == 0
+
+
 def test_vcf_attrs(tmp_path):
     # Create the dataset with vcf info and fmt attributes
     uri = os.path.join(tmp_path, "vcf_attrs_dataset")

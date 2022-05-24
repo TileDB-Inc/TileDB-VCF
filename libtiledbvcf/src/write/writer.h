@@ -355,6 +355,9 @@ class Writer {
   void set_contigs_to_allow_merging(
       const std::set<std::string>& contigs_to_allow_merging);
 
+  /** Set contig ingestion mode. */
+  void set_contig_mode(int contig_mode);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
