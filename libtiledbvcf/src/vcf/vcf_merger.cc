@@ -342,7 +342,8 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
       const char* key_str = hdr_->id[BCF_DT_ID][key].key;
 
       auto [number, type, values] = get_number_type_values(key, BCF_HL_INFO);
-      auto [missing, _] = get_missing_vector_end(type);
+      auto [missing, vector_end] = get_missing_vector_end(type);
+      (void)vector_end;  // unused
 
       int values_read = bcf_get_info_values(
           hdrs_[sample_num], rec.get(), key_str, (void**)(&dst_), &ndst_, type);
