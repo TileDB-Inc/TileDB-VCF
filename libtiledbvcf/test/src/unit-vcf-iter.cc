@@ -30,7 +30,7 @@
  * Tests for VCF record iteration.
  */
 
-#include "catch.hpp"
+#include "catch2/catch.hpp"
 
 #include "vcf/vcf_utils.h"
 #include "vcf/vcf_v2.h"

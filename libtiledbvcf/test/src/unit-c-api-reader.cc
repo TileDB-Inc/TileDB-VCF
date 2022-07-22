@@ -28,7 +28,7 @@
  */
 
 #include "c_api/tiledbvcf.h"
-#include "catch.hpp"
+#include "catch2/catch.hpp"
 #include "unit-helpers.h"
 
 #include <cstring>

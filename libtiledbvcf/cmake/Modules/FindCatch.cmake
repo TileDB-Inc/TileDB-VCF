@@ -32,10 +32,10 @@
 
 # Search the path set during the superbuild for the EP.
 message(STATUS "searching for catch in ${EP_SOURCE_DIR}")
-set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include/catch2)
+set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include)
 
 find_path(CATCH_INCLUDE_DIR
-  NAMES catch.hpp
+  NAMES catch2/catch.hpp
   PATHS ${CATCH_PATHS}
 )
 
