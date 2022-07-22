@@ -30,7 +30,7 @@
  * Tests for VCF export.
  */
 
-#include "catch.hpp"
+#include "catch2/catch.hpp"
 
 #include "dataset/tiledbvcfdataset.h"
 #include "read/reader.h"

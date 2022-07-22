@@ -31,7 +31,7 @@
 #include <sstream>
 #include <utility>
 #include <vector>
-#include "catch.hpp"
+#include "catch2/catch.hpp"
 
 template <typename T, typename Compare>
 std::vector<std::size_t> sort_permutation(
