@@ -4,7 +4,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2018 TileDB, Inc.
+# Copyright (c) 2018-2021 TileDB, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,41 +27,55 @@
 # Finds the Catch library, installing with an ExternalProject as necessary.
 # This module defines:
 #   - CATCH_INCLUDE_DIR, directory containing headers
-#   - CATCH_FOUND, whether Catch has been found
+#   - CATCH2_FOUND, whether Catch has been found
 #   - The Catch::Catch imported target
 
-# Search the path set during the superbuild for the EP.
-message(STATUS "searching for catch in ${EP_SOURCE_DIR}")
-set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include/catch2)
+# Include some common helper functions.
+include(TileDBCommon)
 
-find_path(CATCH_INCLUDE_DIR
-  NAMES catch.hpp
-  PATHS ${CATCH_PATHS}
-)
+# Search the path set during the superbuild for the EP.
+message(STATUS "searching for catch in ${TILEDB_EP_SOURCE_DIR}")
+set(CATCH_PATHS ${TILEDB_EP_SOURCE_DIR}/ep_catch/single_include)
+
+if (NOT TILEDB_FORCE_ALL_DEPS OR TILEDB_CATCH_EP_BUILT)
+  find_path(CATCH_INCLUDE_DIR
+    NAMES catch.hpp
+    PATHS ${CATCH_PATHS}
+    PATH_SUFFIXES "catch2"
+    ${TILEDB_DEPS_NO_DEFAULT_PATH}
+  )
+endif()
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Catch
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Catch2
   REQUIRED_VARS CATCH_INCLUDE_DIR
 )
 
-if (NOT CATCH_FOUND AND SUPERBUILD)
+if (NOT CATCH2_FOUND)
   message(STATUS "Adding Catch as an external project")
   ExternalProject_Add(ep_catch
     PREFIX "externals"
-    URL "https://github.com/catchorg/Catch2/archive/v2.13.7.zip"
-    URL_HASH SHA1=c167985cc91899ecaba3bce924acf1563b15284a
+    # Set download name to avoid collisions with only the version number in the filename
+    DOWNLOAD_NAME ep_catch.zip
+    URL "https://github.com/catchorg/Catch2/archive/v2.13.8.zip"
+    URL_HASH SHA1=73adf43795abb7f481f07d307d11ac1fbc7a6015
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     UPDATE_COMMAND ""
     LOG_DOWNLOAD TRUE
+    LOG_OUTPUT_ON_FAILURE ${TILEDB_LOG_OUTPUT_ON_FAILURE}
   )
-  list(APPEND EXTERNAL_PROJECTS ep_catch)
+  list(APPEND TILEDB_EXTERNAL_PROJECTS ep_catch)
+  list(APPEND FORWARD_EP_CMAKE_ARGS
+    -DTILEDB_CATCH_EP_BUILT=TRUE
+    -DCATCH_INCLUDE_DIR=${EP_SOURCE_DIR}/ep_catch/single_include/catch2
+  )
 endif()
 
-if (CATCH_FOUND AND NOT TARGET Catch::Catch)
-  add_library(Catch::Catch INTERFACE IMPORTED)
-  set_target_properties(Catch::Catch PROPERTIES
+if (CATCH2_FOUND AND NOT TARGET Catch2::Catch2)
+  add_library(Catch2::Catch2 INTERFACE IMPORTED)
+  set_target_properties(Catch2::Catch2 PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${CATCH_INCLUDE_DIR}"
   )
 endif()
