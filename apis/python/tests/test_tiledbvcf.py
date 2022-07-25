@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
+import platform
 import pytest
 import tiledbvcf
 import tiledb
@@ -943,6 +944,10 @@ def test_variant_stats(tmp_path):
     assert ds.count() == 14
     assert ds.count(regions=["1:12700-13400"]) == 6
     assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+
+    # TODO: remove this workaround when sc-19721 is resolved
+    if platform.system() != "Linux":
+        return
 
     # query variant_stats array with TileDB
     vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
