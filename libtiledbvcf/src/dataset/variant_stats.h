@@ -176,9 +176,9 @@ class VariantStats {
   // Array version
   inline static const int VARIANT_STATS_VERSION = 1;
 
-  // Array dimensions
-  enum Dim { CONTIG, POS, ALLELE };
-  inline static const std::vector<std::string> DIM_STR = {
+  // Array columns
+  enum ColumnNames { CONTIG, POS, ALLELE };
+  inline static const std::vector<std::string> COLUMN_STR = {
       "contig", "pos", "allele"};
 
   // Array attributes

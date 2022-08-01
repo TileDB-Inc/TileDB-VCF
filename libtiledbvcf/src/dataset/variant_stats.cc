@@ -43,7 +43,7 @@ void VariantStats::create(
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
-  FilterList str_coord_filters(ctx);
+  FilterList str_filters(ctx);
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
 
@@ -51,7 +51,7 @@ void VariantStats::create(
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  str_coord_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
+  str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
   offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
@@ -61,7 +61,7 @@ void VariantStats::create(
   if (checksum) {
     // rle_coord_filters.add_filter({ctx, checksum});
     int_coord_filters.add_filter({ctx, checksum});
-    str_coord_filters.add_filter({ctx, checksum});
+    str_filters.add_filter({ctx, checksum});
     offset_filters.add_filter({ctx, checksum});
     int_attr_filters.add_filter({ctx, checksum});
   }
@@ -78,19 +78,19 @@ void VariantStats::create(
   const uint32_t pos_extent = pos_max - pos_min + 1;
 
   auto contig = Dimension::create(
-      ctx, DIM_STR[CONTIG], TILEDB_STRING_ASCII, nullptr, nullptr);
+      ctx, COLUMN_STR[CONTIG], TILEDB_STRING_ASCII, nullptr, nullptr);
   contig.set_filter_list(rle_coord_filters);  // d0
 
   auto pos = Dimension::create<uint32_t>(
-      ctx, DIM_STR[POS], {{pos_min, pos_max}}, pos_extent);
+      ctx, COLUMN_STR[POS], {{pos_min, pos_max}}, pos_extent);
   pos.set_filter_list(int_coord_filters);  // d1
 
-  auto allele = Dimension::create(
-      ctx, DIM_STR[ALLELE], TILEDB_STRING_ASCII, nullptr, nullptr);
-  allele.set_filter_list(str_coord_filters);  // d2
-
-  domain.add_dimensions(contig, pos, allele);
+  domain.add_dimensions(contig, pos);
   schema.set_domain(domain);
+
+  auto allele =
+      Attribute::create<std::string>(ctx, COLUMN_STR[ALLELE], str_filters);
+  schema.add_attributes(allele);
 
   // Create attributes
   for (int i = 0; i < LAST_; i++) {
@@ -255,11 +255,11 @@ void VariantStats::flush() {
         pos_buffer_.front(),
         pos_buffer_.back());
 
-    query_->set_data_buffer(DIM_STR[CONTIG], contig_buffer_)
-        .set_offsets_buffer(DIM_STR[CONTIG], contig_offsets_)
-        .set_data_buffer(DIM_STR[POS], pos_buffer_)
-        .set_data_buffer(DIM_STR[ALLELE], allele_buffer_)
-        .set_offsets_buffer(DIM_STR[ALLELE], allele_offsets_);
+    query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
+        .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
+        .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
+        .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
 
     for (int i = 0; i < LAST_; i++) {
       query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);

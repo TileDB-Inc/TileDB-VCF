@@ -1,8 +1,10 @@
 import numpy as np
 import os
 import pandas as pd
+import platform
 import pytest
 import tiledbvcf
+import tiledb
 
 # Directory containing this file
 CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -927,6 +929,37 @@ def test_basic_ingest(tmp_path):
     assert ds.count() == 14
     assert ds.count(regions=["1:12700-13400"]) == 6
     assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+
+
+def test_variant_stats(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
+    ds.create_dataset()
+    ds.ingest_samples(samples)
+
+    # Open it back in read mode and check some queries
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 14
+    assert ds.count(regions=["1:12700-13400"]) == 6
+    assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+
+    # TODO: remove this workaround when sc-19721 is resolved
+    if platform.system() != "Linux":
+        return
+
+    # query variant_stats array with TileDB
+    vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
+
+    contig = "1"
+    region = slice(12140, 12140)
+    with tiledb.open(vs_uri) as A:
+        df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
+
+    assert df.pos.array == 12140
+    assert df.allele.array == "C"
+    assert df.ac.array == 4
 
 
 def test_incremental_ingest(tmp_path):
