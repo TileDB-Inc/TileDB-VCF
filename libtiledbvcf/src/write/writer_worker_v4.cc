@@ -258,6 +258,7 @@ bool WriterWorkerV4::resume() {
 }
 
 void WriterWorkerV4::flush_ingestion_tasks() {
+  ac_.flush();
   vs_.flush();
 }
 
@@ -300,8 +301,9 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  // Process only NodeType::Record
+  // Ingestion tasks process only NodeType::Record
   if (node.type == RecordHeapV4::NodeType::Record) {
+    ac_.process(hdr, sample_name, contig, pos, r);
     vs_.process(hdr, sample_name, contig, pos, r);
   }
 

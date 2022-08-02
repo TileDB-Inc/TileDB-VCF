@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_VARIANT_STATS_H
-#define TILEDB_VCF_VARIANT_STATS_H
+#ifndef TILEDB_VCF_ALLELE_COUNT_H
+#define TILEDB_VCF_ALLELE_COUNT_H
 
 #include <atomic>
 #include <map>
@@ -39,7 +39,7 @@
 namespace tiledb::vcf {
 
 /**
- * @brief The VariantStats class adds useful variant stats to arrays at
+ * @brief The AlleleCount class adds useful variant stats to arrays at
  * ingestion time.
  *
  * The variant stats arrays contain data that is used to efficiently compute
@@ -62,7 +62,7 @@ namespace tiledb::vcf {
  * sample data from the array.
  */
 
-class VariantStats {
+class AlleleCount {
  public:
   //===================================================================
   //= public static
@@ -136,9 +136,9 @@ class VariantStats {
   //===================================================================
   //= public non-static
   //===================================================================
-  VariantStats();
+  AlleleCount();
 
-  ~VariantStats();
+  ~AlleleCount();
 
   /**
    * @brief Add a record to the stats computation buffer.
@@ -171,20 +171,15 @@ class VariantStats {
   //===================================================================
 
   // Array config
-  inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
+  inline static const std::string ALLELE_COUNT_ARRAY = "allele_count";
 
   // Array version
-  inline static const int VARIANT_STATS_VERSION = 1;
+  inline static const int ALLELE_COUNT_VERSION = 1;
 
   // Array columns
-  enum ColumnNames { CONTIG, POS, ALLELE };
-  inline static const std::vector<std::string> COLUMN_STR = {
-      "contig", "pos", "allele"};
-
-  // Array attributes
-  enum Attr { AC = 0, N_HOM, N_CALLED, LAST_ };
-  inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "n_hom", "n_called"};
+  enum Columns { CONTIG, POS, REF, ALT, FILTER, GT, COUNT };
+  inline static const std::vector<std::string> COLUMN_NAME = {
+      "contig", "pos", "ref", "alt", "filter", "gt", "count"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -211,8 +206,9 @@ class VariantStats {
   // Set of sample names in this query (per thread)
   std::set<std::string> sample_names_;
 
-  // Stats per allele at the current locus: map allele -> (map attr -> value)
-  std::map<std::string, std::unordered_map<int, int32_t>> values_;
+  // Counts grouped by "key" at the current locus.
+  // Use map to keep dimension keys sorted and maintain global order.
+  std::map<std::string, int32_t> count_;
 
   // Contig of the current locus
   std::string contig_;
@@ -229,14 +225,32 @@ class VariantStats {
   // Buffer for positions
   std::vector<int32_t> pos_buffer_;
 
-  // Buffer for alleles
-  std::string allele_buffer_;
+  // Buffer for ref
+  std::string ref_buffer_;
 
-  // Buffer for allele offsets
-  std::vector<uint64_t> allele_offsets_;
+  // Buffer for ref offsets
+  std::vector<uint64_t> ref_offsets_;
 
-  // Buffer for attribute values: map Attr -> value
-  std::unordered_map<int, std::vector<int32_t>> attr_buffers_;
+  // Buffer for alt
+  std::string alt_buffer_;
+
+  // Buffer for alt offsets
+  std::vector<uint64_t> alt_offsets_;
+
+  // Buffer for filter
+  std::string filter_buffer_;
+
+  // Buffer for filter offsets
+  std::vector<uint64_t> filter_offsets_;
+
+  // Buffer for gt
+  std::string gt_buffer_;
+
+  // Buffer for gt offsets
+  std::vector<uint64_t> gt_offsets_;
+
+  // Buffer for count values
+  std::vector<int32_t> count_buffer_;
 
   // Reusable htslib buffer for bcf_get_* functions
   int* dst_ = nullptr;

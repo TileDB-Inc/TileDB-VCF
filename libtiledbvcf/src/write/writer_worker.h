@@ -89,6 +89,7 @@ class WriterWorker {
    */
   virtual bool resume() = 0;
 
+  /** Flush ingestion tasks. */
   virtual void flush_ingestion_tasks() {
   }
 
