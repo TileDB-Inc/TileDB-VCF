@@ -421,6 +421,16 @@ void add_create(CLI::App& app) {
       "Allow records with duplicate start positions to be written to the "
       "array.");
 
+  cmd->option_defaults()->group("Ingestion task options");
+  cmd->add_flag(
+      "--enable-allele-count",
+      args->enable_allele_count,
+      "Enable allele count ingestion task");
+  cmd->add_flag(
+      "--enable-variant-stats",
+      args->enable_variant_stats,
+      "Enable variant stats ingestion task");
+
   cmd->option_defaults()->group("TileDB options");
   cmd->add_option(
       "-c,--tile-capacity",

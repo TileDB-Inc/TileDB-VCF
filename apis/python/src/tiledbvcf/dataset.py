@@ -370,6 +370,8 @@ class Dataset(object):
         anchor_gap=None,
         checksum_type=None,
         allow_duplicates=True,
+        enable_allele_count=False,
+        enable_variant_stats=False,
     ):
         """Create a new dataset
 
@@ -385,6 +387,8 @@ class Dataset(object):
             new dataset valid values are sha256, md5 or none.
         :param bool allow_duplicates: Allow records with duplicate start
             positions to be written to the array.
+        :param bool enable_allele_count: Enable the allele count ingestion task.
+        :param bool enable_variant_stats: Enable the variant stats ingestion task.
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -409,6 +413,12 @@ class Dataset(object):
             self.writer.set_checksum(checksum_type)
 
         self.writer.set_allow_duplicates(allow_duplicates)
+
+        if enable_allele_count is not None:
+            self.writer.set_enable_allele_count(enable_allele_count)
+
+        if enable_variant_stats is not None:
+            self.writer.set_enable_variant_stats(enable_variant_stats)
 
         # Create is a no-op if the dataset already exists.
         # TODO: Inform user if dataset already exists?

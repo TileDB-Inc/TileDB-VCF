@@ -216,8 +216,12 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   create_empty_data_array(
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
 
-  AlleleCount::create(ctx, params.uri, params.checksum);
-  VariantStats::create(ctx, params.uri, params.checksum);
+  if (params.enable_allele_count) {
+    AlleleCount::create(ctx, params.uri, params.checksum);
+  }
+  if (params.enable_variant_stats) {
+    VariantStats::create(ctx, params.uri, params.checksum);
+  }
 
   write_metadata_v4(ctx, params.uri, metadata);
 

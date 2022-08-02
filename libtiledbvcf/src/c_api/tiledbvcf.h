@@ -1553,6 +1553,22 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_contigs_to_allow_merging(
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_writer_set_contig_mode(tiledb_vcf_writer_t* writer, int contig_mode);
 
+/**
+ * Sets enable allele count ingestion task
+ * @param writer VCF writer object
+ * @param enable enable/disable
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_enable_allele_count(
+    tiledb_vcf_writer_t* writer, bool enable);
+
+/**
+ * Sets enable variant stats ingestion task
+ * @param writer VCF writer object
+ * @param enable enable/disable
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_enable_variant_stats(
+    tiledb_vcf_writer_t* writer, bool enable);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

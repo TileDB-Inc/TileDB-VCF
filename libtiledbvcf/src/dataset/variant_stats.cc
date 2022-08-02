@@ -198,16 +198,22 @@ void VariantStats::consolidate_commits(
     std::shared_ptr<Context> ctx,
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
+  // Return if the array does not exist
+  tiledb::VFS vfs(*ctx);
+  if (!vfs.is_dir(get_uri(root_uri))) {
+    return;
+  }
+
+  // Return if array is empty
+  // TODO: remove after https://github.com/TileDB-Inc/TileDB/pull/3389
   {
-    // TODO: remove after https://github.com/TileDB-Inc/TileDB/pull/3389
-    Array array{*ctx, get_uri(root_uri), TILEDB_READ};
-    Query query{*ctx, array};
-    auto est_bytes = query.est_result_size("pos");
-    if (est_bytes == 0) {
-      LOG_DEBUG("VariantStats: Skip consolidate empty commits");
+    FragmentInfo fragment_info(*ctx, get_uri(root_uri));
+    fragment_info.load();
+    if (fragment_info.fragment_num() == 0) {
       return;
     }
   }
+
   Config cfg;
   utils::set_tiledb_config(tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "commits";
@@ -218,6 +224,12 @@ void VariantStats::consolidate_fragment_metadata(
     std::shared_ptr<Context> ctx,
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
+  // Return if the array does not exist
+  tiledb::VFS vfs(*ctx);
+  if (!vfs.is_dir(get_uri(root_uri))) {
+    return;
+  }
+
   Config cfg;
   utils::set_tiledb_config(tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragment_meta";

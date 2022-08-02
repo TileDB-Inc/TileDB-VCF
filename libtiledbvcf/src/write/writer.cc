@@ -1380,5 +1380,13 @@ void Writer::set_contig_mode(int contig_mode) {
       static_cast<IngestionParams::ContigMode>(contig_mode);
 }
 
+void Writer::set_enable_allele_count(bool enable) {
+  creation_params_.enable_allele_count = enable;
+}
+
+void Writer::set_enable_variant_stats(bool enable) {
+  creation_params_.enable_variant_stats = enable;
+}
+
 }  // namespace vcf
 }  // namespace tiledb
