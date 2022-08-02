@@ -392,7 +392,7 @@ void Writer::ingest_samples() {
           &scratch_space_a));
 
   LOG_DEBUG(
-      "Initialization completed in {} seconds.",
+      "Initialization completed in {:.3f} seconds.",
       utils::chrono_duration(start_all));
   uint64_t records_ingested = 0, anchors_ingested = 0;
   uint64_t samples_ingested = 0;

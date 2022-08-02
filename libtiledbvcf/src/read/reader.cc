@@ -381,7 +381,7 @@ void Reader::read() {
   } else {
     LOG_INFO(fmt::format(
         std::locale(""),
-        "Done. Exported {:L} records in {} seconds.",
+        "Done. Exported {:L} records in {:.3f} seconds.",
         read_state_.last_num_records_exported,
         utils::chrono_duration(start_all)));
   }
@@ -978,11 +978,12 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
-    LOG_DEBUG("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
+    LOG_INFO("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
     LOG_INFO(
-        "TileDB query completed in {} sec.",
-        utils::chrono_duration(query_start_timer));
+        "TileDB query completed in {:.3f} sec. (VmRSS = {})",
+        utils::chrono_duration(query_start_timer),
+        utils::memory_usage_str());
 
     read_state_.query_results.set_results(*dataset_, buffers_a.get(), *query);
 
@@ -1026,7 +1027,7 @@ bool Reader::read_current_batch() {
     if (params_.enable_progress_estimation &&
         read_state_.query_estimated_num_records > 0) {
       LOG_INFO(
-          "Processed {} cells in {} sec. Reported {} cells. Approximately "
+          "Processed {} cells in {:.3f} sec. Reported {} cells. Approximately "
           "{:.1f}% completed with query cells.",
           read_state_.query_results.num_cells(),
           utils::chrono_duration(processing_start_timer),
@@ -1038,7 +1039,7 @@ bool Reader::read_current_batch() {
                   100.0));
     } else {
       LOG_INFO(
-          "Processed {} cells in {} sec. Reported {} cells.",
+          "Processed {} cells in {:.3f} sec. Reported {} cells.",
           read_state_.query_results.num_cells(),
           utils::chrono_duration(processing_start_timer),
           read_state_.last_num_records_exported - old_num_exported);
@@ -1761,7 +1762,7 @@ void Reader::prepare_regions_v4(
         params_.regions_file_uri, &pre_partition_regions_list);
     LOG_INFO(fmt::format(
         std::locale(""),
-        "Parsed bed file into {:L} regions in {} seconds.",
+        "Parsed bed file into {:L} regions in {:.3f} seconds.",
         pre_partition_regions_list.size(),
         utils::chrono_duration(start_bed_file_parse)));
   }
@@ -1802,7 +1803,7 @@ void Reader::prepare_regions_v4(
 
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Sorted {:L} regions in {} seconds.",
+        "Sorted {:L} regions in {:.3f} seconds.",
         regions->size(),
         utils::chrono_duration(start_region_sort)));
   }
@@ -2012,7 +2013,7 @@ void Reader::prepare_regions_v3(
         params_.regions_file_uri, &pre_partition_regions_list);
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Parsed bed file into {:L} regions in {} seconds.",
+        "Parsed bed file into {:L} regions in {:.3f} seconds.",
         pre_partition_regions_list.size(),
         utils::chrono_duration(start_bed_file_parse)));
   }
@@ -2057,7 +2058,7 @@ void Reader::prepare_regions_v3(
     Region::sort(dataset_->metadata().contig_offsets, regions);
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Sorted {:L} regions in {} seconds.",
+        "Sorted {:L} regions in {:.3f} seconds.",
         regions->size(),
         utils::chrono_duration(start_region_sort)));
   }
@@ -2140,7 +2141,7 @@ void Reader::prepare_regions_v2(
         params_.regions_file_uri, &pre_partition_regions_list);
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Parsed bed file into {:L} regions in {} seconds.",
+        "Parsed bed file into {:L} regions in {:.3f} seconds.",
         pre_partition_regions_list.size(),
         utils::chrono_duration(start_bed_file_parse)));
   }
@@ -2187,7 +2188,7 @@ void Reader::prepare_regions_v2(
     Region::sort(dataset_->metadata().contig_offsets, regions);
     LOG_DEBUG(fmt::format(
         std::locale(""),
-        "Sorted {:L} regions in {} seconds.",
+        "Sorted {:L} regions in {:.3f} seconds.",
         regions->size(),
         utils::chrono_duration(start_region_sort)));
   }

@@ -452,8 +452,8 @@ cd -
 # -------------------------------------------------------------------
 rm -rf task.tdb
 $tilevcf create -u task.tdb --enable-allele-count --enable-variant-stats --log-level debug || exit 1
-test -e task/allele_count || exit 1
-test -e task/variant_stats || exit 1
+test -e task.tdb/allele_count || exit 1
+test -e task.tdb/variant_stats || exit 1
 
 # -------------------------------------------------------------------
 
