@@ -85,9 +85,15 @@ returns results as a pandas `DataFrame`
 
 ## Want to Learn More?
 
+
+* [Blog "Population Genomics is a Data Management Problem"][blog]
 * [Check out the full documentation][vcf]
-* [Motivation](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/the-problem) and [idea behind storing VCF data in 3D sparse arrays](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/the-solution)
-* [Data Model](https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/data-model)
+  * [Why use TileDB-VCF?][docswhytile]
+  * [Data Model][docsdatamodel]
+  * [Installation][docsinstallation]
+  * [How To][docshowto]
+  * [Reference][docsreference]
+
 
 # Code of Conduct
 
@@ -100,6 +106,13 @@ https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
 <!-- links -->
 [tiledb]: https://github.com/TileDB-Inc/TileDB
 [vcf]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics
+[docswhytile]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics#why-use-tiledb-vcf
+[docsdatamodel]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/data-model
+[docsinstallation]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics/installation
+[docshowto]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics/how-to
+[docsreference]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics/api-reference
+[blog]: https://tiledb.com/blog/population-genomics-is-a-data-management-problem
+
 
 [install]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/quick-install
 [build]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/building-from-source
