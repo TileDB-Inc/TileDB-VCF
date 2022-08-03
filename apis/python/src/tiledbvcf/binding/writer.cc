@@ -329,4 +329,16 @@ void Writer::set_contig_mode(int contig_mode) {
   check_error(writer, tiledb_vcf_writer_set_contig_mode(writer, contig_mode));
 }
 
+void Writer::set_enable_allele_count(bool enable) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_enable_allele_count(writer, enable));
+}
+
+void Writer::set_enable_variant_stats(bool enable) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_enable_variant_stats(writer, enable));
+}
+
 }  // namespace tiledbvcfpy

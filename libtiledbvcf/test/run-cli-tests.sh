@@ -448,6 +448,15 @@ bcftools view -H tiledb.vcf
 cd -
 # -------------------------------------------------------------------
 
+# ingestion task enable
+# -------------------------------------------------------------------
+rm -rf task.tdb
+$tilevcf create -u task.tdb --enable-allele-count --enable-variant-stats --log-level debug || exit 1
+test -e task.tdb/allele_count || exit 1
+test -e task.tdb/variant_stats || exit 1
+
+# -------------------------------------------------------------------
+
 # Expected failures
 echo ""
 echo "** Expected failure error messages follow:"

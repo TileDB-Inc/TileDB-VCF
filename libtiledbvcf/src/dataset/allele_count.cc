@@ -26,7 +26,7 @@
 
 #include <tiledb/tiledb_experimental>  // for the new group api
 
-#include "dataset/variant_stats.h"
+#include "dataset/allele_count.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -36,34 +36,34 @@ namespace tiledb::vcf {
 //= public static functions
 //===================================================================
 
-void VariantStats::create(
+void AlleleCount::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
-  LOG_DEBUG("VariantStats: Create array");
+  LOG_DEBUG("AlleleCount: Create array");
 
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
-  FilterList str_filters(ctx);
   FilterList offset_filters(ctx);
-  FilterList int_attr_filters(ctx);
+  FilterList int_filters(ctx);
+  FilterList str_filters(ctx);
 
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
   offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  int_attr_filters.add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+  int_filters.add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
+  str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
 
   if (checksum) {
     // rle_coord_filters.add_filter({ctx, checksum});
     int_coord_filters.add_filter({ctx, checksum});
-    str_filters.add_filter({ctx, checksum});
     offset_filters.add_filter({ctx, checksum});
-    int_attr_filters.add_filter({ctx, checksum});
+    int_filters.add_filter({ctx, checksum});
+    str_filters.add_filter({ctx, checksum});
   }
 
   // Create schema and domain
@@ -77,26 +77,27 @@ void VariantStats::create(
   const uint32_t pos_max = std::numeric_limits<uint32_t>::max() - 1;
   const uint32_t pos_extent = pos_max - pos_min + 1;
 
+  // Create dimensions
   auto contig = Dimension::create(
-      ctx, COLUMN_STR[CONTIG], TILEDB_STRING_ASCII, nullptr, nullptr);
+      ctx, COLUMN_NAME[CONTIG], TILEDB_STRING_ASCII, nullptr, nullptr);
   contig.set_filter_list(rle_coord_filters);  // d0
 
   auto pos = Dimension::create<uint32_t>(
-      ctx, COLUMN_STR[POS], {{pos_min, pos_max}}, pos_extent);
+      ctx, COLUMN_NAME[POS], {{pos_min, pos_max}}, pos_extent);
   pos.set_filter_list(int_coord_filters);  // d1
 
   domain.add_dimensions(contig, pos);
   schema.set_domain(domain);
 
-  auto allele =
-      Attribute::create<std::string>(ctx, COLUMN_STR[ALLELE], str_filters);
-  schema.add_attributes(allele);
-
   // Create attributes
-  for (int i = 0; i < LAST_; i++) {
-    auto attr = Attribute::create<int32_t>(ctx, ATTR_STR[i], int_attr_filters);
+  for (int i = REF; i < COUNT; i++) {
+    auto attr =
+        Attribute::create<std::string>(ctx, COLUMN_NAME[i], str_filters);
     schema.add_attributes(attr);
   }
+
+  auto count = Attribute::create<int32_t>(ctx, COLUMN_NAME[COUNT], int_filters);
+  schema.add_attributes(count);
 
   // Create array
   auto uri = get_uri(root_uri);
@@ -104,21 +105,21 @@ void VariantStats::create(
 
   // Write metadata
   Array array(ctx, uri, TILEDB_WRITE);
-  array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
+  array.put_metadata("version", TILEDB_UINT32, 1, &ALLELE_COUNT_VERSION);
 
   // Add array to root group
-  // Group assests use full paths for tiledb cloud, relative paths otherwise
+  // Group assets use full paths for tiledb cloud, relative paths otherwise
   auto relative = !utils::starts_with(root_uri, "tiledb://");
   auto array_uri = get_uri(root_uri, relative);
   LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
+  root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
 }
 
-void VariantStats::init(
+void AlleleCount::init(
     std::shared_ptr<Context> ctx, const std::string& root_uri) {
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("VariantStats: Open array");
+  LOG_DEBUG("AlleleCount: Open array");
 
   // Open array
   auto uri = get_uri(root_uri);
@@ -126,7 +127,7 @@ void VariantStats::init(
     array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
     enabled_ = true;
   } catch (const tiledb::TileDBError& ex) {
-    LOG_DEBUG("VariantStats: Ingestion task disabled");
+    LOG_DEBUG("AlleleCount: Ingestion task disabled");
     enabled_ = false;
     return;
   }
@@ -135,13 +136,13 @@ void VariantStats::init(
   query_->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
-void VariantStats::finalize() {
+void AlleleCount::finalize() {
   if (!enabled_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
+  LOG_DEBUG("AlleleCount: Finalize query with {} records", contig_records_);
   contig_records_ = 0;
   query_->finalize();
 
@@ -157,7 +158,7 @@ void VariantStats::finalize() {
       samples.pop_back();
     }
     LOG_DEBUG(
-        "VariantStats: fragment_num = {} uri = {} samples = {}",
+        "AlleleCount: fragment_num = {} uri = {} samples = {}",
         frag_num,
         uri,
         samples);
@@ -168,13 +169,13 @@ void VariantStats::finalize() {
   }
 }
 
-void VariantStats::close() {
+void AlleleCount::close() {
   if (!enabled_) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("VariantStats: Close array");
+  LOG_DEBUG("AlleleCount: Close array");
 
   if (query_ != nullptr) {
     query_->finalize();
@@ -189,12 +190,12 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
-std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
+std::string AlleleCount::get_uri(const std::string& root_uri, bool relative) {
   auto root = relative ? "" : root_uri;
-  return utils::uri_join(root, VARIANT_STATS_ARRAY);
+  return utils::uri_join(root, ALLELE_COUNT_ARRAY);
 }
 
-void VariantStats::consolidate_commits(
+void AlleleCount::consolidate_commits(
     std::shared_ptr<Context> ctx,
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
@@ -220,7 +221,7 @@ void VariantStats::consolidate_commits(
   tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
 }
 
-void VariantStats::consolidate_fragment_metadata(
+void AlleleCount::consolidate_fragment_metadata(
     std::shared_ptr<Context> ctx,
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
@@ -240,16 +241,16 @@ void VariantStats::consolidate_fragment_metadata(
 //= public functions
 //===================================================================
 
-VariantStats::VariantStats() {
+AlleleCount::AlleleCount() {
 }
 
-VariantStats::~VariantStats() {
+AlleleCount::~AlleleCount() {
   if (dst_ != nullptr) {
     free(dst_);
   }
 }
 
-void VariantStats::flush() {
+void AlleleCount::flush() {
   if (!enabled_) {
     return;
   }
@@ -257,10 +258,9 @@ void VariantStats::flush() {
   // Update results for the last locus before flushing
   update_results();
 
-  int buffered_records = attr_buffers_[AC].size();
+  int buffered_records = count_buffer_.size();
 
   if (buffered_records == 0) {
-    LOG_DEBUG("VariantStats: flush called with 0 records ");
     return;
   }
 
@@ -269,26 +269,29 @@ void VariantStats::flush() {
     contig_records_ += buffered_records;
 
     LOG_DEBUG(
-        "VariantStats: flushing {} records from {}:{}-{}",
+        "AlleleCount: flushing {} records from {}:{}-{}",
         buffered_records,
         contig_buffer_.substr(0, contig_offsets_[1]),
         pos_buffer_.front(),
         pos_buffer_.back());
 
-    query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
-        .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
-        .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
-        .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
-        .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
-
-    for (int i = 0; i < LAST_; i++) {
-      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
-    }
+    query_->set_data_buffer(COLUMN_NAME[CONTIG], contig_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[CONTIG], contig_offsets_)
+        .set_data_buffer(COLUMN_NAME[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_NAME[REF], ref_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[REF], ref_offsets_)
+        .set_data_buffer(COLUMN_NAME[ALT], alt_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[ALT], alt_offsets_)
+        .set_data_buffer(COLUMN_NAME[FILTER], filter_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[FILTER], filter_offsets_)
+        .set_data_buffer(COLUMN_NAME[GT], gt_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[GT], gt_offsets_)
+        .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
 
     auto st = query_->submit();
 
     if (st != Query::Status::COMPLETE) {
-      LOG_FATAL("VariantStats: error submitting TileDB write query");
+      LOG_FATAL("AlleleCount: error submitting TileDB write query");
     }
 
     // Insert sample names from this query into the set of fragment sample names
@@ -300,14 +303,18 @@ void VariantStats::flush() {
   contig_buffer_.clear();
   contig_offsets_.clear();
   pos_buffer_.clear();
-  allele_buffer_.clear();
-  allele_offsets_.clear();
-  for (int i = 0; i < LAST_; i++) {
-    attr_buffers_[i].clear();
-  }
+  ref_buffer_.clear();
+  ref_offsets_.clear();
+  alt_buffer_.clear();
+  alt_offsets_.clear();
+  filter_buffer_.clear();
+  filter_offsets_.clear();
+  gt_buffer_.clear();
+  gt_offsets_.clear();
+  count_buffer_.clear();
 }
 
-void VariantStats::process(
+void AlleleCount::process(
     bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
@@ -320,13 +327,10 @@ void VariantStats::process(
   // Check if locus has changed
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
-      LOG_DEBUG("VariantStats: new contig = {}", contig);
+      LOG_DEBUG("AlleleCount: new contig = {}", contig);
     } else if (pos < pos_) {
       LOG_ERROR(
-          "VariantStats: contig {} pos out of order {} < {}",
-          contig,
-          pos,
-          pos_);
+          "AlleleCount: contig {} pos out of order {} < {}", contig, pos, pos_);
     }
     update_results();
     contig_ = contig;
@@ -341,31 +345,8 @@ void VariantStats::process(
     return;
   }
 
-  // Add sample name to the set of sample name in this query
-  sample_names_.insert(sample_name);
-
-  // Update called for the REF allele
-  auto ref = rec->d.allele[0];
-  values_[ref][N_CALLED]++;
-
-  int gt0 = bcf_gt_allele(dst_[0]);
-  std::string allele0 = rec->d.allele[gt0];
-
-  // Increment allele count for GT[0]
-  values_[allele0][AC]++;
-
-  if (ngt == 2) {
-    int gt1 = bcf_gt_allele(dst_[1]);
-    std::string allele1 = rec->d.allele[gt1];
-
-    // Increment allele count for GT[1]
-    values_[allele1][AC]++;
-
-    // Update homozygote count, only diploid genotype calls are counted
-    if (gt0 == gt1) {
-      values_[allele1][N_HOM]++;
-    }
-  } else if (ngt > 2) {
+  // Only haploid and diploid are supported
+  if (ngt > 2) {
     LOG_FATAL(
         "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
         sample_name,
@@ -373,25 +354,97 @@ void VariantStats::process(
         pos,
         ngt);
   }
+
+  // Skip if homozygous ref or missing allele
+  if (bcf_gt_allele(dst_[0]) == 0 || bcf_gt_is_missing(dst_[0])) {
+    if (ngt == 1) {
+      return;  // haploid
+    } else if (bcf_gt_allele(dst_[1]) == 0 || bcf_gt_is_missing(dst_[1])) {
+      return;  // diploid
+    }
+  }
+
+  // Build FILTER value string
+  std::string filter;
+  for (int i = 0; i < rec->d.n_flt; i++) {
+    filter.append(bcf_hdr_int2id(hdr, BCF_DT_ID, rec->d.flt[i]));
+    if (i < rec->d.n_flt - 1) {
+      filter.append(";");
+    }
+  }
+  if (filter.empty()) {
+    filter = ".";
+  }
+
+  // Build ALT and GT strings
+  // Sort ALT alleles and normalize GT
+  //  - haploid GT = 1
+  //  - diploid GT = 0,1 or 1,1 or 1,2
+  std::string alt;
+  std::string gt;
+  if (ngt == 1) {
+    // haploid
+    int gt0 = bcf_gt_allele(dst_[0]);
+    alt = rec->d.allele[gt0];
+    gt = "1";
+  } else {
+    // diploid
+    int gt0 = bcf_gt_allele(dst_[0]);
+    int gt1 = bcf_gt_allele(dst_[1]);
+    std::string_view alt0{rec->d.allele[gt0]};
+    std::string_view alt1{rec->d.allele[gt1]};
+
+    if (!gt0 || !gt1) {
+      gt = "0,1";
+      alt = gt0 ? alt0 : alt1;
+    } else if (gt0 == gt1) {
+      gt = "1,1";
+      alt = alt0;
+    } else {
+      gt = "1,2";
+      if (alt0 < alt1) {
+        alt.append(alt0).append(",").append(alt1);
+      } else {
+        alt.append(alt1).append(",").append(alt0);
+      }
+    }
+  }
+
+  // Build key = "ref:alt:filter:gt"
+  std::string key(rec->d.allele[0]);
+  key.append(":").append(alt).append(":").append(filter).append(":").append(gt);
+
+  // Increment count
+  count_[key]++;
+
+  // Add sample name to the set of sample name in this query
+  sample_names_.insert(sample_name);
 }
 
 //===================================================================
 //= private functions
 //===================================================================
 
-void VariantStats::update_results() {
-  if (values_.size() > 0) {
-    for (auto& [allele, value] : values_) {
+void AlleleCount::update_results() {
+  if (count_.size() > 0) {
+    for (auto& [key, count] : count_) {
       contig_offsets_.push_back(contig_buffer_.size());
       contig_buffer_ += contig_;
       pos_buffer_.push_back(pos_);
-      allele_offsets_.push_back(allele_buffer_.size());
-      allele_buffer_ += allele;
-      for (int i = 0; i < LAST_; i++) {
-        attr_buffers_[i].push_back(value[i]);
-      }
+
+      auto tokens = utils::split(key, ":");
+      ref_offsets_.push_back(ref_buffer_.size());
+      ref_buffer_ += tokens[0];
+      alt_offsets_.push_back(alt_buffer_.size());
+      alt_buffer_ += tokens[1];
+      filter_offsets_.push_back(filter_buffer_.size());
+      filter_buffer_ += tokens[2];
+      gt_offsets_.push_back(gt_buffer_.size());
+      gt_buffer_ += tokens[3];
+
+      count_buffer_.push_back(count);
     }
-    values_.clear();
+    count_.clear();
   }
 }
 

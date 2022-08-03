@@ -36,6 +36,7 @@
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
 
+#include "dataset/allele_count.h"
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "dataset/variant_stats.h"
@@ -140,6 +141,10 @@ class WriterWorkerV4 : public WriterWorker {
   /** Record heap for storing anchors. */
   RecordHeapV4 anchor_heap_;
 
+  // Allele count ingestion task object
+  AlleleCount ac_;
+
+  // Variant stats ingestion task object
   VariantStats vs_;
 
   /**

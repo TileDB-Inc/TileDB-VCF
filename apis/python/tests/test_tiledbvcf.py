@@ -931,35 +931,72 @@ def test_basic_ingest(tmp_path):
     assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
 
 
-def test_variant_stats(tmp_path):
+def test_disable_ingestion_tasks(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
     ds.create_dataset()
     ds.ingest_samples(samples)
-
-    # Open it back in read mode and check some queries
-    ds = tiledbvcf.Dataset(uri, mode="r")
-    assert ds.count() == 14
-    assert ds.count(regions=["1:12700-13400"]) == 6
-    assert ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
 
     # TODO: remove this workaround when sc-19721 is resolved
     if platform.system() != "Linux":
         return
 
+    # query allele_count array with TileDB
+    ac_uri = os.path.join(tmp_path, "dataset", "allele_count")
+
+    contig = "1"
+    region = slice(69896)
+    with pytest.raises(Exception):
+        with tiledb.open(ac_uri) as A:
+            df = A.query(attrs=["alt", "count"], dims=["pos"]).df[contig, region]
+
     # query variant_stats array with TileDB
     vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
 
     contig = "1"
-    region = slice(12140, 12140)
+    region = slice(12140)
+    with pytest.raises(Exception):
+        with tiledb.open(vs_uri) as A:
+            df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
+
+
+def test_ingestion_tasks(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
+    ds.create_dataset(enable_allele_count=True, enable_variant_stats=True)
+    ds.ingest_samples(samples)
+
+    # TODO: remove this workaround when sc-19721 is resolved
+    if platform.system() != "Linux":
+        return
+
+    # query allele_count array with TileDB
+    ac_uri = os.path.join(tmp_path, "dataset", "allele_count")
+
+    contig = "1"
+    region = slice(69896)
+    with tiledb.open(ac_uri) as A:
+        df = A.query(attrs=["alt", "count"], dims=["pos"]).df[contig, region]
+
+    assert df["pos"].array == 69896
+    assert df["alt"].array == "C"
+    assert df["count"].array == 1
+
+    # query variant_stats array with TileDB
+    vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
+
+    contig = "1"
+    region = slice(12140)
     with tiledb.open(vs_uri) as A:
         df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
 
-    assert df.pos.array == 12140
-    assert df.allele.array == "C"
-    assert df.ac.array == 4
+    assert df["pos"].array == 12140
+    assert df["allele"].array == "C"
+    assert df["ac"].array == 4
 
 
 def test_incremental_ingest(tmp_path):
@@ -1231,3 +1268,7 @@ def test_vcf_attrs(tmp_path):
     assert ds.attributes(attr_type="info") == []
     assert ds.attributes(attr_type="fmt") == []
     assert sorted(ds.attributes()) == sorted(queryable_attrs)
+
+
+if __name__ == "__main__":
+    test_allele_count("/tmp/gspowley-debug")

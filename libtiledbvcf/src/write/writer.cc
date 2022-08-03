@@ -45,6 +45,7 @@ Writer::Writer() {
 
 Writer::~Writer() {
   utils::free_htslib_tiledb_context();
+  AlleleCount::close();
   VariantStats::close();
 }
 
@@ -129,6 +130,7 @@ void Writer::init(const IngestionParams& params) {
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
 
+  AlleleCount::init(ctx_, params.uri);
   VariantStats::init(ctx_, params.uri);
 }
 
@@ -390,7 +392,7 @@ void Writer::ingest_samples() {
           &scratch_space_a));
 
   LOG_DEBUG(
-      "Initialization completed in {} seconds.",
+      "Initialization completed in {:.3f} seconds.",
       utils::chrono_duration(start_all));
   uint64_t records_ingested = 0, anchors_ingested = 0;
   uint64_t samples_ingested = 0;
@@ -466,6 +468,7 @@ void Writer::ingest_samples() {
       "All finalize tasks successfully completed. Waited for {} sec.",
       utils::chrono_duration(t0));
 
+  AlleleCount::close();
   VariantStats::close();
   array_->close();
 
@@ -954,6 +957,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
                     std::launch::async, finalize_query, std::move(query_))));
 
+                AlleleCount::finalize();
                 VariantStats::finalize();
               }
 
@@ -1063,6 +1067,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Write anchors stored in the anchor worker.
   anchors_ingested += write_anchors(anchor_worker);
 
+  AlleleCount::finalize();
   VariantStats::finalize();
 
   // Start new query for new fragment for next contig
@@ -1373,6 +1378,14 @@ void Writer::set_contigs_to_allow_merging(
 void Writer::set_contig_mode(int contig_mode) {
   ingestion_params_.contig_mode =
       static_cast<IngestionParams::ContigMode>(contig_mode);
+}
+
+void Writer::set_enable_allele_count(bool enable) {
+  creation_params_.enable_allele_count = enable;
+}
+
+void Writer::set_enable_variant_stats(bool enable) {
+  creation_params_.enable_variant_stats = enable;
 }
 
 }  // namespace vcf

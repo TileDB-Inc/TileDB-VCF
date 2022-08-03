@@ -33,6 +33,7 @@
 #include <tiledb/tiledb_experimental>  // for the new group api
 
 #include "base64/base64.h"
+#include "dataset/allele_count.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
@@ -214,7 +215,13 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   create_empty_metadata(ctx, params.uri, metadata, params.checksum);
   create_empty_data_array(
       ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
-  VariantStats::create(ctx, params.uri, params.checksum);
+
+  if (params.enable_allele_count) {
+    AlleleCount::create(ctx, params.uri, params.checksum);
+  }
+  if (params.enable_variant_stats) {
+    VariantStats::create(ctx, params.uri, params.checksum);
+  }
 
   write_metadata_v4(ctx, params.uri, metadata);
 
@@ -2112,6 +2119,7 @@ void TileDBVCFDataset::consolidate_data_array_commits(
 void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   consolidate_data_array_commits(params);
   consolidate_vcf_header_array_commits(params);
+  AlleleCount::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
   VariantStats::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
 }
 
@@ -2135,6 +2143,8 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
     const UtilsParams& params) {
   consolidate_data_array_fragment_metadata(params);
   consolidate_vcf_header_array_fragment_metadata(params);
+  AlleleCount::consolidate_fragment_metadata(
+      ctx_, params.tiledb_config, root_uri_);
   VariantStats::consolidate_fragment_metadata(
       ctx_, params.tiledb_config, root_uri_);
 }

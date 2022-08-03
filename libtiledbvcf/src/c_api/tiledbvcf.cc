@@ -1594,6 +1594,30 @@ int32_t tiledb_vcf_writer_set_contig_mode(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_enable_allele_count(
+    tiledb_vcf_writer_t* writer, bool enable) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_enable_allele_count(enable)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_writer_set_enable_variant_stats(
+    tiledb_vcf_writer_t* writer, bool enable) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_enable_variant_stats(enable)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

@@ -220,6 +220,16 @@ class Writer {
   */
   void set_contig_mode(int contig_mode);
 
+  /**
+    Enable the allele count ingestion task
+  */
+  void set_enable_allele_count(bool enable);
+
+  /**
+    Enable the variant stats ingestion task
+  */
+  void set_enable_variant_stats(bool enable);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

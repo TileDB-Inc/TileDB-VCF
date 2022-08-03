@@ -358,6 +358,16 @@ class Writer {
   /** Set contig ingestion mode. */
   void set_contig_mode(int contig_mode);
 
+  /**
+    Enable the allele count ingestion task
+  */
+  void set_enable_allele_count(bool enable);
+
+  /**
+    Enable the variant stats ingestion task
+  */
+  void set_enable_variant_stats(bool enable);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

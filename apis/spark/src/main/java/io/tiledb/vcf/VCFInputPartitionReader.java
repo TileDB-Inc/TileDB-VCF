@@ -268,7 +268,16 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
             + ", sample partition "
             + (samplePartitionInfo.getIndex() + 1)
             + " of "
-            + samplePartitionInfo.getNumPartitions());
+            + samplePartitionInfo.getNumPartitions()
+            + " (range_partition_index="
+            + rangePartitionInfo.getIndex()
+            + ", range_partitions="
+            + rangePartitionInfo.getNumPartitions()
+            + ", sample_partition_index="
+            + samplePartitionInfo.getIndex()
+            + ", sample_partitions="
+            + samplePartitionInfo.getNumPartitions()
+            + ")");
     String uriString = datasetURI.toString();
 
     Optional<String> credentialsCsv =
