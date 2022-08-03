@@ -27,7 +27,7 @@
 
 find_package(HTSlib REQUIRED)
 find_package(TileDB_EP REQUIRED)
-find_package(Catch REQUIRED)
+find_package(Catch_EP REQUIRED)
 
 ############################################################
 # Unit test executable
@@ -59,7 +59,7 @@ target_include_directories(tiledb_vcf_unit
 target_link_libraries(tiledb_vcf_unit
   PUBLIC
     tiledbvcf
-    Catch::Catch
+    Catch2::Catch2
 )
 
 # Sanitizer linker flags
