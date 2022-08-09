@@ -35,6 +35,7 @@
 
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
+#include <tiledb/tiledb_experimental>  // for the new group api
 
 namespace tiledb::vcf {
 
