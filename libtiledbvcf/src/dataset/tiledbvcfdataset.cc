@@ -30,8 +30,6 @@
 #include <string>
 #include <vector>
 
-#include <tiledb/tiledb_experimental>  // for the new group api
-
 #include "base64/base64.h"
 #include "dataset/allele_count.h"
 #include "dataset/tiledbvcfdataset.h"

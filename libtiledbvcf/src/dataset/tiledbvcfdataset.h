@@ -37,6 +37,7 @@
 #include <htslib/vcf.h>
 #include <future>
 #include <tiledb/tiledb>
+#include <tiledb/tiledb_experimental>  // for the new group api
 
 #include "utils/rwlock.h"
 #include "utils/sample_utils.h"
