@@ -10,9 +10,15 @@ namespace vcf {
 VCFMerger::VCFMerger()
     : hdr_(nullptr, bcf_hdr_destroy)
     , rec_(bcf_init(), bcf_destroy) {
+  // Allocate buffer for htslib
+  ndst_ = HTSLIB_BUFFER_SIZE;
+  dst_ = (int*)malloc(ndst_);
 }
 
 VCFMerger::~VCFMerger() {
+  if (dst_) {
+    free(dst_);
+  }
 }
 
 void VCFMerger::init(
@@ -64,10 +70,6 @@ void VCFMerger::close() {
       "VCFMerger closed: {} records in {} records out",
       write_count_,
       read_count_);
-
-  if (dst_) {
-    free(dst_);
-  }
 }
 
 void VCFMerger::write(const std::string& sample_name, SafeBCFRec rec) {

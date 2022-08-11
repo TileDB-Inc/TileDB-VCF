@@ -152,6 +152,8 @@ class VCFMerger {
   }
 
  private:
+  inline static const int HTSLIB_BUFFER_SIZE = 8192;
+
   struct SampleRecord {
     SafeBCFRec record;
     int sample_num = -1;
