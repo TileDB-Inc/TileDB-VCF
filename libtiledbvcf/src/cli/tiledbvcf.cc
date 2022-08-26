@@ -122,9 +122,6 @@ void do_export(ExportParams& args, const CLI::App& cmd) {
   reader.open_dataset(args.uri);
   reader.read();
 
-  tiledb::Config cfg;
-  utils::set_tiledb_config(args.tiledb_config, &cfg);
-
   VariantStats::apply_filter_expression(args.filtering_expression);
 
   if (args.tiledb_stats_enabled) {
