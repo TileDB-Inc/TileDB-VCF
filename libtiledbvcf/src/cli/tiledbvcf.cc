@@ -797,6 +797,12 @@ void add_export(CLI::App& app) {
       "Enable debug printing of tiledb query ranges used in read. "
       "Requires verbose mode");
 
+  cmd->add_option(
+      "-q,--filtering-query-expression",
+      args->memory_budget_mb,
+      "An inequality evaluated as a boolean expression on every variant. "
+      "Currently supports filtering on AF");
+
   // register function to implement this command
   cmd->callback([args, cmd]() { do_export(*args, *cmd); });
 }

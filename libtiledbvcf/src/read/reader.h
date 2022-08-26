@@ -134,7 +134,7 @@ struct ExportParams {
   bool sort_real_start_pos = false;
 
   // filtering expression to be parsed later
-  std::string filtering_expression
+  std::string filtering_expression;
 };
 
 /* ********************************* */
