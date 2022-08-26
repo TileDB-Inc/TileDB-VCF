@@ -218,8 +218,8 @@ void VariantStats::consolidate_commits(
   tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
 }
 
-  void VariantStats::apply_filter_expression(
-      std::string filter_expression)
+void VariantStats::apply_filter_expression(
+    std::string filter_expression)
 {
   filtering_expression_;
 }
