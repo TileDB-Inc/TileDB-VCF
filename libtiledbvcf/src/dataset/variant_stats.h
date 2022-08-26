@@ -36,6 +36,7 @@
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>  // for the new group api
+#include "../utils/expression_parser.h"
 
 namespace tiledb::vcf {
 
@@ -122,6 +123,16 @@ class VariantStats {
       const std::vector<std::string>& tiledb_config,
       const std::string& root_uri);
 
+   /**
+   * @brief apply filter expression
+   *
+   * @param ctx TileDB context
+   * @param tiledb_config TileDB config
+   * @param root_uri URI for the VCF dataset
+   */
+  static void apply_filter_expression(
+      std::string filter_expression);
+
   /**
    * @brief Consolidate fragment metadata
    *
@@ -204,6 +215,9 @@ class VariantStats {
 
   // Sample names included in the fragment
   inline static std::set<std::string> fragment_sample_names_;
+
+  //filtering expression for stats
+  inline static utils::FilteringExpression filtering_expression_;
 
   //===================================================================
   //= private non-static
