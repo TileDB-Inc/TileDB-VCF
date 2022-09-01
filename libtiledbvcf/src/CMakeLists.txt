@@ -60,6 +60,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/expression_parser.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/sample_utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cc
