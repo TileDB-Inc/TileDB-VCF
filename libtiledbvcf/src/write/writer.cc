@@ -780,47 +780,45 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       auto& contig = it->seq_name;
       bool skip = false;
 
-      // Loop over existing fragments
-      for (const auto& [frag_sample_range, frag_contigs] :
-           existing_sample_contig_fragments) {
-        LOG_TRACE(
-            "Resume: check if sample domain ({}, {}) "
-            "matches existing ({}, {})",
-            frag_sample_range.first,
-            frag_sample_range.second,
+      LOG_DEBUG(
+          "Resume: Checking sample_range=({}, {}) contig={}",
+          first_sample_name,
+          last_sample_name,
+          contig);
+
+      // Check if the batch sample range exactly matches any fragment's sample
+      // non-empty domain
+      bool sample_match = existing_sample_contig_fragments.find(
+                              {first_sample_name, last_sample_name}) !=
+                          existing_sample_contig_fragments.end();
+
+      if (sample_match) {
+        auto frag_contigs = existing_sample_contig_fragments.at(
+            {first_sample_name, last_sample_name});
+
+        LOG_DEBUG(
+            "Resume:   found fragments with sample_range=({}, {})",
             first_sample_name,
             last_sample_name);
-        // If the batch sample range exactly matches the fragment's sample
-        // range, check for contig range match
-        if (frag_sample_range.first == first_sample_name &&
-            frag_sample_range.second == last_sample_name) {
-          LOG_DEBUG(
-              "Resume: found matching sample domain ({}, {})",
-              first_sample_name,
-              last_sample_name);
-          // Loop over contigs for the sample range
-          for (auto& frag_contig : frag_contigs) {
-            LOG_TRACE(
-                "Resume: check if contig {} contained in existing ({}, {})",
-                contig,
-                frag_contig.first,
-                frag_contig.second);
-            // If the batch contig is contained in the fragment's contig range,
-            // skip this region
-            if (contig >= frag_contig.first && contig <= frag_contig.second) {
-              skip = true;
-              break;
-            }
+        // Loop over contigs for the sample range
+        for (auto& frag_contig : frag_contigs) {
+          LOG_TRACE(
+              "Resume:     check contig {} in fragment ({}, {})",
+              contig,
+              frag_contig.first,
+              frag_contig.second);
+          // If the batch contig is contained in the fragment's contig range,
+          // skip this region
+          if (contig >= frag_contig.first && contig <= frag_contig.second) {
+            skip = true;
+            break;
           }
-        }
-        if (skip) {
-          break;
         }
       }
 
       // Remove the region if marked to skip
       if (skip) {
-        LOG_DEBUG("Resume: skipping contig {}", contig);
+        LOG_DEBUG("Resume:   skipping contig {}", contig);
         it = regions_v4.erase(it);
       } else {
         it++;
