@@ -2407,20 +2407,20 @@ std::unordered_map<
     std::pair<std::string, std::string>,
     std::vector<std::pair<std::string, std::string>>,
     tiledb::vcf::pair_hash>
-TileDBVCFDataset::fragment_contig_sample_list() {
+TileDBVCFDataset::fragment_sample_contig_list() {
   if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
     throw std::runtime_error(
         "Fragment contig sample listing not supported for v2/v3 datasets");
 
   assert(metadata_.version == Version::V4);
-  return fragment_contig_sample_list_v4();
+  return fragment_sample_contig_list_v4();
 }
 
 std::unordered_map<
     std::pair<std::string, std::string>,
     std::vector<std::pair<std::string, std::string>>,
     tiledb::vcf::pair_hash>
-TileDBVCFDataset::fragment_contig_sample_list_v4() {
+TileDBVCFDataset::fragment_sample_contig_list_v4() {
   const auto fragment_info = data_array_fragment_info();
   std::unordered_map<
       std::pair<std::string, std::string>,
@@ -2434,12 +2434,12 @@ TileDBVCFDataset::fragment_contig_sample_list_v4() {
         fragment_sample_range.first, fragment_sample_range.second);
     auto contigs = std::make_pair(
         fragment_contig_range.first, fragment_contig_range.second);
-    if (results.find(contigs) == results.end()) {
+    if (results.find(samples) == results.end()) {
       results.emplace(
-          contigs, std::vector<std::pair<std::string, std::string>>{samples});
+          samples, std::vector<std::pair<std::string, std::string>>{contigs});
     } else {
-      auto& vec = results.at(contigs);
-      vec.emplace_back(samples);
+      auto& vec = results.at(samples);
+      vec.emplace_back(contigs);
     }
   }
 

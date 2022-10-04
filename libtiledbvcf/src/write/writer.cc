@@ -334,7 +334,7 @@ void Writer::ingest_samples() {
   if (ingestion_params_.resume_sample_partial_ingestion) {
     LOG_DEBUG(
         "Starting fetching of contig to sample list for resumption checking");
-    existing_fragments = dataset_->fragment_contig_sample_list();
+    existing_fragments = dataset_->fragment_sample_contig_list();
     LOG_DEBUG(
         "Finished fetching of contig sample list for resumption checking");
   }
@@ -652,7 +652,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     std::unordered_map<
         std::pair<std::string, std::string>,
         std::vector<std::pair<std::string, std::string>>,
-        pair_hash> existing_contig_sample_fragments) {
+        pair_hash> existing_sample_contig_fragments) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
@@ -766,7 +766,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   // If resuming, skip contigs that already exist in the array
   if (params.resume_sample_partial_ingestion &&
-      !existing_contig_sample_fragments.empty()) {
+      !existing_sample_contig_fragments.empty()) {
     const std::string first_sample_name =
         VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri)[0];
     const std::string last_sample_name =
@@ -781,28 +781,33 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       bool skip = false;
 
       // Loop over existing fragments
-      for (const auto& [contigs, samples] : existing_contig_sample_fragments) {
-        LOG_DEBUG(
-            "Resume: check if contig {} contained in existing ({}, {})",
-            contig,
-            contigs.first,
-            contigs.second);
-        // If the batch contig is contained in the fragment's contig range,
-        // check for an exact match in sample ranges
-        if (contig >= contigs.first && contig <= contigs.second) {
-          // Loop over sample non-empty domains for the contig
-          for (auto& sample_range : samples) {
-            LOG_DEBUG(
-                "Resume: check if sample domain ({}, {}) "
-                "matches existing ({}, {})",
-                sample_range.first,
-                sample_range.second,
-                first_sample_name,
-                last_sample_name);
-            // If the batch sample range exactly matches the fragment's sample
-            // range, skip this region
-            if (sample_range.first == first_sample_name &&
-                sample_range.second == last_sample_name) {
+      for (const auto& [frag_sample_range, frag_contigs] :
+           existing_sample_contig_fragments) {
+        LOG_TRACE(
+            "Resume: check if sample domain ({}, {}) "
+            "matches existing ({}, {})",
+            frag_sample_range.first,
+            frag_sample_range.second,
+            first_sample_name,
+            last_sample_name);
+        // If the batch sample range exactly matches the fragment's sample
+        // range, check for contig range match
+        if (frag_sample_range.first == first_sample_name &&
+            frag_sample_range.second == last_sample_name) {
+          LOG_DEBUG(
+              "Resume: found matching sample domain ({}, {})",
+              first_sample_name,
+              last_sample_name);
+          // Loop over contigs for the sample range
+          for (auto& frag_contig : frag_contigs) {
+            LOG_TRACE(
+                "Resume: check if contig {} contained in existing ({}, {})",
+                contig,
+                frag_contig.first,
+                frag_contig.second);
+            // If the batch contig is contained in the fragment's contig range,
+            // skip this region
+            if (contig >= frag_contig.first && contig <= frag_contig.second) {
               skip = true;
               break;
             }
