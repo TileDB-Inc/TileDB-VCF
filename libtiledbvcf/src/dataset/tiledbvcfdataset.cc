@@ -35,6 +35,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "dataset/variant_stats.h"
 #include "utils/logger_public.h"
+#include "utils/sample_utils.h"
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
@@ -205,7 +206,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   // Materialize all attributes in the provided VCF file
   if (!params.vcf_uri.empty()) {
-    metadata.extra_attributes = get_vcf_attributes(params.vcf_uri);
+    metadata.extra_attributes =
+        get_vcf_attributes(SampleUtils::build_vfs_plugin_uri(params.vcf_uri));
     check_attribute_names(metadata.extra_attributes);
   }
 
