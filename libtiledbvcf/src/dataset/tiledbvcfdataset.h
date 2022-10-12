@@ -683,12 +683,12 @@ class TileDBVCFDataset {
       std::pair<std::string, std::string>,
       std::vector<std::pair<std::string, std::string>>,
       tiledb::vcf::pair_hash>
-  fragment_contig_sample_list();
+  fragment_sample_contig_list();
   std::unordered_map<
       std::pair<std::string, std::string>,
       std::vector<std::pair<std::string, std::string>>,
       tiledb::vcf::pair_hash>
-  fragment_contig_sample_list_v4();
+  fragment_sample_contig_list_v4();
 
  private:
   /* ********************************* */

@@ -105,7 +105,7 @@ void Writer::init(const IngestionParams& params) {
       params.tiledb_stats_enabled_vcf_header_array);
 
   dataset_->open(
-      params.uri, params.tiledb_config, !params.load_data_array_fragment_info);
+      params.uri, params.tiledb_config, params.load_data_array_fragment_info);
 
   // Set htslib global config and context based on user passed TileDB config
   // options
@@ -334,7 +334,7 @@ void Writer::ingest_samples() {
   if (ingestion_params_.resume_sample_partial_ingestion) {
     LOG_DEBUG(
         "Starting fetching of contig to sample list for resumption checking");
-    existing_fragments = dataset_->fragment_contig_sample_list();
+    existing_fragments = dataset_->fragment_sample_contig_list();
     LOG_DEBUG(
         "Finished fetching of contig sample list for resumption checking");
   }
@@ -652,7 +652,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     std::unordered_map<
         std::pair<std::string, std::string>,
         std::vector<std::pair<std::string, std::string>>,
-        pair_hash> existing_contig_sample_fragments) {
+        pair_hash> existing_sample_contig_fragments) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
@@ -766,7 +766,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   // If resuming, skip contigs that already exist in the array
   if (params.resume_sample_partial_ingestion &&
-      !existing_contig_sample_fragments.empty()) {
+      !existing_sample_contig_fragments.empty()) {
     const std::string first_sample_name =
         VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri)[0];
     const std::string last_sample_name =
@@ -780,48 +780,51 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       auto& contig = it->seq_name;
       bool skip = false;
 
-      // Loop over existing fragments
-      for (const auto& [contigs, samples] : existing_contig_sample_fragments) {
-        LOG_TRACE(
-            "Resume check: {} in ({}, {})",
-            contig,
-            contigs.first,
-            contigs.second);
-        // If contig contained in a fragment
-        if (contig >= contigs.first && contig <= contigs.second) {
-          // Loop over sample non-empty domains for the contig
-          for (auto& sample_range : samples) {
-            // If the fragment samples are contained within the batch sample
-            // range, skip this region
-            LOG_TRACE(
-                "Resume check: ({}, {}) in ({}, {})",
-                sample_range.first,
-                sample_range.second,
-                first_sample_name,
-                last_sample_name);
-            if ((sample_range.first >= first_sample_name &&
-                 sample_range.first <= last_sample_name) &&
-                (sample_range.second >= first_sample_name &&
-                 sample_range.second <= last_sample_name)) {
-              skip = true;
-              break;
-            }
+      LOG_DEBUG(
+          "Resume: Checking sample_range=({}, {}) contig={}",
+          first_sample_name,
+          last_sample_name,
+          contig);
+
+      // Check if the batch sample range exactly matches any fragment's sample
+      // non-empty domain
+      bool sample_match = existing_sample_contig_fragments.find(
+                              {first_sample_name, last_sample_name}) !=
+                          existing_sample_contig_fragments.end();
+
+      if (sample_match) {
+        auto frag_contigs = existing_sample_contig_fragments.at(
+            {first_sample_name, last_sample_name});
+
+        LOG_DEBUG(
+            "Resume:   found fragments with sample_range=({}, {})",
+            first_sample_name,
+            last_sample_name);
+        // Loop over contigs for the sample range
+        for (auto& frag_contig : frag_contigs) {
+          LOG_TRACE(
+              "Resume:     check contig {} in fragment ({}, {})",
+              contig,
+              frag_contig.first,
+              frag_contig.second);
+          // If the batch contig is contained in the fragment's contig range,
+          // skip this region
+          if (contig >= frag_contig.first && contig <= frag_contig.second) {
+            skip = true;
+            break;
           }
-        }
-        if (skip) {
-          break;
         }
       }
 
       // Remove the region if marked to skip
       if (skip) {
-        LOG_DEBUG("Resume: skipping contig {}", contig);
+        LOG_DEBUG("Resume:   skipping contig {}", contig);
         it = regions_v4.erase(it);
       } else {
         it++;
       }
     }
-    LOG_DEBUG("Resume: regions after resume check = {}", regions.size());
+    LOG_DEBUG("Resume: regions after resume check = {}", regions_v4.size());
   }
 
   // If there were no regions in the VCF files return early
@@ -1050,8 +1053,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
     if (records_ingested > prev_records) {
       LOG_INFO(
-          "Ingestion rate = {:.3f} records/sec",
-          (records_ingested - prev_records) / utils::chrono_duration(start));
+          "Ingestion rate = {:.3f} records/sec (VmRSS = {})",
+          (records_ingested - prev_records) / utils::chrono_duration(start),
+          utils::memory_usage_str());
     }
   }
 
