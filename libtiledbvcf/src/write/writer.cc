@@ -80,6 +80,9 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     // If the dataset doesn't exist lets not error out, the user might be
     // creating a new dataset
   }
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_context(creation_params_.tiledb_config);
 }
 
 void Writer::init(const IngestionParams& params) {
