@@ -189,6 +189,10 @@ std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
 void TileDBVCFDataset::create(const CreationParams& params) {
   LOG_TRACE("Create dataset: {}", params.uri);
 
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_context(params.tiledb_config);
+
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
