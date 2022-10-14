@@ -189,7 +189,10 @@ std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
 void TileDBVCFDataset::create(const CreationParams& params) {
   LOG_TRACE("Create dataset: {}", params.uri);
 
+  // Add VFS plugin to htslib, so we can read VCF attributes through VFS
+  // (for example, when reading a VCF file from s3 with an ARN)
   utils::init_htslib();
+
   // Set htslib global config and context based on user passed TileDB config
   // options
   utils::set_htslib_tiledb_context(params.tiledb_config);
