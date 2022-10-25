@@ -665,11 +665,20 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // TODO: use multiple threads for vcf open, currenly serial with num_threads *
   // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  std::vector<std::future<void>> opens(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
     workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
+    // Initialize the work threads async
+    opens.push_back(std::async(
+        std::launch::async, [&workers, i, this, &params, &samples]() {
+          workers[i]->init(*dataset_, params, samples);
+          workers[i]->set_max_total_buffer_size_mb(
+              params.max_tiledb_buffer_size_mb);
+        }));
+  }
 
-    workers[i]->init(*dataset_, params, samples);
-    workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+  for (const auto& f : opens) {
+    f.wait();
   }
 
   // Create a worker for buffering anchors
@@ -1098,7 +1107,10 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     // Submit and finalize the query
     auto st = query_->submit();
     if (st != Query::Status::COMPLETE) {
-      LOG_FATAL("Error submitting TileDB write query: status = {}", st);
+      const char* c_str = nullptr;
+      tiledb_query_status_to_str(
+          static_cast<tiledb_query_status_t>(st), &c_str);
+      LOG_FATAL("Error submitting TileDB write query: status = {}", c_str);
     }
     query_->finalize();
   }
