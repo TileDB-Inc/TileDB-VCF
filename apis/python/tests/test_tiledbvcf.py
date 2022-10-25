@@ -962,6 +962,7 @@ def test_disable_ingestion_tasks(tmp_path):
             df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
 
 
+@pytest.mark.skip
 def test_ingestion_tasks(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
