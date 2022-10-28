@@ -1158,6 +1158,7 @@ bool Reader::first_intersecting_region(
 }
 
 bool Reader::process_query_results_v4() {
+  //tuple of (start, allele)
   if (read_state_.regions.empty())
     throw std::runtime_error(
         "Error processing query results; empty regions list.");
@@ -1221,6 +1222,10 @@ bool Reader::process_query_results_v4() {
         results.buffers()->real_start_pos().value<uint32_t>(i);
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
+
+    auto next_AF = read_state_.af_lookup.find({start, results.buffers()->alleles().value<std::string>(i)});
+    if(next_AF == read_state_.af_lookup.end() || std::get<1>(*next_AF) > params_.af_upper_threshold)
+      continue;
 
     // Search for the first intersecting region
     bool found = first_intersecting_region(

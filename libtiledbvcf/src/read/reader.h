@@ -132,6 +132,8 @@ struct ExportParams {
 
   // Should results be sorted on real_start_pos
   bool sort_real_start_pos = false;
+
+  float af_upper_threshold = 1;
 };
 
 /* ********************************* */
@@ -485,6 +487,18 @@ class Reader {
   };
 
   /**
+   * Hashing function for precomputed AF from stats array
+   */
+  struct AFStatsHash {
+    inline size_t operator()(const std::tuple<uint32_t, std::string>& key) const {
+      // use standard hashing function to hash the sum of hashes until we think
+      // of something better
+      return std::hash<size_t>()(std::hash<uint32_t>()(std::get<0>(key))) +
+             std::hash<std::string>()(std::get<1>(key));
+    }
+  };
+
+  /**
    * Structure holding all of the state for the current read operation. The read
    * state tracks all of the information that is required to implement
    * incomplete queries (e.g. if an in-memory export runs out of space when
@@ -585,6 +599,9 @@ class Reader {
 
     /** Does the export need headers to be fetched. */
     bool need_headers = false;
+
+    typedef std::unordered_map<std::tuple<uint32_t, std::string>, float, AFStatsHash> AFLookupMap;
+    AFLookupMap af_lookup;
   };
 
   /* ********************************* */
