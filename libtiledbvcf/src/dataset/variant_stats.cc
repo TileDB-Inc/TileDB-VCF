@@ -131,6 +131,7 @@ void VariantStats::init(
 
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
+  ctx_ = ctx;
 }
 
 void VariantStats::finalize() {
@@ -164,6 +165,9 @@ void VariantStats::finalize() {
 
     fragment_sample_names_.clear();
   }
+
+  query_ = std::make_unique<Query>(*ctx_, *array_);
+  query_->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
 void VariantStats::close() {
