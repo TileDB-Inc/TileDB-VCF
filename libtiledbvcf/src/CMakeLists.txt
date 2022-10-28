@@ -48,16 +48,16 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/attribute_buffer_set.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/dataset/tiledbvcfdataset.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/dataset/allele_count.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/dataset/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/htslib_plugin/hfile_tiledb_vfs.c
   ${CMAKE_CURRENT_SOURCE_DIR}/read/bcf_exporter.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/read/pvcf_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/in_memory_exporter.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/read/pvcf_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/read_query_results.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/allele_count.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc
@@ -73,10 +73,10 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v4.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer.cc
 )
 
 set(TILEDB_VCF_EXTERNAL_SOURCES

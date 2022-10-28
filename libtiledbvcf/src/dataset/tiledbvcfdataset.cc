@@ -31,9 +31,9 @@
 #include <vector>
 
 #include "base64/base64.h"
-#include "dataset/allele_count.h"
 #include "dataset/tiledbvcfdataset.h"
-#include "dataset/variant_stats.h"
+#include "stats/allele_count.h"
+#include "stats/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
 #include "utils/unique_rwlock.h"

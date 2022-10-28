@@ -66,7 +66,7 @@ if (FORCE_EXTERNAL_HTSLIB)
   message(STATUS "Skipping search for htslib, building it as an external project. To use system htslib, set FORCE_EXTERNAL_HTSLIB=OFF")
 endif()
 
-if (FORCE_EXTERNAL_HTSLIB)
+if (FORCE_EXTERNAL_TILEDB)
   message(STATUS "Skipping search for TileDB, building it as an external project. To use system TileDB, set FORCE_EXTERNAL_TILEDB=OFF")
 endif()
 
