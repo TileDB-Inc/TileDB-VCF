@@ -189,6 +189,8 @@ void AlleleCount::close() {
     array_ = nullptr;
   }
 
+  // Release the context shared_ptr
+  ctx_ = nullptr;
   enabled_ = false;
 }
 
