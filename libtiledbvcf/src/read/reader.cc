@@ -328,6 +328,10 @@ void Reader::read() {
     tiledb::Stats::reset();
   }
 
+  if (!params_.af_filter.empty()) {
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, params_.uri);
+  }
+
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;
   if (dataset_ == nullptr)
@@ -835,6 +839,11 @@ bool Reader::next_read_batch_v4() {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
     }
+
+    // TODO: simplify interface, pass string, uint32, uint32 instead of Region
+    Region region(
+        query_region.contig, query_region.col_min, query_region.col_max);
+    af_filter_->add_region(region);
   }
 
   read_state_.query->add_range(
@@ -978,6 +987,7 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
+    af_filter_->compute_af(params_.af_filter);
     LOG_INFO("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
     LOG_INFO(
@@ -1208,6 +1218,8 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   const auto& regions = regions_indexes->second;
 
+  bool af_filter_enabled = af_filter_->enable_af();
+
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = params_.sort_real_start_pos ?
@@ -1221,6 +1233,35 @@ bool Reader::process_query_results_v4() {
         results.buffers()->real_start_pos().value<uint32_t>(i);
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
+
+    if (af_filter_enabled) {
+      // TODO: get allele from buffers, this should work but there's a bug on
+      // the last index
+      // auto allele = results.buffers()->alleles().value(i);
+
+      auto alleles_offset = results.buffers()->alleles().offsets()[i];
+      const char* alleles_data =
+          results.buffers()->alleles().data<char>() + alleles_offset;
+      std::string csv_alleles(alleles_data);
+
+      LOG_DEBUG("alleles = {}", csv_alleles);
+
+      auto alleles = utils::split(csv_alleles);
+
+      // Check if any of the alleles pass the AF filter
+      // skip the REF allele (index 0)
+      // TODO: only check alleles in info_GT
+      bool pass = false;
+      for (unsigned int j = 1; j < alleles.size(); j++) {
+        pass |= af_filter_->pass(real_start, alleles[j]);
+        LOG_DEBUG("  pass = {}", pass);
+      }
+
+      // If all alleles do not pass the af filter, continue
+      if (!pass) {
+        continue;
+      }
+    }
 
     // Search for the first intersecting region
     bool found = first_intersecting_region(

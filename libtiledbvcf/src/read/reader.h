@@ -45,6 +45,7 @@
 #include "read/exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
+#include "stats/variant_stats_reader.h"
 
 namespace tiledb {
 namespace vcf {
@@ -132,6 +133,12 @@ struct ExportParams {
 
   // Should results be sorted on real_start_pos
   bool sort_real_start_pos = false;
+
+  // AF filter with the format "OP,VALUE"
+  //   where OP = EQ | GT | GE | LT | LE
+  //   and VALUE = float
+  // If empty, AF filtering is not applied
+  std::string af_filter = "";
 };
 
 /* ********************************* */
@@ -611,6 +618,9 @@ class Reader {
 
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_a;
+
+  /** Variant stats filter */
+  std::unique_ptr<VariantStatsReader> af_filter_;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */

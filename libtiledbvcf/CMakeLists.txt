@@ -30,6 +30,9 @@
 ############################################################
 
 cmake_minimum_required(VERSION 3.3)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 # Superbuild option must be on by default.

@@ -57,7 +57,10 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/allele_count.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/column_buffer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/managed_query.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats_reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc
@@ -193,6 +196,7 @@ endif()
 target_include_directories(tiledbvcf-bin
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
 )
 
 ############################################################
