@@ -185,6 +185,9 @@ class AlleleCount {
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
 
+  // TileDB context pointer
+  inline static std::shared_ptr<Context> ctx_ = nullptr;
+
   // TileDB array pointer
   inline static std::unique_ptr<Array> array_ = nullptr;
 

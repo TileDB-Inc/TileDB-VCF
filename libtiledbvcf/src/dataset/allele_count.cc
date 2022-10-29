@@ -132,6 +132,7 @@ void AlleleCount::init(
 
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
+  ctx_ = ctx;
 }
 
 void AlleleCount::finalize() {
@@ -165,6 +166,9 @@ void AlleleCount::finalize() {
 
     fragment_sample_names_.clear();
   }
+
+  query_ = std::make_unique<Query>(*ctx_, *array_);
+  query_->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
 void AlleleCount::close() {
@@ -185,6 +189,8 @@ void AlleleCount::close() {
     array_ = nullptr;
   }
 
+  // Release the context shared_ptr
+  ctx_ = nullptr;
   enabled_ = false;
 }
 
