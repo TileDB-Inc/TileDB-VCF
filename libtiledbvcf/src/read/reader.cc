@@ -841,9 +841,11 @@ bool Reader::next_read_batch_v4() {
     }
 
     // TODO: simplify interface, pass string, uint32, uint32 instead of Region
-    Region region(
-        query_region.contig, query_region.col_min, query_region.col_max);
-    af_filter_->add_region(region);
+    if (af_filter_) {
+      Region region(
+          query_region.contig, query_region.col_min, query_region.col_max);
+      af_filter_->add_region(region);
+    }
   }
 
   read_state_.query->add_range(
@@ -987,7 +989,9 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
-    af_filter_->compute_af(params_.af_filter);
+    if (af_filter_) {
+      af_filter_->compute_af(params_.af_filter);
+    }
     LOG_INFO("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
     LOG_INFO(
@@ -1218,7 +1222,7 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   const auto& regions = regions_indexes->second;
 
-  bool af_filter_enabled = af_filter_->enable_af();
+  bool af_filter_enabled = af_filter_ ? af_filter_->enable_af() : false;
 
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference

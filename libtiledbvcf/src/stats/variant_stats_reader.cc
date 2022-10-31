@@ -64,13 +64,18 @@ bool VariantStatsReader::enable_af() {
 
 bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
   LOG_DEBUG("[AF Filter] checking {} {}", pos, allele);
-  try {
-    // map: allele -> af
-    auto allele_map = af_map_.at(pos);
-    return allele_map.count(std::string(allele));
-  } catch (...) {
+
+  if (af_map_.find(pos) == af_map_.end()) {
     return false;
   }
+
+  auto allele_map = af_map_.at(pos);
+
+  if (allele_map.find(allele) == allele_map.end()) {
+    return false;
+  }
+
+  return true;
 }
 
 void VariantStatsReader::compute_af_worker_() {

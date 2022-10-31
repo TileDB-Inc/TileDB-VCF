@@ -700,9 +700,10 @@ void add_export(CLI::App& app) {
       "Don't write output files, only print the count of the resulting "
       "number of intersecting records.");
   cmd->add_option(
-      "--af-filter",
-      args->af_filter,
-      "If set, only export data that passes the AF filter.");
+         "--af-filter",
+         args->af_filter,
+         "If set, only export data that passes the AF filter.")
+      ->excludes("--count-only");
 
   cmd->option_defaults()->group("Region options");
   cmd->add_option(
