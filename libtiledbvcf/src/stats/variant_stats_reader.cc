@@ -79,6 +79,8 @@ bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
 }
 
 void VariantStatsReader::compute_af_worker_() {
+  LOG_INFO("[VariantStatsReader] compute_af start");
+
   auto tokens = utils::split(condition_);
   float threshold = std::stof(tokens[1]);
   LOG_DEBUG(
@@ -121,7 +123,7 @@ void VariantStatsReader::compute_af_worker_() {
             float af = 1.0 * ac / an;
             // Add af value to map if it passes the condition
             // TODO: support more threshold ops
-            if (af <= threshold) {
+            if (af > 0 && af <= threshold) {
               af_map_[current_pos][allele] = af;
               LOG_DEBUG(
                   "[VariantStatsReader] {} {} AF={}",
@@ -147,7 +149,7 @@ void VariantStatsReader::compute_af_worker_() {
     float af = 1.0 * ac / an;
     // Add af value to map if it passes the condition
     // TODO: support more threshold ops
-    if (af <= threshold) {
+    if (af > 0 && af <= threshold) {
       af_map_[current_pos][allele] = af;
       LOG_DEBUG(
           "[VariantStatsReader] {} {} AF={}",
@@ -156,6 +158,8 @@ void VariantStatsReader::compute_af_worker_() {
           af_map_[current_pos][allele]);
     }
   }
+
+  LOG_INFO("[VariantStatsReader] compute_af done");
 }
 
 }  // namespace tiledb::vcf

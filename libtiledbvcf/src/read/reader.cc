@@ -1253,12 +1253,14 @@ bool Reader::process_query_results_v4() {
       auto alleles = utils::split(csv_alleles);
 
       // Check if any of the alleles pass the AF filter
-      // skip the REF allele (index 0)
       // TODO: only check alleles in info_GT
       bool pass = false;
-      for (unsigned int j = 1; j < alleles.size(); j++) {
-        pass |= af_filter_->pass(real_start, alleles[j]);
+      for (auto&& allele : alleles) {
+        pass |= af_filter_->pass(real_start, allele);
         LOG_DEBUG("  pass = {}", pass);
+        if (pass) {
+          break;
+        }
       }
 
       // If all alleles do not pass the af filter, continue
