@@ -921,6 +921,17 @@ int32_t tiledb_vcf_reader_set_output_dir(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_af_filter(
+    tiledb_vcf_reader_t* reader, const char* af_filter) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_af_filter(af_filter)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*             BED FILE              */
 /* ********************************* */
