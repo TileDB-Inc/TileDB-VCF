@@ -1248,7 +1248,7 @@ bool Reader::process_query_results_v4() {
           results.buffers()->alleles().data<char>() + alleles_offset;
       std::string csv_alleles(alleles_data);
 
-      LOG_DEBUG("alleles = {}", csv_alleles);
+      LOG_TRACE("alleles = {}", csv_alleles);
 
       auto alleles = utils::split(csv_alleles);
 
@@ -1257,7 +1257,7 @@ bool Reader::process_query_results_v4() {
       bool pass = false;
       for (auto&& allele : alleles) {
         pass |= af_filter_->pass(real_start, allele);
-        LOG_DEBUG("  pass = {}", pass);
+        LOG_TRACE("  pass = {}", pass);
         if (pass) {
           break;
         }

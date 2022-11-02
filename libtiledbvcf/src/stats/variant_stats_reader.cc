@@ -46,9 +46,12 @@ void VariantStatsReader::compute_af(std::string condition) {
     return;
   }
 
-  TRY_CATCH_THROW(
-      compute_future_ = std::async(
-          std::launch::async, &VariantStatsReader::compute_af_worker_, this));
+  /*
+    TRY_CATCH_THROW(
+        compute_future_ = std::async(
+            std::launch::async, &VariantStatsReader::compute_af_worker_, this));
+  */
+  compute_af_worker_();
 }
 
 bool VariantStatsReader::enable_af() {
@@ -58,12 +61,12 @@ bool VariantStatsReader::enable_af() {
   }
 
   // Wait until compute thread is finished
-  TRY_CATCH_THROW(compute_future_.wait());
+  // TRY_CATCH_THROW(compute_future_.wait());
   return true;
 }
 
 bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
-  LOG_DEBUG("[AF Filter] checking {} {}", pos, allele);
+  LOG_TRACE("[AF Filter] checking {} {}", pos, allele);
 
   if (af_map_.find(pos) == af_map_.end()) {
     return false;
@@ -79,6 +82,8 @@ bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
 }
 
 void VariantStatsReader::compute_af_worker_() {
+  auto query_start_timer = std::chrono::steady_clock::now();
+
   LOG_INFO("[VariantStatsReader] compute_af start");
 
   auto tokens = utils::split(condition_);
@@ -125,7 +130,7 @@ void VariantStatsReader::compute_af_worker_() {
             // TODO: support more threshold ops
             if (af > 0 && af <= threshold) {
               af_map_[current_pos][allele] = af;
-              LOG_DEBUG(
+              LOG_TRACE(
                   "[VariantStatsReader] {} {} AF={}",
                   current_pos,
                   allele,
@@ -159,7 +164,10 @@ void VariantStatsReader::compute_af_worker_() {
     }
   }
 
-  LOG_INFO("[VariantStatsReader] compute_af done");
+  LOG_INFO(
+      "[VariantStatsReader] query completed in {:.3f} sec. (VmRSS = {})",
+      utils::chrono_duration(query_start_timer),
+      utils::memory_usage_str());
 }
 
 }  // namespace tiledb::vcf

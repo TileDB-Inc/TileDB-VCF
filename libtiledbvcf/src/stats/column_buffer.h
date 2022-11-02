@@ -47,7 +47,7 @@ using namespace tiledb;
  *
  */
 class ColumnBuffer {
-  inline static const size_t DEFAULT_ALLOC_BYTES = 1 << 24;  // 16 MiB
+  inline static const size_t DEFAULT_ALLOC_BYTES = 1 << 26;  // 64 MiB
   inline static const std::string CONFIG_KEY_INIT_BYTES =
       "soma.init_buffer_bytes";
 
