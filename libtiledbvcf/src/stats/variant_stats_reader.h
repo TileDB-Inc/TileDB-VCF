@@ -36,6 +36,49 @@
 
 namespace tiledb::vcf {
 
+class AFMap {
+ public:
+  void insert(uint32_t pos, const std::string& allele, int ac) {
+    // add ac to the an for this position
+    ac_map_[pos].first += ac;
+
+    // add ac to the ac for this position, allele
+    ac_map_[pos].second[allele] += ac;
+
+    if (false) {
+      LOG_TRACE(
+          "[AFMap] insert {} {} {} -> ac={} an={}",
+          pos,
+          allele,
+          ac,
+          ac_map_[pos].second[allele],
+          ac_map_[pos].first);
+    }
+  }
+
+  float af(uint32_t pos, const std::string& allele) {
+    // calculate af = ac / an
+    auto& pos_map = ac_map_[pos];
+
+    // Return -1.0 if the allele was not called
+    if (pos_map.first == 0) {
+      return -1.0;
+    }
+    return 1.0 * pos_map.second[allele] / pos_map.first;
+  }
+
+  void clear() {
+    ac_map_.clear();
+  }
+
+ private:
+  // map: pos -> (an, map: allele -> ac)
+  std::unordered_map<
+      uint32_t,
+      std::pair<int, std::unordered_map<std::string, int>>>
+      ac_map_;
+};
+
 /**
  * @brief The VariantStatsReader class reads and calculates stats in the
  * variant_stats array.
@@ -73,9 +116,11 @@ class VariantStatsReader {
 
   std::string condition_;
 
-  // TODO: change this to a map of pos -> allele for alleles that pass the
-  // filter condition
-  std::unordered_map<uint32_t, std::unordered_map<std::string, float>> af_map_;
+  float threshold_;
+
+  AFMap af_map_;
+
+  bool async_query_ = false;
 
   // Future for compute thread
   std::future<void> compute_future_;

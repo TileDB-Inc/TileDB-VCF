@@ -1238,6 +1238,15 @@ bool Reader::process_query_results_v4() {
 
     const uint32_t end = results.buffers()->end_pos().value<uint32_t>(i);
 
+    // Search for the first intersecting region
+    bool found = first_intersecting_region(
+        query_contig, real_start, read_state_.last_intersecting_region_idx_);
+
+    // Continue to the next record if no intersecting regions are found
+    if (!found) {
+      continue;
+    }
+
     if (af_filter_enabled) {
       // TODO: get allele from buffers, this should work but there's a bug on
       // the last index
@@ -1256,6 +1265,11 @@ bool Reader::process_query_results_v4() {
       // TODO: only check alleles in info_GT
       bool pass = false;
       for (auto&& allele : alleles) {
+        // TODO: skip <NON_REF> allele, revisit after checking only alleles in
+        // GT
+        if (!allele.compare("<NON_REF>")) {
+          continue;
+        }
         pass |= af_filter_->pass(real_start, allele);
         LOG_TRACE("  pass = {}", pass);
         if (pass) {
@@ -1267,15 +1281,6 @@ bool Reader::process_query_results_v4() {
       if (!pass) {
         continue;
       }
-    }
-
-    // Search for the first intersecting region
-    bool found = first_intersecting_region(
-        query_contig, real_start, read_state_.last_intersecting_region_idx_);
-
-    // Continue to the next record if no intersecting regions are found
-    if (!found) {
-      continue;
     }
 
     for (size_t j = read_state_.last_intersecting_region_idx_;

@@ -46,12 +46,13 @@ void VariantStatsReader::compute_af(std::string condition) {
     return;
   }
 
-  /*
+  if (async_query_) {
     TRY_CATCH_THROW(
         compute_future_ = std::async(
             std::launch::async, &VariantStatsReader::compute_af_worker_, this));
-  */
-  compute_af_worker_();
+  } else {
+    compute_af_worker_();
+  }
 }
 
 bool VariantStatsReader::enable_af() {
@@ -61,44 +62,45 @@ bool VariantStatsReader::enable_af() {
   }
 
   // Wait until compute thread is finished
-  // TRY_CATCH_THROW(compute_future_.wait());
+
+  if (async_query_) {
+    TRY_CATCH_THROW(compute_future_.wait());
+  }
   return true;
 }
 
 bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
-  LOG_TRACE("[AF Filter] checking {} {}", pos, allele);
+  float af = af_map_.af(pos, allele);
 
-  if (af_map_.find(pos) == af_map_.end()) {
+  // Fail the filter if allele was not called
+  if (af < 0.0) {
+    LOG_DEBUG("[VariantStatsReader] {}:{} not called", pos, allele);
     return false;
   }
 
-  auto allele_map = af_map_.at(pos);
+  LOG_TRACE(
+      "[AF Filter] checking {} {} = {} <= {}", pos, allele, af, threshold_);
 
-  if (allele_map.find(allele) == allele_map.end()) {
-    return false;
-  }
-
-  return true;
+  return af <= threshold_;
 }
 
 void VariantStatsReader::compute_af_worker_() {
-  auto query_start_timer = std::chrono::steady_clock::now();
-
-  LOG_INFO("[VariantStatsReader] compute_af start");
-
   auto tokens = utils::split(condition_);
-  float threshold = std::stof(tokens[1]);
+  threshold_ = std::stof(tokens[1]);
   LOG_DEBUG(
       "[VariantStatsReader] condition {} {} {}",
       condition_,
       tokens[0],
-      threshold);
+      threshold_);
 
   // Clear old filter
   af_map_.clear();
 
+  auto query_start_timer = std::chrono::steady_clock::now();
+  LOG_INFO("[VariantStatsReader] compute_af start");
+
   // Setup the query
-  ManagedQuery mq(array_, "variant_stats", TILEDB_ROW_MAJOR);
+  ManagedQuery mq(array_, "variant_stats", TILEDB_UNORDERED);
   mq.select_columns({"pos", "allele", "ac"});
   mq.select_point<std::string>("contig", regions_.front().seq_name);
   for (auto& region : regions_) {
@@ -108,59 +110,16 @@ void VariantStatsReader::compute_af_worker_() {
   regions_.clear();
 
   // Process the results
-  std::unordered_map<std::string, int> ac_map;
-  uint32_t current_pos = 0;
-  int an = 0;
-  bool first_pass = true;
-
   while (!mq.is_complete()) {
     mq.submit();
-    auto results = mq.results();
+    auto num_rows = mq.results()->num_rows();
 
-    for (unsigned int i = 0; i < results->num_rows(); i++) {
+    for (unsigned int i = 0; i < num_rows; i++) {
       auto pos = mq.data<uint32_t>("pos")[i];
       auto allele = std::string(mq.string_view("allele", i));
       auto ac = mq.data<int32_t>("ac")[i];
 
-      if (pos != current_pos && !first_pass) {
-        for (auto&& [allele, ac] : ac_map) {
-          if (ac) {
-            float af = 1.0 * ac / an;
-            // Add af value to map if it passes the condition
-            // TODO: support more threshold ops
-            if (af > 0 && af <= threshold) {
-              af_map_[current_pos][allele] = af;
-              LOG_TRACE(
-                  "[VariantStatsReader] {} {} AF={}",
-                  current_pos,
-                  allele,
-                  af_map_[current_pos][allele]);
-            }
-          }
-        }
-        ac_map.clear();
-        an = 0;
-      }
-
-      current_pos = pos;
-      ac_map[allele] += ac;
-      an += ac;
-      first_pass = false;
-    }
-  }
-
-  // Final update
-  for (auto&& [allele, ac] : ac_map) {
-    float af = 1.0 * ac / an;
-    // Add af value to map if it passes the condition
-    // TODO: support more threshold ops
-    if (af > 0 && af <= threshold) {
-      af_map_[current_pos][allele] = af;
-      LOG_DEBUG(
-          "[VariantStatsReader] {} {} AF={}",
-          current_pos,
-          allele,
-          af_map_[current_pos][allele]);
+      af_map_.insert(pos, allele, ac);
     }
   }
 
