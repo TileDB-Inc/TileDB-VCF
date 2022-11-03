@@ -195,6 +195,12 @@ void Reader::set_output_dir(const std::string& output_dir) {
       reader, tiledb_vcf_reader_set_output_dir(reader, output_dir.c_str()));
 }
 
+void Reader::set_af_filter(const std::string& af_filter) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_af_filter(reader, af_filter.c_str()));
+}
+  
 void Reader::read(const bool release_buffs) {
   auto reader = ptr.get();
   alloc_buffers(release_buffs);

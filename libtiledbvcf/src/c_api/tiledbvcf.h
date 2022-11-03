@@ -901,6 +901,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_output_path(
     tiledb_vcf_reader_t* reader, const char* output_path);
 
 /**
+ * Sets AF filter
+ * @param reader VCF reader object
+ * @param af_filter setting
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_af_filter(
+    tiledb_vcf_reader_t* reader, const char* af_filter);
+
+/**
  * Sets export output directory
  * @param reader VCF reader object
  * @param output_path setting

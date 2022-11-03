@@ -2525,6 +2525,10 @@ void Reader::set_output_dir(const std::string& output_dir) {
   params_.output_dir = output_dir;
 }
 
+void Reader::set_af_filter(const std::string& af_filter) {
+  params_.af_filter = af_filter;
+}
+
 void Reader::set_tiledb_query_config() {
   assert(read_state_.query != nullptr);
   assert(buffers_a != nullptr);

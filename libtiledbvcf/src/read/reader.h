@@ -431,6 +431,12 @@ class Reader {
   void set_output_dir(const std::string& output_dir);
 
   /**
+   * sets AF filter expression
+   * @param af_filter setting
+   */
+  void set_af_filter(const std::string& af_filter);
+
+  /**
    * Sets disabling of progress estimation in verbose mode
    * @param enable_progress_estimation setting
    */
