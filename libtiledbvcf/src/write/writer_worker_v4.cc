@@ -43,19 +43,20 @@ void WriterWorkerV4::init(
     const std::vector<SampleAndIndex>& samples) {
   dataset_ = &dataset;
 
-  std::vector<std::future<void>> vfs_opens(samples.size());
+  std::vector<std::future<void>> vcf_opens;
+  vcf_opens.reserve(samples.size());
 
   for (const auto& s : samples) {
     auto vcf = std::make_shared<VCFV4>();
     // load the sample in parallel
-    vfs_opens.push_back(std::async(std::launch::async, [&vcf, &params, &s]() {
+    vcf_opens.push_back(std::async(std::launch::async, [vcf, &params, s]() {
       vcf->set_max_record_buff_size(params.max_record_buffer_size);
       vcf->open(s.sample_uri, s.index_uri);
     }));
     vcfs_.push_back(vcf);
   }
 
-  for (const auto& f : vfs_opens) {
+  for (const auto& f : vcf_opens) {
     f.wait();
   }
 
