@@ -1262,7 +1262,6 @@ bool Reader::process_query_results_v4() {
       auto alleles = utils::split(csv_alleles);
 
       // Check if any of the alleles pass the AF filter
-      // TODO: only check alleles in info_GT
       bool pass = false;
       for (auto&& allele : alleles) {
         // TODO: skip <NON_REF> allele, revisit after checking only alleles in
@@ -1270,7 +1269,16 @@ bool Reader::process_query_results_v4() {
         if (!allele.compare("<NON_REF>")) {
           continue;
         }
+
+        // TODO: modify pass to return af (float) and pass (boolean)
+        // TODO: only calculate pass on alleles in info_GT
         pass |= af_filter_->pass(real_start, allele);
+
+        // TODO: build vector of IAF values for annotation
+        // add annotation to read_state_.query_results
+        //  - build vector of AFs matching the order of the VCF record
+        //  - all allele AF values are required, so do not exit this loop early
+
         LOG_TRACE("  pass = {}", pass);
         if (pass) {
           break;

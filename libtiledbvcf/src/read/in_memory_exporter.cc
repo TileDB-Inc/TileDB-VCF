@@ -352,6 +352,9 @@ bool InMemoryExporter::export_record(
     uint64_t cell_idx) {
   const unsigned version = dataset_->metadata().version;
 
+  // TODO: if annotating, copy from query_results.af_values into the
+  // IAF "UserBuffer" to hold the values
+
   // Keep a convenience reference to the current query results.
   curr_query_results_ = &query_results;
 
