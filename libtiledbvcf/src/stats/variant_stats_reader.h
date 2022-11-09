@@ -58,13 +58,23 @@ class AFMap {
 
   float af(uint32_t pos, const std::string& allele) {
     // calculate af = ac / an
-    auto& pos_map = ac_map_[pos];
+    std::unordered_map<
+      uint32_t,
+      std::pair<int, std::unordered_map<std::string, int>>>
+      ::const_iterator pos_map_iterator = ac_map_.find(pos);
 
     // Return -1.0 if the allele was not called
-    if (pos_map.first == 0) {
+    if (pos_map_iterator == ac_map_.end()) {
       return -1.0;
     }
-    return 1.0 * pos_map.second[allele] / pos_map.first;
+
+    const std::pair<int, std::unordered_map<std::string, int>>&
+      pos_map = pos_map_iterator->second;
+
+    float result;
+    TRY_CATCH_THROW(result = 1.0 *
+		    pos_map.second.at(allele) / pos_map.first);
+    return result;
   }
 
   void clear() {
@@ -107,7 +117,7 @@ class VariantStatsReader {
    */
   bool enable_af();
 
-  bool pass(uint32_t pos, const std::string& allele);
+  std::pair<bool, float> pass(uint32_t pos, const std::string& allele);
 
  private:
   std::shared_ptr<Array> array_;

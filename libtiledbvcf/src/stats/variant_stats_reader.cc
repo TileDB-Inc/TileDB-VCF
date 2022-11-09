@@ -69,19 +69,19 @@ bool VariantStatsReader::enable_af() {
   return true;
 }
 
-bool VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
+std::pair<bool, float> VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
   float af = af_map_.af(pos, allele);
 
   // Fail the filter if allele was not called
   if (af < 0.0) {
     LOG_DEBUG("[VariantStatsReader] {}:{} not called", pos, allele);
-    return false;
+    return {false, 0.0};
   }
 
   LOG_TRACE(
       "[AF Filter] checking {} {} = {} <= {}", pos, allele, af, threshold_);
 
-  return af <= threshold_;
+  return {af <= threshold_, af};
 }
 
 void VariantStatsReader::compute_af_worker_() {

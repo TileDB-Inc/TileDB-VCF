@@ -354,6 +354,7 @@ bool InMemoryExporter::export_record(
 
   // TODO: if annotating, copy from query_results.af_values into the
   // IAF "UserBuffer" to hold the values
+  query_results.af_values;
 
   // Keep a convenience reference to the current query results.
   curr_query_results_ = &query_results;

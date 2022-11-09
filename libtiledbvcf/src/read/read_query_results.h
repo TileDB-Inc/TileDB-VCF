@@ -86,6 +86,9 @@ struct ReadQueryResults {
   const std::unordered_map<std::string, std::pair<uint64_t, uint64_t>>&
   extra_attrs_size() const;
 
+  //TODO: should this be public? Does it need a reference accessor?
+  std::vector<float> af_values;
+
  private:
   /** Pointer to buffer set holding the actual data. */
   const AttributeBufferSet* buffers_;
