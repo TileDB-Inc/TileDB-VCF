@@ -707,6 +707,8 @@ void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
     hdr = hdrs.begin()->second.get();
   }
 
+  // TODO: add IAF vcf header line
+
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
