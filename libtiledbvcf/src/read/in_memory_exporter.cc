@@ -664,7 +664,7 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
   bool is_info = parts.first == "info";
   const auto& field_name = parts.second;
 
-  int htslib_type = is_info ? dataset->info_field_type(field_name, hdr) :
+  int htslib_type = is_info ? dataset->info_field_type(field_name, hdr, true) :
                               dataset->fmt_field_type(field_name, hdr);
   switch (htslib_type) {
     case BCF_HT_FLAG:

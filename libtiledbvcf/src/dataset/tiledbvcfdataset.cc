@@ -687,7 +687,7 @@ void TileDBVCFDataset::load_field_type_maps() const {
   info_fmt_field_types_loaded_ = true;
 }
 
-void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
+  void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr, bool add_iaf) const {
   utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   // After we acquire the write lock we need to check if another thread has
   // loaded the field types
@@ -707,7 +707,16 @@ void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
     hdr = hdrs.begin()->second.get();
   }
 
-  // TODO: add IAF vcf header line
+  if(add_iaf) {
+  //TODO: do something better than promoting this pointer type
+    if(bcf_hdr_append(const_cast<bcf_hdr_t*>(hdr), "##INFO=<ID=IAF,Number=R,Type=Float,Description=\"Internal Allele Frequency\">") < 0) {
+      throw std::runtime_error(
+			     "Error appending to header for internal allele frequency.");
+    }
+  }
+  if(bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
+    throw std::runtime_error("Error syncing header after adding IAF record.");
+  }
 
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
@@ -1821,7 +1830,8 @@ std::set<std::string> TileDBVCFDataset::all_attributes() const {
 }
 
 int TileDBVCFDataset::info_field_type(
-    const std::string& name, const bcf_hdr_t* hdr) const {
+    const std::string& name, const bcf_hdr_t* hdr,
+				      bool add_iaf) const {
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   if (!info_fmt_field_types_loaded_) {
     lck_.unlock();
@@ -1829,7 +1839,7 @@ int TileDBVCFDataset::info_field_type(
       load_field_type_maps();
     else {
       assert(metadata_.version == Version::V4);
-      load_field_type_maps_v4(hdr);
+      load_field_type_maps_v4(hdr, add_iaf);
     }
     lck_.lock();
   }
