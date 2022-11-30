@@ -955,17 +955,27 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                     starting_region_contig_for_merge,
                     last_region_contig);
 
+                //=================================================================
+                // Start finalize of previous contig.
+
+                // Finalize stats arrays.
+                AlleleCount::finalize();
+                VariantStats::finalize();
+
+                // Write and finalize anchors stored in the anchor worker.
+                anchors_ingested += write_anchors(anchor_worker);
+
                 // Finalize fragment for this contig async
                 // it is okay to move the query because we reset it next.
+                // NOTE: Finalize after the stats arrays and anchor fragment
+                // are finalized to ensure a valid data fragment will have
+                // corresponding valid stats and anchor fragments.
                 TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
                     std::launch::async, finalize_query, std::move(query_))));
 
-                AlleleCount::finalize();
-                VariantStats::finalize();
+                // End finalize of previous contig.
+                //=================================================================
               }
-
-              // Write anchors stored in the anchor worker.
-              anchors_ingested += write_anchors(anchor_worker);
 
               // Start new query for new fragment for next contig
               query_.reset(new Query(*ctx_, *array_));
@@ -1064,15 +1074,25 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       starting_region_contig_for_merge,
       last_region_contig);
 
-  // Finalize fragment for this contig
+  //=================================================================
+  // Start finalize of last contig.
+
+  // Finalize stats arrays.
+  AlleleCount::finalize();
+  VariantStats::finalize();
+
+  // Write and finalize anchors stored in the anchor worker.
+  anchors_ingested += write_anchors(anchor_worker);
+
+  // Finalize fragment for this contig.
+  // NOTE: Finalize after the stats arrays and anchor fragment
+  // are finalized to ensure a valid data fragment will have
+  // corresponding valid stats and anchor fragments.
   TRY_CATCH_THROW(finalize_tasks_.emplace_back(
       std::async(std::launch::async, finalize_query, std::move(query_))));
 
-  // Write anchors stored in the anchor worker.
-  anchors_ingested += write_anchors(anchor_worker);
-
-  AlleleCount::finalize();
-  VariantStats::finalize();
+  // End finalize of last contig.
+  //=================================================================
 
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));
@@ -1088,19 +1108,19 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
   if (records) {
     LOG_DEBUG("Write {} anchor records.", records);
 
-    // Reset the query
-    query_.reset(new Query(*ctx_, *array_));
-    query_->set_layout(TILEDB_GLOBAL_ORDER);
+    // Create a new query object
+    auto query = std::make_unique<Query>(*ctx_, *array_);
+    query->set_layout(TILEDB_GLOBAL_ORDER);
 
     // Set the query buffers
-    worker.buffers().set_buffers(query_.get(), dataset_->metadata().version);
+    worker.buffers().set_buffers(query.get(), dataset_->metadata().version);
 
     // Submit and finalize the query
-    auto st = query_->submit();
+    auto st = query->submit();
     if (st != Query::Status::COMPLETE) {
       LOG_FATAL("Error submitting TileDB write query: status = {}", st);
     }
-    query_->finalize();
+    query->finalize();
   }
 
   return records;
