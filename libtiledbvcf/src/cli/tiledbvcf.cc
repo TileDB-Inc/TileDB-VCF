@@ -173,7 +173,7 @@ void do_utils_consolidate_commits(
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Consoldate commits.");
   dataset.consolidate_commits(args);
   LOG_TRACE("Finished utils consolidate commits command.");
 }
@@ -186,7 +186,7 @@ void do_utils_consolidate_fragments(
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Consoldate fragments.");
   dataset.consolidate_fragments(args);
   LOG_TRACE("Finished utils consolidate fragments command.");
 }
@@ -199,7 +199,7 @@ void do_utils_consolidate_fragment_metadata(
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Consoldate fragment metadata.");
   dataset.consolidate_fragment_metadata(args);
   LOG_TRACE("Finished utils consolidate fragment metadata command.");
 }
@@ -211,7 +211,7 @@ void do_utils_vacuum_commits(const UtilsParams& args, const CLI::App& cmd) {
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Vacuum commits.");
   dataset.vacuum_commits(args);
   LOG_TRACE("Finished utils vacuum commits command.");
 }
@@ -223,7 +223,7 @@ void do_utils_vacuum_fragments(const UtilsParams& args, const CLI::App& cmd) {
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Vacuum fragments.");
   dataset.vacuum_fragments(args);
   LOG_TRACE("Finished utils vacuum fragments command.");
 }
@@ -236,7 +236,7 @@ void do_utils_vacuum_fragment_metadata(
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
   TileDBVCFDataset dataset(cfg);
-  dataset.open(args.uri, args.tiledb_config);
+  LOG_DEBUG("Vacuum fragment metadata.");
   dataset.vacuum_fragment_metadata(args);
   LOG_TRACE("Finished utils vacuum fragment metadata command.");
 }
