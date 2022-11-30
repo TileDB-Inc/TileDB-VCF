@@ -134,6 +134,30 @@ class AlleleCount {
       const std::vector<std::string>& tiledb_config,
       const std::string& root_uri);
 
+  /**
+   * @brief Vacuum commits
+   *
+   * @param ctx TileDB context
+   * @param tiledb_config TileDB config
+   * @param root_uri URI for the VCF dataset
+   */
+  static void vacuum_commits(
+      std::shared_ptr<Context> ctx,
+      const std::vector<std::string>& tiledb_config,
+      const std::string& root_uri);
+
+  /**
+   * @brief Vacuum fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param tiledb_config TileDB config
+   * @param root_uri URI for the VCF dataset
+   */
+  static void vacuum_fragment_metadata(
+      std::shared_ptr<Context> ctx,
+      const std::vector<std::string>& tiledb_config,
+      const std::string& root_uri);
+
   //===================================================================
   //= public non-static
   //===================================================================
