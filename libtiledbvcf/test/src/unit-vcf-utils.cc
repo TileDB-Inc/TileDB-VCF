@@ -122,6 +122,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.consolidate_fragment_metadata(params);
   }
 
@@ -146,6 +147,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.consolidate_fragments(params);
   }
 
@@ -170,6 +172,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.vacuum_fragment_metadata(params);
   }
 
@@ -194,6 +197,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.vacuum_fragments(params);
   }
 
@@ -292,6 +296,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.consolidate_commits(params);
   }
 
@@ -316,6 +321,7 @@ TEST_CASE(
     TileDBVCFDataset dataset(std::make_shared<tiledb::Context>(ctx));
     dataset.open(dataset_uri);
     UtilsParams params;
+    params.uri = dataset_uri;
     dataset.vacuum_commits(params);
   }
 

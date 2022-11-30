@@ -2113,7 +2113,7 @@ void TileDBVCFDataset::consolidate_vcf_header_array_commits(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_data_array_commits(
@@ -2121,14 +2121,18 @@ void TileDBVCFDataset::consolidate_data_array_commits(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
+  LOG_DEBUG("Consolidate data array commits.");
   consolidate_data_array_commits(params);
+  LOG_DEBUG("Consolidate vcf_header array commits.");
   consolidate_vcf_header_array_commits(params);
-  AlleleCount::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
-  VariantStats::consolidate_commits(ctx_, params.tiledb_config, root_uri_);
+  LOG_DEBUG("Consolidate allele_count array commits.");
+  AlleleCount::consolidate_commits(ctx_, params.tiledb_config, params.uri);
+  LOG_DEBUG("Consolidate variant_stats array commits.");
+  VariantStats::consolidate_commits(ctx_, params.tiledb_config, params.uri);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
@@ -2136,7 +2140,7 @@ void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_data_array_fragment_metadata(
@@ -2144,17 +2148,21 @@ void TileDBVCFDataset::consolidate_data_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_fragment_metadata(
     const UtilsParams& params) {
+  LOG_DEBUG("Consolidate data array fragment metadata.");
   consolidate_data_array_fragment_metadata(params);
+  LOG_DEBUG("Consolidate vcf_header array fragment metadata.");
   consolidate_vcf_header_array_fragment_metadata(params);
+  LOG_DEBUG("Consolidate allele_count array fragment metadata.");
   AlleleCount::consolidate_fragment_metadata(
-      ctx_, params.tiledb_config, root_uri_);
+      ctx_, params.tiledb_config, params.uri);
+  LOG_DEBUG("Consolidate variant_stats array fragment metadata.");
   VariantStats::consolidate_fragment_metadata(
-      ctx_, params.tiledb_config, root_uri_);
+      ctx_, params.tiledb_config, params.uri);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
@@ -2162,7 +2170,7 @@ void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragments";
-  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_data_array_fragments(
@@ -2170,7 +2178,7 @@ void TileDBVCFDataset::consolidate_data_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.consolidation.mode"] = "fragments";
-  tiledb::Array::consolidate(*ctx_, data_array_uri(root_uri_), &cfg);
+  tiledb::Array::consolidate(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::consolidate_fragments(const UtilsParams& params) {
@@ -2183,28 +2191,25 @@ void TileDBVCFDataset::vacuum_vcf_header_array_commits(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "commits";
-  // block until it's safe to close the array
-  lock_and_join_vcf_header_array();
-  vcf_header_array_->close();
-  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
-  data_array_ = open_data_array(TILEDB_READ);
-  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_data_array_commits(const UtilsParams& params) {
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "commits";
-  // block until it's safe to close the array
-  lock_and_join_data_array();
-  data_array_->close();
-  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
-  data_array_ = open_data_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_commits(const UtilsParams& params) {
+  LOG_DEBUG("Vacuum data array commits.");
   vacuum_data_array_commits(params);
+  LOG_DEBUG("Vacuum vcf_header array commits.");
   vacuum_vcf_header_array_commits(params);
+  LOG_DEBUG("Vacuum allele_count array commits.");
+  AlleleCount::vacuum_commits(ctx_, params.tiledb_config, params.uri);
+  LOG_DEBUG("Vacuum variant_stats array commits.");
+  VariantStats::vacuum_commits(ctx_, params.tiledb_config, params.uri);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
@@ -2212,12 +2217,7 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  // block until it's safe to close the array
-  lock_and_join_vcf_header_array();
-  vcf_header_array_->close();
-  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
-  data_array_ = open_data_array(TILEDB_READ);
-  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
@@ -2225,16 +2225,19 @@ void TileDBVCFDataset::vacuum_data_array_fragment_metadata(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  // block until it's safe to close the array
-  lock_and_join_data_array();
-  data_array_->close();
-  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
-  data_array_ = open_data_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_fragment_metadata(const UtilsParams& params) {
+  LOG_DEBUG("Vacuum data array fragment metadata.");
   vacuum_data_array_fragment_metadata(params);
+  LOG_DEBUG("Vacuum vcf_header array fragment metadata.");
   vacuum_vcf_header_array_fragment_metadata(params);
+  LOG_DEBUG("Vacuum allele_count array fragment metadata.");
+  AlleleCount::vacuum_fragment_metadata(ctx_, params.tiledb_config, params.uri);
+  LOG_DEBUG("Vacuum variant_stats array fragment metadata.");
+  VariantStats::vacuum_fragment_metadata(
+      ctx_, params.tiledb_config, params.uri);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
@@ -2242,22 +2245,14 @@ void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
-  // block until it's safe to close the array
-  lock_and_join_vcf_header_array();
-  vcf_header_array_->close();
-  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(root_uri_), &cfg);
-  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, vcf_headers_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_data_array_fragments(const UtilsParams& params) {
   Config cfg;
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   cfg["sm.vacuum.mode"] = "fragments";
-  // block until it's safe to close the array
-  lock_and_join_data_array();
-  data_array_->close();
-  tiledb::Array::vacuum(*ctx_, data_array_uri(root_uri_), &cfg);
-  data_array_ = open_data_array(TILEDB_READ);
+  tiledb::Array::vacuum(*ctx_, data_array_uri(params.uri), &cfg);
 }
 
 void TileDBVCFDataset::vacuum_fragments(const UtilsParams& params) {
