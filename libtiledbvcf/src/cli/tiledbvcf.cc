@@ -420,6 +420,10 @@ void add_create(CLI::App& app) {
       [args](int count) { args->allow_duplicates = false; },
       "Allow records with duplicate start positions to be written to the "
       "array.");
+  cmd->add_flag(
+      "--compress-sample-dim",
+      args->compress_sample_dim,
+      "Add zstd compression to the sample dimension.");
 
   cmd->option_defaults()->group("Ingestion task options");
   cmd->add_flag(
