@@ -230,12 +230,6 @@ void VariantStats::consolidate_fragment_metadata(
   tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
 }
 
-std::unordered_map<uint32_t, std::unordered_map<std::string, float>>
-VariantStats::compute_af(
-    std::shared_ptr<Context> ctx, const std::string& root_uri, Region region) {
-  return {};
-}
-
 void VariantStats::vacuum_commits(
     std::shared_ptr<Context> ctx,
     const std::vector<std::string>& tiledb_config,

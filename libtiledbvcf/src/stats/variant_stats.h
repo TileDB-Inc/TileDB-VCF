@@ -135,10 +135,6 @@ class VariantStats {
       const std::vector<std::string>& tiledb_config,
       const std::string& root_uri);
 
-  static std::unordered_map<uint32_t, std::unordered_map<std::string, float>>
-  compute_af(
-      std::shared_ptr<Context> ctx, const std::string& root_uri, Region region);
-
   /**
    * @brief Vacuum commits
    *

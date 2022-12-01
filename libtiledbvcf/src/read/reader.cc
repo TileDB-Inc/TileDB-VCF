@@ -1272,21 +1272,21 @@ bool Reader::process_query_results_v4() {
           continue;
         }
 
-        // TODO: modify pass to return af (float) and pass (boolean)
-        // TODO: only calculate pass on alleles in info_GT
+        // modify pass to return af (float) and pass (boolean)
+        // TODO: only calculate pass on alleles in info_GT: check that there be
+	//       a GT that corresponds to the ref/alts parsed out from the REF
+	//       and ALT VCF fields (placed in csv_alleles)
 	auto [allele_passes, af] = af_filter_->pass(real_start, allele);
+	//apply next line only if there is a ref/alt GT for it
         pass |= allele_passes;
 
-        // TODO: build vector of IAF values for annotation
+        // build vector of IAF values for annotation
         // add annotation to read_state_.query_results
         //  - build vector of AFs matching the order of the VCF record
         //  - all allele AF values are required, so do not exit this loop early
 	read_state_.query_results.af_values.push_back(af);
 
         LOG_TRACE("  pass = {}", pass);
-        if (pass) {
-          break;
-        }
       }
 
       // If all alleles do not pass the af filter, continue
