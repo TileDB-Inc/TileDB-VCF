@@ -222,7 +222,12 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   // Create arrays and subgroups and add them to the root group
   create_empty_metadata(ctx, params.uri, metadata, params.checksum);
   create_empty_data_array(
-      ctx, params.uri, metadata, params.checksum, params.allow_duplicates);
+      ctx,
+      params.uri,
+      metadata,
+      params.checksum,
+      params.allow_duplicates,
+      params.compress_sample_dim);
 
   if (params.enable_allele_count) {
     AlleleCount::create(ctx, params.uri, params.checksum);
@@ -309,7 +314,8 @@ void TileDBVCFDataset::create_empty_data_array(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum,
-    const bool allow_duplicates) {
+    const bool allow_duplicates,
+    const bool compress_sample_dim) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
@@ -330,8 +336,10 @@ void TileDBVCFDataset::create_empty_data_array(
   contig_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   pos_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter(compression);
-  sample_coord_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY})
-      .add_filter(compression);
+  sample_coord_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY});
+  if (compress_sample_dim) {
+    sample_coord_filters.add_filter(compression);
+  }
 
   str_attr_filters.add_filter(compression);
   int_attr_filters.add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE})
