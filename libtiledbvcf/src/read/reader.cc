@@ -329,7 +329,7 @@ void Reader::read() {
   }
 
   if (!params_.af_filter.empty()) {
-    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, params_.uri);
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
   }
 
   auto start_all = std::chrono::steady_clock::now();
@@ -1222,8 +1222,6 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   const auto& regions = regions_indexes->second;
 
-  bool af_filter_enabled = af_filter_ ? af_filter_->enable_af() : false;
-
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = params_.sort_real_start_pos ?
@@ -1247,7 +1245,7 @@ bool Reader::process_query_results_v4() {
       continue;
     }
 
-    if (af_filter_enabled) {
+    if (af_filter_enabled()) {
       // TODO: get allele from buffers, this should work but there's a bug on
       // the last index
       // auto allele = results.buffers()->alleles().value(i);
@@ -2535,6 +2533,10 @@ void Reader::set_output_path(const std::string& output_path) {
 
 void Reader::set_output_dir(const std::string& output_dir) {
   params_.output_dir = output_dir;
+}
+
+bool Reader::af_filter_enabled() {
+   return af_filter_ ? af_filter_->enable_af() : false;
 }
 
 void Reader::set_af_filter(const std::string& af_filter) {

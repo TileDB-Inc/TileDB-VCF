@@ -71,10 +71,13 @@ class AFMap {
     const std::pair<int, std::unordered_map<std::string, int>>&
       pos_map = pos_map_iterator->second;
 
-    float result;
-    TRY_CATCH_THROW(result = 1.0 *
-		    pos_map.second.at(allele) / pos_map.first);
-    return result;
+    // We don't know that allele was called in this sample. Ask nicely for the allele count.
+    decltype(pos_map.second)::const_iterator next_allele = pos_map.second.find(allele);
+
+    // First multiply by 1.0 to force a float type, then look up AC from the above iterator.
+    // Substitute 0 for the AC value if it is absent in pos_map.
+    // Divide by AN (pos_map.first) to get AF.
+    return 1.0 * (next_allele == pos_map.second.end() ? 0 : next_allele->second) / pos_map.first;
   }
 
   void clear() {

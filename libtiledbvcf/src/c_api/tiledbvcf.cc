@@ -448,6 +448,16 @@ int32_t tiledb_vcf_reader_get_tiledb_stats(
   return TILEDB_VCF_OK;
 }
 
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_get_af_filter_exists(tiledb_vcf_reader_t* reader, bool* present) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || present == nullptr)
+    return TILEDB_VCF_ERR;
+
+  *present = reader->reader_->af_filter_enabled();
+  
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_read(tiledb_vcf_reader_t* reader) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;

@@ -431,6 +431,11 @@ class Reader {
   void set_output_dir(const std::string& output_dir);
 
   /**
+   * returns whether the AF filter is set or enabled
+   */
+  bool af_filter_enabled();
+  
+  /**
    * sets AF filter expression
    * @param af_filter setting
    */

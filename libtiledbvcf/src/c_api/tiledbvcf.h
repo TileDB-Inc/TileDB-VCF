@@ -616,6 +616,16 @@ tiledb_vcf_reader_get_tiledb_stats_enabled_vcf_header_array(
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_get_tiledb_stats(tiledb_vcf_reader_t* reader, char** stats);
 
+/**
+* Gets whether a VCF reader has an AF filter set.
+*
+* @param writer VCF writer object
+* @param present a char** were the stats will be returned
+* @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+*/
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_get_af_filter_exists(tiledb_vcf_reader_t* reader, bool* present);
+  
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_get_samples(tiledb_vcf_reader_t* reader, const char* samples);
 
