@@ -1250,7 +1250,13 @@ bool Reader::process_query_results_v4() {
       // the last index
       // auto allele = results.buffers()->alleles().value(i);
 
-      auto alleles_offset = results.buffers()->alleles().offsets()[i];
+      uint64_t alleles_offset = 0;
+      try {
+	alleles_offset = results.buffers()->alleles().offsets().at(i);
+      } catch (const std::out_of_range&) {
+	throw std::runtime_error("Error retrieving allele that was not queried.");
+      }
+
       const char* alleles_data =
           results.buffers()->alleles().data<char>() + alleles_offset;
       std::string csv_alleles(alleles_data);
