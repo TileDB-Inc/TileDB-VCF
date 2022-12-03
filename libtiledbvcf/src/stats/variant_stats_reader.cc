@@ -25,6 +25,7 @@
  */
 
 #include <algorithm>
+#include <regex>
 
 #include "variant_stats_reader.h"
 
@@ -69,7 +70,8 @@ bool VariantStatsReader::enable_af() {
   return true;
 }
 
-std::pair<bool, float> VariantStatsReader::pass(uint32_t pos, const std::string& allele) {
+std::pair<bool, float> VariantStatsReader::pass(
+    uint32_t pos, const std::string& allele) {
   float af = af_map_.af(pos, allele);
 
   // Fail the filter if allele was not called
@@ -81,17 +83,77 @@ std::pair<bool, float> VariantStatsReader::pass(uint32_t pos, const std::string&
   LOG_TRACE(
       "[AF Filter] checking {} {} = {} <= {}", pos, allele, af, threshold_);
 
-  return {af <= threshold_, af};
+  std::pair<bool, float> result;
+
+  switch (condition_op_) {
+    case TILEDB_LT:
+      result = {af < threshold_, af};
+      break;
+    case TILEDB_LE:
+      result = {af <= threshold_, af};
+      break;
+    case TILEDB_GT:
+      result = {af > threshold_, af};
+      break;
+    case TILEDB_GE:
+      result = {af >= threshold_, af};
+      break;
+    case TILEDB_EQ:
+      result = {af == threshold_, af};
+      break;
+    case TILEDB_NE:
+      result = {af != threshold_, af};
+  }
+
+  return result;
+}
+
+void VariantStatsReader::parse_condition_() {
+  std::regex re("([<=>!]+)\\s*(\\S+)");
+  std::smatch sm;
+
+  if (std::regex_search(condition_, sm, re)) {
+    auto op_str = sm.str(1);
+    if (op_str == "<") {
+      condition_op_ = TILEDB_LT;
+    } else if (op_str == "<=") {
+      condition_op_ = TILEDB_LE;
+    } else if (op_str == ">") {
+      condition_op_ = TILEDB_GT;
+    } else if (op_str == ">=") {
+      condition_op_ = TILEDB_GE;
+    } else if (op_str == "==") {
+      condition_op_ = TILEDB_EQ;
+    } else if (op_str == "!=") {
+      condition_op_ = TILEDB_NE;
+    } else {
+      throw std::runtime_error(
+          fmt::format("Invalid IAF operation: '{}'", op_str));
+    }
+
+    auto value_str = sm.str(2);
+    try {
+      threshold_ = std::stof(value_str);
+    } catch (const std::exception& e) {
+      throw std::runtime_error(
+          fmt::format("Invalid IAF threshold: '{}'", value_str));
+    }
+
+    LOG_DEBUG(
+        "[VariantStatsReader] condition '{}': {}, {}",
+        condition_,
+        op_str,
+        threshold_);
+
+  } else {
+    throw std::runtime_error(fmt::format(
+        "Cannot parse the provided IAF condition: '{}'", condition_));
+  }
 }
 
 void VariantStatsReader::compute_af_worker_() {
-  auto tokens = utils::split(condition_);
-  threshold_ = std::stof(tokens[1]);
-  LOG_DEBUG(
-      "[VariantStatsReader] condition {} {} {}",
-      condition_,
-      tokens[0],
-      threshold_);
+  // parse condition provided by user
+  parse_condition_();
 
   // Clear old filter
   af_map_.clear();

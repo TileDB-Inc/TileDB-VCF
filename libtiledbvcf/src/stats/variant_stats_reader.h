@@ -59,25 +59,29 @@ class AFMap {
   float af(uint32_t pos, const std::string& allele) {
     // calculate af = ac / an
     std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>
-      ::const_iterator pos_map_iterator = ac_map_.find(pos);
+        uint32_t,
+        std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
+        pos_map_iterator = ac_map_.find(pos);
 
     // Return -1.0 if the allele was not called
     if (pos_map_iterator == ac_map_.end()) {
       return -1.0;
     }
 
-    const std::pair<int, std::unordered_map<std::string, int>>&
-      pos_map = pos_map_iterator->second;
+    const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
+        pos_map_iterator->second;
 
-    // We don't know that allele was called in this sample. Ask nicely for the allele count.
-    decltype(pos_map.second)::const_iterator next_allele = pos_map.second.find(allele);
+    // We don't know that allele was called in this sample. Ask nicely for the
+    // allele count.
+    decltype(pos_map.second)::const_iterator next_allele =
+        pos_map.second.find(allele);
 
-    // First multiply by 1.0 to force a float type, then look up AC from the above iterator.
-    // Substitute 0 for the AC value if it is absent in pos_map.
+    // First multiply by 1.0 to force a float type, then look up AC from the
+    // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
     // Divide by AN (pos_map.first) to get AF.
-    return 1.0 * (next_allele == pos_map.second.end() ? 0 : next_allele->second) / pos_map.first;
+    return 1.0 *
+           (next_allele == pos_map.second.end() ? 0 : next_allele->second) /
+           pos_map.first;
   }
 
   void clear() {
@@ -129,6 +133,8 @@ class VariantStatsReader {
 
   std::string condition_;
 
+  tiledb_query_condition_op_t condition_op_;
+
   float threshold_;
 
   AFMap af_map_;
@@ -139,6 +145,8 @@ class VariantStatsReader {
   std::future<void> compute_future_;
 
   void compute_af_worker_();
+
+  void parse_condition_();
 };
 }  // namespace tiledb::vcf
 
