@@ -324,6 +324,7 @@ void TileDBVCFDataset::create_empty_data_array(
   // Create filter lists
   FilterList contig_coord_filters(ctx);
   FilterList pos_coord_filters(ctx);
+  FilterList offsets_filters(ctx);
   FilterList sample_coord_filters(ctx);
   FilterList str_attr_filters(ctx);
   FilterList int_attr_filters(ctx);
@@ -335,19 +336,22 @@ void TileDBVCFDataset::create_empty_data_array(
 
   contig_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   pos_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
+      .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
       .add_filter(compression);
   sample_coord_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY});
   if (compress_sample_dim) {
     sample_coord_filters.add_filter(compression);
   }
 
+  offsets_filters.add_filter({ctx, TILEDB_FILTER_POSITIVE_DELTA})
+      .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+      .add_filter(compression);
+
   str_attr_filters.add_filter(compression);
   int_attr_filters.add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE})
       .add_filter(compression);
   float_attr_filters.add_filter(compression);
   byte_attr_filters.add_filter(compression);
-
-  auto offsets_filters = pos_coord_filters;
 
   if (checksum != TILEDB_FILTER_NONE) {
     Filter checksum_filter(ctx, checksum);
@@ -388,9 +392,9 @@ void TileDBVCFDataset::create_empty_data_array(
   schema.set_domain(domain);
 
   auto real_start_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V4::real_start_pos, int_attr_filters);  // a0
+      ctx, AttrNames::V4::real_start_pos, pos_coord_filters);  // a0
   auto end_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V4::end_pos, int_attr_filters);  // a1
+      ctx, AttrNames::V4::end_pos, pos_coord_filters);  // a1
   auto qual = Attribute::create<float>(
       ctx, AttrNames::V4::qual, float_attr_filters);  // a2
   auto alleles = Attribute::create<std::vector<char>>(
