@@ -39,7 +39,6 @@ VariantStatsReader::VariantStatsReader(
 }
 
 void VariantStatsReader::compute_af() {
-
   // If condition is empty, nothing to do
   // If regions is empty, af_map_ is up to date so no more work to do
   if (condition_.empty() || regions_.empty()) {
@@ -55,8 +54,7 @@ void VariantStatsReader::compute_af() {
   }
 }
 
-void VariantStatsReader::set_condition(std::string condition)
-{
+void VariantStatsReader::set_condition(std::string condition) {
   condition_ = condition;
 }
 
@@ -90,29 +88,29 @@ std::pair<bool, float> VariantStatsReader::pass(
   LOG_TRACE(
       "[AF Filter] checking {} {} = {} <= {}", pos, allele, af, threshold_);
 
-  std::pair<bool, float> result;
+  bool pass = false;
 
   switch (condition_op_) {
     case TILEDB_LT:
-      result = {af < threshold_, af};
+      pass = af < threshold_;
       break;
     case TILEDB_LE:
-      result = {af <= threshold_, af};
+      pass = af <= threshold_;
       break;
     case TILEDB_GT:
-      result = {af > threshold_, af};
+      pass = af > threshold_;
       break;
     case TILEDB_GE:
-      result = {af >= threshold_, af};
+      pass = af >= threshold_;
       break;
     case TILEDB_EQ:
-      result = {af == threshold_, af};
+      pass = af == threshold_;
       break;
     case TILEDB_NE:
-      result = {af != threshold_, af};
+      pass = af != threshold_;
   }
 
-  return result;
+  return {pass, af};
 }
 
 void VariantStatsReader::parse_condition_() {

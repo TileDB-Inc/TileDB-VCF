@@ -36,8 +36,19 @@
 
 namespace tiledb::vcf {
 
+/**
+ * @brief A class to store allele counts and compute allele frequency.
+ *
+ */
 class AFMap {
  public:
+  /**
+   * @brief Insert an Allele Count into the map.
+   *
+   * @param pos Position of the allele
+   * @param allele Allele value
+   * @param ac Allele Count
+   */
   void insert(uint32_t pos, const std::string& allele, int ac) {
     // add ac to the an for this position
     ac_map_[pos].first += ac;
@@ -56,6 +67,13 @@ class AFMap {
     }
   }
 
+  /**
+   * @brief Compute the Allele Frequency for an allele at the given position.
+   *
+   * @param pos Position of the allele
+   * @param allele Allele value
+   * @return float Allele Frequency
+   */
   float af(uint32_t pos, const std::string& allele) {
     // calculate af = ac / an
     std::unordered_map<
@@ -84,12 +102,16 @@ class AFMap {
            pos_map.first;
   }
 
+  /**
+   * @brief Clear the map.
+   *
+   */
   void clear() {
     ac_map_.clear();
   }
 
  private:
-  // map: pos -> (an, map: allele -> ac)
+  // Allele Count map: pos -> (an, map: allele -> ac)
   std::unordered_map<
       uint32_t,
       std::pair<int, std::unordered_map<std::string, int>>>
@@ -101,20 +123,33 @@ class AFMap {
  * variant_stats array.
  *
  */
-
 class VariantStatsReader {
  public:
+  /**
+   * @brief Construct a new Variant Stats Reader object
+   *
+   * @param ctx TileDB context
+   * @param root_uri URI of the VCF dataset
+   */
   VariantStatsReader(std::shared_ptr<Context> ctx, std::string_view root_uri);
+
   VariantStatsReader() = delete;
-
   VariantStatsReader(const VariantStatsReader&) = delete;
-
   VariantStatsReader(VariantStatsReader&&) = default;
 
+  /**
+   * @brief Add a region to the allele frequency computation
+   *
+   * @param region
+   */
   void add_region(Region region) {
     regions_.push_back(region);
   }
 
+  /**
+   * @brief Compute AF for the provided regions
+   *
+   */
   void compute_af();
 
   /**
@@ -132,28 +167,44 @@ class VariantStatsReader {
    */
   bool enable_af();
 
+  /**
+   * @brief Check if the allele at the given position passes the allele filter.
+   *
+   * @param pos Position of the allele
+   * @param allele Allele value
+   * @return std::pair<bool, float> (Allele passed the filter, AF value)
+   */
   std::pair<bool, float> pass(uint32_t pos, const std::string& allele);
 
  private:
+  // Variant stats array
   std::shared_ptr<Array> array_;
 
+  // List of regions to compute AF
   std::vector<Region> regions_;
 
+  // Allele frequency filter condition provided by user
   std::string condition_;
 
+  // Allele frequency filter condition op, parsed from condition_
   tiledb_query_condition_op_t condition_op_;
 
+  // Allele frequency filter threshold, pared from condition_
   float threshold_;
 
+  // Allele frequency map
   AFMap af_map_;
 
+  // If true, query variant stats in parallel with data array.
   bool async_query_ = false;
 
   // Future for compute thread
   std::future<void> compute_future_;
 
+  // Worker function to compute allele frequency
   void compute_af_worker_();
 
+  // Parse the user providied allele filter condition
   void parse_condition_();
 };
 }  // namespace tiledb::vcf
