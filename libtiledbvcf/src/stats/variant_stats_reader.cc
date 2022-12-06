@@ -75,7 +75,7 @@ bool VariantStatsReader::enable_af() {
 std::pair<bool, float> VariantStatsReader::pass(
     uint32_t pos, const std::string& allele) {
   if (!allele.compare("<NON_REF>")) {
-    return {false, std::numeric_limits<float>::quiet_NaN()};
+    return {false, 0.0};
   }
   float af = af_map_.af(pos, allele);
 
