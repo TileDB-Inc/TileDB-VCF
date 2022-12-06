@@ -38,12 +38,11 @@ VariantStatsReader::VariantStatsReader(
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
 }
 
-void VariantStatsReader::compute_af(std::string condition) {
-  condition_ = condition;
+void VariantStatsReader::compute_af() {
 
   // If condition is empty, nothing to do
   // If regions is empty, af_map_ is up to date so no more work to do
-  if (condition.empty() || regions_.empty()) {
+  if (condition_.empty() || regions_.empty()) {
     return;
   }
 
@@ -54,6 +53,11 @@ void VariantStatsReader::compute_af(std::string condition) {
   } else {
     compute_af_worker_();
   }
+}
+
+void VariantStatsReader::set_condition(std::string condition)
+{
+  condition_ = condition;
 }
 
 bool VariantStatsReader::enable_af() {
@@ -72,6 +76,9 @@ bool VariantStatsReader::enable_af() {
 
 std::pair<bool, float> VariantStatsReader::pass(
     uint32_t pos, const std::string& allele) {
+  if (!allele.compare("<NON_REF>")) {
+    return {false, std::numeric_limits<float>::quiet_NaN()};
+  }
   float af = af_map_.af(pos, allele);
 
   // Fail the filter if allele was not called

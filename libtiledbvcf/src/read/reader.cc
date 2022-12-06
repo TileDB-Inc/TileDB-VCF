@@ -181,6 +181,14 @@ void Reader::set_buffer_validity_bitmap(
   }
 }
 
+void Reader::init_af_filter()
+{
+  if (!af_filter_ && !params_.af_filter.empty()) {
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    af_filter_->set_condition(params_.af_filter);
+  }
+}
+ 
 InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
@@ -328,9 +336,7 @@ void Reader::read() {
     tiledb::Stats::reset();
   }
 
-  if (!params_.af_filter.empty()) {
-    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
-  }
+  init_af_filter();
 
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;
@@ -990,7 +996,7 @@ bool Reader::read_current_batch() {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
     if (af_filter_) {
-      af_filter_->compute_af(params_.af_filter);
+      af_filter_->compute_af();
     }
     LOG_INFO("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
@@ -1222,6 +1228,7 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   const auto& regions = regions_indexes->second;
 
+  bool apply_af_filter = af_filter_enabled();
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = params_.sort_real_start_pos ?
@@ -1245,7 +1252,7 @@ bool Reader::process_query_results_v4() {
       continue;
     }
 
-    if (af_filter_enabled()) {
+    if (apply_af_filter) {
       // TODO: get allele from buffers, this should work but there's a bug on
       // the last index
       // auto allele = results.buffers()->alleles().value(i);
@@ -1272,15 +1279,8 @@ bool Reader::process_query_results_v4() {
       for (auto&& allele : alleles) {
         // TODO: skip <NON_REF> allele, revisit after checking only alleles in
         // GT
-        if (!allele.compare("<NON_REF>")) {
-          continue;
-        }
 
-        // modify pass to return af (float) and pass (boolean)
-        // TODO: only calculate pass on alleles in info_GT: check that there be
-	//       a GT that corresponds to the ref/alts parsed out from the REF
-	//       and ALT VCF fields (placed in csv_alleles)
-	auto [allele_passes, af] = af_filter_->pass(real_start, allele);
+        auto [allele_passes, af] = af_filter_->pass(real_start, allele);
 	//apply next line only if there is a ref/alt GT for it
         pass |= allele_passes;
 
@@ -2542,11 +2542,13 @@ void Reader::set_output_dir(const std::string& output_dir) {
 }
 
 bool Reader::af_filter_enabled() {
-   return af_filter_ ? af_filter_->enable_af() : false;
+  init_af_filter();
+  return af_filter_ ? af_filter_->enable_af() : false;
 }
 
 void Reader::set_af_filter(const std::string& af_filter) {
   params_.af_filter = af_filter;
+  if (af_filter_) af_filter_->set_condition(params_.af_filter);
 }
 
 void Reader::set_tiledb_query_config() {

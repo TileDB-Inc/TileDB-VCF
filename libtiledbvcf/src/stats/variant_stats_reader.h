@@ -115,7 +115,15 @@ class VariantStatsReader {
     regions_.push_back(region);
   }
 
-  void compute_af(std::string condition);
+  void compute_af();
+
+  /**
+   * @brief Set an AF filtering constraint
+   *
+   * @param condition filtering constraint to set
+   * @return true if AF filtering is enabled
+   */
+  void set_condition(std::string condition);
 
   /**
    * @brief Enable AF filtering.

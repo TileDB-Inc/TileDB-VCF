@@ -637,6 +637,9 @@ class Reader {
   /*           PRIVATE METHODS         */
   /* ********************************* */
 
+  /** Ensures that a VariantStatsReader be available if applicable. */
+  void init_af_filter();
+  
   /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();
 
