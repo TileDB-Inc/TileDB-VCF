@@ -39,10 +39,6 @@ void Exporter::recover_record(
   // First things first, clear the record.
   bcf_clear(dst);
 
-  // TODO: if annotating, add line to VCF header, this should be done once
-  // ##INFO=<ID=IAF,Number=R,Type=Float,Description="Internal Allele Frequency">
-  // int bcf_hdr_add_hrec(bcf_hdr_t *hdr, bcf_hrec_t *hrec);
-
   const auto& results = query_results;
   const auto* buffers = results.buffers();
 
@@ -107,10 +103,6 @@ void Exporter::recover_record(
   if (st < 0)
     throw std::runtime_error(
         "Record recovery error; Error adding ID, " + std::to_string(st));
-
-  // TODO: if annotating, update the dst record info field
-  // st = bcf_update_info(hdr, dst, "IAF", query_results.af_floats, nvalues,
-  // type);
 
   const uint64_t info_offset = buffers->info().offsets()[cell_idx];
   const char* info_ptr = buffers->info().data<char>() + info_offset;
@@ -244,6 +236,11 @@ void Exporter::recover_record(
       num_fmt_fields++;
     }
   }
+}
+
+void Exporter::enable_iaf()
+{
+  add_iaf = true;
 }
 
 bool Exporter::need_headers() const {

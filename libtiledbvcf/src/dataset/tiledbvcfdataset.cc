@@ -109,6 +109,7 @@ TileDBVCFDataset::TileDBVCFDataset(std::shared_ptr<Context> ctx)
     , tiledb_stats_enabled_vcf_header_(true)
     , sample_names_loaded_(false)
     , info_fmt_field_types_loaded_(false)
+    , info_iaf_field_type_added_(false)
     , queryable_attribute_loaded_(false)
     , materialized_attribute_loaded_(false) {
   utils::init_htslib();
@@ -691,7 +692,7 @@ void TileDBVCFDataset::load_field_type_maps() const {
   utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   // After we acquire the write lock we need to check if another thread has
   // loaded the field types
-  if (info_fmt_field_types_loaded_)
+  if (info_fmt_field_types_loaded_ && (!add_iaf || info_iaf_field_type_added_))
     return;
 
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
@@ -708,16 +709,16 @@ void TileDBVCFDataset::load_field_type_maps() const {
   }
 
   if(add_iaf) {
-  //TODO: do something better than promoting this pointer type
-    if(bcf_hdr_append(const_cast<bcf_hdr_t*>(hdr), "##INFO=<ID=IAF,Number=R,Type=Float,Description=\"Internal Allele Frequency\">") < 0) {
+  //TODO: do something better than promoting this pointer type; perhaps the header should be duplicated and later modified
+    if(bcf_hdr_append(const_cast<bcf_hdr_t*>(hdr), "##INFO=<ID=TDB_IAF,Number=R,Type=Float,Description=\"Internal Allele Frequency\">") < 0) {
       throw std::runtime_error(
 			     "Error appending to header for internal allele frequency.");
     }
+    info_iaf_field_type_added_ = true;
+    if(bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
+      throw std::runtime_error("Error syncing header after adding IAF record.");
+    }
   }
-  if(bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
-    throw std::runtime_error("Error syncing header after adding IAF record.");
-  }
-
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -1833,7 +1834,7 @@ int TileDBVCFDataset::info_field_type(
     const std::string& name, const bcf_hdr_t* hdr,
 				      bool add_iaf) const {
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
-  if (!info_fmt_field_types_loaded_) {
+  if (!info_fmt_field_types_loaded_ || (add_iaf && !info_iaf_field_type_added_)) {
     lck_.unlock();
     if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
       load_field_type_maps();

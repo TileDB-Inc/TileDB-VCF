@@ -765,6 +765,9 @@ class TileDBVCFDataset {
   /** flag for if info_field_types/fmt_field_types has been loaded */
   mutable bool info_fmt_field_types_loaded_;
 
+  /** flag for whether the IAF field type has been added */
+  mutable bool info_iaf_field_type_added_;
+
   /** RWLock for building list of queryable attributes */
   utils::RWLock queryable_attribute_lock_;
 

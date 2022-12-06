@@ -197,6 +197,7 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
     exp = new InMemoryExporter;
     exporter_.reset(exp);
   }
+  if(!params_.af_filter.empty()) exp->enable_iaf();
   return exp;
 }
 
@@ -275,7 +276,7 @@ void Reader::attribute_datatype(
     bool* list) const {
   // Datatypes for attributes are defined by the in-memory export.
   return InMemoryExporter::attribute_datatype(
-      dataset_.get(), attribute, datatype, var_len, nullable, list);
+      dataset_.get(), attribute, datatype, var_len, nullable, list, !params_.af_filter.empty());
 }
 
 void Reader::num_buffers(int32_t* num_buffers) const {
