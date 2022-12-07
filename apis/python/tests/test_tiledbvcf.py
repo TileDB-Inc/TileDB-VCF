@@ -1101,6 +1101,39 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
+def test_ingest_with_stats(tmp_path):
+    os.system('if [ -d ' + tmp_path + '/stats ];then rm -R ' + tmp_path + '/stats;fi')
+    os.system('cp -R inputs/stats ' + tmp_path)
+    os.system('for file in ' + tmp_path + '/stats/*.gz; do rm "${file}"; done')
+    os.system('for file in ' + tmp_path + '/stats/*.csi; do rm "${file}"; done')
+    os.system('for file in ' + tmp_path + '/stats/*.vcf;do bgzip -k "${file}"; done')
+    os.system('for file in ' + tmp_path + '/stats/*.gz;do bcftools index "${file}"; done')
+    os.system("if [ -d ' + tmp_path + '/outputs ];then rm -R ' + tmp_path + '/outputs;fi")
+    os.system("if [ -d ' + tmp_path + '/stats_test ];then rm -R ' + tmp_path + '/stats_test;fi")
+    tiledbvcf.config_logging("trace")
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
+    ds.create_dataset(enable_variant_stats=True)
+    search = regex.Regex(".*\.vcf.gz")
+    grab_sample = regex.Regex("(.*)\.vcf.gz")
+    ds.ingest_samples(
+        os.path.join("inputs", vcf_file)
+        for vcf_file in os.listdir("inputs")
+        if search.fullmatch(vcf_file)
+    )
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    data_frame = ds.read(
+        samples=(
+            grab_sample.fullmatch(vcf_file).groups()[0]
+            for vcf_file in os.listdir("inputs")
+            if search.fullmatch(vcf_file)
+        ),
+        attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
+        set_af_filter="<0.2",
+    )
+    assert(data_frame.shape == (8, 7))
+    assert(data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998)
+    assert(data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0] == 0.0625)
+
 
 def test_ingest_mode_separate(tmp_path):
     # tiledbvcf.config_logging("debug")
