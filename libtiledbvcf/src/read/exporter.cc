@@ -238,8 +238,7 @@ void Exporter::recover_record(
   }
 }
 
-void Exporter::enable_iaf()
-{
+void Exporter::enable_iaf() {
   add_iaf = true;
 }
 

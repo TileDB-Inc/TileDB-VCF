@@ -662,8 +662,9 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
   bool is_info = parts.first == "info";
   const auto& field_name = parts.second;
 
-  int htslib_type = is_info ? dataset->info_field_type(field_name, hdr, add_iaf) :
-                              dataset->fmt_field_type(field_name, hdr);
+  int htslib_type = is_info ?
+                        dataset->info_field_type(field_name, hdr, add_iaf) :
+                        dataset->fmt_field_type(field_name, hdr);
   switch (htslib_type) {
     case BCF_HT_FLAG:
       return AttrDatatype::INT32;
@@ -942,9 +943,9 @@ bool InMemoryExporter::copy_info_fmt_value(
     src = curr_query_results_->af_values.data();
     nelts = curr_query_results_->af_values.size();
     nbytes = nelts * sizeof(decltype(curr_query_results_->af_values.at(0)));
-    //assign source pointer, nbytes, and nelts from vector ReadQueryResults::af_values
-  }
-  else {
+    // assign source pointer, nbytes, and nelts from vector
+    // ReadQueryResults::af_values
+  } else {
     get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
   }
 

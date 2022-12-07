@@ -434,7 +434,7 @@ class Reader {
    * returns whether the AF filter is set or enabled
    */
   bool af_filter_enabled();
-  
+
   /**
    * sets AF filter expression
    * @param af_filter setting
@@ -639,7 +639,7 @@ class Reader {
 
   /** Ensures that a VariantStatsReader be available if applicable. */
   void init_af_filter();
-  
+
   /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();
 

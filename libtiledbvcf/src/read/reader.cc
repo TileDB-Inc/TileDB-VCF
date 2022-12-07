@@ -181,14 +181,14 @@ void Reader::set_buffer_validity_bitmap(
   }
 }
 
-void Reader::init_af_filter()
-{
+void Reader::init_af_filter() {
   if (!af_filter_ && !params_.af_filter.empty()) {
-    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    af_filter_ =
+        std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
     af_filter_->set_condition(params_.af_filter);
   }
 }
- 
+
 InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
@@ -197,7 +197,8 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
     exp = new InMemoryExporter;
     exporter_.reset(exp);
   }
-  if(!params_.af_filter.empty()) exp->enable_iaf();
+  if (!params_.af_filter.empty())
+    exp->enable_iaf();
   return exp;
 }
 
@@ -276,7 +277,13 @@ void Reader::attribute_datatype(
     bool* list) const {
   // Datatypes for attributes are defined by the in-memory export.
   return InMemoryExporter::attribute_datatype(
-      dataset_.get(), attribute, datatype, var_len, nullable, list, !params_.af_filter.empty());
+      dataset_.get(),
+      attribute,
+      datatype,
+      var_len,
+      nullable,
+      list,
+      !params_.af_filter.empty());
 }
 
 void Reader::num_buffers(int32_t* num_buffers) const {
@@ -1260,9 +1267,10 @@ bool Reader::process_query_results_v4() {
 
       uint64_t alleles_offset = 0;
       try {
-	alleles_offset = results.buffers()->alleles().offsets().at(i);
+        alleles_offset = results.buffers()->alleles().offsets().at(i);
       } catch (const std::out_of_range&) {
-	throw std::runtime_error("Error retrieving allele that was not queried.");
+        throw std::runtime_error(
+            "Error retrieving allele that was not queried.");
       }
 
       const char* alleles_data =
@@ -1275,21 +1283,21 @@ bool Reader::process_query_results_v4() {
 
       // Check if any of the alleles pass the AF filter
       bool pass = false;
-      
+
       read_state_.query_results.af_values.clear();
       for (auto&& allele : alleles) {
         // TODO: skip <NON_REF> allele, revisit after checking only alleles in
         // GT
 
         auto [allele_passes, af] = af_filter_->pass(real_start, allele);
-	//apply next line only if there is a ref/alt GT for it
+        // apply next line only if there is a ref/alt GT for it
         pass |= allele_passes;
 
         // build vector of IAF values for annotation
         // add annotation to read_state_.query_results
         //  - build vector of AFs matching the order of the VCF record
         //  - all allele AF values are required, so do not exit this loop early
-	read_state_.query_results.af_values.push_back(af);
+        read_state_.query_results.af_values.push_back(af);
 
         LOG_TRACE("  pass = {}", pass);
       }
@@ -2549,7 +2557,8 @@ bool Reader::af_filter_enabled() {
 
 void Reader::set_af_filter(const std::string& af_filter) {
   params_.af_filter = af_filter;
-  if (af_filter_) af_filter_->set_condition(params_.af_filter);
+  if (af_filter_)
+    af_filter_->set_condition(params_.af_filter);
 }
 
 void Reader::set_tiledb_query_config() {
