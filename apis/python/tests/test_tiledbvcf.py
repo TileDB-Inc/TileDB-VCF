@@ -1105,13 +1105,29 @@ def test_ingest_mode_merged(tmp_path):
 
 
 def test_ingest_with_stats(tmp_path):
-    os.system("if [ -d " + tmp_path.__str__() + "/stats ];then rm -R " + tmp_path.__str__() + "/stats;fi")
-    shutil.copytree(os.path.join(TESTS_INPUT_DIR,"stats"), os.path.join(tmp_path, "stats"))
-    os.system("for file in " + tmp_path.__str__() + '/stats/*.gz; do rm "${file}"; done')
-    os.system("for file in " + tmp_path.__str__() + '/stats/*.csi; do rm "${file}"; done')
-    os.system("for file in " + tmp_path.__str__() + '/stats/*.vcf;do bgzip -k "${file}"; done')
     os.system(
-        "for file in " + tmp_path.__str__() + '/stats/*.gz;do bcftools index "${file}"; done'
+        "if [ -d "
+        + tmp_path.__str__()
+        + "/stats ];then rm -R "
+        + tmp_path.__str__()
+        + "/stats;fi"
+    )
+    shutil.copytree(
+        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.gz; do rm "${file}"; done'
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.csi; do rm "${file}"; done'
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.vcf;do bgzip -k "${file}"; done'
+    )
+    os.system(
+        "for file in "
+        + tmp_path.__str__()
+        + '/stats/*.gz;do bcftools index "${file}"; done'
     )
     os.system(
         "if [ -d ' + tmp_path.__str__() + '/outputs ];then rm -R ' + tmp_path.__str__() + '/outputs;fi"
@@ -1139,8 +1155,10 @@ def test_ingest_with_stats(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert (data_frame.shape == (8, 7))
-    assert (data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998).bool()
+    assert data_frame.shape == (8, 7)
+    assert (
+        data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998
+    ).bool()
     assert (
         data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0]
         == 0.0625
