@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import pandas as pd
+import regex
+import shutil
 import platform
 import pytest
 import tiledbvcf
@@ -1103,19 +1105,19 @@ def test_ingest_mode_merged(tmp_path):
 
 
 def test_ingest_with_stats(tmp_path):
-    os.system("if [ -d " + tmp_path + "/stats ];then rm -R " + tmp_path + "/stats;fi")
-    os.system("cp -R inputs/stats " + tmp_path)
-    os.system("for file in " + tmp_path + '/stats/*.gz; do rm "${file}"; done')
-    os.system("for file in " + tmp_path + '/stats/*.csi; do rm "${file}"; done')
-    os.system("for file in " + tmp_path + '/stats/*.vcf;do bgzip -k "${file}"; done')
+    os.system("if [ -d " + tmp_path.__str__() + "/stats ];then rm -R " + tmp_path.__str__() + "/stats;fi")
+    shutil.copytree(os.path.join(TESTS_INPUT_DIR,"stats"), os.path.join(tmp_path, "stats"))
+    os.system("for file in " + tmp_path.__str__() + '/stats/*.gz; do rm "${file}"; done')
+    os.system("for file in " + tmp_path.__str__() + '/stats/*.csi; do rm "${file}"; done')
+    os.system("for file in " + tmp_path.__str__() + '/stats/*.vcf;do bgzip -k "${file}"; done')
     os.system(
-        "for file in " + tmp_path + '/stats/*.gz;do bcftools index "${file}"; done'
+        "for file in " + tmp_path.__str__() + '/stats/*.gz;do bcftools index "${file}"; done'
     )
     os.system(
-        "if [ -d ' + tmp_path + '/outputs ];then rm -R ' + tmp_path + '/outputs;fi"
+        "if [ -d ' + tmp_path.__str__() + '/outputs ];then rm -R ' + tmp_path.__str__() + '/outputs;fi"
     )
     os.system(
-        "if [ -d ' + tmp_path + '/stats_test ];then rm -R ' + tmp_path + '/stats_test;fi"
+        "if [ -d ' + tmp_path.__str__() + '/stats_test ];then rm -R ' + tmp_path.__str__() + '/stats_test;fi"
     )
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
@@ -1123,22 +1125,22 @@ def test_ingest_with_stats(tmp_path):
     search = regex.Regex(".*\.vcf.gz")
     grab_sample = regex.Regex("(.*)\.vcf.gz")
     ds.ingest_samples(
-        os.path.join("inputs", vcf_file)
-        for vcf_file in os.listdir("inputs")
+        os.path.join(tmp_path, "stats", vcf_file)
+        for vcf_file in os.listdir(os.path.join(tmp_path, "stats"))
         if search.fullmatch(vcf_file)
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     data_frame = ds.read(
         samples=(
             grab_sample.fullmatch(vcf_file).groups()[0]
-            for vcf_file in os.listdir("inputs")
+            for vcf_file in os.path.join(tmp_path, "stats")
             if search.fullmatch(vcf_file)
         ),
         attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert data_frame.shape == (8, 7)
-    assert data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998
+    assert (data_frame.shape == (8, 7))
+    assert (data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998).bool()
     assert (
         data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0]
         == 0.0625
