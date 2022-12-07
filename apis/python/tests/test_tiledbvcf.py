@@ -401,7 +401,7 @@ def test_read_filters(test_ds):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [None, None, ["LowQual"], None, None, None],
                 )
             ),
@@ -442,7 +442,7 @@ def test_read_var_length_filters(tmp_path):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["PASS"],
                         ["PASS"],
@@ -495,7 +495,7 @@ def test_read_alleles(test_ds):
             ),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["C", "<NON_REF>"],
                         ["C", "<NON_REF>"],
@@ -535,14 +535,14 @@ def test_read_multiple_alleles(tmp_path):
             "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
                 )
             ),
             "id": pd.Series([".", "rs1497816"]),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["LowQual"], ["LowQual"]],
                 )
             ),

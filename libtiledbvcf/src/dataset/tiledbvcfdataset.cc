@@ -688,7 +688,8 @@ void TileDBVCFDataset::load_field_type_maps() const {
   info_fmt_field_types_loaded_ = true;
 }
 
-  void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr, bool add_iaf) const {
+void TileDBVCFDataset::load_field_type_maps_v4(
+    const bcf_hdr_t* hdr, bool add_iaf) const {
   utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   // After we acquire the write lock we need to check if another thread has
   // loaded the field types
@@ -708,14 +709,18 @@ void TileDBVCFDataset::load_field_type_maps() const {
     hdr = hdrs.begin()->second.get();
   }
 
-  if(add_iaf) {
-  //TODO: do something better than promoting this pointer type; perhaps the header should be duplicated and later modified
-    if(bcf_hdr_append(const_cast<bcf_hdr_t*>(hdr), "##INFO=<ID=TDB_IAF,Number=R,Type=Float,Description=\"Internal Allele Frequency\">") < 0) {
+  if (add_iaf) {
+    // TODO: do something better than promoting this pointer type; perhaps the
+    // header should be duplicated and later modified
+    if (bcf_hdr_append(
+            const_cast<bcf_hdr_t*>(hdr),
+            "##INFO=<ID=TDB_IAF,Number=R,Type=Float,Description=\"Internal "
+            "Allele Frequency\">") < 0) {
       throw std::runtime_error(
-			     "Error appending to header for internal allele frequency.");
+          "Error appending to header for internal allele frequency.");
     }
     info_iaf_field_type_added_ = true;
-    if(bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
+    if (bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
       throw std::runtime_error("Error syncing header after adding IAF record.");
     }
   }
@@ -1831,10 +1836,10 @@ std::set<std::string> TileDBVCFDataset::all_attributes() const {
 }
 
 int TileDBVCFDataset::info_field_type(
-    const std::string& name, const bcf_hdr_t* hdr,
-				      bool add_iaf) const {
+    const std::string& name, const bcf_hdr_t* hdr, bool add_iaf) const {
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
-  if (!info_fmt_field_types_loaded_ || (add_iaf && !info_iaf_field_type_added_)) {
+  if (!info_fmt_field_types_loaded_ ||
+      (add_iaf && !info_iaf_field_type_added_)) {
     lck_.unlock();
     if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
       load_field_type_maps();
