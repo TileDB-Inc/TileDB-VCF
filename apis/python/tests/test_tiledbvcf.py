@@ -1101,15 +1101,22 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
+
 def test_ingest_with_stats(tmp_path):
-    os.system('if [ -d ' + tmp_path + '/stats ];then rm -R ' + tmp_path + '/stats;fi')
-    os.system('cp -R inputs/stats ' + tmp_path)
-    os.system('for file in ' + tmp_path + '/stats/*.gz; do rm "${file}"; done')
-    os.system('for file in ' + tmp_path + '/stats/*.csi; do rm "${file}"; done')
-    os.system('for file in ' + tmp_path + '/stats/*.vcf;do bgzip -k "${file}"; done')
-    os.system('for file in ' + tmp_path + '/stats/*.gz;do bcftools index "${file}"; done')
-    os.system("if [ -d ' + tmp_path + '/outputs ];then rm -R ' + tmp_path + '/outputs;fi")
-    os.system("if [ -d ' + tmp_path + '/stats_test ];then rm -R ' + tmp_path + '/stats_test;fi")
+    os.system("if [ -d " + tmp_path + "/stats ];then rm -R " + tmp_path + "/stats;fi")
+    os.system("cp -R inputs/stats " + tmp_path)
+    os.system("for file in " + tmp_path + '/stats/*.gz; do rm "${file}"; done')
+    os.system("for file in " + tmp_path + '/stats/*.csi; do rm "${file}"; done')
+    os.system("for file in " + tmp_path + '/stats/*.vcf;do bgzip -k "${file}"; done')
+    os.system(
+        "for file in " + tmp_path + '/stats/*.gz;do bcftools index "${file}"; done'
+    )
+    os.system(
+        "if [ -d ' + tmp_path + '/outputs ];then rm -R ' + tmp_path + '/outputs;fi"
+    )
+    os.system(
+        "if [ -d ' + tmp_path + '/stats_test ];then rm -R ' + tmp_path + '/stats_test;fi"
+    )
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
@@ -1130,9 +1137,12 @@ def test_ingest_with_stats(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert(data_frame.shape == (8, 7))
-    assert(data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998)
-    assert(data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0] == 0.0625)
+    assert data_frame.shape == (8, 7)
+    assert data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998
+    assert (
+        data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0]
+        == 0.0625
+    )
 
 
 def test_ingest_mode_separate(tmp_path):
