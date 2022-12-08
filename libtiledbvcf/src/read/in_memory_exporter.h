@@ -143,7 +143,8 @@ class InMemoryExporter : public Exporter {
       AttrDatatype* datatype,
       bool* var_len,
       bool* nullable,
-      bool* list);
+      bool* list,
+      bool add_iaf);
 
  private:
   /* ********************************* */
@@ -279,7 +280,8 @@ class InMemoryExporter : public Exporter {
   static AttrDatatype get_info_fmt_datatype(
       const TileDBVCFDataset* dataset,
       const std::string& attr,
-      const bcf_hdr_t* hdr);
+      const bcf_hdr_t* hdr,
+      bool add_iaf);
 
   UserBuffer* get_buffer(const std::string& attribute);
 

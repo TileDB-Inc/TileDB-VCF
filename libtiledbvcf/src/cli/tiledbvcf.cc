@@ -30,6 +30,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read/reader.h"
+#include "stats/variant_stats_reader.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
@@ -702,6 +703,11 @@ void add_export(CLI::App& app) {
       args->cli_count_only,
       "Don't write output files, only print the count of the resulting "
       "number of intersecting records.");
+  cmd->add_option(
+         "--af-filter",
+         args->af_filter,
+         "If set, only export data that passes the AF filter.")
+      ->excludes("--count-only");
 
   cmd->option_defaults()->group("Region options");
   cmd->add_option(

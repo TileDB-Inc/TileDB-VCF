@@ -38,6 +38,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_output_format", &Reader::set_output_format)
       .def("set_output_path", &Reader::set_output_path)
       .def("set_output_dir", &Reader::set_output_dir)
+      .def("set_af_filter", &Reader::set_af_filter)
       .def("read", &Reader::read, py::arg("release_buffs") = true)
       .def("get_results_arrow", &Reader::get_results_arrow)
       .def("completed", &Reader::completed)

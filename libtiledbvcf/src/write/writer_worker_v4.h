@@ -36,10 +36,10 @@
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
 
-#include "dataset/allele_count.h"
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
-#include "dataset/variant_stats.h"
+#include "stats/allele_count.h"
+#include "stats/variant_stats.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
 #include "write/record_heap_v4.h"

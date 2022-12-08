@@ -395,7 +395,10 @@ class TileDBVCFDataset {
   std::set<std::string> all_attributes() const;
 
   /** Returns the BCF_HT_ type for the info field of the given name. */
-  int info_field_type(const std::string& name, const bcf_hdr_t* hdr) const;
+  int info_field_type(
+      const std::string& name,
+      const bcf_hdr_t* hdr,
+      bool add_iaf = false) const;
 
   /** Returns the BCF_HT_ type for the format field of the given name. */
   int fmt_field_type(const std::string& name, const bcf_hdr_t* hdr) const;
@@ -766,6 +769,9 @@ class TileDBVCFDataset {
   /** flag for if info_field_types/fmt_field_types has been loaded */
   mutable bool info_fmt_field_types_loaded_;
 
+  /** flag for whether the IAF field type has been added */
+  mutable bool info_iaf_field_type_added_;
+
   /** RWLock for building list of queryable attributes */
   utils::RWLock queryable_attribute_lock_;
 
@@ -952,7 +958,8 @@ class TileDBVCFDataset {
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
-  void load_field_type_maps_v4(const bcf_hdr_t* hdr) const;
+  void load_field_type_maps_v4(
+      const bcf_hdr_t* hdr, bool add_iaf = false) const;
 
   /**
    * @brief Open an array using the uri from the root group member with name
