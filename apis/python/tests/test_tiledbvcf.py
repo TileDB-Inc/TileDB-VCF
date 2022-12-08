@@ -1,7 +1,9 @@
 import numpy as np
+import subprocess
 import os
 import pandas as pd
 import re
+import glob
 import shutil
 import platform
 import pytest
@@ -1103,55 +1105,34 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
-
+ 
 def test_ingest_with_stats(tmp_path):
-    os.system(
-        "if [ -d "
-        + tmp_path.__str__()
-        + "/stats ];then rm -R "
-        + tmp_path.__str__()
-        + "/stats;fi"
-    )
+    tmp_path_contents = os.listdir(tmp_path)
+    if "stats" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "stats"))
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
     )
-    os.system(
-        "for file in " + tmp_path.__str__() + '/stats/*.gz; do rm "${file}"; done'
-    )
-    os.system(
-        "for file in " + tmp_path.__str__() + '/stats/*.csi; do rm "${file}"; done'
-    )
-    os.system(
-        "for file in " + tmp_path.__str__() + '/stats/*.vcf;do bgzip -k "${file}"; done'
-    )
-    os.system(
-        "for file in "
-        + tmp_path.__str__()
-        + '/stats/*.gz;do bcftools index "${file}"; done'
-    )
-    os.system(
-        "if [ -d ' + tmp_path.__str__() + '/outputs ];then rm -R ' + tmp_path.__str__() + '/outputs;fi"
-    )
-    os.system(
-        "if [ -d ' + tmp_path.__str__() + '/stats_test ];then rm -R ' + tmp_path.__str__() + '/stats_test;fi"
-    )
+    raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
+    print(f"raw inputs: {raw_inputs}")
+    for vcf_file in raw_inputs:
+        assert(subprocess.run("bgzip " + vcf_file, shell=True).returncode == 0);
+    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
+    print(f"bgzipped inputs: {bgzipped_inputs}")
+    for vcf_file in bgzipped_inputs:
+        assert(subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0);
+    if "outputs" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "outputs"))
+    if "stats_test" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "outputs"))
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
-    search = re.compile(".*\.vcf.gz")
-    grab_sample = re.compile("(.*)\.vcf.gz")
-    ds.ingest_samples(
-        os.path.join(tmp_path, "stats", vcf_file)
-        for vcf_file in os.listdir(os.path.join(tmp_path, "stats"))
-        if search.fullmatch(vcf_file)
-    )
+    ds.ingest_samples(bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
     data_frame = ds.read(
-        samples=(
-            grab_sample.fullmatch(vcf_file).groups()[0]
-            for vcf_file in os.path.join(tmp_path, "stats")
-            if search.fullmatch(vcf_file)
-        ),
+        samples=sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
