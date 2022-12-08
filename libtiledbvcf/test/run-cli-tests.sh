@@ -36,7 +36,7 @@ function clean_up {
 function create_register_ingest {
     local uri=$1
     shift
-    $tilevcf create -u $uri || exit 1
+    valgrind $tilevcf create -u $uri || exit 1
     $tilevcf store -u $uri $@ || exit 1
 }
 
@@ -482,6 +482,17 @@ $tilevcf store -u ingested_comb ${input_dir}/E001_15_coreMarks_dense_filtered.be
 echo "** End expected error messages."
 
 # Clean up
+clean_up
+
+#test ingesting with stats enabled, and querying with IAF
+mkdir -p ${upload_dir}/outputs
+cp -R ${input_dir}/stats ${upload_dir}
+for file in ${upload_dir}/stats/*.vcf;do bgzip -k "${file}"; done
+for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
+$tiledbvcf create -u ${upload_dir}/pre_test --enable-variant-stats --log-level trace
+$tiledbvcf store -u ${upload_dir}/pre_test --log-level trace ${upload_dir}/stats/*.vcf.gz
+$tiledbvcf export -u ${upload_dir}/pre_test -d ${upload_dir}/outputs -Ov --af-filter '<= 1' --log-level trace
+
 clean_up
 
 echo ""
