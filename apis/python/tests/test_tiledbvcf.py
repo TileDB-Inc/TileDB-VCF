@@ -1105,7 +1105,7 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
- 
+
 def test_ingest_with_stats(tmp_path):
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
@@ -1116,11 +1116,11 @@ def test_ingest_with_stats(tmp_path):
     raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
     print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
-        assert(subprocess.run("bgzip " + vcf_file, shell=True).returncode == 0);
+        assert subprocess.run("bgzip " + vcf_file, shell=True).returncode == 0
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
     print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
-        assert(subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0);
+        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
