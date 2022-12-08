@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import pandas as pd
+import regex
+import shutil
 import platform
 import pytest
 import tiledbvcf
@@ -401,7 +403,7 @@ def test_read_filters(test_ds):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [None, None, ["LowQual"], None, None, None],
                 )
             ),
@@ -442,7 +444,7 @@ def test_read_var_length_filters(tmp_path):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["PASS"],
                         ["PASS"],
@@ -495,7 +497,7 @@ def test_read_alleles(test_ds):
             ),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["C", "<NON_REF>"],
                         ["C", "<NON_REF>"],
@@ -535,14 +537,14 @@ def test_read_multiple_alleles(tmp_path):
             "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
                 )
             ),
             "id": pd.Series([".", "rs1497816"]),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["LowQual"], ["LowQual"]],
                 )
             ),
@@ -1100,6 +1102,67 @@ def test_ingest_mode_merged(tmp_path):
     ds = tiledbvcf.Dataset(uri, mode="r")
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
+
+
+def test_ingest_with_stats(tmp_path):
+    os.system(
+        "if [ -d "
+        + tmp_path.__str__()
+        + "/stats ];then rm -R "
+        + tmp_path.__str__()
+        + "/stats;fi"
+    )
+    shutil.copytree(
+        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.gz; do rm "${file}"; done'
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.csi; do rm "${file}"; done'
+    )
+    os.system(
+        "for file in " + tmp_path.__str__() + '/stats/*.vcf;do bgzip -k "${file}"; done'
+    )
+    os.system(
+        "for file in "
+        + tmp_path.__str__()
+        + '/stats/*.gz;do bcftools index "${file}"; done'
+    )
+    os.system(
+        "if [ -d ' + tmp_path.__str__() + '/outputs ];then rm -R ' + tmp_path.__str__() + '/outputs;fi"
+    )
+    os.system(
+        "if [ -d ' + tmp_path.__str__() + '/stats_test ];then rm -R ' + tmp_path.__str__() + '/stats_test;fi"
+    )
+    tiledbvcf.config_logging("trace")
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
+    ds.create_dataset(enable_variant_stats=True)
+    search = regex.Regex(".*\.vcf.gz")
+    grab_sample = regex.Regex("(.*)\.vcf.gz")
+    ds.ingest_samples(
+        os.path.join(tmp_path, "stats", vcf_file)
+        for vcf_file in os.listdir(os.path.join(tmp_path, "stats"))
+        if search.fullmatch(vcf_file)
+    )
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    data_frame = ds.read(
+        samples=(
+            grab_sample.fullmatch(vcf_file).groups()[0]
+            for vcf_file in os.path.join(tmp_path, "stats")
+            if search.fullmatch(vcf_file)
+        ),
+        attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
+        set_af_filter="<0.2",
+    )
+    assert data_frame.shape == (8, 7)
+    assert (
+        data_frame[data_frame["sample_name"] == "first"]["qual"] == 1042.72998
+    ).bool()
+    assert (
+        data_frame[data_frame["sample_name"] == "first"]["info_TDB_IAF"].iloc[0][0]
+        == 0.0625
+    )
 
 
 def test_ingest_mode_separate(tmp_path):
