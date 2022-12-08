@@ -45,6 +45,7 @@
 #include "read/exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
+#include "stats/variant_stats_reader.h"
 
 namespace tiledb {
 namespace vcf {
@@ -132,6 +133,12 @@ struct ExportParams {
 
   // Should results be sorted on real_start_pos
   bool sort_real_start_pos = false;
+
+  // AF filter with the format "OP VALUE"
+  //   where OP = < | <= | > | >= | == | !=
+  //   and VALUE = float
+  // If empty, AF filtering is not applied
+  std::string af_filter = "";
 };
 
 /* ********************************* */
@@ -424,6 +431,17 @@ class Reader {
   void set_output_dir(const std::string& output_dir);
 
   /**
+   * returns whether the AF filter is set or enabled
+   */
+  bool af_filter_enabled();
+
+  /**
+   * sets AF filter expression
+   * @param af_filter setting
+   */
+  void set_af_filter(const std::string& af_filter);
+
+  /**
    * Sets disabling of progress estimation in verbose mode
    * @param enable_progress_estimation setting
    */
@@ -612,9 +630,15 @@ class Reader {
   /** Set of attribute buffers holding TileDB query results. */
   std::unique_ptr<AttributeBufferSet> buffers_a;
 
+  /** Variant stats filter */
+  std::unique_ptr<VariantStatsReader> af_filter_;
+
   /* ********************************* */
   /*           PRIVATE METHODS         */
   /* ********************************* */
+
+  /** Ensures that a VariantStatsReader be available if applicable. */
+  void init_af_filter();
 
   /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();

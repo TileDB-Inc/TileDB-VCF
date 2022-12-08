@@ -1,0 +1,13 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
+##INFO=<ID=ExcessHet,Number=1,Type=Float,Description="Phred-scaled p-value for exact test of excess heterozygosity">
+##FORMAT=<ID=AB,Number=1,Type=Float,Description="Allele balance for each het genotype">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr1>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	seventh
+chr1	1	.	T	C,<NON_REF>	829.77	.	ExcessHet=3.0103	GT	0/1
+chr1	2	.	G	GTTTA,T,<NON_REF>	343.73	.	ExcessHet=2.8532	GT	0/1
+chr1	3	.	C	A,T	10.032	.	ExcessHet=8.34	GT	0/1
+chr1	4	.	G	GTTTA,<NON_REF>	343.73	.	ExcessHet=2.8532	GT	1/1

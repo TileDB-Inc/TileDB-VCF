@@ -31,9 +31,9 @@
 #include <vector>
 
 #include "base64/base64.h"
-#include "dataset/allele_count.h"
 #include "dataset/tiledbvcfdataset.h"
-#include "dataset/variant_stats.h"
+#include "stats/allele_count.h"
+#include "stats/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
 #include "utils/unique_rwlock.h"
@@ -109,6 +109,7 @@ TileDBVCFDataset::TileDBVCFDataset(std::shared_ptr<Context> ctx)
     , tiledb_stats_enabled_vcf_header_(true)
     , sample_names_loaded_(false)
     , info_fmt_field_types_loaded_(false)
+    , info_iaf_field_type_added_(false)
     , queryable_attribute_loaded_(false)
     , materialized_attribute_loaded_(false) {
   utils::init_htslib();
@@ -211,6 +212,17 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   metadata.anchor_gap = params.anchor_gap;
   metadata.extra_attributes = params.extra_attributes;
   metadata.free_sample_id = 0;
+
+  // Materialize fmt_GT if variant stats is enabled for AF filtering
+  if (params.enable_variant_stats) {
+    bool found_gt = false;
+    for (auto& attr : metadata.extra_attributes) {
+      found_gt |= attr.compare("fmt_GT");
+    }
+    if (!found_gt) {
+      metadata.extra_attributes.push_back("fmt_GT");
+    }
+  }
 
   // Materialize all attributes in the provided VCF file
   if (!params.vcf_uri.empty()) {
@@ -696,11 +708,12 @@ void TileDBVCFDataset::load_field_type_maps() const {
   info_fmt_field_types_loaded_ = true;
 }
 
-void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
+void TileDBVCFDataset::load_field_type_maps_v4(
+    const bcf_hdr_t* hdr, bool add_iaf) const {
   utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   // After we acquire the write lock we need to check if another thread has
   // loaded the field types
-  if (info_fmt_field_types_loaded_)
+  if (info_fmt_field_types_loaded_ && (!add_iaf || info_iaf_field_type_added_))
     return;
 
   std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
@@ -716,6 +729,21 @@ void TileDBVCFDataset::load_field_type_maps_v4(const bcf_hdr_t* hdr) const {
     hdr = hdrs.begin()->second.get();
   }
 
+  if (add_iaf) {
+    if (bcf_hdr_append(
+            // TODO: do something better than promoting this pointer type;
+            // perhaps the header should be duplicated and later modified
+            const_cast<bcf_hdr_t*>(hdr),
+            "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description=\"Internal "
+            "Allele Frequency, computed over dataset by TileDB\">") < 0) {
+      throw std::runtime_error(
+          "Error appending to header for internal allele frequency.");
+    }
+    info_iaf_field_type_added_ = true;
+    if (bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
+      throw std::runtime_error("Error syncing header after adding IAF record.");
+    }
+  }
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -1828,15 +1856,16 @@ std::set<std::string> TileDBVCFDataset::all_attributes() const {
 }
 
 int TileDBVCFDataset::info_field_type(
-    const std::string& name, const bcf_hdr_t* hdr) const {
+    const std::string& name, const bcf_hdr_t* hdr, bool add_iaf) const {
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
-  if (!info_fmt_field_types_loaded_) {
+  if (!info_fmt_field_types_loaded_ ||
+      (add_iaf && !info_iaf_field_type_added_)) {
     lck_.unlock();
     if (metadata_.version == Version::V2 || metadata_.version == Version::V3)
       load_field_type_maps();
     else {
       assert(metadata_.version == Version::V4);
-      load_field_type_maps_v4(hdr);
+      load_field_type_maps_v4(hdr, add_iaf);
     }
     lck_.lock();
   }

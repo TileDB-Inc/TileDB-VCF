@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "dataset/variant_stats.h"
+#include "variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -193,9 +193,9 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
-std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
+std::string VariantStats::get_uri(std::string_view root_uri, bool relative) {
   auto root = relative ? "" : root_uri;
-  return utils::uri_join(root, VARIANT_STATS_ARRAY);
+  return utils::uri_join(std::string(root), VARIANT_STATS_ARRAY);
 }
 
 void VariantStats::consolidate_commits(

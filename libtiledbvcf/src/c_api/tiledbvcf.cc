@@ -448,6 +448,16 @@ int32_t tiledb_vcf_reader_get_tiledb_stats(
   return TILEDB_VCF_OK;
 }
 
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_af_filter_exists(
+    tiledb_vcf_reader_t* reader, bool* present) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || present == nullptr)
+    return TILEDB_VCF_ERR;
+
+  *present = reader->reader_->af_filter_enabled();
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_read(tiledb_vcf_reader_t* reader) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
@@ -916,6 +926,17 @@ int32_t tiledb_vcf_reader_set_output_dir(
     return TILEDB_VCF_ERR;
 
   if (SAVE_ERROR_CATCH(reader, reader->reader_->set_output_dir(output_dir)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_set_af_filter(
+    tiledb_vcf_reader_t* reader, const char* af_filter) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_af_filter(af_filter)))
     return TILEDB_VCF_ERR;
 
   return TILEDB_VCF_OK;

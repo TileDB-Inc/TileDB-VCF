@@ -597,7 +597,8 @@ void InMemoryExporter::attribute_datatype(
     AttrDatatype* datatype,
     bool* var_len,
     bool* nullable,
-    bool* list) {
+    bool* list,
+    bool add_iaf) {
   ExportableAttribute attr = attr_name_to_enum(attribute);
   switch (attr) {
     case ExportableAttribute::SampleName:
@@ -634,7 +635,7 @@ void InMemoryExporter::attribute_datatype(
       *datatype = AttrDatatype::INT32;
       break;
     case ExportableAttribute::InfoOrFmt:
-      *datatype = get_info_fmt_datatype(dataset, attribute, nullptr);
+      *datatype = get_info_fmt_datatype(dataset, attribute, nullptr, add_iaf);
       break;
     default:
       throw std::runtime_error(
@@ -651,7 +652,8 @@ void InMemoryExporter::attribute_datatype(
 AttrDatatype InMemoryExporter::get_info_fmt_datatype(
     const TileDBVCFDataset* dataset,
     const std::string& attr,
-    const bcf_hdr_t* hdr) {
+    const bcf_hdr_t* hdr,
+    bool add_iaf) {
   // Special-case genotype, since the header thinks it's a string.
   if (attr == "fmt_GT")
     return AttrDatatype::INT32;
@@ -660,8 +662,9 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
   bool is_info = parts.first == "info";
   const auto& field_name = parts.second;
 
-  int htslib_type = is_info ? dataset->info_field_type(field_name, hdr) :
-                              dataset->fmt_field_type(field_name, hdr);
+  int htslib_type = is_info ?
+                        dataset->info_field_type(field_name, hdr, add_iaf) :
+                        dataset->fmt_field_type(field_name, hdr);
   switch (htslib_type) {
     case BCF_HT_FLAG:
       return AttrDatatype::INT32;
@@ -741,7 +744,7 @@ bool InMemoryExporter::copy_cell_data(
     // Arrow expects null values to have 1 value which is ignored for fixed
     // length fields
     nbytes = attr_datatype_size(
-        get_info_fmt_datatype(this->dataset_, dest->attr_name, hdr));
+        get_info_fmt_datatype(this->dataset_, dest->attr_name, hdr, add_iaf));
     nelts = 1;
   }
 
@@ -933,9 +936,17 @@ bool InMemoryExporter::copy_info_fmt_value(
     uint64_t cell_idx, UserBuffer* dest, const bcf_hdr_t* hdr) const {
   const std::string& field_name = dest->info_fmt_field_name;
   const bool is_gt = field_name == "GT";
+  const bool is_iaf = field_name == "TILEDB_IAF";
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
-  get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
+  if (is_iaf && !curr_query_results_->af_values.empty()) {
+    // assign source pointer, nbytes, and nelts from vector
+    src = curr_query_results_->af_values.data();
+    nelts = curr_query_results_->af_values.size();
+    nbytes = nelts * sizeof(decltype(curr_query_results_->af_values.at(0)));
+  } else {
+    get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
+  }
 
   if (is_gt) {
     // Genotype needs special handling to be decoded.

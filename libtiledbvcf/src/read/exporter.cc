@@ -238,6 +238,10 @@ void Exporter::recover_record(
   }
 }
 
+void Exporter::enable_iaf() {
+  add_iaf = true;
+}
+
 bool Exporter::need_headers() const {
   return need_headers_;
 }

@@ -99,6 +99,11 @@ class Exporter {
 
   bool need_headers() const;
 
+  /**
+   * Enable internal allele frequency generation
+   */
+  void enable_iaf();
+
  protected:
   /** The dataset. */
   const TileDBVCFDataset* dataset_;
@@ -133,6 +138,8 @@ class Exporter {
       const std::string& contig_name,
       uint32_t contig_offset,
       bcf1_t* dst) const;
+
+  bool add_iaf = false;
 };
 
 }  // namespace vcf

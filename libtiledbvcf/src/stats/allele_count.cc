@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "dataset/allele_count.h"
+#include "allele_count.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 

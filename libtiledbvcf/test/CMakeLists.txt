@@ -54,6 +54,7 @@ target_include_directories(tiledb_vcf_unit
   PRIVATE
     ${TILEDB_VCF_EXPORT_HEADER_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external/
 )
 
 target_link_libraries(tiledb_vcf_unit

@@ -30,6 +30,9 @@
 ############################################################
 
 cmake_minimum_required(VERSION 3.3)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 # Superbuild option must be on by default.
@@ -66,7 +69,7 @@ if (FORCE_EXTERNAL_HTSLIB)
   message(STATUS "Skipping search for htslib, building it as an external project. To use system htslib, set FORCE_EXTERNAL_HTSLIB=OFF")
 endif()
 
-if (FORCE_EXTERNAL_HTSLIB)
+if (FORCE_EXTERNAL_TILEDB)
   message(STATUS "Skipping search for TileDB, building it as an external project. To use system TileDB, set FORCE_EXTERNAL_TILEDB=OFF")
 endif()
 

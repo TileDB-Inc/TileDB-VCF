@@ -1,6 +1,10 @@
 import numpy as np
+import subprocess
 import os
 import pandas as pd
+import re
+import glob
+import shutil
 import platform
 import pytest
 import tiledbvcf
@@ -401,7 +405,7 @@ def test_read_filters(test_ds):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [None, None, ["LowQual"], None, None, None],
                 )
             ),
@@ -442,7 +446,7 @@ def test_read_var_length_filters(tmp_path):
             ),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["PASS"],
                         ["PASS"],
@@ -495,7 +499,7 @@ def test_read_alleles(test_ds):
             ),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [
                         ["C", "<NON_REF>"],
                         ["C", "<NON_REF>"],
@@ -535,14 +539,14 @@ def test_read_multiple_alleles(tmp_path):
             "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
             "alleles": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
                 )
             ),
             "id": pd.Series([".", "rs1497816"]),
             "filters": pd.Series(
                 map(
-                    lambda lst: np.array(lst, dtype=np.object),
+                    lambda lst: np.array(lst, dtype=object),
                     [["LowQual"], ["LowQual"]],
                 )
             ),
@@ -1100,6 +1104,50 @@ def test_ingest_mode_merged(tmp_path):
     ds = tiledbvcf.Dataset(uri, mode="r")
     assert ds.count() == 19
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
+
+
+def test_ingest_with_stats(tmp_path):
+    tmp_path_contents = os.listdir(tmp_path)
+    if "stats" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "stats"))
+    shutil.copytree(
+        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
+    )
+    raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
+    print(f"raw inputs: {raw_inputs}")
+    for vcf_file in raw_inputs:
+        subprocess.run(
+            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
+            shell=True,
+            check=True,
+        )
+    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
+    print(f"bgzipped inputs: {bgzipped_inputs}")
+    for vcf_file in bgzipped_inputs:
+        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
+    if "outputs" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "outputs"))
+    if "stats_test" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "outputs"))
+    tiledbvcf.config_logging("trace")
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
+    ds.create_dataset(enable_variant_stats=True)
+    ds.ingest_samples(bgzipped_inputs)
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
+    data_frame = ds.read(
+        samples=sample_names,
+        attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
+        set_af_filter="<0.2",
+    )
+    assert data_frame.shape == (1, 8)
+    assert (
+        data_frame[data_frame["sample_name"] == "second"]["qual"] == 343.730011
+    ).bool()
+    assert (
+        data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
+        == 0.0625
+    )
 
 
 def test_ingest_mode_separate(tmp_path):
