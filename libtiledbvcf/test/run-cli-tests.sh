@@ -36,7 +36,7 @@ function clean_up {
 function create_register_ingest {
     local uri=$1
     shift
-    valgrind $tilevcf create -u $uri || exit 1
+    $tilevcf create -u $uri || exit 1
     $tilevcf store -u $uri $@ || exit 1
 }
 
