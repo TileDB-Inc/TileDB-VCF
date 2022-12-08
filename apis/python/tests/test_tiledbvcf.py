@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
-import regex
+import re
 import shutil
 import platform
 import pytest
@@ -1138,8 +1138,8 @@ def test_ingest_with_stats(tmp_path):
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
-    search = regex.Regex(".*\.vcf.gz")
-    grab_sample = regex.Regex("(.*)\.vcf.gz")
+    search = re.compile(".*\.vcf.gz")
+    grab_sample = re.compile("(.*)\.vcf.gz")
     ds.ingest_samples(
         os.path.join(tmp_path, "stats", vcf_file)
         for vcf_file in os.listdir(os.path.join(tmp_path, "stats"))
