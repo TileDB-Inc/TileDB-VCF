@@ -1263,20 +1263,26 @@ bool Reader::process_query_results_v4() {
     if (apply_af_filter) {
       auto csv_alleles = results.buffers()->alleles().value(i);
       auto alleles = utils::split(std::string(csv_alleles));
-
       LOG_TRACE("alleles = {}", csv_alleles);
 
-      // Check if any of the alleles pass the AF filter
+      auto gt = results.buffers()->gt(i);
+      LOG_TRACE("gt={},{} size={}", gt[0], gt[1], gt.size());
+
+      // Check if any of the alleles in GT pass the AF filter
       bool pass = false;
 
       read_state_.query_results.af_values.clear();
+      int allele_index = 0;
       for (auto&& allele : alleles) {
-        // TODO: skip <NON_REF> allele, revisit after checking only alleles in
-        // GT
-
         auto [allele_passes, af] = af_filter_->pass(real_start, allele);
-        // apply next line only if there is a ref/alt GT for it
-        pass |= allele_passes;
+
+        // If the allele is in GT, consider it in the pass computation
+        if (allele_index == gt[0] || allele_index == gt[1]) {
+          pass |= allele_passes;
+        } else {
+          LOG_TRACE("  ignore allele {} not in GT", allele_index);
+        }
+        allele_index++;
 
         // build vector of IAF values for annotation
         // add annotation to read_state_.query_results

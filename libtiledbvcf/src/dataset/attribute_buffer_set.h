@@ -196,6 +196,9 @@ class AttributeBufferSet {
   /** fmt buffer. */
   Buffer& fmt();
 
+  /** Get GT at the provided index. */
+  std::vector<int> gt(int index) const;
+
   /** Set of buffers for optional "extracted"/"extra" info/fmt attributes. */
   const std::unordered_map<std::string, Buffer>& extra_attrs() const;
 

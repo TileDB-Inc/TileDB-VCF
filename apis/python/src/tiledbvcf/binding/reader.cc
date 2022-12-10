@@ -212,13 +212,15 @@ void Reader::read(const bool release_buffs) {
     bool add_alleles = true;
     bool add_GT = true;
     for (std::string attribute : attributes_) {
-	add_alleles = add_alleles && attribute != "alleles";
-	add_GT = add_GT && attribute != "fmt_GT";
+      add_alleles = add_alleles && attribute != "alleles";
+      add_GT = add_GT && attribute != "fmt_GT";
     }
     if (add_alleles) {
-      attributes_.emplace_back("alleles");}
+      attributes_.emplace_back("alleles");
+    }
     if (add_GT) {
-      attributes_.emplace_back("fmt_GT");}
+      attributes_.emplace_back("fmt_GT");
+    }
   }
   alloc_buffers(release_buffs);
   set_buffers();

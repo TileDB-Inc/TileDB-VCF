@@ -641,6 +641,25 @@ Buffer& AttributeBufferSet::fmt() {
   return fmt_;
 }
 
+std::vector<int> AttributeBufferSet::gt(int index) const {
+  const Buffer* src = nullptr;
+  if (!extra_attr("fmt_GT", &src)) {
+    throw std::runtime_error("fmt_GT must be an extracted attribute.");
+  }
+
+  // FMT value: type,nvalues,values
+  uint64_t offset = src->offsets().at(index);
+  const int* ptr = (const int*)(src->data<char>() + offset);
+  ptr++;  // skip type
+  int num_values = *ptr++;
+
+  std::vector<int> result;
+  while (num_values--) {
+    result.push_back(bcf_gt_allele(*ptr++));
+  }
+  return result;
+}
+
 const std::unordered_map<std::string, Buffer>& AttributeBufferSet::extra_attrs()
     const {
   return extra_attrs_;
