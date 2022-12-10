@@ -1261,25 +1261,10 @@ bool Reader::process_query_results_v4() {
     }
 
     if (apply_af_filter) {
-      // TODO: get allele from buffers, this should work but there's a bug on
-      // the last index
-      // auto allele = results.buffers()->alleles().value(i);
-
-      uint64_t alleles_offset = 0;
-      try {
-        alleles_offset = results.buffers()->alleles().offsets().at(i);
-      } catch (const std::out_of_range&) {
-        throw std::runtime_error(
-            "Error retrieving allele that was not queried.");
-      }
-
-      const char* alleles_data =
-          results.buffers()->alleles().data<char>() + alleles_offset;
-      std::string csv_alleles(alleles_data);
+      auto csv_alleles = results.buffers()->alleles().value(i);
+      auto alleles = utils::split(std::string(csv_alleles));
 
       LOG_TRACE("alleles = {}", csv_alleles);
-
-      auto alleles = utils::split(csv_alleles);
 
       // Check if any of the alleles pass the AF filter
       bool pass = false;

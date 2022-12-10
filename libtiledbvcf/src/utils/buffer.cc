@@ -186,20 +186,21 @@ void Buffer::swap(Buffer& other) {
 std::string_view Buffer::value(uint64_t element_index) const {
   assert(!offsets_.empty());
   assert(data_);
-  uint64_t end = element_index == offset_nelts_ - 1 ?
-                     data_effective_size_ :
-                     offsets_[element_index + 1];
+
   uint64_t start = offsets_[element_index];
-  return std::string_view(data_ + start, end - start);
+  uint64_t len = strlen(data_ + start);
+  return std::string_view(data_ + start, len);
 }
 
 std::vector<std::string_view> Buffer::data() const {
   assert(!offsets_.empty());
   assert(data_);
 
-  std::vector<std::string_view> vec(offset_nelts_);
-  for (uint64_t i = 0; i < offset_nelts_; i++)
+  uint64_t offsets_size = offsets_.size();
+  std::vector<std::string_view> vec(offsets_size);
+  for (uint64_t i = 0; i < offsets_size; i++) {
     vec[i] = value(i);
+  }
 
   return vec;
 }
