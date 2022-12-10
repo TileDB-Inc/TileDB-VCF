@@ -2,7 +2,7 @@ steps:
     - bash: |
         set -e pipefail
         # Install bcftools (only required for running the CLI tests)
-        version=1.10.2
+        version=1.16
         if [[ "$AGENT_OS" == "Linux" ]]; then
             pushd /tmp
             wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2

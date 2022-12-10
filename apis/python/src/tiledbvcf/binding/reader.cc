@@ -208,12 +208,17 @@ void Reader::read(const bool release_buffs) {
       TILEDB_VCF_ERR)
     throw std::runtime_error("TileDB-VCF-Py: Error finding AF filter.");
   if (af_filter_enabled) {
-    // TODO: add alleles buffer only if not already present
+    // add alleles buffer only if not already present
     bool add_alleles = true;
-    for (std::string attribute : attributes_)
-      add_alleles = add_alleles && attribute != "alleles";
-    if (add_alleles)
-      attributes_.emplace_back("alleles");
+    bool add_GT = true;
+    for (std::string attribute : attributes_) {
+	add_alleles = add_alleles && attribute != "alleles";
+	add_GT = add_GT && attribute != "fmt_GT";
+    }
+    if (add_alleles) {
+      attributes_.emplace_back("alleles");}
+    if (add_GT) {
+      attributes_.emplace_back("fmt_GT");}
   }
   alloc_buffers(release_buffs);
   set_buffers();
