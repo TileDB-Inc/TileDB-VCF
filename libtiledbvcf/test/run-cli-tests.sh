@@ -489,25 +489,19 @@ mkdir -p ${upload_dir}/outputs
 cp -R ${input_dir}/stats ${upload_dir}
 for file in ${upload_dir}/stats/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
 for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
-$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats --log-level trace
+$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats -a fmt_GT --log-level trace
 $tilevcf store -u ${upload_dir}/pre_test --log-level trace ${upload_dir}/stats/*.vcf.gz
 $tilevcf export -u ${upload_dir}/pre_test -d ${upload_dir}/outputs -Ov --af-filter '< 0.2' --log-level trace
-test -e ${upload_dir}/outputs/first.vcf || exit 1
+test ! -e ${upload_dir}/outputs/first.vcf || exit 1
 test -e ${upload_dir}/outputs/second.vcf || exit 1
-test -e ${upload_dir}/outputs/third.vcf || exit 1
-test -e ${upload_dir}/outputs/fourth.vcf || exit 1
-test -e ${upload_dir}/outputs/fifth.vcf || exit 1
-test -e ${upload_dir}/outputs/sixth.vcf || exit 1
-test -e	${upload_dir}/outputs/seventh.vcf || exit 1
-test -e ${upload_dir}/outputs/eighth.vcf || exit 1
-test $(wc -m ${upload_dir}/outputs/first.vcf | cut -f 1 -d' ') != 680 && exit 1
-test $(wc -m ${upload_dir}/outputs/second.vcf | cut -f 1 -d' ') != 680 && exit 1
-test $(wc -m ${upload_dir}/outputs/third.vcf | cut -f 1 -d' ') != 679 && exit 1
-test $(wc -m ${upload_dir}/outputs/fourth.vcf | cut -f 1 -d' ') != 680 && exit 1
-test $(wc -m ${upload_dir}/outputs/fifth.vcf | cut -f 1 -d' ') != 693 && exit 1
-test $(wc -m ${upload_dir}/outputs/sixth.vcf | cut -f 1 -d' ') != 679 && exit 1
-test $(wc -m ${upload_dir}/outputs/seventh.vcf | cut -f 1 -d' ') != 681 && exit 1
-test $(wc -m ${upload_dir}/outputs/eighth.vcf | cut -f 1 -d' ') != 680 && exit 1
+test ! -e ${upload_dir}/outputs/third.vcf || exit 1
+test ! -e ${upload_dir}/outputs/fourth.vcf || exit 1
+test ! -e ${upload_dir}/outputs/fifth.vcf || exit 1
+test ! -e ${upload_dir}/outputs/sixth.vcf || exit 1
+test ! -e	${upload_dir}/outputs/seventh.vcf || exit 1
+test ! -e ${upload_dir}/outputs/eighth.vcf || exit 1
+
+[ $(bcftools view -H /tmp/tilevcf-upload-dir-712230/outputs/second.vcf  | wc -l) == "1" ] || exit 1
 
 clean_up
 
