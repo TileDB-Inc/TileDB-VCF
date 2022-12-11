@@ -187,7 +187,7 @@ std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
   return attributes;
 }
 
-void TileDBVCFDataset::create(CreationParams& params) {
+void TileDBVCFDataset::create(const CreationParams& params) {
   LOG_TRACE("Create dataset: {}", params.uri);
 
   // Add VFS plugin to htslib, so we can read VCF attributes through VFS
@@ -202,7 +202,7 @@ void TileDBVCFDataset::create(CreationParams& params) {
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
 
-  check_attribute_names(params.extra_attributes, params.enable_variant_stats);
+  check_attribute_names(params.extra_attributes);
 
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
@@ -213,12 +213,22 @@ void TileDBVCFDataset::create(CreationParams& params) {
   metadata.extra_attributes = params.extra_attributes;
   metadata.free_sample_id = 0;
 
+  // Materialize fmt_GT is variant stats is enabled for AF filtering
+  if (params.enable_variant_stats) {
+    bool found_gt = false;
+    for (auto& attr : metadata.extra_attributes) {
+      found_gt |= attr.compare("fmt_GT");
+    }
+    if (!found_gt) {
+      metadata.extra_attributes.push_back("fmt_GT");
+    }
+  }
+
   // Materialize all attributes in the provided VCF file
   if (!params.vcf_uri.empty()) {
     metadata.extra_attributes =
         get_vcf_attributes(SampleUtils::build_vfs_plugin_uri(params.vcf_uri));
-    check_attribute_names(
-        metadata.extra_attributes, params.enable_variant_stats);
+    check_attribute_names(metadata.extra_attributes);
   }
 
   // Create arrays and subgroups and add them to the root group
@@ -252,16 +262,13 @@ void TileDBVCFDataset::create(CreationParams& params) {
 }
 
 void TileDBVCFDataset::check_attribute_names(
-    std::vector<std::string>& attributes, bool variant_stats) {
+    const std::vector<std::string>& attribues) {
   const auto errmsg = [](const std::string& attr_name) {
     return "Invalid attribute name '" + attr_name +
            "'; extracted attributes must be format 'info_*' or 'fmt_*'.";
   };
 
-  // has fmt_GT been found?
-  bool fmt_gt_found = false;
-
-  for (const auto& attr_name : attributes) {
+  for (const auto& attr_name : attribues) {
     bool info_or_fmt = utils::starts_with(attr_name, "info") ||
                        utils::starts_with(attr_name, "fmt");
     if (!info_or_fmt)
@@ -278,12 +285,6 @@ void TileDBVCFDataset::check_attribute_names(
     std::string name = attr_name.substr(kind.size() + 1);
     if (name.empty())
       throw std::runtime_error(errmsg(attr_name));
-    if (name == "GT") {
-      fmt_gt_found = true;
-    }
-  }
-  if (variant_stats && !fmt_gt_found) {
-    attributes.emplace_back("fmt_GT");
   }
 }
 
