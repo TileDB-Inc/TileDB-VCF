@@ -936,7 +936,7 @@ bool InMemoryExporter::copy_info_fmt_value(
     uint64_t cell_idx, UserBuffer* dest, const bcf_hdr_t* hdr) const {
   const std::string& field_name = dest->info_fmt_field_name;
   const bool is_gt = field_name == "GT";
-  const bool is_iaf = field_name == "TDB_IAF";
+  const bool is_iaf = field_name == "TILEDB_IAF";
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
   if (is_iaf && !curr_query_results_->af_values.empty()) {

@@ -48,7 +48,7 @@ void config_to_log(const CLI::App& cmd) {
 }
 
 /** Create. */
-void do_create(const CreationParams& args, const CLI::App& cmd) {
+void do_create(CreationParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting create command.");
   config_to_log(cmd);
   TileDBVCFDataset::create(args);

@@ -489,7 +489,7 @@ mkdir -p ${upload_dir}/outputs
 cp -R ${input_dir}/stats ${upload_dir}
 for file in ${upload_dir}/stats/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
 for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
-$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats -a fmt_GT --log-level trace
+$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats --log-level trace
 $tilevcf store -u ${upload_dir}/pre_test --log-level trace ${upload_dir}/stats/*.vcf.gz
 $tilevcf export -u ${upload_dir}/pre_test -d ${upload_dir}/outputs -Ov --af-filter '< 0.2' --log-level trace
 test ! -e ${upload_dir}/outputs/first.vcf || exit 1

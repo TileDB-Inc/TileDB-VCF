@@ -187,7 +187,7 @@ std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
   return attributes;
 }
 
-void TileDBVCFDataset::create(const CreationParams& params) {
+void TileDBVCFDataset::create(CreationParams& params) {
   LOG_TRACE("Create dataset: {}", params.uri);
 
   // Add VFS plugin to htslib, so we can read VCF attributes through VFS
@@ -202,7 +202,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   utils::set_tiledb_config(params.tiledb_config, &cfg);
   Context ctx(cfg);
 
-  check_attribute_names(params.extra_attributes);
+  check_attribute_names(params.extra_attributes, params.enable_variant_stats);
 
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
@@ -217,7 +217,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (!params.vcf_uri.empty()) {
     metadata.extra_attributes =
         get_vcf_attributes(SampleUtils::build_vfs_plugin_uri(params.vcf_uri));
-    check_attribute_names(metadata.extra_attributes);
+    check_attribute_names(
+        metadata.extra_attributes, params.enable_variant_stats);
   }
 
   // Create arrays and subgroups and add them to the root group
@@ -251,13 +252,16 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 }
 
 void TileDBVCFDataset::check_attribute_names(
-    const std::vector<std::string>& attribues) {
+    std::vector<std::string>& attributes, bool variant_stats) {
   const auto errmsg = [](const std::string& attr_name) {
     return "Invalid attribute name '" + attr_name +
            "'; extracted attributes must be format 'info_*' or 'fmt_*'.";
   };
 
-  for (const auto& attr_name : attribues) {
+  // has fmt_GT been found?
+  bool fmt_gt_found = false;
+
+  for (const auto& attr_name : attributes) {
     bool info_or_fmt = utils::starts_with(attr_name, "info") ||
                        utils::starts_with(attr_name, "fmt");
     if (!info_or_fmt)
@@ -274,6 +278,12 @@ void TileDBVCFDataset::check_attribute_names(
     std::string name = attr_name.substr(kind.size() + 1);
     if (name.empty())
       throw std::runtime_error(errmsg(attr_name));
+    if (name == "GT") {
+      fmt_gt_found = true;
+    }
+  }
+  if (variant_stats && !fmt_gt_found) {
+    attributes.emplace_back("fmt_GT");
   }
 }
 
@@ -723,7 +733,7 @@ void TileDBVCFDataset::load_field_type_maps_v4(
     // header should be duplicated and later modified
     if (bcf_hdr_append(
             const_cast<bcf_hdr_t*>(hdr),
-            "##INFO=<ID=TDB_IAF,Number=R,Type=Float,Description=\"Internal "
+            "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description=\"Internal "
             "Allele Frequency\">") < 0) {
       throw std::runtime_error(
           "Error appending to header for internal allele frequency.");

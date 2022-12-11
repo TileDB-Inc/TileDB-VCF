@@ -1133,13 +1133,13 @@ def test_ingest_with_stats(tmp_path):
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    ds.create_dataset(enable_variant_stats=True, extra_attrs=["fmt_GT"])
+    ds.create_dataset(enable_variant_stats=True)
     ds.ingest_samples(bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
     data_frame = ds.read(
         samples=sample_names,
-        attrs=["contig", "pos_start", "id", "qual", "info_TDB_IAF", "sample_name"],
+        attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
     assert data_frame.shape == (1, 8)
@@ -1147,7 +1147,7 @@ def test_ingest_with_stats(tmp_path):
         data_frame[data_frame["sample_name"] == "second"]["qual"] == 343.730011
     ).bool()
     assert (
-        data_frame[data_frame["sample_name"] == "second"]["info_TDB_IAF"].iloc[0][0]
+        data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
         == 0.0625
     )
 

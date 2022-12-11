@@ -297,7 +297,7 @@ class TileDBVCFDataset {
   TileDBVCFDataset(const tiledb::Config& config);
   ~TileDBVCFDataset();
 
-  static void create(const CreationParams& params);
+  static void create(CreationParams& params);
 
   void open(
       const std::string& uri,
@@ -812,7 +812,8 @@ class TileDBVCFDataset {
    * Checks the given extracted attribute names for validity on dataset
    * creation.
    */
-  static void check_attribute_names(const std::vector<std::string>& attribues);
+  static void check_attribute_names(
+      std::vector<std::string>& attributes, bool variant_stats);
 
   /**
    * Creates the metadata for a new dataset.

@@ -1276,8 +1276,11 @@ bool Reader::process_query_results_v4() {
         auto [allele_passes, af] = af_filter_->pass(real_start, allele);
 
         // If the allele is in GT, consider it in the pass computation
-        if (allele_index == gt[0] || (gt.size() > 1 && allele_index == gt[1])) {
-          pass |= allele_passes;
+        // TODO: when supporting greater than diploid organisms, expand the
+        // following boolean statement into a loop
+        if ((gt.size() > 0 && allele_index == gt[0]) ||
+            (gt.size() > 1 && allele_index == gt[1])) {
+          pass = pass || allele_passes;
         } else {
           LOG_TRACE("  ignore allele {} not in GT", allele_index);
         }
