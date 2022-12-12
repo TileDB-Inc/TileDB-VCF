@@ -498,10 +498,10 @@ test ! -e ${upload_dir}/outputs/third.vcf || exit 1
 test ! -e ${upload_dir}/outputs/fourth.vcf || exit 1
 test ! -e ${upload_dir}/outputs/fifth.vcf || exit 1
 test ! -e ${upload_dir}/outputs/sixth.vcf || exit 1
-test ! -e	${upload_dir}/outputs/seventh.vcf || exit 1
+test ! -e ${upload_dir}/outputs/seventh.vcf || exit 1
 test ! -e ${upload_dir}/outputs/eighth.vcf || exit 1
 
-[ $(bcftools view -H /tmp/tilevcf-upload-dir-712230/outputs/second.vcf  | wc -l) == "1" ] || exit 1
+[ $(bcftools view -H ${upload_dir}/outputs/second.vcf  | wc -l) == "1" ] || exit 1
 
 clean_up
 

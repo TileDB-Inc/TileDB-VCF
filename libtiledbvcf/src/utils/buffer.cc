@@ -196,9 +196,8 @@ std::vector<std::string_view> Buffer::data() const {
   assert(!offsets_.empty());
   assert(data_);
 
-  uint64_t offsets_size = offsets_.size();
-  std::vector<std::string_view> vec(offsets_size);
-  for (uint64_t i = 0; i < offsets_size; i++) {
+  std::vector<std::string_view> vec(offset_nelts_);
+  for (uint64_t i = 0; i < offset_nelts_; i++) {
     vec[i] = value(i);
   }
 
