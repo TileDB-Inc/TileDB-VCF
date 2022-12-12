@@ -730,12 +730,12 @@ void TileDBVCFDataset::load_field_type_maps_v4(
   }
 
   if (add_iaf) {
-    // TODO: do something better than promoting this pointer type; perhaps the
-    // header should be duplicated and later modified
     if (bcf_hdr_append(
+            // TODO: do something better than promoting this pointer type;
+            // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
             "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description=\"Internal "
-            "Allele Frequency\">") < 0) {
+            "Allele Frequency, computed over dataset by TileDB\">") < 0) {
       throw std::runtime_error(
           "Error appending to header for internal allele frequency.");
     }

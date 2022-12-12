@@ -2550,8 +2550,9 @@ bool Reader::af_filter_enabled() {
 
 void Reader::set_af_filter(const std::string& af_filter) {
   params_.af_filter = af_filter;
-  if (af_filter_)
+  if (af_filter_) {
     af_filter_->set_condition(params_.af_filter);
+  }
 }
 
 void Reader::set_tiledb_query_config() {

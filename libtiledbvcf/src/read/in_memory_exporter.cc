@@ -940,11 +940,10 @@ bool InMemoryExporter::copy_info_fmt_value(
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
   if (is_iaf && !curr_query_results_->af_values.empty()) {
+    // assign source pointer, nbytes, and nelts from vector
     src = curr_query_results_->af_values.data();
     nelts = curr_query_results_->af_values.size();
     nbytes = nelts * sizeof(decltype(curr_query_results_->af_values.at(0)));
-    // assign source pointer, nbytes, and nelts from vector
-    // ReadQueryResults::af_values
   } else {
     get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
   }

@@ -151,7 +151,7 @@ class Reader {
   /** Set export output directory */
   void set_output_dir(const std::string& output_dir);
 
-  /** Set export output directory */
+  /** Set internal allele frequency filtering expression */
   void set_af_filter(const std::string& af_filter);
 
   /** Set the TileDB query buffer memory percentage */

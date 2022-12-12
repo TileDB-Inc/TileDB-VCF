@@ -1116,12 +1116,10 @@ def test_ingest_with_stats(tmp_path):
     raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
     print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
-        assert (
-            subprocess.run(
-                "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
-                shell=True,
-            ).returncode
-            == 0
+        subprocess.run(
+            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
+            shell=True,
+            check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
     print(f"bgzipped inputs: {bgzipped_inputs}")

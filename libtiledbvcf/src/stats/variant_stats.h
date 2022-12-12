@@ -37,8 +37,6 @@
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>  // for the new group api
 
-#include "vcf/region.h"
-
 namespace tiledb::vcf {
 
 /**
