@@ -197,8 +197,9 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
     exp = new InMemoryExporter;
     exporter_.reset(exp);
   }
-  if (!params_.af_filter.empty())
+  if (!params_.af_filter.empty()) {
     exp->enable_iaf();
+  }
   return exp;
 }
 
@@ -854,7 +855,6 @@ bool Reader::next_read_batch_v4() {
                    << query_region.col_max << "]" << std::endl;
     }
 
-    // TODO: simplify interface, pass string, uint32, uint32 instead of Region
     if (af_filter_) {
       Region region(
           query_region.contig, query_region.col_min, query_region.col_max);

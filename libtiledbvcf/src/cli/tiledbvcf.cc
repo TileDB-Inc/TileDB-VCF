@@ -30,7 +30,6 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read/reader.h"
-#include "stats/variant_stats_reader.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/region.h"

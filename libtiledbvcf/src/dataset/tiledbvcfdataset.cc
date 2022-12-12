@@ -213,7 +213,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   metadata.extra_attributes = params.extra_attributes;
   metadata.free_sample_id = 0;
 
-  // Materialize fmt_GT is variant stats is enabled for AF filtering
+  // Materialize fmt_GT if variant stats is enabled for AF filtering
   if (params.enable_variant_stats) {
     bool found_gt = false;
     for (auto& attr : metadata.extra_attributes) {

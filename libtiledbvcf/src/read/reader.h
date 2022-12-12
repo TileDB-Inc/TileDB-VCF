@@ -134,8 +134,8 @@ struct ExportParams {
   // Should results be sorted on real_start_pos
   bool sort_real_start_pos = false;
 
-  // AF filter with the format "OP,VALUE"
-  //   where OP = EQ | GT | GE | LT | LE
+  // AF filter with the format "OP VALUE"
+  //   where OP = < | <= | > | >= | == | !=
   //   and VALUE = float
   // If empty, AF filtering is not applied
   std::string af_filter = "";
