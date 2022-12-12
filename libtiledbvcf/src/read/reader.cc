@@ -181,6 +181,14 @@ void Reader::set_buffer_validity_bitmap(
   }
 }
 
+void Reader::init_af_filter() {
+  if (!af_filter_ && !params_.af_filter.empty()) {
+    af_filter_ =
+        std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    af_filter_->set_condition(params_.af_filter);
+  }
+}
+
 InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
@@ -188,6 +196,9 @@ InMemoryExporter* Reader::set_in_memory_exporter() {
   if (exp == nullptr) {
     exp = new InMemoryExporter;
     exporter_.reset(exp);
+  }
+  if (!params_.af_filter.empty()) {
+    exp->enable_iaf();
   }
   return exp;
 }
@@ -267,7 +278,13 @@ void Reader::attribute_datatype(
     bool* list) const {
   // Datatypes for attributes are defined by the in-memory export.
   return InMemoryExporter::attribute_datatype(
-      dataset_.get(), attribute, datatype, var_len, nullable, list);
+      dataset_.get(),
+      attribute,
+      datatype,
+      var_len,
+      nullable,
+      list,
+      !params_.af_filter.empty());
 }
 
 void Reader::num_buffers(int32_t* num_buffers) const {
@@ -327,6 +344,8 @@ void Reader::read() {
     tiledb::Stats::disable();
     tiledb::Stats::reset();
   }
+
+  init_af_filter();
 
   auto start_all = std::chrono::steady_clock::now();
   read_state_.last_num_records_exported = 0;
@@ -835,6 +854,12 @@ bool Reader::next_read_batch_v4() {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
     }
+
+    if (af_filter_) {
+      Region region(
+          query_region.contig, query_region.col_min, query_region.col_max);
+      af_filter_->add_region(region);
+    }
   }
 
   read_state_.query->add_range(
@@ -978,6 +1003,9 @@ bool Reader::read_current_batch() {
   do {
     // Run query and get status
     auto query_start_timer = std::chrono::steady_clock::now();
+    if (af_filter_) {
+      af_filter_->compute_af();
+    }
     LOG_INFO("TileDB query started. (VmRSS = {})", utils::memory_usage_str());
     auto query_status = query->submit();
     LOG_INFO(
@@ -1208,6 +1236,7 @@ bool Reader::process_query_results_v4() {
   // must avoid reporting them multiple times.
   const auto& regions = regions_indexes->second;
 
+  bool apply_af_filter = af_filter_enabled();
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = params_.sort_real_start_pos ?
@@ -1229,6 +1258,47 @@ bool Reader::process_query_results_v4() {
     // Continue to the next record if no intersecting regions are found
     if (!found) {
       continue;
+    }
+
+    if (apply_af_filter) {
+      auto csv_alleles = results.buffers()->alleles().value(i);
+      auto alleles = utils::split(std::string(csv_alleles));
+      LOG_TRACE("alleles = {}", csv_alleles);
+
+      auto gt = results.buffers()->gt(i);
+
+      // Check if any of the alleles in GT pass the AF filter
+      bool pass = false;
+
+      read_state_.query_results.af_values.clear();
+      int allele_index = 0;
+      for (auto&& allele : alleles) {
+        auto [allele_passes, af] = af_filter_->pass(real_start, allele);
+
+        // If the allele is in GT, consider it in the pass computation
+        // TODO: when supporting greater than diploid organisms, expand the
+        // following boolean statement into a loop
+        if ((gt.size() > 0 && allele_index == gt[0]) ||
+            (gt.size() > 1 && allele_index == gt[1])) {
+          pass = pass || allele_passes;
+        } else {
+          LOG_TRACE("  ignore allele {} not in GT", allele_index);
+        }
+        allele_index++;
+
+        // build vector of IAF values for annotation
+        // add annotation to read_state_.query_results
+        //  - build vector of AFs matching the order of the VCF record
+        //  - all allele AF values are required, so do not exit this loop early
+        read_state_.query_results.af_values.push_back(af);
+
+        LOG_TRACE("  pass = {}", pass);
+      }
+
+      // If all alleles do not pass the af filter, continue
+      if (!pass) {
+        continue;
+      }
     }
 
     for (size_t j = read_state_.last_intersecting_region_idx_;
@@ -2471,6 +2541,18 @@ void Reader::set_output_path(const std::string& output_path) {
 
 void Reader::set_output_dir(const std::string& output_dir) {
   params_.output_dir = output_dir;
+}
+
+bool Reader::af_filter_enabled() {
+  init_af_filter();
+  return af_filter_ ? af_filter_->enable_af() : false;
+}
+
+void Reader::set_af_filter(const std::string& af_filter) {
+  params_.af_filter = af_filter;
+  if (af_filter_) {
+    af_filter_->set_condition(params_.af_filter);
+  }
 }
 
 void Reader::set_tiledb_query_config() {

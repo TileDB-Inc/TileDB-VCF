@@ -484,6 +484,27 @@ echo "** End expected error messages."
 # Clean up
 clean_up
 
+#test ingesting with stats enabled, and querying with IAF
+mkdir -p ${upload_dir}/outputs
+cp -R ${input_dir}/stats ${upload_dir}
+for file in ${upload_dir}/stats/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
+for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
+$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats --log-level trace
+$tilevcf store -u ${upload_dir}/pre_test --log-level trace ${upload_dir}/stats/*.vcf.gz
+$tilevcf export -u ${upload_dir}/pre_test -d ${upload_dir}/outputs -Ov --af-filter '< 0.2' --log-level trace
+test ! -e ${upload_dir}/outputs/first.vcf || exit 1
+test -e ${upload_dir}/outputs/second.vcf || exit 1
+test ! -e ${upload_dir}/outputs/third.vcf || exit 1
+test ! -e ${upload_dir}/outputs/fourth.vcf || exit 1
+test ! -e ${upload_dir}/outputs/fifth.vcf || exit 1
+test ! -e ${upload_dir}/outputs/sixth.vcf || exit 1
+test ! -e ${upload_dir}/outputs/seventh.vcf || exit 1
+test ! -e ${upload_dir}/outputs/eighth.vcf || exit 1
+
+[ $(bcftools view -H ${upload_dir}/outputs/second.vcf  | wc -l) == "1" ] || exit 1
+
+clean_up
+
 echo ""
 echo "VCF verification passed."
 exit 0

@@ -154,6 +154,7 @@ class Dataset(object):
         samples_file=None,
         bed_file=None,
         skip_check_samples=False,
+        set_af_filter="",
         enable_progress_estimation=False,
     ):
         """Reads data from a TileDB-VCF dataset into Arrow table.
@@ -186,6 +187,7 @@ class Dataset(object):
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
+        self.reader.set_af_filter(set_af_filter)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
@@ -201,6 +203,7 @@ class Dataset(object):
         samples_file=None,
         bed_file=None,
         skip_check_samples=False,
+        set_af_filter="",
         enable_progress_estimation=False,
     ):
         """Reads data from a TileDB-VCF dataset into Pandas dataframe.
@@ -233,6 +236,7 @@ class Dataset(object):
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
+        self.reader.set_af_filter(set_af_filter)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
