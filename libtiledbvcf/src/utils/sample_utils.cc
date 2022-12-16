@@ -135,6 +135,10 @@ std::vector<SampleAndIndex> SampleUtils::build_samples_uri_list(
     const tiledb::VFS& vfs,
     const std::string& samples_file_uri,
     const std::vector<std::string>& samples_uri_list) {
+  if (samples_uri_list.empty() && samples_file_uri.empty()) {
+    throw std::runtime_error(
+        "Can not proceed with an empty sample list, without a sample file.");
+  }
   std::vector<SampleAndIndex> result;
 
   // First add samples from the given samples file, if present.
