@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2023 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,40 @@
  * THE SOFTWARE.
  */
 
-#ifndef TILEDB_VCF_EXPORT_FORMAT_H
-#define TILEDB_VCF_EXPORT_FORMAT_H
+#include "read/delete_exporter.h"
 
-namespace tiledb {
-namespace vcf {
+namespace tiledb::vcf {
 
-/** For to-disk exports, the output format. */
-enum class ExportFormat { CompressedBCF, BCF, VCFGZ, VCF, TSV, DELETE };
+bool DeleteExporter::export_record(
+    const SampleAndId& sample,
+    const bcf_hdr_t* hdr,
+    const Region& query_region,
+    uint32_t contig_offset,
+    const ReadQueryResults& query_results,
+    uint64_t cell_idx) {
+  SafeBCFRec rec(bcf_init(), bcf_destroy);
 
-}  // namespace vcf
-}  // namespace tiledb
+  // Populate the htslib record
+  recover_record(
+      hdr,
+      query_results,
+      cell_idx,
+      query_region.seq_name,
+      contig_offset,
+      rec.get());
 
-#endif  // TILEDB_VCF_EXPORT_FORMAT_H
+  // Update the stats arrays
+  if (ac_enabled_) {
+    ac_.process(
+        hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
+  }
+  if (vs_enabled_) {
+    vs_.process(
+        hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
+  }
+
+  // Return true to indicate no overflow
+  return true;
+}
+
+}  // namespace tiledb::vcf

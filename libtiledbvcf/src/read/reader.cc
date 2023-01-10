@@ -31,6 +31,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
+#include "read/delete_exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/pvcf_exporter.h"
 #include "read/read_query_results.h"
@@ -939,6 +940,9 @@ void Reader::init_exporter() {
         case ExportFormat::TSV:
           exporter_.reset(
               new TSVExporter(params_.output_path, params_.tsv_fields));
+          break;
+        case ExportFormat::DELETE:
+          exporter_.reset(new DeleteExporter(ctx_, params_.uri));
           break;
         default:
           throw std::runtime_error(

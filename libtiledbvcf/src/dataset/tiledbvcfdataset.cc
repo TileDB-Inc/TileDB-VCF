@@ -32,6 +32,8 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "read/export_format.h"
+#include "read/reader.h"
 #include "stats/allele_count.h"
 #include "stats/variant_stats.h"
 #include "utils/logger_public.h"
@@ -870,6 +872,64 @@ void TileDBVCFDataset::print_dataset_stats() {
   }
 }
 
+bool TileDBVCFDataset::sample_exists(const std::string& sample) {
+  ManagedQuery mq(vcf_header_array_, "sample_exists");
+  mq.select_columns({"sample"});
+  mq.select_point("sample", sample);
+  mq.submit();
+  return mq.results()->num_rows() > 0;
+}
+
+void TileDBVCFDataset::delete_samples(
+    const std::string& uri, std::vector<std::string> sample_names) {
+  // Open dataset in read mode, required before calling `sample_exists`.
+  open(uri);
+
+  // Define a function that deletes a sample from an array
+  auto delete_sample = [&](Array& array, const std::string& sample) {
+    Query query(*ctx_, array, TILEDB_DELETE);
+    QueryCondition qc(*ctx_);
+    qc.init("sample", sample, TILEDB_EQ);
+    query.set_condition(qc);
+    query.submit();
+  };
+
+  // Open the data and vcf_header arrays in delete mode
+  auto data_array = open_data_array(TILEDB_DELETE);
+  auto vcf_array = open_vcf_array(TILEDB_DELETE);
+
+  // Delete samples one at a time
+  for (const auto& sample : sample_names) {
+    LOG_INFO("Deleting sample {}", sample);
+    if (!sample_exists(sample)) {
+      throw std::runtime_error("Sample not found in dataset: " + sample);
+    }
+
+    // If a stats array exists, read the data with the delete exporter, which
+    // adds negative counts to the stats arrays
+    if (AlleleCount::exists(ctx_, uri) || VariantStats::exists(ctx_, uri)) {
+      ExportParams args;
+      args.uri = uri;
+      args.sample_names = sample_names;
+      args.format = ExportFormat::DELETE;
+      args.export_to_disk = true;
+      args.verbose = true;
+
+      Reader reader;
+      reader.set_all_params(args);
+      reader.open_dataset(uri);
+      reader.read();
+    }
+
+    // Delete samples from the vcf_header and data arrays
+    delete_sample(*vcf_array, sample);
+    delete_sample(*data_array, sample);
+  }
+
+  vcf_array->close();
+  data_array->close();
+}
+
 const TileDBVCFDataset::Metadata& TileDBVCFDataset::metadata() const {
   return metadata_;
 }
@@ -993,16 +1053,13 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
         query.add_range(0, sample.sample_name, sample.sample_name);
       }
     }
-  } else if (all_samples) {
-    // When no samples are passed grab the first one
+  } else if (all_samples || first_sample) {
+    // When querying for the first sample, add all samples to the range (because
+    // the first sample in the NED may have been deleted), and exit the query
+    // loop after finding the first sample to avoid loading all headers.
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
     if (!non_empty_domain.first.empty())
       query.add_range(0, non_empty_domain.first, non_empty_domain.second);
-  } else if (first_sample) {
-    // When no samples are passed grab the first one
-    auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
-    if (!non_empty_domain.first.empty())
-      query.add_range(0, non_empty_domain.first, non_empty_domain.first);
   }
   query.set_layout(TILEDB_ROW_MAJOR);
 
@@ -1047,6 +1104,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   Query::Status status;
   uint32_t sample_idx = 0;
+  bool exit_query = false;
 
   do {
     // Always reset buffer to avoid issue with core library and REST not using
@@ -1132,9 +1190,15 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
           (*lookup_map)[sample] = sample_idx;
 
         ++sample_idx;
+
+        // Exit the query if only looking for the first sample.
+        if (first_sample) {
+          exit_query = true;
+          break;
+        }
       }
     }
-  } while (status == Query::Status::INCOMPLETE);
+  } while (status == Query::Status::INCOMPLETE && !exit_query);
 
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();

@@ -79,15 +79,25 @@ class AlleleCount {
       Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum);
 
   /**
-   * @brief Open array and create query object.
-   *
-   * Disables variant stat ingestion if the TileDB-VCF does not contain the
-   * expected variant array.
+   * @brief Check if the array exists.
    *
    * @param ctx TileDB context
    * @param root_uri TileDB-VCF dataset uri
+   * @return true If the array exists
    */
-  static void init(std::shared_ptr<Context> ctx, const std::string& root_uri);
+  static bool exists(std::shared_ptr<Context> ctx, const std::string& root_uri);
+
+  /**
+   * @brief Open array and create query object.
+   *
+   * Disables allele count ingestion if the TileDB-VCF does not contain the
+   * expected array.
+   *
+   * @param ctx TileDB context
+   * @param root_uri TileDB-VCF dataset uri
+   * @return true If the array exists
+   */
+  static bool init(std::shared_ptr<Context> ctx, const std::string& root_uri);
 
   /**
    * @brief Finalize the currently open write query.
@@ -161,7 +171,7 @@ class AlleleCount {
   //===================================================================
   //= public non-static
   //===================================================================
-  AlleleCount();
+  AlleleCount(bool delete_mode = false);
 
   ~AlleleCount();
 
@@ -178,7 +188,7 @@ class AlleleCount {
    * @param record VCF record
    */
   void process(
-      bcf_hdr_t* hdr,
+      const bcf_hdr_t* hdr,
       const std::string& sample_name,
       const std::string& contig,
       uint32_t pos,
@@ -230,6 +240,9 @@ class AlleleCount {
   //===================================================================
   //= private non-static
   //===================================================================
+
+  // Count delta is +1 in ingest mode, -1 in delete mode
+  int count_delta_ = 1;
 
   // Set of sample names in this query (per thread)
   std::set<std::string> sample_names_;

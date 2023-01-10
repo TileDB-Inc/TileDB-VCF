@@ -113,25 +113,33 @@ void VariantStats::create(
   root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
 }
 
-void VariantStats::init(
+bool VariantStats::exists(
     std::shared_ptr<Context> ctx, const std::string& root_uri) {
+  tiledb::VFS vfs(*ctx);
+  return vfs.is_dir(get_uri(root_uri));
+}
+
+bool VariantStats::init(
+    std::shared_ptr<Context> ctx, const std::string& root_uri) {
+  if (!exists(ctx, root_uri)) {
+    LOG_DEBUG("VariantStats: Ingestion task disabled");
+    enabled_ = false;
+    return false;
+  }
+
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Open array");
 
   // Open array
   auto uri = get_uri(root_uri);
-  try {
-    array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
-    enabled_ = true;
-  } catch (const tiledb::TileDBError& ex) {
-    LOG_DEBUG("VariantStats: Ingestion task disabled");
-    enabled_ = false;
-    return;
-  }
+  array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
+  enabled_ = true;
 
+  // Create query
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
+  return true;
 }
 
 void VariantStats::finalize() {
@@ -203,8 +211,7 @@ void VariantStats::consolidate_commits(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -219,8 +226,7 @@ void VariantStats::consolidate_fragment_metadata(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -235,8 +241,7 @@ void VariantStats::vacuum_commits(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -251,8 +256,7 @@ void VariantStats::vacuum_fragment_metadata(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -266,7 +270,8 @@ void VariantStats::vacuum_fragment_metadata(
 //= public functions
 //===================================================================
 
-VariantStats::VariantStats() {
+VariantStats::VariantStats(bool delete_mode) {
+  count_delta_ = delete_mode ? -1 : 1;
 }
 
 VariantStats::~VariantStats() {
@@ -334,7 +339,7 @@ void VariantStats::flush() {
 }
 
 void VariantStats::process(
-    bcf_hdr_t* hdr,
+    const bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
     uint32_t pos,
@@ -347,6 +352,7 @@ void VariantStats::process(
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
       LOG_DEBUG("VariantStats: new contig = {}", contig);
+      flush();
     } else if (pos < pos_) {
       LOG_ERROR(
           "VariantStats: contig {} pos out of order {} < {}",
@@ -372,24 +378,24 @@ void VariantStats::process(
 
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
-  values_[ref][N_CALLED]++;
+  values_[ref][N_CALLED] += count_delta_;
 
   int gt0 = bcf_gt_allele(dst_[0]);
   std::string allele0 = rec->d.allele[gt0];
 
-  // Increment allele count for GT[0]
-  values_[allele0][AC]++;
+  // Update allele count for GT[0]
+  values_[allele0][AC] += count_delta_;
 
   if (ngt == 2) {
     int gt1 = bcf_gt_allele(dst_[1]);
     std::string allele1 = rec->d.allele[gt1];
 
-    // Increment allele count for GT[1]
-    values_[allele1][AC]++;
+    // Update allele count for GT[1]
+    values_[allele1][AC] += count_delta_;
 
     // Update homozygote count, only diploid genotype calls are counted
     if (gt0 == gt1) {
-      values_[allele1][N_HOM]++;
+      values_[allele1][N_HOM] += count_delta_;
     }
   } else if (ngt > 2) {
     LOG_FATAL(

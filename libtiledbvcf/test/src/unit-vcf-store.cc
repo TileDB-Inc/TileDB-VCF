@@ -397,6 +397,8 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
+  const int EXPECTED_FRAGMENTS = 42;
+
   std::string dataset_uri = "test_dataset_resume";
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
@@ -404,6 +406,10 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
   CreationParams create_args;
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
+  // Increase anchor gap to avoid creating anchor fragments
+  // Removing one fragment from a contig with anchors (either the anchor
+  // fragment or the data fragment) will cause resume to fail (a known issue)
+  create_args.anchor_gap = 100000;
   TileDBVCFDataset::create(create_args);
 
   // Ingest the sample
@@ -418,16 +424,16 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there were 42 fragments created
+  // Check that the expected number of fragments were created
   // Then remove the last fragment
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 44);
+    REQUIRE(fragmentInfo.fragment_num() == EXPECTED_FRAGMENTS);
 
     // Get the last fragment
-    std::string uri = fragmentInfo.fragment_uri(41);
+    std::string uri = fragmentInfo.fragment_uri(EXPECTED_FRAGMENTS - 1);
     vfs.remove_dir(uri);
     uri = std::regex_replace(uri, std::regex("__fragments"), "__commits");
     vfs.remove_file(uri + ".wrt");
@@ -445,13 +451,13 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there are only 44 fragments created
-  // Then remove the middle fragments (21-23)
+  // Check that the expected number of fragments were created
+  // Then remove three fragments from the middle.
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 44);
+    REQUIRE(fragmentInfo.fragment_num() == EXPECTED_FRAGMENTS);
 
     // Remove fragment 21
     std::string uri = fragmentInfo.fragment_uri(21);
@@ -484,12 +490,12 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there are only 44 fragments created
+  // Check that the expected number of fragments were created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 44);
+    REQUIRE(fragmentInfo.fragment_num() == EXPECTED_FRAGMENTS);
   }
 
   // Ingest the sample one last time, this should result in no fragment changes
@@ -504,12 +510,12 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there are only 44 fragments created
+  // Check that the expected number of fragments were created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 44);
+    REQUIRE(fragmentInfo.fragment_num() == EXPECTED_FRAGMENTS);
   }
 
   if (vfs.is_dir(dataset_uri))
@@ -520,6 +526,8 @@ TEST_CASE("TileDB-VCF: Test Resume Disabled", "[tiledbvcf][ingest]") {
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
+  const int EXPECTED_FRAGMENTS = 42;
+
   std::string dataset_uri = "test_dataset_resume_disabled";
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
@@ -527,6 +535,9 @@ TEST_CASE("TileDB-VCF: Test Resume Disabled", "[tiledbvcf][ingest]") {
   CreationParams create_args;
   create_args.uri = dataset_uri;
   create_args.tile_capacity = 10000;
+  // Increase anchor gap to avoid creating anchor fragments
+  create_args.anchor_gap = 100000;
+
   TileDBVCFDataset::create(create_args);
 
   // Ingest the sample
@@ -541,15 +552,15 @@ TEST_CASE("TileDB-VCF: Test Resume Disabled", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there were 44 fragments created
+  // Check that the expected number of fragments were created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 44);
+    REQUIRE(fragmentInfo.fragment_num() == EXPECTED_FRAGMENTS);
   }
 
-  // Ingest the sample a second time, we should get 88 fragments
+  // Ingest the sample a second time
   {
     Writer writer;
     IngestionParams params;
@@ -561,12 +572,12 @@ TEST_CASE("TileDB-VCF: Test Resume Disabled", "[tiledbvcf][ingest]") {
     writer.ingest_samples();
   }
 
-  // Check that there were 88 fragments created
+  // Check that the expected number of fragments were created
   {
     tiledb::FragmentInfo fragmentInfo(ctx, dataset_uri + "/data");
     fragmentInfo.load();
 
-    REQUIRE(fragmentInfo.fragment_num() == 88);
+    REQUIRE(fragmentInfo.fragment_num() == 2 * EXPECTED_FRAGMENTS);
   }
 
   if (vfs.is_dir(dataset_uri))
