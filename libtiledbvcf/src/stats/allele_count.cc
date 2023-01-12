@@ -120,12 +120,12 @@ bool AlleleCount::exists(
   return vfs.is_dir(get_uri(root_uri));
 }
 
-bool AlleleCount::init(
+void AlleleCount::init(
     std::shared_ptr<Context> ctx, const std::string& root_uri) {
   if (!exists(ctx, root_uri)) {
     LOG_DEBUG("AlleleCount: Ingestion task disabled");
     enabled_ = false;
-    return false;
+    return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
@@ -140,7 +140,6 @@ bool AlleleCount::init(
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
-  return true;
 }
 
 void AlleleCount::finalize() {
@@ -359,7 +358,6 @@ void AlleleCount::process(
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
       LOG_DEBUG("AlleleCount: new contig = {}", contig);
-      flush();
     } else if (pos < pos_) {
       LOG_ERROR(
           "AlleleCount: contig {} pos out of order {} < {}", contig, pos, pos_);

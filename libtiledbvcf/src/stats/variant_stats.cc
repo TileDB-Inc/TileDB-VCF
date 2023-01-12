@@ -119,12 +119,12 @@ bool VariantStats::exists(
   return vfs.is_dir(get_uri(root_uri));
 }
 
-bool VariantStats::init(
+void VariantStats::init(
     std::shared_ptr<Context> ctx, const std::string& root_uri) {
   if (!exists(ctx, root_uri)) {
     LOG_DEBUG("VariantStats: Ingestion task disabled");
     enabled_ = false;
-    return false;
+    return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
@@ -139,7 +139,6 @@ bool VariantStats::init(
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
-  return true;
 }
 
 void VariantStats::finalize() {
@@ -352,7 +351,6 @@ void VariantStats::process(
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
       LOG_DEBUG("VariantStats: new contig = {}", contig);
-      flush();
     } else if (pos < pos_) {
       LOG_ERROR(
           "VariantStats: contig {} pos out of order {} < {}",

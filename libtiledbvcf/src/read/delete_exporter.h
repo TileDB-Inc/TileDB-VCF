@@ -47,8 +47,8 @@ class DeleteExporter : public Exporter {
       : ac_(true)
       , vs_(true) {
     need_headers_ = true;
-    ac_enabled_ = ac_.init(ctx, root_uri);
-    vs_enabled_ = vs_.init(ctx, root_uri);
+    ac_.init(ctx, root_uri);
+    vs_.init(ctx, root_uri);
   }
 
   ~DeleteExporter() = default;
@@ -100,11 +100,8 @@ class DeleteExporter : public Exporter {
   // Variant stats ingestion task object
   VariantStats vs_;
 
-  // Allele count enabled
-  bool ac_enabled_ = false;
-
-  // Variant stats enabled
-  bool vs_enabled_ = false;
+  // Contig of last record exported
+  std::string contig_ = "";
 };
 
 }  // namespace tiledb::vcf

@@ -95,9 +95,8 @@ class VariantStats {
    *
    * @param ctx TileDB context
    * @param root_uri TileDB-VCF dataset uri
-   * @return true If the array exists
    */
-  static bool init(std::shared_ptr<Context> ctx, const std::string& root_uri);
+  static void init(std::shared_ptr<Context> ctx, const std::string& root_uri);
 
   /**
    * @brief Finalize the currently open write query.

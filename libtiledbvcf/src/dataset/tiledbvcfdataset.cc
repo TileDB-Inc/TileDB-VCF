@@ -913,7 +913,6 @@ void TileDBVCFDataset::delete_samples(
       args.sample_names = sample_names;
       args.format = ExportFormat::DELETE;
       args.export_to_disk = true;
-      args.verbose = true;
 
       Reader reader;
       reader.set_all_params(args);

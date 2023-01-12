@@ -46,15 +46,20 @@ bool DeleteExporter::export_record(
       contig_offset,
       rec.get());
 
+  // Flush and finalize the stats array querys when moving to a new contig
+  if (contig_ != query_region.seq_name && !contig_.empty()) {
+    ac_.flush();
+    ac_.finalize();
+    vs_.flush();
+    vs_.finalize();
+  }
+  contig_ = query_region.seq_name;
+
   // Update the stats arrays
-  if (ac_enabled_) {
-    ac_.process(
-        hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
-  }
-  if (vs_enabled_) {
-    vs_.process(
-        hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
-  }
+  ac_.process(
+      hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
+  vs_.process(
+      hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
 
   // Return true to indicate no overflow
   return true;
