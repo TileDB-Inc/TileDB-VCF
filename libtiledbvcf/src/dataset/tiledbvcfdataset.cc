@@ -881,7 +881,9 @@ bool TileDBVCFDataset::sample_exists(const std::string& sample) {
 }
 
 void TileDBVCFDataset::delete_samples(
-    const std::string& uri, std::vector<std::string> sample_names) {
+    const std::string& uri,
+    const std::vector<std::string>& sample_names,
+    const std::vector<std::string>& tiledb_config) {
   // Open dataset in read mode, required before calling `sample_exists`.
   open(uri);
 
@@ -909,6 +911,7 @@ void TileDBVCFDataset::delete_samples(
     // adds negative counts to the stats arrays
     if (AlleleCount::exists(ctx_, uri) || VariantStats::exists(ctx_, uri)) {
       ExportParams args;
+      args.tiledb_config = tiledb_config;
       args.uri = uri;
       args.sample_names = sample_names;
       args.format = ExportFormat::DELETE;

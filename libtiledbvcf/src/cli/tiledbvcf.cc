@@ -118,7 +118,7 @@ void do_delete(const DeleteParams& args, const CLI::App& cmd) {
   utils::set_tiledb_config(args.tiledb_config, &cfg);
 
   TileDBVCFDataset dataset(cfg);
-  dataset.delete_samples(args.uri, args.sample_names);
+  dataset.delete_samples(args.uri, args.sample_names, args.tiledb_config);
   LOG_TRACE("Finished delete command.");
 }
 

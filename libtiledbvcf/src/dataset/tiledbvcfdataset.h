@@ -333,9 +333,12 @@ class TileDBVCFDataset {
    *
    * @param uri TileDB-VCF dataset URI
    * @param sample_names Sample names to delete
+   * @param tiledb_config TileDB config values
    */
   void delete_samples(
-      const std::string& uri, std::vector<std::string> sample_names);
+      const std::string& uri,
+      const std::vector<std::string>& sample_names,
+      const std::vector<std::string>& tiledb_config = {});
 
   const Metadata& metadata() const;
 
