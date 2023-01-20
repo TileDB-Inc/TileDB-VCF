@@ -34,6 +34,15 @@ namespace tiledb::vcf {
 //= public static functions
 //===================================================================
 
+std::string AlleleCount::get_uri(const Group& group) {
+  try {
+    auto member = group.member(ALLELE_COUNT_ARRAY);
+    return member.uri();
+  } catch (const tiledb::TileDBError& ex) {
+    return "";
+  }
+}
+
 void AlleleCount::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("AlleleCount: Create array");
@@ -114,25 +123,24 @@ void AlleleCount::create(
   root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
 }
 
-bool AlleleCount::exists(
-    std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  tiledb::VFS vfs(*ctx);
-  return vfs.is_dir(get_uri(root_uri));
+bool AlleleCount::exists(const Group& group) {
+  auto uri = get_uri(group);
+  return !uri.empty();
 }
 
-void AlleleCount::init(
-    std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  if (!exists(ctx, root_uri)) {
+void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
+  if (uri.empty()) {
     LOG_DEBUG("AlleleCount: Ingestion task disabled");
     enabled_ = false;
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("AlleleCount: Open array");
+  LOG_DEBUG("AlleleCount: Open array '{}'", uri);
 
   // Open array
-  auto uri = get_uri(root_uri);
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
   enabled_ = true;
 
@@ -201,69 +209,60 @@ void AlleleCount::close() {
   enabled_ = false;
 }
 
-std::string AlleleCount::get_uri(const std::string& root_uri, bool relative) {
-  auto root = relative ? "" : root_uri;
-  return utils::uri_join(root, ALLELE_COUNT_ARRAY);
-}
-
 void AlleleCount::consolidate_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void AlleleCount::consolidate_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void AlleleCount::vacuum_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "commits";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 
 void AlleleCount::vacuum_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 //===================================================================
 //= public functions
@@ -454,6 +453,11 @@ void AlleleCount::process(
 //===================================================================
 //= private functions
 //===================================================================
+
+std::string AlleleCount::get_uri(const std::string& root_uri, bool relative) {
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, ALLELE_COUNT_ARRAY);
+}
 
 void AlleleCount::update_results() {
   if (count_.size() > 0) {

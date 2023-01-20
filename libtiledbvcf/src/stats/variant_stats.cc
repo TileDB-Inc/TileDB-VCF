@@ -34,6 +34,15 @@ namespace tiledb::vcf {
 //= public static functions
 //===================================================================
 
+std::string VariantStats::get_uri(const Group& group) {
+  try {
+    auto member = group.member(VARIANT_STATS_ARRAY);
+    return member.uri();
+  } catch (const tiledb::TileDBError& ex) {
+    return "";
+  }
+}
+
 void VariantStats::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("VariantStats: Create array");
@@ -113,15 +122,15 @@ void VariantStats::create(
   root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
 }
 
-bool VariantStats::exists(
-    std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  tiledb::VFS vfs(*ctx);
-  return vfs.is_dir(get_uri(root_uri));
+bool VariantStats::exists(const Group& group) {
+  auto uri = get_uri(group);
+  return !uri.empty();
 }
 
-void VariantStats::init(
-    std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  if (!exists(ctx, root_uri)) {
+void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
+  if (uri.empty()) {
     LOG_DEBUG("VariantStats: Ingestion task disabled");
     enabled_ = false;
     return;
@@ -131,7 +140,6 @@ void VariantStats::init(
   LOG_DEBUG("VariantStats: Open array");
 
   // Open array
-  auto uri = get_uri(root_uri);
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
   enabled_ = true;
 
@@ -200,69 +208,60 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
-std::string VariantStats::get_uri(std::string_view root_uri, bool relative) {
-  auto root = relative ? "" : root_uri;
-  return utils::uri_join(std::string(root), VARIANT_STATS_ARRAY);
-}
-
 void VariantStats::consolidate_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void VariantStats::consolidate_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void VariantStats::vacuum_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "commits";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 
 void VariantStats::vacuum_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  if (!exists(ctx, root_uri)) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 
 //===================================================================
@@ -408,6 +407,11 @@ void VariantStats::process(
 //===================================================================
 //= private functions
 //===================================================================
+
+std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, VARIANT_STATS_ARRAY);
+}
 
 void VariantStats::update_results() {
   if (values_.size() > 0) {
