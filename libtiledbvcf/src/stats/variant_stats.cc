@@ -137,7 +137,7 @@ void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("VariantStats: Open array");
+  LOG_DEBUG("VariantStats: Open array '{}'", uri);
 
   // Open array
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);

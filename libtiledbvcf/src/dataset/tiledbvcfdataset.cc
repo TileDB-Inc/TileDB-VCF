@@ -1024,6 +1024,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     std::unordered_map<std::string, size_t>* lookup_map,
     const bool all_samples,
     const bool first_sample) const {
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] start all_samples={} first_sample={} "
+      "(VmRSS = {})",
+      all_samples,
+      first_sample,
+      utils::memory_usage_str());
   // Grab a read lock of concurrency so we don't destroy the vcf_header_array
   // during fetching
   utils::UniqueReadLock lck_(
@@ -1105,10 +1111,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
 #endif
 
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] allocate start (VmRSS = {})",
+      utils::memory_usage_str());
   std::vector<uint64_t> offsets(header_offset_element);
   std::vector<char> data(header_data_element);
   std::vector<uint64_t> sample_offsets(sample_offset_element);
   std::vector<char> sample_data(sample_data_element);
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] allocate done (VmRSS = {})",
+      utils::memory_usage_str());
 
   Query::Status status;
   uint32_t sample_idx = 0;
@@ -1210,6 +1222,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] done (VmRSS = {})", utils::memory_usage_str());
   return result;
 }  // namespace vcf
 
@@ -2020,6 +2034,10 @@ const char* TileDBVCFDataset::materialized_attribute_name(
 
 bool TileDBVCFDataset::is_attribute_materialized(
     const std::string& attr) const {
+  if (attr == "info_TILEDB_IAF") {
+    return true;
+  }
+
   utils::UniqueReadLock lck_(
       const_cast<utils::RWLock*>(&materialized_attribute_lock_));
   if (!materialized_attribute_loaded_) {
