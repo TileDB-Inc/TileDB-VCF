@@ -114,22 +114,29 @@ void AlleleCount::create(
   root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
 }
 
+bool AlleleCount::exists(
+    std::shared_ptr<Context> ctx, const std::string& root_uri) {
+  tiledb::VFS vfs(*ctx);
+  return vfs.is_dir(get_uri(root_uri));
+}
+
 void AlleleCount::init(
     std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("AlleleCount: Open array");
-
-  // Open array
-  auto uri = get_uri(root_uri);
-  try {
-    array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
-    enabled_ = true;
-  } catch (const tiledb::TileDBError& ex) {
+  if (!exists(ctx, root_uri)) {
     LOG_DEBUG("AlleleCount: Ingestion task disabled");
     enabled_ = false;
     return;
   }
 
+  std::lock_guard<std::mutex> lock(query_lock_);
+  LOG_DEBUG("AlleleCount: Open array");
+
+  // Open array
+  auto uri = get_uri(root_uri);
+  array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
+  enabled_ = true;
+
+  // Create query
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
@@ -204,8 +211,7 @@ void AlleleCount::consolidate_commits(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -220,8 +226,7 @@ void AlleleCount::consolidate_fragment_metadata(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -236,8 +241,7 @@ void AlleleCount::vacuum_commits(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -252,8 +256,7 @@ void AlleleCount::vacuum_fragment_metadata(
     const std::vector<std::string>& tiledb_config,
     const std::string& root_uri) {
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (!exists(ctx, root_uri)) {
     return;
   }
 
@@ -266,7 +269,8 @@ void AlleleCount::vacuum_fragment_metadata(
 //= public functions
 //===================================================================
 
-AlleleCount::AlleleCount() {
+AlleleCount::AlleleCount(bool delete_mode) {
+  count_delta_ = delete_mode ? -1 : 1;
 }
 
 AlleleCount::~AlleleCount() {
@@ -286,6 +290,7 @@ void AlleleCount::flush() {
   int buffered_records = count_buffer_.size();
 
   if (buffered_records == 0) {
+    LOG_DEBUG("AlleleCount: flush called with 0 records ");
     return;
   }
 
@@ -340,7 +345,7 @@ void AlleleCount::flush() {
 }
 
 void AlleleCount::process(
-    bcf_hdr_t* hdr,
+    const bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
     uint32_t pos,
@@ -439,8 +444,8 @@ void AlleleCount::process(
   std::string key(rec->d.allele[0]);
   key.append(":").append(alt).append(":").append(filter).append(":").append(gt);
 
-  // Increment count
-  count_[key]++;
+  // Update count
+  count_[key] += count_delta_;
 
   // Add sample name to the set of sample name in this query
   sample_names_.insert(sample_name);

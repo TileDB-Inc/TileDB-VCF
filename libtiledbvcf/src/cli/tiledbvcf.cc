@@ -106,6 +106,22 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
   LOG_TRACE("Finished store command.");
 }
 
+/** Delete. */
+void do_delete(const DeleteParams& args, const CLI::App& cmd) {
+  LOG_TRACE("Starting delete command.");
+  config_to_log(cmd);
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  utils::set_htslib_tiledb_context(args.tiledb_config);
+  tiledb::Config cfg;
+  utils::set_tiledb_config(args.tiledb_config, &cfg);
+
+  TileDBVCFDataset dataset(cfg);
+  dataset.delete_samples(args.uri, args.sample_names, args.tiledb_config);
+  LOG_TRACE("Finished delete command.");
+}
+
 /** Export. */
 void do_export(ExportParams& args, const CLI::App& cmd) {
   if (args.verbose) {
@@ -651,6 +667,24 @@ void add_store(CLI::App& app) {
   cmd->callback([args, cmd]() { do_store(*args, *cmd); });
 }
 
+void add_delete(CLI::App& app) {
+  auto args = std::make_shared<DeleteParams>();
+  auto cmd =
+      app.add_subcommand("delete", "Delete samples from a TileDB-VCF dataset");
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+  cmd->add_option(
+         "-s,--sample-names",
+         args->sample_names,
+         "CSV list of sample names to delete")
+      ->delimiter(',');
+  add_tiledb_options(cmd, args->tiledb_config);
+  add_logging_options(cmd, args->log_level, args->log_file);
+
+  // register function to implement this command
+  cmd->callback([args, cmd]() { do_delete(*args, *cmd); });
+}
+
 void add_export(CLI::App& app) {
   auto args = std::make_shared<ExportParams>();
   auto cmd =
@@ -916,6 +950,7 @@ int main(int argc, char** argv) {
   add_create(app);
   add_register(app);
   add_store(app);
+  add_delete(app);
   add_export(app);
   add_list(app);
   add_stat(app);
