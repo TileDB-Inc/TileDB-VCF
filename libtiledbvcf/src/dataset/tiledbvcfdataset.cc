@@ -209,6 +209,16 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
 
+  // Write group metadata
+  Group group(ctx, params.uri, TILEDB_WRITE);
+  std::string dataset_type{"vcf"};
+  group.put_metadata(
+      "dataset_type",
+      TILEDB_STRING_ASCII,
+      dataset_type.size(),
+      dataset_type.c_str());
+  group.close();
+
   Metadata metadata;
   metadata.tile_capacity = params.tile_capacity;
   metadata.anchor_gap = params.anchor_gap;
@@ -253,7 +263,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   write_metadata_v4(ctx, params.uri, metadata);
 
   // Log the group structure
-  tiledb::Group group(ctx, params.uri, TILEDB_READ);
+  group.open(TILEDB_READ);
   LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
 
   for (uint64_t i = 0; i < group.member_count(); i++) {
@@ -952,7 +962,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
       "Lookup member name='{}' in group uri='{}'", member_name, root_uri_);
 
   try {
-    tiledb::Group group(*ctx_, root_uri_, TILEDB_READ);
+    Group group(*ctx_, root_uri_, TILEDB_READ);
     auto member = group.member(member_name);
     array_uri = member.uri();
     LOG_DEBUG("Found group member name='{}' uri='{}'", member_name, array_uri);
