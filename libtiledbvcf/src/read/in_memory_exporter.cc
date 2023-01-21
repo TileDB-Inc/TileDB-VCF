@@ -655,8 +655,13 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
     const bcf_hdr_t* hdr,
     bool add_iaf) {
   // Special-case genotype, since the header thinks it's a string.
-  if (attr == "fmt_GT")
+  if (attr == "fmt_GT") {
     return AttrDatatype::INT32;
+  }
+
+  if (attr == "info_TILEDB_IAF") {
+    return AttrDatatype::FLOAT32;
+  }
 
   auto parts = TileDBVCFDataset::split_info_fmt_attr_name(attr);
   bool is_info = parts.first == "info";

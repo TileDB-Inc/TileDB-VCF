@@ -184,8 +184,8 @@ void Reader::set_buffer_validity_bitmap(
 
 void Reader::init_af_filter() {
   if (!af_filter_ && !params_.af_filter.empty()) {
-    af_filter_ =
-        std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group);
     af_filter_->set_condition(params_.af_filter);
   }
 }

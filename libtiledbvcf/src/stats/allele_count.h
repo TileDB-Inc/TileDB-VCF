@@ -69,6 +69,14 @@ class AlleleCount {
   //= public static
   //===================================================================
   /**
+   * @brief Get the URI from TileDB-VCF dataset group
+   *
+   * @param group TileDB-VCF dataset group
+   * @return std::string Array URI
+   */
+  static std::string get_uri(const Group& group);
+
+  /**
    * @brief Create the array.
    *
    * @param ctx TileDB context
@@ -81,11 +89,10 @@ class AlleleCount {
   /**
    * @brief Check if the array exists.
    *
-   * @param ctx TileDB context
-   * @param root_uri TileDB-VCF dataset uri
+   * @param group TileDB-VCF dataset group
    * @return true If the array exists
    */
-  static bool exists(std::shared_ptr<Context> ctx, const std::string& root_uri);
+  static bool exists(const Group& group);
 
   /**
    * @brief Open array and create query object.
@@ -94,9 +101,9 @@ class AlleleCount {
    * expected array.
    *
    * @param ctx TileDB context
-   * @param root_uri TileDB-VCF dataset uri
+   * @param group TileDB-VCF dataset group
    */
-  static void init(std::shared_ptr<Context> ctx, const std::string& root_uri);
+  static void init(std::shared_ptr<Context> ctx, const Group& group);
 
   /**
    * @brief Finalize the currently open write query.
@@ -111,61 +118,39 @@ class AlleleCount {
   static void close();
 
   /**
-   * @brief Get the uri for the array
-   *
-   * @param root_uri
-   * @return std::string
-   */
-  static std::string get_uri(
-      const std::string& root_uri, bool relative = false);
-
-  /**
    * @brief Consolidate commits
    *
    * @param ctx TileDB context
-   * @param tiledb_config TileDB config
-   * @param root_uri URI for the VCF dataset
+   * @param group TileDB-VCF dataset group
    */
   static void consolidate_commits(
-      std::shared_ptr<Context> ctx,
-      const std::vector<std::string>& tiledb_config,
-      const std::string& root_uri);
+      std::shared_ptr<Context> ctx, const Group& group);
 
   /**
    * @brief Consolidate fragment metadata
    *
    * @param ctx TileDB context
-   * @param tiledb_config TileDB config
-   * @param root_uri URI for the VCF dataset
+   * @param group TileDB-VCF dataset group
    */
   static void consolidate_fragment_metadata(
-      std::shared_ptr<Context> ctx,
-      const std::vector<std::string>& tiledb_config,
-      const std::string& root_uri);
+      std::shared_ptr<Context> ctx, const Group& group);
 
   /**
    * @brief Vacuum commits
    *
    * @param ctx TileDB context
-   * @param tiledb_config TileDB config
-   * @param root_uri URI for the VCF dataset
+   * @param group TileDB-VCF dataset group
    */
-  static void vacuum_commits(
-      std::shared_ptr<Context> ctx,
-      const std::vector<std::string>& tiledb_config,
-      const std::string& root_uri);
+  static void vacuum_commits(std::shared_ptr<Context> ctx, const Group& group);
 
   /**
    * @brief Vacuum fragment metadata
    *
    * @param ctx TileDB context
-   * @param tiledb_config TileDB config
-   * @param root_uri URI for the VCF dataset
+   * @param group TileDB-VCF dataset group
    */
   static void vacuum_fragment_metadata(
-      std::shared_ptr<Context> ctx,
-      const std::vector<std::string>& tiledb_config,
-      const std::string& root_uri);
+      std::shared_ptr<Context> ctx, const Group& group);
 
   //===================================================================
   //= public non-static
@@ -204,7 +189,16 @@ class AlleleCount {
   //= private static
   //===================================================================
 
-  // Array config
+  /**
+   * @brief Get the URI for the array from the root URI
+   *
+   * @param root_uri TileDB-VCF dataset URI
+   * @return std::string Array URI
+   */
+  static std::string get_uri(
+      const std::string& root_uri, bool relative = false);
+
+  // Array URI basename
   inline static const std::string ALLELE_COUNT_ARRAY = "allele_count";
 
   // Array version

@@ -209,6 +209,16 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
 
+  // Write group metadata
+  Group group(ctx, params.uri, TILEDB_WRITE);
+  std::string dataset_type{"vcf"};
+  group.put_metadata(
+      "dataset_type",
+      TILEDB_STRING_ASCII,
+      dataset_type.size(),
+      dataset_type.c_str());
+  group.close();
+
   Metadata metadata;
   metadata.tile_capacity = params.tile_capacity;
   metadata.anchor_gap = params.anchor_gap;
@@ -253,7 +263,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   write_metadata_v4(ctx, params.uri, metadata);
 
   // Log the group structure
-  tiledb::Group group(ctx, params.uri, TILEDB_READ);
+  group.open(TILEDB_READ);
   LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
 
   for (uint64_t i = 0; i < group.member_count(); i++) {
@@ -312,15 +322,6 @@ void TileDBVCFDataset::create_empty_metadata(
       array_uri,
       root_uri);
   root_group.add_member(array_uri, relative, VCF_HEADER_ARRAY);
-
-  // Add the metadata group to the root group
-  auto group_uri = metadata_group_uri(root_uri, relative);
-  LOG_DEBUG(
-      "Adding group name='{}' uri='{}' to group uri='{}'",
-      METADATA_GROUP,
-      group_uri,
-      root_uri);
-  root_group.add_member(group_uri, relative, METADATA_GROUP);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
@@ -900,6 +901,11 @@ void TileDBVCFDataset::delete_samples(
   auto data_array = open_data_array(TILEDB_DELETE);
   auto vcf_array = open_vcf_array(TILEDB_DELETE);
 
+  // Check if a stats array exists
+  Group group(*ctx_, root_uri_, TILEDB_READ);
+  bool stats_array_exists =
+      AlleleCount::exists(group) || VariantStats::exists(group);
+
   // Delete samples one at a time
   for (const auto& sample : sample_names) {
     LOG_INFO("Deleting sample {}", sample);
@@ -909,7 +915,7 @@ void TileDBVCFDataset::delete_samples(
 
     // If a stats array exists, read the data with the delete exporter, which
     // adds negative counts to the stats arrays
-    if (AlleleCount::exists(ctx_, uri) || VariantStats::exists(ctx_, uri)) {
+    if (stats_array_exists) {
       ExportParams args;
       args.tiledb_config = tiledb_config;
       args.uri = uri;
@@ -956,7 +962,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
       "Lookup member name='{}' in group uri='{}'", member_name, root_uri_);
 
   try {
-    tiledb::Group group(*ctx_, root_uri_, TILEDB_READ);
+    Group group(*ctx_, root_uri_, TILEDB_READ);
     auto member = group.member(member_name);
     array_uri = member.uri();
     LOG_DEBUG("Found group member name='{}' uri='{}'", member_name, array_uri);
@@ -1018,6 +1024,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     std::unordered_map<std::string, size_t>* lookup_map,
     const bool all_samples,
     const bool first_sample) const {
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] start all_samples={} first_sample={} "
+      "(VmRSS = {})",
+      all_samples,
+      first_sample,
+      utils::memory_usage_str());
   // Grab a read lock of concurrency so we don't destroy the vcf_header_array
   // during fetching
   utils::UniqueReadLock lck_(
@@ -1099,10 +1111,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
 #endif
 
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] allocate start (VmRSS = {})",
+      utils::memory_usage_str());
   std::vector<uint64_t> offsets(header_offset_element);
   std::vector<char> data(header_data_element);
   std::vector<uint64_t> sample_offsets(sample_offset_element);
   std::vector<char> sample_data(sample_data_element);
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] allocate done (VmRSS = {})",
+      utils::memory_usage_str());
 
   Query::Status status;
   uint32_t sample_idx = 0;
@@ -1204,6 +1222,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] done (VmRSS = {})", utils::memory_usage_str());
   return result;
 }  // namespace vcf
 
@@ -2014,6 +2034,10 @@ const char* TileDBVCFDataset::materialized_attribute_name(
 
 bool TileDBVCFDataset::is_attribute_materialized(
     const std::string& attr) const {
+  if (attr == "info_TILEDB_IAF") {
+    return true;
+  }
+
   utils::UniqueReadLock lck_(
       const_cast<utils::RWLock*>(&materialized_attribute_lock_));
   if (!materialized_attribute_loaded_) {
@@ -2234,9 +2258,10 @@ void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   LOG_DEBUG("Consolidate vcf_header array commits.");
   consolidate_vcf_header_array_commits(params);
   LOG_DEBUG("Consolidate allele_count array commits.");
-  AlleleCount::consolidate_commits(ctx_, params.tiledb_config, params.uri);
+  Group group(*ctx_, root_uri_, TILEDB_READ);
+  AlleleCount::consolidate_commits(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array commits.");
-  VariantStats::consolidate_commits(ctx_, params.tiledb_config, params.uri);
+  VariantStats::consolidate_commits(ctx_, group);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
@@ -2262,11 +2287,10 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
   LOG_DEBUG("Consolidate vcf_header array fragment metadata.");
   consolidate_vcf_header_array_fragment_metadata(params);
   LOG_DEBUG("Consolidate allele_count array fragment metadata.");
-  AlleleCount::consolidate_fragment_metadata(
-      ctx_, params.tiledb_config, params.uri);
+  Group group(*ctx_, root_uri_, TILEDB_READ);
+  AlleleCount::consolidate_fragment_metadata(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array fragment metadata.");
-  VariantStats::consolidate_fragment_metadata(
-      ctx_, params.tiledb_config, params.uri);
+  VariantStats::consolidate_fragment_metadata(ctx_, group);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
@@ -2311,9 +2335,10 @@ void TileDBVCFDataset::vacuum_commits(const UtilsParams& params) {
   LOG_DEBUG("Vacuum vcf_header array commits.");
   vacuum_vcf_header_array_commits(params);
   LOG_DEBUG("Vacuum allele_count array commits.");
-  AlleleCount::vacuum_commits(ctx_, params.tiledb_config, params.uri);
+  Group group(*ctx_, root_uri_, TILEDB_READ);
+  AlleleCount::vacuum_commits(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array commits.");
-  VariantStats::vacuum_commits(ctx_, params.tiledb_config, params.uri);
+  VariantStats::vacuum_commits(ctx_, group);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
@@ -2338,10 +2363,10 @@ void TileDBVCFDataset::vacuum_fragment_metadata(const UtilsParams& params) {
   LOG_DEBUG("Vacuum vcf_header array fragment metadata.");
   vacuum_vcf_header_array_fragment_metadata(params);
   LOG_DEBUG("Vacuum allele_count array fragment metadata.");
-  AlleleCount::vacuum_fragment_metadata(ctx_, params.tiledb_config, params.uri);
+  Group group(*ctx_, root_uri_, TILEDB_READ);
+  AlleleCount::vacuum_fragment_metadata(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array fragment metadata.");
-  VariantStats::vacuum_fragment_metadata(
-      ctx_, params.tiledb_config, params.uri);
+  VariantStats::vacuum_fragment_metadata(ctx_, group);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragments(
