@@ -32,8 +32,8 @@
 namespace tiledb::vcf {
 
 VariantStatsReader::VariantStatsReader(
-    std::shared_ptr<Context> ctx, std::string_view root_uri) {
-  auto uri = VariantStats::get_uri(root_uri);
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = VariantStats::get_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
 }

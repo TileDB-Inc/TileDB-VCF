@@ -130,8 +130,9 @@ void Writer::init(const IngestionParams& params) {
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
 
-  AlleleCount::init(ctx_, params.uri);
-  VariantStats::init(ctx_, params.uri);
+  Group group(*ctx_, params.uri, TILEDB_READ);
+  AlleleCount::init(ctx_, group);
+  VariantStats::init(ctx_, group);
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {

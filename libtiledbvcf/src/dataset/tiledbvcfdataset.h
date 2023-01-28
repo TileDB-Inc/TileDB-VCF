@@ -95,6 +95,15 @@ struct StatParams {
   std::vector<std::string> tiledb_config;
 };
 
+/** Arguments/params for the delete operation. */
+struct DeleteParams {
+  std::string uri;
+  std::string log_level;
+  std::string log_file;
+  std::vector<std::string> sample_names;
+  std::vector<std::string> tiledb_config;
+};
+
 struct UtilsParams {
   std::string uri;
   std::string log_level;
@@ -309,6 +318,27 @@ class TileDBVCFDataset {
   void print_samples_list();
 
   void print_dataset_stats();
+
+  /**
+   * @brief Check if a sample is present in the dataset.
+   *
+   * @param sample Sample name
+   * @return true If the samples exists in the dataset
+   */
+  bool sample_exists(const std::string& sample);
+
+  /**
+   * @brief Delete samples from the dataset. This removes samples from the
+   * data, vcf_header, and stats arrays.
+   *
+   * @param uri TileDB-VCF dataset URI
+   * @param sample_names Sample names to delete
+   * @param tiledb_config TileDB config values
+   */
+  void delete_samples(
+      const std::string& uri,
+      const std::vector<std::string>& sample_names,
+      const std::vector<std::string>& tiledb_config = {});
 
   const Metadata& metadata() const;
 

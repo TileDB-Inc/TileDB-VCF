@@ -34,6 +34,15 @@ namespace tiledb::vcf {
 //= public static functions
 //===================================================================
 
+std::string VariantStats::get_uri(const Group& group) {
+  try {
+    auto member = group.member(VARIANT_STATS_ARRAY);
+    return member.uri();
+  } catch (const tiledb::TileDBError& ex) {
+    return "";
+  }
+}
+
 void VariantStats::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("VariantStats: Create array");
@@ -113,22 +122,28 @@ void VariantStats::create(
   root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
 }
 
-void VariantStats::init(
-    std::shared_ptr<Context> ctx, const std::string& root_uri) {
-  std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("VariantStats: Open array");
+bool VariantStats::exists(const Group& group) {
+  auto uri = get_uri(group);
+  return !uri.empty();
+}
 
-  // Open array
-  auto uri = get_uri(root_uri);
-  try {
-    array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
-    enabled_ = true;
-  } catch (const tiledb::TileDBError& ex) {
+void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
+  if (uri.empty()) {
     LOG_DEBUG("VariantStats: Ingestion task disabled");
     enabled_ = false;
     return;
   }
 
+  std::lock_guard<std::mutex> lock(query_lock_);
+  LOG_DEBUG("VariantStats: Open array '{}'", uri);
+
+  // Open array
+  array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
+  enabled_ = true;
+
+  // Create query
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
@@ -193,80 +208,68 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
-std::string VariantStats::get_uri(std::string_view root_uri, bool relative) {
-  auto root = relative ? "" : root_uri;
-  return utils::uri_join(std::string(root), VARIANT_STATS_ARRAY);
-}
-
 void VariantStats::consolidate_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void VariantStats::consolidate_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
 }
 
 void VariantStats::vacuum_commits(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "commits";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 
 void VariantStats::vacuum_fragment_metadata(
-    std::shared_ptr<Context> ctx,
-    const std::vector<std::string>& tiledb_config,
-    const std::string& root_uri) {
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri(group);
+
   // Return if the array does not exist
-  tiledb::VFS vfs(*ctx);
-  if (!vfs.is_dir(get_uri(root_uri))) {
+  if (uri.empty()) {
     return;
   }
 
-  Config cfg;
-  utils::set_tiledb_config(tiledb_config, &cfg);
+  Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  tiledb::Array::vacuum(*ctx, get_uri(root_uri), &cfg);
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
 
 //===================================================================
 //= public functions
 //===================================================================
 
-VariantStats::VariantStats() {
+VariantStats::VariantStats(bool delete_mode) {
+  count_delta_ = delete_mode ? -1 : 1;
 }
 
 VariantStats::~VariantStats() {
@@ -334,7 +337,7 @@ void VariantStats::flush() {
 }
 
 void VariantStats::process(
-    bcf_hdr_t* hdr,
+    const bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
     uint32_t pos,
@@ -372,24 +375,24 @@ void VariantStats::process(
 
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
-  values_[ref][N_CALLED]++;
+  values_[ref][N_CALLED] += count_delta_;
 
   int gt0 = bcf_gt_allele(dst_[0]);
   std::string allele0 = rec->d.allele[gt0];
 
-  // Increment allele count for GT[0]
-  values_[allele0][AC]++;
+  // Update allele count for GT[0]
+  values_[allele0][AC] += count_delta_;
 
   if (ngt == 2) {
     int gt1 = bcf_gt_allele(dst_[1]);
     std::string allele1 = rec->d.allele[gt1];
 
-    // Increment allele count for GT[1]
-    values_[allele1][AC]++;
+    // Update allele count for GT[1]
+    values_[allele1][AC] += count_delta_;
 
     // Update homozygote count, only diploid genotype calls are counted
     if (gt0 == gt1) {
-      values_[allele1][N_HOM]++;
+      values_[allele1][N_HOM] += count_delta_;
     }
   } else if (ngt > 2) {
     LOG_FATAL(
@@ -404,6 +407,11 @@ void VariantStats::process(
 //===================================================================
 //= private functions
 //===================================================================
+
+std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, VARIANT_STATS_ARRAY);
+}
 
 void VariantStats::update_results() {
   if (values_.size() > 0) {

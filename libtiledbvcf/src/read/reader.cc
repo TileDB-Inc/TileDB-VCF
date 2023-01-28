@@ -31,6 +31,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
+#include "read/delete_exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/pvcf_exporter.h"
 #include "read/read_query_results.h"
@@ -183,8 +184,8 @@ void Reader::set_buffer_validity_bitmap(
 
 void Reader::init_af_filter() {
   if (!af_filter_ && !params_.af_filter.empty()) {
-    af_filter_ =
-        std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group);
     af_filter_->set_condition(params_.af_filter);
   }
 }
@@ -939,6 +940,9 @@ void Reader::init_exporter() {
         case ExportFormat::TSV:
           exporter_.reset(
               new TSVExporter(params_.output_path, params_.tsv_fields));
+          break;
+        case ExportFormat::DELETE:
+          exporter_.reset(new DeleteExporter(ctx_, params_.uri));
           break;
         default:
           throw std::runtime_error(

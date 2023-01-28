@@ -129,9 +129,9 @@ class VariantStatsReader {
    * @brief Construct a new Variant Stats Reader object
    *
    * @param ctx TileDB context
-   * @param root_uri URI of the VCF dataset
+   * @param group TileDB-VCF dataset group
    */
-  VariantStatsReader(std::shared_ptr<Context> ctx, std::string_view root_uri);
+  VariantStatsReader(std::shared_ptr<Context> ctx, const Group& group);
 
   VariantStatsReader() = delete;
   VariantStatsReader(const VariantStatsReader&) = delete;
