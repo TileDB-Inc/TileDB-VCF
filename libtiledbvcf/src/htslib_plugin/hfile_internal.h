@@ -27,6 +27,24 @@ DEALINGS IN THE SOFTWARE.  */
 
 #include "htslib/hfile.h"
 
+// (for some background see https://github.com/samtools/htslib/pull/1377)
+// Ensure ssize_t exists within this header and beyond.
+// htslib builds with MSVC prior to use of this file by tiledb for development
+// of a plugin only saw the interface headers which have an interface-alized
+// workaround to the MSVC absence of ssize_t.
+// If/when this plugin is upstreamed, it is likely this hack for MSVC compilation
+// can be removed as the library proper is currently being built with MSYS2/MINGW64
+// which does define that.
+#if defined _MSC_VER 
+#if !defined _INTPTR_T_DEFINED
+#error "MSVC build needs INTPTR_T to define an internal instance of ssize_t!"
+#endif
+#if !defined _SSIZE_T_DEFINED && !defined ssize_t
+//#define HTSLIB_SSIZE_T
+#define ssize_t intptr_t
+#endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -133,6 +151,15 @@ extern int hfile_plugin_init_net(struct hFILE_plugin* self);
 
 #ifdef __cplusplus
 }
+#endif
+
+// For tiledb's plugin development use of this cloned hfile_internal.h,
+// (TBD ...)
+// the definition of ssize_t -may- have to continue beyond the end of
+// this file.
+#ifdef HTSLIB_SSIZE_T
+#undef HTSLIB_SSIZE_T
+#undef ssize_t
 #endif
 
 #endif

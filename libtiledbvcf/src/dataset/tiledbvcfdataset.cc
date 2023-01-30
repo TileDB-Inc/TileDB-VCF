@@ -32,7 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
-#include "read/export_format.h"
+//#include "read/export_format.h"
 #include "read/reader.h"
 #include "stats/allele_count.h"
 #include "stats/variant_stats.h"
@@ -41,6 +41,12 @@
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
+#include "read/export_format.h"
+
+#if defined DELETE
+// definition seep in from windows.h somewhere -after- export_format.h???
+#error "#define conflicts with class member DELETE of ExportFormat enum!!"
+#endif
 
 namespace tiledb {
 namespace vcf {
@@ -914,6 +920,9 @@ void TileDBVCFDataset::delete_samples(
       args.tiledb_config = tiledb_config;
       args.uri = uri;
       args.sample_names = sample_names;
+      #if defined DELETE
+#error "#define conflicts with class member DELETE of ExportFormat enum!!"
+      #endif
       args.format = ExportFormat::DELETE;
       args.export_to_disk = true;
 
@@ -1069,7 +1078,10 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   uint64_t header_data_element = 0;
   uint64_t sample_offset_element = 0;
   uint64_t sample_data_element = 0;
+#define XSTR(x) STR(x)
+#define STR(x) #x
 #if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+#error "should not be in this branch, " STR(TILEDB_VERSION_MAJOR) ", " STR(TILEDB_VERSION_MINOR)
   std::pair<uint64_t, uint64_t> header_est_size =
       query.est_result_size_var("header");
   header_offset_element =
@@ -2126,6 +2138,10 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
   uint64_t sample_offset_element = 0;
   uint64_t sample_data_element = 0;
 #if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  ERRWARGS(
+      "should not be in this branch, ",
+      TILEDB_VERSION_MAJOR,
+      TILEDB_VERSION_MINOR)
   // Sample estimate
   std::pair<uint64_t, uint64_t> sample_est_size =
       query.est_result_size_var("sample");

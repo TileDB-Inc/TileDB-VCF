@@ -57,6 +57,7 @@ set(INHERITED_CMAKE_ARGS
   -DSANITIZER=${SANITIZER}
   -DENABLE_ARROW_EXPORT=${ENABLE_ARROW_EXPORT}
   -DOVERRIDE_INSTALL_PREFIX=${OVERRIDE_INSTALL_PREFIX}
+#  --trace
 )
 
 ############################################################
@@ -67,9 +68,12 @@ set(INHERITED_CMAKE_ARGS
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCLI11.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindHTSlib.cmake)
+# need spdlog to set up any of its needed targets...
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog.cmake)
+#... before tiledb sets up only half of them...
+#(Why doesn't this show up on *nix builds?)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindTileDB_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog.cmake)
 
 ############################################################
 # 'make format' target
@@ -99,8 +103,11 @@ ExternalProject_Add(libtiledbvcf
   SOURCE_DIR ${PROJECT_SOURCE_DIR}
   CMAKE_ARGS
     -DSUPERBUILD=OFF
-    ${INHERITED_CMAKE_ARGS}
+    # --trace in INHERITED_CMAKE_ARGS
+    ${INHERITED_CMAKE_ARGS} 
     ${FORWARD_EP_CMAKE_ARGS}
+  #BUILD_COMMAND
+  #  cmake --build . --config ${CMAKE_BUILD_TYPE} -- /verbosity:diag
   INSTALL_COMMAND ""
   BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/libtiledbvcf
   DEPENDS ${EXTERNAL_PROJECTS}

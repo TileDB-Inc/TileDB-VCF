@@ -41,6 +41,12 @@
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
+#if defined DELETE
+// definition seep in from windows.h somewhere -after- export_format.h???
+//#error "#define conflicts with class member DELETE of ExportFormat enum!!"
+#undef DELETE
+#endif
+
 namespace tiledb {
 namespace vcf {
 
@@ -1763,7 +1769,12 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
           "Error preparing sample list for export; sample name '" + s +
           "' is invalid.");
 
+    #if _MSC_VER
+    // "use of designated initializers requires at least '/std:c++20'"
+    result.push_back({name, 0});
+#else
     result.push_back({.sample_name = name, .sample_id = 0});
+    #endif
   }
 
   if (!params_.samples_file_uri.empty()) {
@@ -1787,9 +1798,15 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
                   "Error preparing sample list for export; sample '" + *line +
                   "' has not been registered.");
 
+            #if _MSC_VER
+            result.push_back(
+                {name,
+                 static_cast<uint32_t>(result.size())});
+            #else
             result.push_back(
                 {.sample_name = name,
                  .sample_id = static_cast<uint32_t>(result.size())});
+            #endif
           }
         };
     utils::read_file_lines(*vfs_, params_.samples_file_uri, per_line);
@@ -1802,7 +1819,11 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
     if (params_.sample_partitioning.num_partitions > 1) {
       const auto& samples = dataset_->get_all_samples_from_vcf_headers();
       for (const auto& s : samples) {
+        #if _MSC_VER
+        result.push_back({s, 0});
+        #else
         result.push_back({.sample_name = s, .sample_id = 0});
+        #endif
       }
     }
     *all_samples = true;

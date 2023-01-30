@@ -1,13 +1,48 @@
 message(STATUS "Starting TileDB-VCF build.")
 
+
+############################################################
+#set(CMAKE_POLICY_DEFAULT_CMP0111 OLD)
+#useless, gets cleared either super or tiledb\cmakelists.txt... list(APPEND  FORWARD_EP_CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0111=OLD)
+
+############################################################
+## from https://stackoverflow.com/a/56738858
+## https://stackoverflow.com/questions/32183975/how-to-print-all-the-properties-of-a-target-in-cmake/56738858#56738858
+## https://stackoverflow.com/a/56738858/3743145
+
+## Get all properties that cmake supports
+execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+## Convert command output into a CMake list
+STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+
+list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
+
+function(print_target_properties tgt)
+    if(NOT TARGET ${tgt})
+      message("There is no target named '${tgt}'")
+      return()
+    endif()
+
+    foreach (prop ${CMAKE_PROPERTY_LIST})
+        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
+        get_target_property(propval ${tgt} ${prop})
+        if (propval)
+            message ("${tgt} ${prop} = ${propval}")
+        endif()
+    endforeach(prop)
+endfunction(print_target_properties)
+include(CMakePrintHelpers)
+############################################################
+
 ############################################################
 # Find required dependencies
 ############################################################
 
 find_package(CLI11 REQUIRED)
 find_package(HTSlib REQUIRED)
-find_package(TileDB_EP REQUIRED)
 find_package(Spdlog REQUIRED)
+find_package(TileDB_EP REQUIRED)
 
 ############################################################
 # Get source commit hash
@@ -135,13 +170,39 @@ endif()
 add_library(tiledbvcf SHARED
   $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
 )
+if (WIN32)
+  # tiledb_vcf_unit ref's symbols that are not explicitly part of the exported public interface.
+  # Since Windows/MSVC does not make all symbols in a shared library visible,
+  # Use a cmake feature on a target specifically for tiledb_vcf_unit to export all symbols.
+  add_library(tiledbvcf4test SHARED
+    $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
+  )
+  set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+
+if (WIN32)
+  # TBD: Is there anyway to avoid this verion specific-ism for the .def?
+#  target_sources(tiledbvcf PUBLIC ${EP_INSTALL_PREFIX}/lib/hts-3.def)
+endif()
+
+#print_target_properties(HTSlib::HTSlib)
 
 target_link_libraries(tiledbvcf
   PUBLIC
     HTSlib::HTSlib
     TileDB::tiledb_shared
-    spdlog::spdlog
+#    spdlog::spdlog
 )
+if (WIN32)
+target_link_libraries(tiledbvcf4test
+  PUBLIC
+    HTSlib::HTSlib
+    TileDB::tiledb_shared
+)
+endif()
+
+#print_target_properties(tiledbvcf)
 
 # Sanitizer linker flags
 if (SANITIZER)
@@ -149,6 +210,12 @@ if (SANITIZER)
           INTERFACE
           -fsanitize=${SANITIZER}
           )
+  if (WIN32)
+  target_link_libraries(tiledbvcf4test
+          INTERFACE
+          -fsanitize=${SANITIZER}
+          )
+  endif()
 endif()
 
 # List of API headers (to be installed)
@@ -179,7 +246,7 @@ target_link_libraries(tiledbvcf-bin
     CLI11::CLI11
     HTSlib::HTSlib
     TileDB::tiledb_shared
-    spdlog::spdlog
+#    spdlog::spdlog
 )
 
 # Sanitizer linker flags
@@ -190,7 +257,7 @@ if (SANITIZER)
           )
 endif()
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT WIN32)
   target_link_libraries(tiledbvcf-bin PRIVATE pthread)
 endif()
 
@@ -242,7 +309,11 @@ include(GNUInstallDirs)
 if (APPLE)
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
 else()
+#TBD: Does anything need to be done different for WIN32?
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
+  if(WIN32)
+    set_target_properties(tiledbvcf4test PROPERTIES INSTALL_RPATH "$ORIGIN/")
+  endif()
 endif()
 
 set_property(
@@ -252,8 +323,12 @@ set_property(
     "${CMAKE_INSTALL_PREFIX}/lib"
 )
 
+if (WIN32)
+  set(TILEDBVCF_EXTRA_INSTALL_TARGETS tiledbvcf4test)
+endif()
+# TBD: how to handle the tiledbvcf4test, don't really want it part of ultimate distribution...
 install(
-  TARGETS tiledbvcf tiledbvcf-bin
+  TARGETS tiledbvcf tiledbvcf-bin ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

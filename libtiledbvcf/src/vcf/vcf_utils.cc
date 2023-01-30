@@ -103,7 +103,7 @@ std::string VCFUtils::hdr_to_string(bcf_hdr_t* hdr) {
   bcf_hdr_format(tmp, 0, &t);
   std::string ret(t.s, t.l);
   bcf_hdr_destroy(tmp);
-  free(t.s);
+  hts_free(t.s);
   return ret;
 }
 
@@ -169,7 +169,7 @@ std::vector<Region> VCFUtils::hdr_get_contigs_regions(bcf_hdr_t* hdr) {
 
     contigs.push_back(region);
   }
-  free(seqnames);
+  hts_free(seqnames);
   return contigs;
 }
 

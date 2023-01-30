@@ -47,12 +47,21 @@ option(ENABLE_ARROW_EXPORT "Installs an extra header for exporting in-memory res
 
 # Set C++17 as required standard for all C++ targets (required to use the TileDB
 # C++ API).
+#don't know this yet... if (MSVC)
+if (WIN32 AND NOT MSYS) # assume will be (MSVC)...
+# MSVC complains c++20 needed for designated initializers, 
+# (apparently gnu is ignoring that and allowing with c++17)
+set(CMAKE_CXX_STANDARD 20) # seems OK for vs2022 and vs2019
+message(STATUS "CMAKE_CXX_STANDARD set to ${CMAKE_CXX_STANDARD}")
+else()
 set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
 # Release builds by default.
 if (NOT CMAKE_BUILD_TYPE)
+  #TBD: Shouldn't this be 'Release'? think cmake is picky...
   set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
@@ -80,13 +89,31 @@ endif()
 
 # Add some global compiler flags
 string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
-if (BUILD_TYPE STREQUAL "DEBUG")
-  add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
-elseif (BUILD_TYPE STREQUAL "RELEASE")
-  add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+if(WIN32 AND NOT MSYS)
+  #TBD: seems this branch is taken even when -G "MSYS Makefiles" was used to invoke at top-level!
+  #(cmake --version was 3.24.1 when this apparent failure encountered...)
+  message(STATUS "configuring for WIN32, not MSYS (is ${MSYS})")
+#this (apparently) not yet known to be generator when 'defaulting'... if(MSVC)
+  #TBD: figure out approp. compile options to set for WIN32/MSVC
+  if (BUILD_TYPE STREQUAL "DEBUG")
+    #add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
+  elseif (BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]" OR BUILD_TYPE MATCHES [Rr][Ee][Ll][Ww][Ii][Tt][Hh][Ii][Nn][Ff][Oo])
+    #add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+    set(CMAKE_BUILD_TYPE "Release")
+  endif()
+  message(WARNING "Building without deprecation warnings")
+  #add_compile_options(-Wno-deprecated-declarations)
+  # /wd4996 - no deprecated
+  add_compile_options(/wd4996)
+else()
+  if (BUILD_TYPE STREQUAL "DEBUG")
+    add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
+  elseif (BUILD_TYPE STREQUAL "RELEASE")
+    add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+  endif()
+  message(WARNING "Building without deprecation warnings")
+  add_compile_options(-Wno-deprecated-declarations)
 endif()
-message(WARNING "Building without deprecation warnings")
-add_compile_options(-Wno-deprecated-declarations)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 ############################################################
@@ -94,6 +121,7 @@ add_definitions(-D_FILE_OFFSET_BITS=64)
 ############################################################
 
 # Search the externals install directory for dependencies.
+set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 list(APPEND CMAKE_PREFIX_PATH "${EP_INSTALL_PREFIX}")
 
 # If this is an in-IDE build, we need to disable the superbuild and explicitly
@@ -116,7 +144,7 @@ message(STATUS "Starting TileDB-VCF regular build.")
 
 # Paths to locate the installed external projects.
 set(EP_SOURCE_DIR "${EP_BASE}/src")
-set(EP_INSTALL_PREFIX "${EP_BASE}/install")
+#set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 
 ############################################################
 # Regular build

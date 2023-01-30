@@ -81,19 +81,28 @@ else()
                 LOG_INSTALL FALSE
                 )
     else() # Build from source
+      #set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_tiledb ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/tiledb.1.patch")
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/2.13.0.zip"
-          URL_HASH SHA1=2bb9f4f20702bdc0471df4ece58d5d06e89dc6d8
+          #URL "https://github.com/TileDB-Inc/TileDB/archive/2.13.0.zip"
+          #URL "d:/dev/tiledb/tdb.v2.13.0.zip"
+          #URL_HASH SHA1=2bb9f4f20702bdc0471df4ece58d5d06e89dc6d8
+          URL "d:/dev/tiledb/TileDB-2.13.0"
+          #URL "https://github.com/TileDB-Inc/TileDB/archive/2.13.2.zip"
+          #URL_HASH SHA1=32a533d0381f826720e8cd7c6834f1b248ef08b1
           DOWNLOAD_NAME "tiledb.zip"
+          #PATCH_COMMAND
+          #   ${CONDITIONAL_PATCH}          
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
             -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
             -DTILEDB_S3=${TILEDB_S3}
+            -DTILEDB_SKIP_S3AWSSDK_DIR_LENGTH_CHECK=ON # for msys2 build
             -DTILEDB_VERBOSE=ON
             -DTILEDB_SERIALIZATION=ON
             -DTILEDB_TESTS=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DTILEDB_WERROR=OFF #avoid the pointer p use after issue...
           UPDATE_COMMAND ""
           INSTALL_COMMAND
             ${CMAKE_COMMAND} --build . --target install-tiledb

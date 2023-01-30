@@ -24,6 +24,22 @@
  * THE SOFTWARE.
  */
 
+// since #define of DELETE can occur after original inclusion of export_format.h
+// and can still cause problems with references elsewhere later, address outside
+// of header guards, so might be included multiple times to 'cleanup' the anomaly
+// (if clang format will allow that.)
+//  #if _MSC_VER
+  #if (defined(DELETE))
+// note: 'DELETE' is #define'd somewhere within windows headers as
+// something resolving to '(0x00010000L)', which causes problems.
+#undef DELETE
+// If this is encountered 'too often', further consideration might be given to
+// simply qualifying the currently unqualified definition of
+// TILEDB_QUERY_TYPE_ENUM in query_type.h so 'DELETE' and any other enum items
+// here would not collide with this windows definition known to be in conflict.
+#endif
+//  #endif
+
 #ifndef TILEDB_VCF_EXPORT_FORMAT_H
 #define TILEDB_VCF_EXPORT_FORMAT_H
 
