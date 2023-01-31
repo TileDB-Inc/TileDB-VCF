@@ -66,7 +66,7 @@ void VCFMerger::close() {
       read_count_);
 
   if (dst_) {
-    free(dst_);
+    hts_free(dst_);
   }
 }
 

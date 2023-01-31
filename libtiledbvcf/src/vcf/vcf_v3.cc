@@ -378,7 +378,7 @@ void VCFV3::Iter::reset() {
   tbx_ = nullptr;
 
   if (tmps_.m) {
-    free(tmps_.s);
+    hts_free(tmps_.s);
     tmps_ = {0, 0, nullptr};
   }
 }

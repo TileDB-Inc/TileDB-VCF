@@ -275,7 +275,7 @@ AlleleCount::AlleleCount(bool delete_mode) {
 
 AlleleCount::~AlleleCount() {
   if (dst_ != nullptr) {
-    free(dst_);
+    hts_free(dst_);
   }
 }
 
