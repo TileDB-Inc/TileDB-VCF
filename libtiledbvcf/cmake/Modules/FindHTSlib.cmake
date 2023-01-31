@@ -94,7 +94,7 @@ if (NOT HTSLIB_FOUND)
          message(FATAL_ERROR "Failed to find needed 'env.exe' to invoke msys2 build of htslib!")
        endif()
       find_package(Git REQUIRED)
-      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch)
+      #set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch)
       #set(CONDITIONAL_PATCH cmd.exe cd ${EP_BASE}/src/ep_htslib && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch)
       #set(CONDITIONAL_PATCH cmd.exe -c "cd ${EP_BASE}/src/ep_htslib && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch")
       #set(CONDITIONAL_PATCH cd ${EP_BASE}/src/ep_htslib)
@@ -106,7 +106,7 @@ if (NOT HTSLIB_FOUND)
       #set(MSYS_INVOKE ${MSYS2_ENV_CMD} MSYSTEM=UCRT64 MSYSTEM_CARCH=x86_64 MSYSTEM_CHOST=x86_64-w64-mingw32 MSYSTEM_PREFIX=/ucrt64 CHERE_INVOKING=1 /usr/bin/bash -li -x -c )
       #set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${EP_BASE}/src/ep_htslib && git apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_BASE}/src/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch")
       #set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR} && git apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_BASE}/src/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch")
-      set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.hts_defs.h.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.vcf.h.patch "
+      set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1-win.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.hts_defs.h.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.vcf.h.patch "
       #set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib-win.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.hts_defs.h.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.vcf.h.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib_kstring_h.prototype_ks_free.patch && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib_kstring_c.add_ks_free.patch "
         )
       ExternalProject_Add(ep_htslib
@@ -114,11 +114,13 @@ if (NOT HTSLIB_FOUND)
         #PREFIX "externals-msys2"
         URL "https://github.com/samtools/htslib/releases/download/1.15.1/htslib-1.15.1.tar.bz2"
         URL_HASH SHA1=e7cbd4bb059020c9486facc028f750ec0fb2e182
+        #URL "https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2"
+        #URL_HASH SHA1=36b16f462384af257d292ebeed766f299ec205f5
         UPDATE_COMMAND ""
         PATCH_COMMAND
           ${CONDITIONAL_PATCH}
-          COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.Makefile ${EP_BASE}/src/ep_htslib/Makefile"
-          COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.configure.ac ${EP_BASE}/src/ep_htslib/configure.ac"
+          COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.1.15.1.Makefile ${EP_BASE}/src/ep_htslib/Makefile"
+          COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.1.15.1.configure.ac ${EP_BASE}/src/ep_htslib/configure.ac"
         CONFIGURE_COMMAND
             #~ echo "hello from ep_htslib configure attempt... \n$PATH"
           #~ COMMAND
@@ -136,7 +138,8 @@ if (NOT HTSLIB_FOUND)
             #./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}
             #${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS} LIBS=\\\"-lpcre2-8 -lpcre2-posix\\\""
-            ${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS} LIBS=\\\"-ltre -lgettextlib -lintl -liconv -lcrypto -lwinpthread -lcurl\\\""
+            ${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}        LIBS=\\\"-ltre -lgettextlib -lintl -liconv -lcrypto -lwinpthread -lcurl\\\""
+            #${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=-DCURL_STATICLIB LIBS=\\\"-ltre -lgettextlib -lintl -liconv -lcrypto -lwinpthread -lcurl\\\""
             #${MSYS_INVOKE} "./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS} LIBS=-lucrtbase"
             #${MSYS_INVOKE} "LIBS=\\\"-lregex -ldeflate -llzma -lbz2.a -lws2_32 -lz.a -lcurl.a -lcrypto.a\\\" ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "\\\'LIBS=\\\"-lregex.a -ldeflate.a -llzma.a -lbz2.a -lz.a -lcurl.a -lcrypto.a\\\" ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}\\\'"
@@ -148,6 +151,10 @@ if (NOT HTSLIB_FOUND)
             #${MSYS_INVOKE} "CFLAGS=-static CPPFLAGS=-static LDFLAGS=-lregex ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "CFLAGS=\"-static -lregex\" CPPFLAGS=-static  ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "LD_FLAGS=-static ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
+#          COMMAND
+#            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.Makefile.patch"
+#          COMMAND
+#            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.config.mk.patch"
 #          COMMAND
             #${MSYS_INVOKE} "\\\"echo hello from hts configuring @ `pwd` & cmake -P ${CMAKE_SOURCE_DIR}/cmake/Modules/ModHTSConfigLibs.cmake ${EP_BASE}/src/ep_htslib/config.mk\\\""
             #${MSYS_INVOKE} "\\\"cmake -P ${CMAKE_SOURCE_DIR}/cmake/Modules/ModHTSConfigLibs.cmake ${EP_BASE}/src/ep_htslib/config.mk ${MSYS2_ENV_CMD}\\\""
@@ -178,6 +185,8 @@ if (NOT HTSLIB_FOUND)
         PREFIX "externals"
         URL "https://github.com/samtools/htslib/releases/download/1.15.1/htslib-1.15.1.tar.bz2"
         URL_HASH SHA1=e7cbd4bb059020c9486facc028f750ec0fb2e182
+        #URL "https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2"
+        #URL_HASH SHA1=36b16f462384af257d292ebeed766f299ec205f5
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND
             autoheader
