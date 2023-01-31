@@ -26,7 +26,9 @@
 
 #include <htslib/vcf.h>
 #include <tiledb/version.h>
+#if !defined _MSC_VER
 #include <unistd.h>
+#endif
 #include <cerrno>
 #include <fstream>
 #include <mutex>

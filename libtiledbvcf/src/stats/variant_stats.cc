@@ -275,7 +275,7 @@ VariantStats::VariantStats(bool delete_mode) {
 
 VariantStats::~VariantStats() {
   if (dst_ != nullptr) {
-    free(dst_);
+    hts_free(dst_);
   }
 }
 

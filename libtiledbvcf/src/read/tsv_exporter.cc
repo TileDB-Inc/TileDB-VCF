@@ -210,8 +210,8 @@ bool TSVExporter::export_record(
             }
             std::string str(s[0], val.ndst);
             os << str;
-            free(s[0]);
-            free(s);
+            hts_free(s[0]);
+            hts_free(s);
             break;
           }
           case BCF_HT_REAL: {
