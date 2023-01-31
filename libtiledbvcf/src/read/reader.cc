@@ -40,12 +40,7 @@
 #include "span/span.hpp"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
-
-#if defined DELETE
-// definition seep in from windows.h somewhere -after- export_format.h???
-//#error "#define conflicts with class member DELETE of ExportFormat enum!!"
-#undef DELETE
-#endif
+#include "read/export_format.h"
 
 namespace tiledb {
 namespace vcf {

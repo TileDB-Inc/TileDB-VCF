@@ -152,10 +152,10 @@ if (NOT HTSLIB_FOUND)
             #${MSYS_INVOKE} "CFLAGS=-static CPPFLAGS=-static LDFLAGS=-lregex ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "CFLAGS=\"-static -lregex\" CPPFLAGS=-static  ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "LD_FLAGS=-static ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
-          COMMAND
-            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.Makefile.patch"
-          COMMAND
-            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.config.mk.patch"
+#          COMMAND
+#            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.Makefile.patch"
+#          COMMAND
+#            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.config.mk.patch"
 #          COMMAND
             #${MSYS_INVOKE} "\\\"echo hello from hts configuring @ `pwd` & cmake -P ${CMAKE_SOURCE_DIR}/cmake/Modules/ModHTSConfigLibs.cmake ${EP_BASE}/src/ep_htslib/config.mk\\\""
             #${MSYS_INVOKE} "\\\"cmake -P ${CMAKE_SOURCE_DIR}/cmake/Modules/ModHTSConfigLibs.cmake ${EP_BASE}/src/ep_htslib/config.mk ${MSYS2_ENV_CMD}\\\""
