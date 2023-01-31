@@ -42,11 +42,9 @@
 #include "vcf/vcf_utils.h"
 #include "read/export_format.h"
 
-#if 0
 #if defined DELETE
-// definition seep in from windows.h somewhere -after- export_format.h???
+// did definition seep in from windows.h somewhere -after- export_format.h???
 #error "#define conflicts with class member DELETE of ExportFormat enum!!"
-#endif
 #endif
 
 namespace tiledb {
