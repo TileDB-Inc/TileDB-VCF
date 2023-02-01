@@ -51,8 +51,7 @@ std::vector<SampleAndIndex> SampleUtils::get_samples(
   std::vector<SampleAndIndex> local_paths;
   for (const auto& s : samples) {
     if (utils::is_local_uri(s.sample_uri)) {
-      local_paths.push_back(
-          {s.sample_uri, s.index_uri});
+      local_paths.push_back({s.sample_uri, s.index_uri});
       continue;
     }
 

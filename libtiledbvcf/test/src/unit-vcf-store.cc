@@ -365,7 +365,8 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
 
 #ifdef _WIN32
   // Here's hopin' cmake is available in runtime path...
-  const std::string cp_cmd = "cmake -E copy_directory " + dataset_uri_src + " " + dataset_uri;
+  const std::string cp_cmd =
+      "cmake -E copy_directory " + dataset_uri_src + " " + dataset_uri;
   system(cp_cmd.c_str());
 #else
   // This is obviously a system-specific directory copy but
