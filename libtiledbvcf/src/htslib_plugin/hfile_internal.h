@@ -40,7 +40,7 @@ DEALINGS IN THE SOFTWARE.  */
 #error "MSVC build needs INTPTR_T to define an internal instance of ssize_t!"
 #endif
 #if !defined _SSIZE_T_DEFINED && !defined ssize_t
-//#define HTSLIB_SSIZE_T
+// #define HTSLIB_SSIZE_T
 #define ssize_t intptr_t
 #endif
 #endif
