@@ -774,11 +774,16 @@ bool Reader::next_read_batch_v4() {
     // Fetch new headers for new sample batch
     if (read_state_.need_headers) {
       read_state_.current_hdrs.clear();
-      read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-          read_state_.current_sample_batches,
-          &read_state_.current_hdrs_lookup,
-          read_state_.all_samples,
-          false);
+      if (params_.export_to_disk) {
+        read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+            read_state_.current_sample_batches,
+            &read_state_.current_hdrs_lookup,
+            read_state_.all_samples,
+            false);
+      } else {
+        read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+            {}, &read_state_.current_hdrs_lookup, false, true);
+      }
       if (params_.export_combined_vcf) {
         static_cast<PVCFExporter*>(exporter_.get())
             ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
