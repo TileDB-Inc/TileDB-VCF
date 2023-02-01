@@ -32,10 +32,10 @@ DEALINGS IN THE SOFTWARE.  */
 // htslib builds with MSVC prior to use of this file by tiledb for development
 // of a plugin only saw the interface headers which have an interface-alized
 // workaround to the MSVC absence of ssize_t.
-// If/when this plugin is upstreamed, it is likely this hack for MSVC compilation
-// can be removed as the library proper is currently being built with MSYS2/MINGW64
-// which does define that.
-#if defined _MSC_VER 
+// If/when this plugin is upstreamed, it is likely this hack for MSVC
+// compilation can be removed as the library proper is currently being built
+// with MSYS2/MINGW64 which does define that.
+#if defined _MSC_VER
 #if !defined _INTPTR_T_DEFINED
 #error "MSVC build needs INTPTR_T to define an internal instance of ssize_t!"
 #endif

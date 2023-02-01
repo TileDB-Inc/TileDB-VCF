@@ -32,6 +32,7 @@
 
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "read/export_format.h"
 #include "read/reader.h"
 #include "stats/allele_count.h"
 #include "stats/variant_stats.h"
@@ -40,12 +41,6 @@
 #include "utils/unique_rwlock.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
-#include "read/export_format.h"
-
-#if defined DELETE
-// did definition seep in from windows.h somewhere -after- export_format.h???
-#error "#define conflicts with class member DELETE of ExportFormat enum!!"
-#endif
 
 namespace tiledb {
 namespace vcf {
@@ -919,7 +914,7 @@ void TileDBVCFDataset::delete_samples(
       args.tiledb_config = tiledb_config;
       args.uri = uri;
       args.sample_names = sample_names;
-      args.format = ExportFormat::DELETE;
+      args.format = ExportFormat::Delete;
       args.export_to_disk = true;
 
       Reader reader;

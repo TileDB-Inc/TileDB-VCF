@@ -300,10 +300,9 @@ void Writer::ingest_samples() {
   // Reset expected total record count
   total_records_expected_ = 0;
 
-  #if !defined _MSC_VER
+#if !defined _MSC_VER
   // Set open file soft limit to hard limit
   struct rlimit limit;
-  // TBD: MSVC replacements for getrlimit() usage?
   if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
     LOG_WARN("Unable to read open file limit");
   } else {
@@ -319,7 +318,7 @@ void Writer::ingest_samples() {
       }
     }
   }
-  #endif
+#endif
 
   update_params(ingestion_params_);
   init(ingestion_params_);
