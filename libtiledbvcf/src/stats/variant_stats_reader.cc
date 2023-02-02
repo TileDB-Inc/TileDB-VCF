@@ -32,7 +32,8 @@
 namespace tiledb::vcf {
 
 VariantStatsReader::VariantStatsReader(
-    std::shared_ptr<Context> ctx, const Group& group) {
+    std::shared_ptr<Context> ctx, const Group& group, bool async_query)
+    : async_query_(async_query) {
   auto uri = VariantStats::get_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
@@ -58,18 +59,10 @@ void VariantStatsReader::set_condition(std::string condition) {
   condition_ = condition;
 }
 
-bool VariantStatsReader::enable_af() {
-  // If condition is empty, af filter is disabled
-  if (condition_.empty()) {
-    return false;
-  }
-
-  // Wait until compute thread is finished
-
+void VariantStatsReader::wait() {
   if (async_query_) {
     TRY_CATCH_THROW(compute_future_.wait());
   }
-  return true;
 }
 
 std::pair<bool, float> VariantStatsReader::pass(
