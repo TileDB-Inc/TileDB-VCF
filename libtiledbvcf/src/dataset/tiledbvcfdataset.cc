@@ -1050,7 +1050,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
-  // Return empty results if the array is empty
+  // Capture NED and return empty results if the array is empty
   auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
   if (non_empty_domain.first.empty() && non_empty_domain.second.empty()) {
     return result;
@@ -1067,9 +1067,13 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   do {
     Query query(*ctx_, *vcf_header_array_);
 
-    // Add samples to query range, if not fetching all_samples.
-    // In the case of fetching the first sample, no samples will be added and
-    // the buffers will be sized properly, even during a retry.
+    // Add first sample from NED captured above to the range, unless retrying
+    // because the first sample was deleted.
+    if (first_sample && !retry) {
+      query.add_range(0, non_empty_domain.first, non_empty_domain.first);
+    }
+
+    // Add samples from input param to query range, if not fetching all samples.
     if (!all_samples) {
       for (const auto& sample : samples) {
         query.add_range(0, sample.sample_name, sample.sample_name);
@@ -1112,11 +1116,6 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     LOG_DEBUG(
         "[fetch_vcf_headers_v4] allocate done (VmRSS = {})",
         utils::memory_usage_str());
-
-    // Add first sample from NED captured above,
-    if (first_sample && !retry) {
-      query.add_range(0, non_empty_domain.first, non_empty_domain.first);
-    }
 
     Query::Status status;
     uint32_t sample_idx = 0;

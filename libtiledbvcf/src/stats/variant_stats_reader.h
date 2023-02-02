@@ -130,8 +130,13 @@ class VariantStatsReader {
    *
    * @param ctx TileDB context
    * @param group TileDB-VCF dataset group
+   * @param async_query If true, query variant stats in parallel with the data
+   * array.
    */
-  VariantStatsReader(std::shared_ptr<Context> ctx, const Group& group);
+  VariantStatsReader(
+      std::shared_ptr<Context> ctx,
+      const Group& group,
+      bool async_query = true);
 
   VariantStatsReader() = delete;
   VariantStatsReader(const VariantStatsReader&) = delete;
@@ -156,16 +161,23 @@ class VariantStatsReader {
    * @brief Set an AF filtering constraint
    *
    * @param condition filtering constraint to set
-   * @return true if AF filtering is enabled
    */
   void set_condition(std::string condition);
 
   /**
-   * @brief Enable AF filtering.
+   * @brief Wait until the AF computation is complete.
+   *
+   */
+  void wait();
+
+  /**
+   * @brief Check if AF filtering is enabled.
    *
    * @return true if AF filtering is enabled
    */
-  bool enable_af();
+  bool is_enabled() {
+    return !condition_.empty();
+  }
 
   /**
    * @brief Check if the allele at the given position passes the allele filter.
@@ -195,8 +207,8 @@ class VariantStatsReader {
   // Allele frequency map
   AFMap af_map_;
 
-  // If true, query variant stats in parallel with data array.
-  bool async_query_ = false;
+  // If true, query variant stats in parallel with the data array.
+  bool async_query_ = true;
 
   // Future for compute thread
   std::future<void> compute_future_;
