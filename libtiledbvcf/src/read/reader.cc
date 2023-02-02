@@ -1270,6 +1270,8 @@ bool Reader::process_query_results_v4() {
     }
 
     if (apply_af_filter) {
+      af_filter_->wait();
+
       auto csv_alleles = results.buffers()->alleles().value(i);
       auto alleles = utils::split(std::string(csv_alleles));
       LOG_TRACE("alleles = {}", csv_alleles);
@@ -2553,8 +2555,7 @@ void Reader::set_output_dir(const std::string& output_dir) {
 }
 
 bool Reader::af_filter_enabled() {
-  init_af_filter();
-  return af_filter_ ? af_filter_->enable_af() : false;
+  return !params_.af_filter.empty();
 }
 
 void Reader::set_af_filter(const std::string& af_filter) {
