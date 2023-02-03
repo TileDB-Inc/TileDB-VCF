@@ -363,12 +363,19 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
   // Copy an array created with V2 to our test dataset location.
   const std::string dataset_uri_src = input_dir + "/arrays/v2/ingested_1sample";
 
+#ifdef _WIN32
+  // Here's hopin' cmake is available in runtime path...
+  const std::string cp_cmd =
+      "cmake -E copy_directory " + dataset_uri_src + " " + dataset_uri;
+  system(cp_cmd.c_str());
+#else
   // This is obviously a system-specific directory copy but
   // is OK for now because we only support Linux and run CI on Ubuntu.
   const std::string cp_cmd = "cp -r " + dataset_uri_src + " " + dataset_uri;
   FILE* const pipe = popen(cp_cmd.c_str(), "r");
   REQUIRE(pipe != nullptr);
   pclose(pipe);
+#endif
 
   // Open the existing array.
   TileDBVCFDataset ds(std::make_shared<tiledb::Context>(ctx));

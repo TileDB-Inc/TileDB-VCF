@@ -58,9 +58,15 @@ target_include_directories(tiledb_vcf_unit
     ${CMAKE_CURRENT_SOURCE_DIR}/../external/
 )
 
+if (WIN32)
+  set(NEEDED_TILEDB_VCF_TARGET tiledbvcf4test)
+else()
+  set(NEEDED_TILEDB_VCF_TARGET tiledbvcf)
+endif()
 target_link_libraries(tiledb_vcf_unit
   PUBLIC
-    tiledbvcf
+    #tiledbvcf
+    ${NEEDED_TILEDB_VCF_TARGET}
     Catch2::Catch2
 )
 

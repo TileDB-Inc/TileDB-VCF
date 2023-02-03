@@ -56,7 +56,8 @@ if (NOT SPDLOG_FOUND)
   if(SUPERBUILD)
     if (WIN32)
       find_package(Git REQUIRED)
-      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR} && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+      # current directory needs to be where base git file is, hence <>/.., as CMAKE_SOURCE_DIR is below the .git location.
+      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
     else()
       set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
     endif()
@@ -78,6 +79,7 @@ if (NOT SPDLOG_FOUND)
       PATCH_COMMAND
         ${CONDITIONAL_PATCH}
       CMAKE_ARGS
+        #--trace
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
         -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
@@ -87,6 +89,7 @@ if (NOT SPDLOG_FOUND)
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DSPDLOG_BUILD_SHARED=OFF
+        #-DSPDLOG_FMT_EXTERNAL=ON
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE
@@ -127,4 +130,7 @@ endif()
 if (TILEDB_SPDLOG_EP_BUILT AND TARGET spdlog::spdlog)
   include(TileDBCommon)
   install_target_libs(spdlog::spdlog)
+  # see if adding this target avoids the spdlogconfigtargets.cmake complaint attempting
+  # tiledb-vcf build under msys2...
+#  install_target_libs(spdlog::spdlog spdlog::spdlog_header_only)
 endif()
