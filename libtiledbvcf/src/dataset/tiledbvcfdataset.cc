@@ -1069,7 +1069,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
   uint64_t header_data_element = 0;
   uint64_t sample_offset_element = 0;
   uint64_t sample_data_element = 0;
-#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+#if (TILEDB_VERSION_MAJOR == 2) && (TILEDB_VERSION_MINOR < 2)
   std::pair<uint64_t, uint64_t> header_est_size =
       query.est_result_size_var("header");
   header_offset_element =
@@ -1234,7 +1234,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
   uint64_t header_offset_element = 0;
   uint64_t header_data_element = 0;
-#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+#if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR < 2
   std::pair<uint64_t, uint64_t> header_est_size =
       query.est_result_size_var("header");
   header_offset_element =
@@ -2125,7 +2125,7 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
 
   uint64_t sample_offset_element = 0;
   uint64_t sample_data_element = 0;
-#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+#if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR < 2
   // Sample estimate
   std::pair<uint64_t, uint64_t> sample_est_size =
       query.est_result_size_var("sample");
