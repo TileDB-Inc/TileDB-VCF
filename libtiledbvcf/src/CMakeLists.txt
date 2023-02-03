@@ -6,8 +6,8 @@ message(STATUS "Starting TileDB-VCF build.")
 
 find_package(CLI11 REQUIRED)
 find_package(HTSlib REQUIRED)
-find_package(TileDB_EP REQUIRED)
 find_package(Spdlog REQUIRED)
+find_package(TileDB_EP REQUIRED)
 
 ############################################################
 # Get source commit hash
@@ -135,13 +135,30 @@ endif()
 add_library(tiledbvcf SHARED
   $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
 )
+if (WIN32)
+  # tiledb_vcf_unit ref's symbols that are not explicitly part of the exported public interface.
+  # Since Windows/MSVC does not make all symbols in a shared library visible,
+  # Use a cmake feature on a target specifically for tiledb_vcf_unit to export all symbols.
+  add_library(tiledbvcf4test SHARED
+    $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
+  )
+  set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 target_link_libraries(tiledbvcf
   PUBLIC
     HTSlib::HTSlib
     TileDB::tiledb_shared
-    spdlog::spdlog
+# TBD: removing this avoids msvc/windows spdlog build issues, why is it here, why does removing this help?
+#    spdlog::spdlog
 )
+if (WIN32)
+target_link_libraries(tiledbvcf4test
+  PUBLIC
+    HTSlib::HTSlib
+    TileDB::tiledb_shared
+)
+endif()
 
 # Sanitizer linker flags
 if (SANITIZER)
@@ -149,6 +166,12 @@ if (SANITIZER)
           INTERFACE
           -fsanitize=${SANITIZER}
           )
+  if (WIN32)
+  target_link_libraries(tiledbvcf4test
+          INTERFACE
+          -fsanitize=${SANITIZER}
+          )
+  endif()
 endif()
 
 # List of API headers (to be installed)
@@ -179,7 +202,8 @@ target_link_libraries(tiledbvcf-bin
     CLI11::CLI11
     HTSlib::HTSlib
     TileDB::tiledb_shared
-    spdlog::spdlog
+# TBD: removing this avoids msvc/windows spdlog build issues, why is it here, why does removing this help?
+#    spdlog::spdlog
 )
 
 # Sanitizer linker flags
@@ -190,7 +214,7 @@ if (SANITIZER)
           )
 endif()
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT WIN32)
   target_link_libraries(tiledbvcf-bin PRIVATE pthread)
 endif()
 
@@ -242,7 +266,11 @@ include(GNUInstallDirs)
 if (APPLE)
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
 else()
+#TBD: Does anything need to be done different for WIN32?
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
+  if(WIN32)
+    set_target_properties(tiledbvcf4test PROPERTIES INSTALL_RPATH "$ORIGIN/")
+  endif()
 endif()
 
 set_property(
@@ -252,8 +280,13 @@ set_property(
     "${CMAKE_INSTALL_PREFIX}/lib"
 )
 
+if (WIN32)
+  set(TILEDBVCF_EXTRA_INSTALL_TARGETS tiledbvcf4test)
+endif()
+# TBD: how to handle the tiledbvcf4test, don't really want it part of ultimate distribution...
+# ... does release packaging simply need to ignore it?
 install(
-  TARGETS tiledbvcf tiledbvcf-bin
+  TARGETS tiledbvcf tiledbvcf-bin ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

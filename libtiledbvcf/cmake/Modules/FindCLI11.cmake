@@ -48,6 +48,12 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(CLI11
 if (NOT CLI11_FOUND)
   if (SUPERBUILD)
     message(STATUS "Adding CLI11 as an external project")
+    if (WIN32)
+      find_package(Git REQUIRED)
+      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_cli11 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/cli11-2.1.0.patch)
+    else()
+      set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/cli11-2.1.0.patch)
+    endif()
     ExternalProject_Add(ep_cli11
       PREFIX "externals"
       URL "https://github.com/CLIUtils/CLI11/releases/download/v2.1.0/CLI11.hpp"
@@ -64,7 +70,7 @@ if (NOT CLI11_FOUND)
             ${EP_BASE}/src/ep_cli11/CLI11.hpp
             ${EP_INSTALL_PREFIX}/include/
       PATCH_COMMAND
-        patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/cli11-2.1.0.patch
+        ${CONDITIONAL_PATCH}
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE

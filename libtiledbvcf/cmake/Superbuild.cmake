@@ -67,9 +67,11 @@ set(INHERITED_CMAKE_ARGS
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCLI11.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindHTSlib.cmake)
+# need spdlog to set up any of its needed targets...
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog.cmake)
+#... before tiledb sets up only half of them...
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindTileDB_EP.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog.cmake)
 
 ############################################################
 # 'make format' target
