@@ -87,6 +87,7 @@ if (NOT HTSLIB_FOUND)
     #set(MSYS_INVOKE e:/msys64/usr/bin/env MSYSTEM=MINGW64 CHERE_INVOKING=1 /usr/bin/bash -li -x -c )
 
     if(WIN32)
+      if(0)
        set(DRIVE_LETTERS_TO_SEARCH "E")
        include (${CMAKE_SOURCE_DIR}/cmake/Modules/FindInstalledMsysEnvCmd.cmake)
        # returns MSYS2_ENV_CMD containing path to executable if found.
@@ -118,6 +119,10 @@ if (NOT HTSLIB_FOUND)
         #URL_HASH SHA1=36b16f462384af257d292ebeed766f299ec205f5
         UPDATE_COMMAND ""
         PATCH_COMMAND
+          ${MSYS_INVOKE} "cmake -E copy ${EP_BASE}/src/ep_htslib/Makefile ${EP_BASE}/src/ep_htslib/Makefile.orig"
+        #COMMAND
+        #won't exist yet...  ${MSYS_INVOKE} "cmake -E copy ${EP_BASE}/src/ep_htslib/config.mk ${EP_BASE}/src/ep_htslib/config.mk.orig"
+        COMMAND
           ${CONDITIONAL_PATCH}
           #COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.1.15.1.Makefile ${EP_BASE}/src/ep_htslib/Makefile"
           #COMMAND ${MSYS_INVOKE} "cmake -E copy ${CMAKE_SOURCE_DIR}/cmake/patches/htslib.1.15.1.configure.ac ${EP_BASE}/src/ep_htslib/configure.ac"
@@ -152,6 +157,8 @@ if (NOT HTSLIB_FOUND)
             #${MSYS_INVOKE} "CFLAGS=-static CPPFLAGS=-static LDFLAGS=-lregex ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "CFLAGS=\"-static -lregex\" CPPFLAGS=-static  ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
             #${MSYS_INVOKE} "LD_FLAGS=-static ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}"
+          COMMAND
+            ${MSYS_INVOKE} "cmake -E copy ${EP_BASE}/src/ep_htslib/config.mk ${EP_BASE}/src/ep_htslib/config.mk.orig"
 #          COMMAND
 #            ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_htslib ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/htslib.1.15.1.Makefile.patch"
 #          COMMAND
@@ -176,6 +183,7 @@ if (NOT HTSLIB_FOUND)
         LOG_INSTALL TRUE
         LOG_PATCH TRUE
       )
+      endif(0) # for WIN32 section
     else()
       # required to updated htslib configure.ac with autoconf 2.70
       #   - see https://github.com/samtools/htslib/commit/680c0b8ef0ff133d3b572abc80fe66fc2ea965f0
