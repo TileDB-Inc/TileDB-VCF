@@ -225,6 +225,9 @@ void Reader::read(const bool release_buffs) {
   alloc_buffers(release_buffs);
   set_buffers();
 
+  // Release python GIL after we're done accessing python objects.
+  py::gil_scoped_release release;
+
   check_error(reader, tiledb_vcf_reader_read(reader));
   tiledb_vcf_read_status_t status;
   check_error(reader, tiledb_vcf_reader_get_status(reader, &status));
