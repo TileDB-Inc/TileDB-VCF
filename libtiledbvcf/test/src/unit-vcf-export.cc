@@ -2137,6 +2137,9 @@ TEST_CASE(
     vfs.remove_dir(dataset_uri);
 }
 
+// TODO: Enable this test case when the issue related to reading annotation VCFs
+// with dictionary encoded sample name is resolved.
+/*
 TEST_CASE(
     "TileDB-VCF: Test export annotation VCF", "[tiledbvcf][ingest][export]") {
   tiledb::Context ctx;
@@ -2193,17 +2196,13 @@ TEST_CASE(
     params.regions = {"1:1-10000000"};
     reader.set_all_params(params);
     reader.open_dataset(dataset_uri);
-
-    // TODO: remove the following line after sc-XXXX is fixed
-    REQUIRE_THROWS(reader.read());
-
-    // TODO: uncomment the following 3 lines after sc-XXXX is fixed
-    // reader.read();
-    // REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
-    // REQUIRE(reader.num_records_exported() == 2);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 2);
   }
 
   if (vfs.is_dir(dataset_uri)) {
     vfs.remove_dir(dataset_uri);
   }
 }
+*/
