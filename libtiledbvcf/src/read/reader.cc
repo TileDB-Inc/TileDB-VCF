@@ -1113,8 +1113,7 @@ bool Reader::read_current_batch() {
         for (const auto& s : read_state_.current_hdrs_lookup) {
           std::string sample_name = s.first;
           bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
-          exporter_->finalize_export(
-              SampleAndId{sample_name, 0}, hdr);
+          exporter_->finalize_export(SampleAndId{sample_name, 0}, hdr);
         }
       }
     }

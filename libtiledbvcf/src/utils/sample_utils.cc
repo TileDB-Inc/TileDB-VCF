@@ -183,8 +183,7 @@ std::vector<SampleAndIndex> SampleUtils::build_vfs_plugin_sample_list(
   for (const auto& s : samples) {
     // Local URIs can be skipped and read directly with htslib
     if (utils::is_local_uri(s.sample_uri)) {
-      local_paths.push_back(
-          {s.sample_uri, s.index_uri});
+      local_paths.push_back({s.sample_uri, s.index_uri});
       continue;
     }
     local_paths.push_back(build_vfs_plugin_sample_and_index(s));
