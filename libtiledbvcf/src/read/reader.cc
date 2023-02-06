@@ -184,8 +184,8 @@ void Reader::set_buffer_validity_bitmap(
 
 void Reader::init_af_filter() {
   if (!af_filter_ && !params_.af_filter.empty()) {
-    af_filter_ =
-        std::make_unique<VariantStatsReader>(ctx_, dataset_->root_uri());
+    Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group);
     af_filter_->set_condition(params_.af_filter);
   }
 }
@@ -774,11 +774,16 @@ bool Reader::next_read_batch_v4() {
     // Fetch new headers for new sample batch
     if (read_state_.need_headers) {
       read_state_.current_hdrs.clear();
-      read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-          read_state_.current_sample_batches,
-          &read_state_.current_hdrs_lookup,
-          read_state_.all_samples,
-          false);
+      if (params_.export_to_disk) {
+        read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+            read_state_.current_sample_batches,
+            &read_state_.current_hdrs_lookup,
+            read_state_.all_samples,
+            false);
+      } else {
+        read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
+            {}, &read_state_.current_hdrs_lookup, false, true);
+      }
       if (params_.export_combined_vcf) {
         static_cast<PVCFExporter*>(exporter_.get())
             ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
@@ -1265,6 +1270,8 @@ bool Reader::process_query_results_v4() {
     }
 
     if (apply_af_filter) {
+      af_filter_->wait();
+
       auto csv_alleles = results.buffers()->alleles().value(i);
       auto alleles = utils::split(std::string(csv_alleles));
       LOG_TRACE("alleles = {}", csv_alleles);
@@ -2546,8 +2553,7 @@ void Reader::set_output_dir(const std::string& output_dir) {
 }
 
 bool Reader::af_filter_enabled() {
-  init_af_filter();
-  return af_filter_ ? af_filter_->enable_af() : false;
+  return !params_.af_filter.empty();
 }
 
 void Reader::set_af_filter(const std::string& af_filter) {

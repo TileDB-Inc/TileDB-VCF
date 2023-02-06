@@ -47,8 +47,9 @@ class DeleteExporter : public Exporter {
       : ac_(true)
       , vs_(true) {
     need_headers_ = true;
-    ac_.init(ctx, root_uri);
-    vs_.init(ctx, root_uri);
+    Group group(*ctx, root_uri, TILEDB_READ);
+    ac_.init(ctx, group);
+    vs_.init(ctx, group);
   }
 
   ~DeleteExporter() = default;
@@ -86,7 +87,7 @@ class DeleteExporter : public Exporter {
    * @brief Flush and close the stats array writers.
    *
    */
-  void close() {
+  void close() override {
     ac_.flush();
     ac_.close();
     vs_.flush();
