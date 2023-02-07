@@ -86,7 +86,7 @@ if (NOT HTSLIB_FOUND)
     endif()
 
     if(WIN32)
-      if(1)
+      if(0)
        set(DRIVE_LETTERS_TO_SEARCH "E")
        include (${CMAKE_SOURCE_DIR}/cmake/Modules/FindInstalledMsysEnvCmd.cmake)
        # returns MSYS2_ENV_CMD containing path to executable if found.
