@@ -137,6 +137,7 @@ if (NOT HTSLIB_FOUND)
         LOG_INSTALL TRUE
         LOG_PATCH TRUE
       )
+      list(APPEND EXTERNAL_PROJECTS ep_htslib)
       endif() # for WIN32 section active or not
     else()
       # required to updated htslib configure.ac with autoconf 2.70
@@ -168,9 +169,9 @@ if (NOT HTSLIB_FOUND)
         LOG_BUILD TRUE
         LOG_INSTALL TRUE
       )
+      list(APPEND EXTERNAL_PROJECTS ep_htslib)
     endif()
     list(APPEND FORWARD_EP_CMAKE_ARGS -DEP_HTSLIB_BUILT=TRUE)
-    list(APPEND EXTERNAL_PROJECTS ep_htslib)
   else()
     message(FATAL_ERROR "Unable to find HTSlib")
   endif()
