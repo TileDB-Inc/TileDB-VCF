@@ -28,7 +28,7 @@
 #include <sys/resource.h>
 #endif
 #include <future>
-#include <strstream>
+#include <sstream>
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
@@ -1125,18 +1125,17 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     auto st = query->submit();
     if (st != Query::Status::COMPLETE) {
       // LOG_FATAL("Error submitting TileDB write query: status = {}", st);
-      // TBD: Not sure how spdlog interface or our cpp build params changed that 
+      // TBD: Not sure how spdlog interface or our cpp build params changed that
       // spdlog apparently does not like the bare enum....
       // Any more desireable way of handling this?
-      // (Searches found mention of 'formatter', but... that seemed more verbose for
-      // just this one case...
-      // refs
-      // https://github.com/fmtlib/fmt/issues/391
+      // (Searches found mention of 'formatter', but... that seemed more verbose
+      // for just this one case... refs https://github.com/fmtlib/fmt/issues/391
       // https://github.com/gabime/spdlog#user-defined-types
       // )
-      std::strstream st_str;
+      std::stringstream st_str;
       st_str << st;
-      LOG_FATAL("Error submitting TileDB write query: status = {}", st_str.str());
+      LOG_FATAL(
+          "Error submitting TileDB write query: status = {}", st_str.str());
     }
     query->finalize();
   }
