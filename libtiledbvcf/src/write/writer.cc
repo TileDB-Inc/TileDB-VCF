@@ -1124,7 +1124,6 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     // Submit and finalize the query
     auto st = query->submit();
     if (st != Query::Status::COMPLETE) {
-      // LOG_FATAL("Error submitting TileDB write query: status = {}", st);
       // TBD: Not sure how spdlog interface or our cpp build params changed that
       // spdlog apparently does not like the bare enum....
       // Any more desireable way of handling this?
