@@ -86,6 +86,15 @@ if (NOT HTSLIB_FOUND)
     endif()
 
     if(WIN32)
+      # TBD: This section will be changing when we have official source to pull our
+      # elsewhere built msys2 htslib dll, the 'if (1)' is here short-term to make
+      # disabling this build effort for 'external' inclusion of current experimental
+      # msys2 builds coming from elsewhere.
+      # When that final/intended functionality is in place, the other modules
+      # FindInstalledMsysEnvCmd.cmake, FindWinDrvLet.cmake, ModHTSConfigLIBS.cmake, along
+      # with most of the htslib*patches, the *hts_defs.h*patch and *vcf.h*patch may still be
+      # needed if they have not yet been incorporated into the build we are building/pulling
+      # from.
       if(1)
        set(DRIVE_LETTERS_TO_SEARCH "E")
        include (${CMAKE_SOURCE_DIR}/cmake/Modules/FindInstalledMsysEnvCmd.cmake)
