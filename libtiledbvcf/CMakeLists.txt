@@ -87,7 +87,7 @@ if(WIN32 AND NOT MSYS)
   #Note: also seems MSVC not yet set at this point, so can't check 'if (MSVC)'.
   #TBD: figure out approp. compile options to set for WIN32/MSVC if they need to
   # be different from cmake defaults
-  if (BUILD_TYPE MATCHES "[DD][EE][BB][UU][GG]")
+  if (BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
     set(CMAKE_BUILD_TYPE "Debug")
   elseif (BUILD_TYPE MATCHES [Rr][Ee][Ll][Ww][Ii][Tt][Hh][Ii][Nn][Ff][Oo])
     set(CMAKE_BUILD_TYPE "RelWithDebInfo")
@@ -113,7 +113,6 @@ add_definitions(-D_FILE_OFFSET_BITS=64)
 ############################################################
 
 # Search the externals install directory for dependencies.
-set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 list(APPEND CMAKE_PREFIX_PATH "${EP_INSTALL_PREFIX}")
 
 # If this is an in-IDE build, we need to disable the superbuild and explicitly
@@ -136,6 +135,7 @@ message(STATUS "Starting TileDB-VCF regular build.")
 
 # Paths to locate the installed external projects.
 set(EP_SOURCE_DIR "${EP_BASE}/src")
+set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 
 ############################################################
 # Regular build
