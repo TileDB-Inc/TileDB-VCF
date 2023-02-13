@@ -83,7 +83,7 @@ if (NOT HTSLIB_FOUND)
     #   - and https://github.com/samtools/htslib/pull/1198/commits/6821fc8ed88706e9282b561e74dfa45dac4d74c8
 
     if(WIN32)
-      message(FATAL_ERROR "cmake drive builds under WIN32 not currently supported, build/fetch functdionality not yet being merged."
+      message(FATAL_ERROR "cmake drive builds under WIN32 not currently supported, build/fetch functdionality not yet being merged.")
     else()
       # required to updated htslib configure.ac with autoconf 2.70
       #   - see https://github.com/samtools/htslib/commit/680c0b8ef0ff133d3b572abc80fe66fc2ea965f0
