@@ -148,6 +148,7 @@ void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
+  remote_ = query_->array().uri().find("file://") == std::string::npos;
 }
 
 void AlleleCount::finalize() {
@@ -158,7 +159,13 @@ void AlleleCount::finalize() {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("AlleleCount: Finalize query with {} records", contig_records_);
   contig_records_ = 0;
-  query_->finalize();
+
+  if (remote_) {
+    // TODO: Ensure there is valid data left for this submit.
+    query_->submit_and_finalize();
+  } else {
+    query_->finalize();
+  }
 
   // Write fragment uri -> sample names to array metadata
   auto frag_num = query_->fragment_num();
@@ -195,7 +202,12 @@ void AlleleCount::close() {
   LOG_DEBUG("AlleleCount: Close array");
 
   if (query_ != nullptr) {
-    query_->finalize();
+    if (remote_) {
+      // TODO: Ensure there is valid data left for this submit.
+      query_->submit_and_finalize();
+    } else {
+      query_->finalize();
+    }
     query_ = nullptr;
   }
 
@@ -317,9 +329,12 @@ void AlleleCount::flush() {
         .set_offsets_buffer(COLUMN_NAME[GT], gt_offsets_)
         .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
 
-    auto st = query_->submit();
+    // TODO: Hold last submit for submit_and_finalize on remote arrays.
+//    if (!remote_ || !last_submit) {
+      query_->submit();
+//    }
 
-    if (st != Query::Status::COMPLETE) {
+    if (query_->query_status() != Query::Status::COMPLETE) {
       LOG_FATAL("AlleleCount: error submitting TileDB write query");
     }
 

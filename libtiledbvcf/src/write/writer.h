@@ -370,6 +370,12 @@ class Writer {
 
  private:
   /* ********************************* */
+  /*     PRIVATE STATIC ATTRIBUTES     */
+  /* ********************************* */
+
+  inline static bool remote_ = false;
+
+  /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
 
