@@ -83,6 +83,7 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     // If the dataset doesn't exist lets not error out, the user might be
     // creating a new dataset
   }
+  remote_ = query_->array().uri().find("file://") == std::string::npos;
 }
 
 void Writer::init(const IngestionParams& params) {
@@ -608,11 +609,17 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (worker->records_buffered() > 0) {
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
-          auto st = query_->submit();
-          if (st != Query::Status::COMPLETE)
+          // TODO: Hold the last submit for submit_and_finalize on remote
+          // arrays.
+          //          if (!remote_ ||  !last_submit) {
+          query_->submit();
+          //          }
+
+          if (query_->query_status() != Query::Status::COMPLETE) {
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
+          }
 
           LOG_INFO(
               "Writing {} for contig {} (task {} / {})",
@@ -1006,11 +1013,18 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
-          auto st = query_->submit();
-          if (st != Query::Status::COMPLETE)
+          // TODO: Hold the last submit for submit_and_finalize on remote
+          // arrays.
+          //          if (!remote_ ||  !last_submit) {
+          query_->submit();
+          //          }
+
+          if (query_->query_status() != Query::Status::COMPLETE) {
             throw std::runtime_error(
                 "Error submitting TileDB write query; unexpected query "
                 "status.");
+          }
+
           {
             auto first = worker->buffers().start_pos().value<uint32_t>(0);
             auto nelts = worker->buffers().start_pos().nelts<uint32_t>();
@@ -1122,23 +1136,32 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     worker.buffers().set_buffers(query.get(), dataset_->metadata().version);
 
     // Submit and finalize the query
-    auto st = query->submit();
-    if (st != Query::Status::COMPLETE) {
-      // TBD: Not sure how spdlog interface or our cpp build params changed that
-      // spdlog apparently does not like the bare enum....
-      // Any more desireable way of handling this?
-      // (Searches found mention of 'formatter', but... that seemed more verbose
-      // for just this one case... refs https://github.com/fmtlib/fmt/issues/391
-      // https://github.com/gabime/spdlog#user-defined-types
-      // )
-      std::stringstream st_str;
-      st_str << st;
-      LOG_FATAL(
-          "Error submitting TileDB write query: status = {}", st_str.str());
+    if (remote_) {
+      query->submit_and_finalize();
+    } else {
+      auto st = query->submit();
+      if (st != Query::Status::COMPLETE) {
+        // TBD: Not sure how spdlog interface or our cpp build params changed
+        // that spdlog apparently does not like the bare enum.... Any more
+        // desireable way of handling this? (Searches found mention of
+        // 'formatter', but... that seemed more verbose for just this one
+        // case... refs https://github.com/fmtlib/fmt/issues/391
+        // https://github.com/gabime/spdlog#user-defined-types
+        // )
+        std::stringstream st_str;
+        st_str << st;
+        LOG_FATAL(
+            "Error submitting TileDB write query: status = {}", st_str.str());
+      }
+      query->finalize();
     }
-    query->finalize();
-  }
 
+    if (query->query_status() != Query::Status::COMPLETE) {
+      LOG_FATAL(
+          "Error submitting TileDB write query: status = {}",
+          query->query_status());
+    }
+  }
   return records;
 }
 
@@ -1356,7 +1379,12 @@ void Writer::dataset_version(int32_t* version) const {
 }
 
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
-  query->finalize();
+  if (remote_) {
+    // TODO: Ensure there is valid data left for this submit.
+    query->submit_and_finalize();
+  } else {
+    query->finalize();
+  }
 }
 
 void Writer::set_sample_batch_size(const uint64_t size) {
