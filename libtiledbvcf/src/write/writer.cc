@@ -137,6 +137,7 @@ void Writer::init(const IngestionParams& params) {
   Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::init(ctx_, group);
   VariantStats::init(ctx_, group);
+  remote_ = query_->array().uri().find("file://") == std::string::npos;
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -908,6 +909,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     for (unsigned i = 0; i < tasks.size(); i++) {
       if (!tasks[i].valid())
         continue;
+      bool next_task_valid = i + 1 < tasks.size() && tasks[i + 1].valid();
 
       WriterWorker* worker = workers[i].get();
       bool task_complete = false;
@@ -983,8 +985,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // NOTE: Finalize after the stats arrays and anchor fragment
                 // are finalized to ensure a valid data fragment will have
                 // corresponding valid stats and anchor fragments.
-                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
-                    std::launch::async, finalize_query, std::move(query_))));
+                query_->submit_and_finalize();
+                //                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
+                //                    std::launch::async, finalize_query,
+                //                    std::move(query_))));
 
                 // End finalize of previous contig.
                 //=================================================================
@@ -1015,14 +1019,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
               query_.get(), dataset_->metadata().version);
           // TODO: Hold the last submit for submit_and_finalize on remote
           // arrays.
-          //          if (!remote_ ||  !last_submit) {
-          query_->submit();
-          //          }
+          if (!remote_ || !finished || next_task_valid) {
+            query_->submit();
+            // TODO: Set the query status to complete if we cache the entire
+            // submit
+            //              if (query_->query_status() !=
+            //              Query::Status::COMPLETE) {
+            if (query_->query_status() == Query::Status::FAILED) {
+              throw std::runtime_error(
+                  "Error submitting TileDB write query; unexpected query "
+                  "status.");
+            }
+          }
 
-          if (query_->query_status() != Query::Status::COMPLETE) {
-            throw std::runtime_error(
-                "Error submitting TileDB write query; unexpected query "
-                "status.");
+          if (finished) {
+            LOG_DEBUG("Finalizing worker tasks...");
           }
 
           {
@@ -1056,7 +1067,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         records_ingested += worker->records_buffered();
 
         // Drain anchors from the worker into the anchor_worker
-        static_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
+        dynamic_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
@@ -1108,8 +1119,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // NOTE: Finalize after the stats arrays and anchor fragment
   // are finalized to ensure a valid data fragment will have
   // corresponding valid stats and anchor fragments.
-  TRY_CATCH_THROW(finalize_tasks_.emplace_back(
-      std::async(std::launch::async, finalize_query, std::move(query_))));
+  query_->submit_and_finalize();
+  //  TRY_CATCH_THROW(finalize_tasks_.emplace_back(
+  //      std::async(std::launch::async, finalize_query, std::move(query_))));
 
   // End finalize of last contig.
   //=================================================================
