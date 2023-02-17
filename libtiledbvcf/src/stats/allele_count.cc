@@ -148,7 +148,7 @@ void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
-  remote_ = query_->array().uri().find("file://") == std::string::npos;
+  remote_ = uri.find("file://") == std::string::npos;
 }
 
 void AlleleCount::finalize() {
@@ -161,7 +161,6 @@ void AlleleCount::finalize() {
   contig_records_ = 0;
 
   if (remote_) {
-    // TODO: Ensure there is valid data left for this submit.
     query_->submit_and_finalize();
   } else {
     query_->finalize();
@@ -203,7 +202,6 @@ void AlleleCount::close() {
 
   if (query_ != nullptr) {
     if (remote_) {
-      // TODO: Ensure there is valid data left for this submit.
       query_->submit_and_finalize();
     } else {
       query_->finalize();
@@ -329,18 +327,36 @@ void AlleleCount::flush() {
         .set_offsets_buffer(COLUMN_NAME[GT], gt_offsets_)
         .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
 
-    // TODO: Hold last submit for submit_and_finalize on remote arrays.
-//    if (!remote_ || !last_submit) {
-      query_->submit();
-//    }
+    query_->submit();
 
-    if (query_->query_status() != Query::Status::COMPLETE) {
-      LOG_FATAL("AlleleCount: error submitting TileDB write query");
+    if (remote_) {
+      if (query_->query_status() == Query::Status::FAILED) {
+        LOG_FATAL("AlleleCount: error submitting TileDB write query");
+      }
+    } else {
+      if (query_->query_status() != Query::Status::COMPLETE) {
+        LOG_FATAL("AlleleCount: error submitting TileDB write query");
+      }
     }
 
     // Insert sample names from this query into the set of fragment sample names
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
+  }
+
+  // For remote global order writes, zero query buffers prior to
+  // submit_and_finalize.
+  if (remote_) {
+    query_
+        ->set_buffer(
+            COLUMN_NAME[CONTIG], contig_offsets_.data(), 0, &contig_buffer_, 0)
+        .set_buffer(COLUMN_NAME[POS], pos_buffer_.data(), 0)
+        .set_buffer(COLUMN_NAME[REF], ref_offsets_.data(), 0, &ref_buffer_, 0)
+        .set_buffer(COLUMN_NAME[ALT], alt_offsets_.data(), 0, &alt_buffer_, 0)
+        .set_buffer(
+            COLUMN_NAME[FILTER], filter_offsets_.data(), 0, &filter_buffer_, 0)
+        .set_buffer(COLUMN_NAME[GT], gt_offsets_.data(), 0, &gt_buffer_, 0)
+        .set_buffer(COLUMN_NAME[COUNT], count_buffer_.data(), 0);
   }
 
   // Clear buffers

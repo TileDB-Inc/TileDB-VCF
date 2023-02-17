@@ -147,7 +147,7 @@ void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
   query_ = std::make_unique<Query>(*ctx, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
   ctx_ = ctx;
-  remote_ = query_->array().uri().find("file://") == std::string::npos;
+  remote_ = uri.find("file://") == std::string::npos;
 }
 
 void VariantStats::finalize() {
@@ -160,7 +160,6 @@ void VariantStats::finalize() {
   contig_records_ = 0;
 
   if (remote_) {
-    // TODO: Ensure there is valid data left for this submit.
     query_->submit_and_finalize();
   } else {
     query_->finalize();
@@ -202,7 +201,6 @@ void VariantStats::close() {
 
   if (query_ != nullptr) {
     if (remote_) {
-      // TODO: Ensure there is valid data left for this submit.
       query_->submit_and_finalize();
     } else {
       query_->finalize();
@@ -326,18 +324,35 @@ void VariantStats::flush() {
       query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
     }
 
-    // TODO: Hold the final submit for submit_and_finalize on remote arrays.
-//    if (!remote_ || !last_submit)
-      query_->submit();
-//    }
+    query_->submit();
 
-    if (query_->query_status() != Query::Status::COMPLETE) {
-      LOG_FATAL("VariantStats: error submitting TileDB write query");
+    if (remote_) {
+      if (query_->query_status() == Query::Status::FAILED) {
+        LOG_FATAL("VariantStats: error submitting TileDB write query");
+      }
+    } else {
+      if (query_->query_status() != Query::Status::COMPLETE) {
+        LOG_FATAL("VariantStats: error submitting TileDB write query");
+      }
     }
 
     // Insert sample names from this query into the set of fragment sample names
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
+  }
+
+  // For remote global order writes, zero query buffers prior to
+  // submit_and_finalize.
+  if (remote_) {
+    query_
+        ->set_buffer(
+            COLUMN_STR[CONTIG], contig_offsets_.data(), 0, contig_buffer_.data(), 0)
+        .set_buffer(COLUMN_STR[POS], pos_buffer_.data(), 0)
+        .set_buffer(
+            COLUMN_STR[ALLELE], allele_offsets_.data(), 0, allele_buffer_.data(), 0);
+    for (int i = 0; i < LAST_; i++) {
+      query_->set_buffer(ATTR_STR[i], attr_buffers_[i].data(), 0);
+    }
   }
 
   // Clear buffers

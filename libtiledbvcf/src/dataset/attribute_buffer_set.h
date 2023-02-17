@@ -109,6 +109,12 @@ class AttributeBufferSet {
   /** Sets these buffers on the given TileDB query. */
   void set_buffers(tiledb::Query* query, unsigned version) const;
 
+  /**
+   * Zero buffer sizes on the given TileDB query.
+   * Does not modify or clear buffers in AttributeBufferSet.
+   */
+  void clear_query_buffers(tiledb::Query* query, unsigned version) const;
+
   /** Clears all buffers. */
   void clear();
 
