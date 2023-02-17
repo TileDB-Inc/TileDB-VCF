@@ -346,10 +346,18 @@ void VariantStats::flush() {
   if (remote_) {
     query_
         ->set_buffer(
-            COLUMN_STR[CONTIG], contig_offsets_.data(), 0, contig_buffer_.data(), 0)
+            COLUMN_STR[CONTIG],
+            contig_offsets_.data(),
+            0,
+            contig_buffer_.data(),
+            0)
         .set_buffer(COLUMN_STR[POS], pos_buffer_.data(), 0)
         .set_buffer(
-            COLUMN_STR[ALLELE], allele_offsets_.data(), 0, allele_buffer_.data(), 0);
+            COLUMN_STR[ALLELE],
+            allele_offsets_.data(),
+            0,
+            allele_buffer_.data(),
+            0);
     for (int i = 0; i < LAST_; i++) {
       query_->set_buffer(ATTR_STR[i], attr_buffers_[i].data(), 0);
     }

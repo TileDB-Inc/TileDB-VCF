@@ -615,10 +615,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
           query_->submit();
-          if (remote_) {
-            worker->buffers().clear_query_buffers(
-                query_.get(), dataset_->metadata().version);
-          }
 
           if (remote_) {
             if (query_->query_status() == Query::Status::FAILED) {
@@ -627,6 +623,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
                   "status: {}",
                   query_->query_status());
             }
+            worker->buffers().clear_query_buffers(
+                query_.get(), dataset_->metadata().version);
           } else {
             if (query_->query_status() != Query::Status::COMPLETE) {
               LOG_FATAL(
