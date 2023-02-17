@@ -83,7 +83,7 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     // If the dataset doesn't exist lets not error out, the user might be
     // creating a new dataset
   }
-  remote_ = query_->array().uri().find("file://") == std::string::npos;
+  remote_ = uri.find("file://") == std::string::npos;
 }
 
 void Writer::init(const IngestionParams& params) {
@@ -137,7 +137,7 @@ void Writer::init(const IngestionParams& params) {
   Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::init(ctx_, group);
   VariantStats::init(ctx_, group);
-  remote_ = query_->array().uri().find("file://") == std::string::npos;
+  remote_ = dataset_->data_uri().find("file://") == std::string::npos;
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -456,7 +456,11 @@ void Writer::ingest_samples() {
     result = ingest_samples(ingestion_params_, local_samples, regions);
 
     // Make sure to finalize for v2/v3
-    query_->finalize();
+    if (remote_) {
+      query_->submit_and_finalize();
+    } else {
+      query_->finalize();
+    }
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     result = ingest_samples_v4(
@@ -610,16 +614,26 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (worker->records_buffered() > 0) {
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
-          // TODO: Hold the last submit for submit_and_finalize on remote
-          // arrays.
-          //          if (!remote_ ||  !last_submit) {
           query_->submit();
-          //          }
+          if (remote_) {
+            worker->buffers().clear_query_buffers(
+                query_.get(), dataset_->metadata().version);
+          }
 
-          if (query_->query_status() != Query::Status::COMPLETE) {
-            throw std::runtime_error(
-                "Error submitting TileDB write query; unexpected query "
-                "status.");
+          if (remote_) {
+            if (query_->query_status() == Query::Status::FAILED) {
+              LOG_FATAL(
+                  "Error submitting TileDB write query; unexpected query "
+                  "status: {}",
+                  query_->query_status());
+            }
+          } else {
+            if (query_->query_status() != Query::Status::COMPLETE) {
+              LOG_FATAL(
+                  "Error submitting TileDB write query; unexpected query "
+                  "status: {}",
+                  query_->query_status());
+            }
           }
 
           LOG_INFO(
@@ -909,7 +923,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     for (unsigned i = 0; i < tasks.size(); i++) {
       if (!tasks[i].valid())
         continue;
-      bool next_task_valid = i + 1 < tasks.size() && tasks[i + 1].valid();
 
       WriterWorker* worker = workers[i].get();
       bool task_complete = false;
@@ -980,15 +993,17 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // Write and finalize anchors stored in the anchor worker.
                 anchors_ingested += write_anchors(anchor_worker);
 
+                if (remote_) {
+                  worker->buffers().clear_query_buffers(
+                      query_.get(), dataset_->metadata().version);
+                }
                 // Finalize fragment for this contig async
                 // it is okay to move the query because we reset it next.
                 // NOTE: Finalize after the stats arrays and anchor fragment
                 // are finalized to ensure a valid data fragment will have
                 // corresponding valid stats and anchor fragments.
-                query_->submit_and_finalize();
-                //                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
-                //                    std::launch::async, finalize_query,
-                //                    std::move(query_))));
+                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
+                    std::launch::async, finalize_query, std::move(query_))));
 
                 // End finalize of previous contig.
                 //=================================================================
@@ -1017,23 +1032,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
-          // TODO: Hold the last submit for submit_and_finalize on remote
-          // arrays.
-          if (!remote_ || !finished || next_task_valid) {
-            query_->submit();
-            // TODO: Set the query status to complete if we cache the entire
-            // submit
-            //              if (query_->query_status() !=
-            //              Query::Status::COMPLETE) {
-            if (query_->query_status() == Query::Status::FAILED) {
-              throw std::runtime_error(
-                  "Error submitting TileDB write query; unexpected query "
-                  "status.");
-            }
-          }
 
-          if (finished) {
-            LOG_DEBUG("Finalizing worker tasks...");
+          query_->submit();
+          if (remote_) {
+            // TODO: Set query status to complete if we cache entire submit
+            if (query_->query_status() == Query::Status::FAILED) {
+              LOG_FATAL(
+                  "Error submitting TileDB write query: status = {}",
+                  query_->query_status());
+            }
+          } else {
+            if (query_->query_status() != Query::Status::COMPLETE) {
+              LOG_FATAL(
+                  "Error submitting TileDB write query: status = {}",
+                  query_->query_status());
+            }
           }
 
           {
@@ -1091,6 +1104,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           break;
         }
       }
+
+      if (finished && remote_) {
+        worker->buffers().clear_query_buffers(
+            query_.get(), dataset_->metadata().version);
+      }
     }
     if (records_ingested > prev_records) {
       LOG_INFO(
@@ -1119,9 +1137,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // NOTE: Finalize after the stats arrays and anchor fragment
   // are finalized to ensure a valid data fragment will have
   // corresponding valid stats and anchor fragments.
-  query_->submit_and_finalize();
-  //  TRY_CATCH_THROW(finalize_tasks_.emplace_back(
-  //      std::async(std::launch::async, finalize_query, std::move(query_))));
+  TRY_CATCH_THROW(finalize_tasks_.emplace_back(
+      std::async(std::launch::async, finalize_query, std::move(query_))));
 
   // End finalize of last contig.
   //=================================================================
@@ -1150,6 +1167,11 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     // Submit and finalize the query
     if (remote_) {
       query->submit_and_finalize();
+      if (query->query_status() == Query::Status::FAILED) {
+        LOG_FATAL(
+            "Error submitting TileDB write query: status = {}",
+            query->query_status());
+      }
     } else {
       auto st = query->submit();
       if (st != Query::Status::COMPLETE) {
@@ -1166,12 +1188,6 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
             "Error submitting TileDB write query: status = {}", st_str.str());
       }
       query->finalize();
-    }
-
-    if (query->query_status() != Query::Status::COMPLETE) {
-      LOG_FATAL(
-          "Error submitting TileDB write query: status = {}",
-          query->query_status());
     }
   }
   return records;
@@ -1392,7 +1408,6 @@ void Writer::dataset_version(int32_t* version) const {
 
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
   if (remote_) {
-    // TODO: Ensure there is valid data left for this submit.
     query->submit_and_finalize();
   } else {
     query->finalize();
