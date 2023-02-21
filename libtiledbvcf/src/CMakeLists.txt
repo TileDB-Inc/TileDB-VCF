@@ -1,6 +1,39 @@
 message(STATUS "Starting TileDB-VCF build.")
 
 ############################################################
+## from https://stackoverflow.com/a/56738858
+## https://stackoverflow.com/questions/32183975/how-to-print-all-the-properties-of-a-target-in-cmake/56738858#56738858
+## https://stackoverflow.com/a/56738858/3743145
+
+## Get all properties that cmake supports
+execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+## Convert command output into a CMake list
+STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+
+list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
+
+function(print_target_properties tgt)
+    if(NOT TARGET ${tgt})
+      message("There is no target named '${tgt}'")
+      return()
+    endif()
+
+    foreach (prop ${CMAKE_PROPERTY_LIST})
+        if(prop MATCHES "LOCATION")
+          continue()
+        endif()
+        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
+        get_target_property(propval ${tgt} ${prop})
+        if (propval)
+            message ("${tgt} ${prop} = ${propval}")
+        endif()
+    endforeach(prop)
+endfunction(print_target_properties)
+include(CMakePrintHelpers)
+############################################################
+
+############################################################
 # Find required dependencies
 ############################################################
 
@@ -94,6 +127,8 @@ add_library(TILEDB_VCF_OBJECTS OBJECT
 
 set_property(TARGET TILEDB_VCF_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+print_target_properties(spdlog::spdlog)
+
 target_include_directories(TILEDB_VCF_OBJECTS
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -103,9 +138,38 @@ target_include_directories(TILEDB_VCF_OBJECTS
     $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
+
 target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
   -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
+#  PUBLIC
+#    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
 )
+if(0)
+target_compile_definitions(TILEDB_VCF_OBJECTS 
+  PUBLIC
+#    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
+#  INTERFACE 
+#  PRIVATE
+    spdlog::spdlog
+)
+#target_compile_options(TILEDB_VCF_OBJECTS 
+##  PUBLIC
+##    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
+#  INTERFACE spdlog::spdlog
+#)
+
+message("before tll(TILEDB_VCF_OBJECTS)")
+print_target_properties(TILEDB_VCF_OBJECTS)
+
+# SEEMS this does -not- pull in INTERFACE_COMPILE_DEFINITIONS from spdlog::spdlog!!!
+target_link_libraries(TILEDB_VCF_OBJECTS
+#  PUBLIC
+  INTERFACE
+    spdlog::spdlog
+)
+message("after tll(TILEDB_VCF_OBJECTS)")
+print_target_properties(TILEDB_VCF_OBJECTS)
+endif()
 
 ############################################################
 # Compile options/definitions
@@ -143,15 +207,31 @@ if (WIN32)
     $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
   )
   set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+#  set_property(TARGET tiledbvcf PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-target_link_libraries(tiledbvcf
-  PUBLIC
-    HTSlib::HTSlib
-    TileDB::tiledb_shared
-# TBD: removing this avoids msvc/windows spdlog build issues, why is it here, why does removing this help?
-#    spdlog::spdlog
-)
+if(!WIN32)
+  target_link_libraries(tiledbvcf
+    PUBLIC
+      HTSlib::HTSlib
+      TileDB::tiledb_shared
+     spdlog::spdlog
+  )
+else()
+  target_link_libraries(tiledbvcf
+    PUBLIC
+      HTSlib::HTSlib
+      TileDB::tiledb_shared
+  # spdlog is somehow building under tiledbvcf using HEADER_ONLY source code paths, 
+  # which results in multiply defined symbols being complained about by the msvc linker.
+  # tiledbvcf does not seem to be -requesting- ...HEADER_ONLY anywhere I've found and spdlog -default-
+  # build mode is supposed to be ...COMPILED_LIB, but something is interfering somewhere.
+  #    spdlog::spdlog
+  )
+endif()
+
+print_target_properties(tiledbvcf)
+
 if (WIN32)
 target_link_libraries(tiledbvcf4test
   PUBLIC
@@ -197,14 +277,27 @@ add_executable(tiledbvcf-bin
 
 set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
 
-target_link_libraries(tiledbvcf-bin
-  PUBLIC
-    CLI11::CLI11
-    HTSlib::HTSlib
-    TileDB::tiledb_shared
-# TBD: removing this avoids msvc/windows spdlog build issues, why is it here, why does removing this help?
-#    spdlog::spdlog
-)
+if(!WIN32)
+  target_link_libraries(tiledbvcf-bin
+    PUBLIC
+      CLI11::CLI11
+      HTSlib::HTSlib
+      TileDB::tiledb_shared
+     spdlog::spdlog
+  )
+else()
+  target_link_libraries(tiledbvcf-bin
+    PUBLIC
+      CLI11::CLI11
+      HTSlib::HTSlib
+      TileDB::tiledb_shared
+    # spdlog is somehow building under tiledbvcf using HEADER_ONLY source code paths, 
+    # which results in multiply defined symbols being complained about by the msvc linker.
+    # tiledbvcf does not seem to be -requesting- ...HEADER_ONLY anywhere I've found and spdlog -default-
+    # build mode is supposed to be ...COMPILED_LIB, but something is interfering somewhere.
+  #    spdlog::spdlog
+  )
+endif()
 
 # Sanitizer linker flags
 if (SANITIZER)
@@ -266,7 +359,6 @@ include(GNUInstallDirs)
 if (APPLE)
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
 else()
-#TBD: Does anything need to be done different for WIN32?
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
   if(WIN32)
     set_target_properties(tiledbvcf4test PROPERTIES INSTALL_RPATH "$ORIGIN/")

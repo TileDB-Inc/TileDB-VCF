@@ -30,6 +30,39 @@
 #   - SPDLOG_FOUND, whether Spdlog has been found
 #   - The spdlog::spdlog imported target
 
+############################################################
+## from https://stackoverflow.com/a/56738858
+## https://stackoverflow.com/questions/32183975/how-to-print-all-the-properties-of-a-target-in-cmake/56738858#56738858
+## https://stackoverflow.com/a/56738858/3743145
+
+## Get all properties that cmake supports
+execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+## Convert command output into a CMake list
+STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+
+list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
+
+function(print_target_properties tgt)
+    if(NOT TARGET ${tgt})
+      message("There is no target named '${tgt}'")
+      return()
+    endif()
+
+    foreach (prop ${CMAKE_PROPERTY_LIST})
+        if(prop MATCHES "LOCATION")
+          continue()
+        endif()
+        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
+        get_target_property(propval ${tgt} ${prop})
+        if (propval)
+            message ("${tgt} ${prop} = ${propval}")
+        endif()
+    endforeach(prop)
+endfunction(print_target_properties)
+include(CMakePrintHelpers)
+############################################################
+
 # Include some common helper functions.
 include(TileDBCommon)
 
@@ -58,8 +91,10 @@ if (NOT SPDLOG_FOUND)
       find_package(Git REQUIRED)
       # current directory needs to be where base git file is, hence <>/.., as CMAKE_SOURCE_DIR is below the .git location.
       set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+      #set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.errhdronlypath.patch)
     else()
       set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+      #set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch && patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.errhdronlypath.patch)
     endif()
 
     # if building ep_tiledb, make spdlog depend on ep_tiledb, so tiledb finds its required version of spdlog
@@ -78,6 +113,10 @@ if (NOT SPDLOG_FOUND)
       URL_HASH SHA1=4075d3da589d2000cffbd53ea8d31715a64ff8c6
       PATCH_COMMAND
         ${CONDITIONAL_PATCH}
+#        COMMAND
+#          ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.example.CMakeLists.txt ${EP_SOURCE_DIR}/ep_spdlog/example/CMakeLists.txt
+#        COMMAND
+#          ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.example.cpp ${EP_SOURCE_DIR}/ep_spdlog/example/example.cpp
       CMAKE_ARGS
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
@@ -88,7 +127,9 @@ if (NOT SPDLOG_FOUND)
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DSPDLOG_BUILD_SHARED=OFF
-        -DSPDLOG_BUILD_EXAMPLE=OFF
+        -DSPDLOG_BUILD_EXAMPLE=ON #OFF
+#      BUILD_COMMAND
+#        ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE} -- /v:diag
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE
@@ -102,9 +143,13 @@ if (NOT SPDLOG_FOUND)
   else()
     message(FATAL_ERROR "Unable to find spdlog")
   endif()
+else()
+print_target_properties(spdlog)
+print_target_properties(spdlog::spdlog)
 endif()
 
 if (spdlog_FOUND AND NOT TARGET spdlog::spdlog)
+message(FATAL_ERROR "creating spdlog::splog target, *BAD*!")
   add_library(spdlog::spdlog INTERFACE IMPORTED)
   find_package(fmt QUIET)
   if (${fmt_FOUND})

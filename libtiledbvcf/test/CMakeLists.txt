@@ -60,6 +60,7 @@ target_include_directories(tiledb_vcf_unit
 
 if (WIN32)
   set(NEEDED_TILEDB_VCF_TARGET tiledbvcf4test)
+#  set(NEEDED_TILEDB_VCF_TARGET tiledbvcf)
 else()
   set(NEEDED_TILEDB_VCF_TARGET tiledbvcf)
 endif()

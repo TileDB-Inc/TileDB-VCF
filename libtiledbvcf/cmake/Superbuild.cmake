@@ -100,6 +100,7 @@ endif()
 ExternalProject_Add(libtiledbvcf
   SOURCE_DIR ${PROJECT_SOURCE_DIR}
   CMAKE_ARGS
+#    --debug
     -DSUPERBUILD=OFF
     ${INHERITED_CMAKE_ARGS}
     ${FORWARD_EP_CMAKE_ARGS}

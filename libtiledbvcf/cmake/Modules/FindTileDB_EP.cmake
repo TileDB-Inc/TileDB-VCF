@@ -50,12 +50,6 @@ else()
         if (WIN32) # Windows
           SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.14.0/tiledb-windows-x86_64-2.14.0-27eed08.zip")
           SET(DOWNLOAD_SHA1 "d1c823823e689b42de1bfc193140af7178adf810")
-          #SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/archive/2.13.0.zip")
-          #SET(DOWNLOAD_SHA1 "2bb9f4f20702bdc0471df4ece58d5d06e89dc6d8")
-          #SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/archive/2.13.2.zip")
-          #SET(DOWNLOAD_SHA1 "32a533d0381f826720e8cd7c6834f1b248ef08b1")
-          #SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.13.0/tiledb-windows-x86_64-2.13.0-db00e70.zip")
-          #SET(DOWNLOAD_SHA1 "e38b77c672ff885c47d50e89fba8b344cd4ebe38")        
         elseif(APPLE) # OSX
 
           if (CMAKE_OSX_ARCHITECTURES STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64|amd64)|(^i.86$)")
@@ -87,14 +81,11 @@ else()
                 LOG_INSTALL FALSE
                 )
     else() # Build from source
-      #set(CONDITIONAL_PATCH ${MSYS_INVOKE} "cd ${CMAKE_SOURCE_DIR}/.. && git apply --no-index --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_tiledb ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/tiledb.1.patch")
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
           URL "https://github.com/TileDB-Inc/TileDB/archive/2.14.0.zip"
           URL_HASH SHA1=aef02a467df51d33306498d740a206be448f118f
           DOWNLOAD_NAME "tiledb.zip"
-          #PATCH_COMMAND
-          #   ${CONDITIONAL_PATCH}
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
             -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
