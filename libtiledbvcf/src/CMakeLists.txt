@@ -1,39 +1,6 @@
 message(STATUS "Starting TileDB-VCF build.")
 
 ############################################################
-## from https://stackoverflow.com/a/56738858
-## https://stackoverflow.com/questions/32183975/how-to-print-all-the-properties-of-a-target-in-cmake/56738858#56738858
-## https://stackoverflow.com/a/56738858/3743145
-
-## Get all properties that cmake supports
-execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
-## Convert command output into a CMake list
-STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-
-list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
-
-function(print_target_properties tgt)
-    if(NOT TARGET ${tgt})
-      message("There is no target named '${tgt}'")
-      return()
-    endif()
-
-    foreach (prop ${CMAKE_PROPERTY_LIST})
-        if(prop MATCHES "LOCATION")
-          continue()
-        endif()
-        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
-        get_target_property(propval ${tgt} ${prop})
-        if (propval)
-            message ("${tgt} ${prop} = ${propval}")
-        endif()
-    endforeach(prop)
-endfunction(print_target_properties)
-include(CMakePrintHelpers)
-############################################################
-
-############################################################
 # Find required dependencies
 ############################################################
 
@@ -127,8 +94,6 @@ add_library(TILEDB_VCF_OBJECTS OBJECT
 
 set_property(TARGET TILEDB_VCF_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-print_target_properties(spdlog::spdlog)
-
 target_include_directories(TILEDB_VCF_OBJECTS
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -138,39 +103,9 @@ target_include_directories(TILEDB_VCF_OBJECTS
     $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-
 target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
   -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
-#  PUBLIC
-#    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
 )
-if(0)
-target_compile_definitions(TILEDB_VCF_OBJECTS 
-  PUBLIC
-#    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
-#  INTERFACE 
-#  PRIVATE
-    spdlog::spdlog
-)
-#target_compile_options(TILEDB_VCF_OBJECTS 
-##  PUBLIC
-##    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_COMPILE_DEFINITIONS>
-#  INTERFACE spdlog::spdlog
-#)
-
-message("before tll(TILEDB_VCF_OBJECTS)")
-print_target_properties(TILEDB_VCF_OBJECTS)
-
-# SEEMS this does -not- pull in INTERFACE_COMPILE_DEFINITIONS from spdlog::spdlog!!!
-target_link_libraries(TILEDB_VCF_OBJECTS
-#  PUBLIC
-  INTERFACE
-    spdlog::spdlog
-)
-message("after tll(TILEDB_VCF_OBJECTS)")
-print_target_properties(TILEDB_VCF_OBJECTS)
-endif()
-
 ############################################################
 # Compile options/definitions
 ############################################################
@@ -207,7 +142,6 @@ if (WIN32)
     $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
   )
   set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
-#  set_property(TARGET tiledbvcf PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 if(!WIN32)
@@ -229,8 +163,6 @@ else()
   #    spdlog::spdlog
   )
 endif()
-
-print_target_properties(tiledbvcf)
 
 if (WIN32)
 target_link_libraries(tiledbvcf4test

@@ -890,10 +890,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
   uint32_t last_start_pos = 0;
   int last_merged_fragment_index = 0;
-  std::string last_region_contig = workers[0]->region().seq_name;
-  std::string starting_region_contig_for_merge = workers[0]->region().seq_name;
-  //std::string last_region_contig = regions[0].seq_name;
-  //std::string starting_region_contig_for_merge = regions[0].seq_name;
+  std::string last_region_contig = regions[0].seq_name;
+  std::string starting_region_contig_for_merge = regions[0].seq_name;
   bool finished = tasks.empty();
   while (!finished) {
     finished = true;
