@@ -368,11 +368,10 @@ void AlleleCount::process(
 
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
-
-  // Skip missing GT
-  if (ngt <= 0 || bcf_gt_is_missing(dst_[0])) {
-    return;
-  }
+  int gt0 = bcf_gt_allele(dst_[0]);
+  int gt1 = bcf_gt_allele(dst_[1]);
+  int gt0_missing = bcf_gt_is_missing(dst_[0]);
+  int gt1_missing = bcf_gt_is_missing(dst_[1]);
 
   // Only haploid and diploid are supported
   if (ngt > 2) {
@@ -384,13 +383,17 @@ void AlleleCount::process(
         ngt);
   }
 
-  // Skip if homozygous ref or missing allele
-  if (bcf_gt_allele(dst_[0]) == 0 || bcf_gt_is_missing(dst_[0])) {
-    if (ngt == 1) {
-      return;  // haploid
-    } else if (bcf_gt_allele(dst_[1]) == 0 || bcf_gt_is_missing(dst_[1])) {
-      return;  // diploid
+  // Skip if homozygous ref or alleles are missing
+  if (ngt == 1) {
+    if (gt0 == 0 || gt0_missing) {
+      return;
     }
+  } else if (ngt == 2) {
+    if ((gt0 == 0 && gt1 == 0) || (gt0_missing && gt1_missing)) {
+      return;
+    }
+  } else {
+    return;  // ngt <= 0
   }
 
   // Build FILTER value string
@@ -413,17 +416,17 @@ void AlleleCount::process(
   std::string gt;
   if (ngt == 1) {
     // haploid
-    int gt0 = bcf_gt_allele(dst_[0]);
     alt = rec->d.allele[gt0];
     gt = "1";
   } else {
     // diploid
-    int gt0 = bcf_gt_allele(dst_[0]);
-    int gt1 = bcf_gt_allele(dst_[1]);
-    std::string_view alt0{rec->d.allele[gt0]};
-    std::string_view alt1{rec->d.allele[gt1]};
+    std::string_view alt0{gt0_missing ? "." : rec->d.allele[gt0]};
+    std::string_view alt1{gt1_missing ? "." : rec->d.allele[gt1]};
 
-    if (!gt0 || !gt1) {
+    if (gt0_missing || gt1_missing) {
+      gt = ".,1";
+      alt = gt0_missing ? alt1 : alt0;
+    } else if (!gt0 || !gt1) {
       gt = "0,1";
       alt = gt0 ? alt0 : alt1;
     } else if (gt0 == gt1) {
