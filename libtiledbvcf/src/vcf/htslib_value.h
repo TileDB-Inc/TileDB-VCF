@@ -47,7 +47,7 @@ struct HtslibValueMem {
 
   ~HtslibValueMem() {
     if (dst != nullptr)
-      free(dst);
+      hts_free(dst);
   }
 
   HtslibValueMem(const HtslibValueMem&) = delete;

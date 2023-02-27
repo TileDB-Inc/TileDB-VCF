@@ -956,7 +956,11 @@ bool InMemoryExporter::copy_info_fmt_value(
   if (is_gt) {
     // Genotype needs special handling to be decoded.
     const int* genotype = reinterpret_cast<const int*>(src);
+#ifdef _MSC_VER
+    int* decoded = (int*)_alloca(nelts * sizeof(int));
+#else
     int decoded[nelts];
+#endif
     for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
     return copy_cell(dest, decoded, nelts * sizeof(int), nelts, hdr);

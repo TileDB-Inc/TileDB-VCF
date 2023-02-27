@@ -946,7 +946,7 @@ void Reader::init_exporter() {
           exporter_.reset(
               new TSVExporter(params_.output_path, params_.tsv_fields));
           break;
-        case ExportFormat::DELETE:
+        case ExportFormat::Delete:
           exporter_.reset(new DeleteExporter(ctx_, params_.uri));
           break;
         default:
@@ -1113,8 +1113,7 @@ bool Reader::read_current_batch() {
         for (const auto& s : read_state_.current_hdrs_lookup) {
           std::string sample_name = s.first;
           bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
-          exporter_->finalize_export(
-              SampleAndId{.sample_name = sample_name, .sample_id = 0}, hdr);
+          exporter_->finalize_export(SampleAndId{sample_name, 0}, hdr);
         }
       }
     }
@@ -1716,7 +1715,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
           "Error preparing sample list for export; sample '" + s +
           "' has not been registered.");
 
-    result.push_back({.sample_name = name, .sample_id = it->second});
+    result.push_back({name, it->second});
   }
 
   if (!params_.samples_file_uri.empty()) {
@@ -1735,7 +1734,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
             "Error preparing sample list for export; sample '" + *line +
             "' has not been registered.");
 
-      result.push_back({.sample_name = name, .sample_id = it->second});
+      result.push_back({name, it->second});
     };
     utils::read_file_lines(*vfs_, params_.samples_file_uri, per_line);
   }
@@ -1749,7 +1748,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names() const {
         throw std::runtime_error(
             "Error preparing sample list for export; sample '" + s +
             "' has not been registered.");
-      result.push_back({.sample_name = s, .sample_id = it->second});
+      result.push_back({s, it->second});
     }
   }
 
@@ -1770,7 +1769,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
           "Error preparing sample list for export; sample name '" + s +
           "' is invalid.");
 
-    result.push_back({.sample_name = name, .sample_id = 0});
+    result.push_back({name, 0});
   }
 
   if (!params_.samples_file_uri.empty()) {
@@ -1794,9 +1793,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
                   "Error preparing sample list for export; sample '" + *line +
                   "' has not been registered.");
 
-            result.push_back(
-                {.sample_name = name,
-                 .sample_id = static_cast<uint32_t>(result.size())});
+            result.push_back({name, static_cast<uint32_t>(result.size())});
           }
         };
     utils::read_file_lines(*vfs_, params_.samples_file_uri, per_line);
@@ -1809,7 +1806,7 @@ std::vector<SampleAndId> Reader::prepare_sample_names_v4(
     if (params_.sample_partitioning.num_partitions > 1) {
       const auto& samples = dataset_->get_all_samples_from_vcf_headers();
       for (const auto& s : samples) {
-        result.push_back({.sample_name = s, .sample_id = 0});
+        result.push_back({s, 0});
       }
     }
     *all_samples = true;

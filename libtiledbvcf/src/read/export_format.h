@@ -31,7 +31,7 @@ namespace tiledb {
 namespace vcf {
 
 /** For to-disk exports, the output format. */
-enum class ExportFormat { CompressedBCF, BCF, VCFGZ, VCF, TSV, DELETE };
+enum class ExportFormat { CompressedBCF, BCF, VCFGZ, VCF, TSV, Delete };
 
 }  // namespace vcf
 }  // namespace tiledb

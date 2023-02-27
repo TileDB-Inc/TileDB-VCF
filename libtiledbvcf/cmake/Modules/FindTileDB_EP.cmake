@@ -90,10 +90,12 @@ else()
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
             -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
             -DTILEDB_S3=${TILEDB_S3}
+            -DTILEDB_SKIP_S3AWSSDK_DIR_LENGTH_CHECK=ON # for windows build
             -DTILEDB_VERBOSE=ON
             -DTILEDB_SERIALIZATION=ON
             -DTILEDB_TESTS=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DTILEDB_WERROR=OFF #avoid the pointer p use after free issue...
           UPDATE_COMMAND ""
           INSTALL_COMMAND
             ${CMAKE_COMMAND} --build . --target install-tiledb

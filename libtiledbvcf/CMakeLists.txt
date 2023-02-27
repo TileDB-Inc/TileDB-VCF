@@ -80,13 +80,32 @@ endif()
 
 # Add some global compiler flags
 string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
-if (BUILD_TYPE STREQUAL "DEBUG")
-  add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
-elseif (BUILD_TYPE STREQUAL "RELEASE")
-  add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+if(WIN32 AND NOT MSYS)
+  #Note: seems this branch is taken even when -G "MSYS Makefiles" was used to invoke at top-level!
+  #(cmake --version was 3.24.1 when this apparent failure encountered...)
+  message(STATUS "configuring for WIN32, MSYS is \"${MSYS}\", MSVC is \"${MSVC}\"")
+  #Note: also seems MSVC not yet set at this point, so can't check 'if (MSVC)'.
+  #TBD: figure out approp. compile options to set for WIN32/MSVC if they need to
+  # be different from cmake defaults
+  if (BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+    set(CMAKE_BUILD_TYPE "Debug")
+  elseif (BUILD_TYPE MATCHES [Rr][Ee][Ll][Ww][Ii][Tt][Hh][Ii][Nn][Ff][Oo])
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+  elseif (BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
+    set(CMAKE_BUILD_TYPE "Release")
+  endif()
+  message(WARNING "Building without deprecation warnings")
+  # /wd4996 - no deprecated
+  add_compile_options(/wd4996)
+else()
+  if (BUILD_TYPE STREQUAL "DEBUG")
+    add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
+  elseif (BUILD_TYPE STREQUAL "RELEASE")
+    add_compile_options(-DNDEBUG -O3 -Wall -Werror)
+  endif()
+  message(WARNING "Building without deprecation warnings")
+  add_compile_options(-Wno-deprecated-declarations)
 endif()
-message(WARNING "Building without deprecation warnings")
-add_compile_options(-Wno-deprecated-declarations)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 ############################################################

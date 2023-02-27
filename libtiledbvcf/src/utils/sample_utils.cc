@@ -51,8 +51,7 @@ std::vector<SampleAndIndex> SampleUtils::get_samples(
   std::vector<SampleAndIndex> local_paths;
   for (const auto& s : samples) {
     if (utils::is_local_uri(s.sample_uri)) {
-      local_paths.push_back(
-          {.sample_uri = s.sample_uri, .index_uri = s.index_uri});
+      local_paths.push_back({s.sample_uri, s.index_uri});
       continue;
     }
 
@@ -101,7 +100,7 @@ std::vector<SampleAndIndex> SampleUtils::get_samples(
           "'; could not find index.");
     }
 
-    local_paths.push_back({.sample_uri = sample_path, .index_uri = idx_path});
+    local_paths.push_back({sample_path, idx_path});
   }
 
   return local_paths;
@@ -148,16 +147,16 @@ std::vector<SampleAndIndex> SampleUtils::build_samples_uri_list(
       if (pair.empty())
         return;
       if (pair.size() >= 2)
-        result.push_back({.sample_uri = pair[0], .index_uri = pair[1]});
+        result.push_back({pair[0], pair[1]});
       else
-        result.push_back({.sample_uri = pair[0]});
+        result.push_back({pair[0]});
     };
     utils::read_file_lines(vfs, samples_file_uri, per_line);
   }
 
   // Add any explicitly passed samples.
   for (const auto& uri : samples_uri_list)
-    result.push_back({.sample_uri = uri});
+    result.push_back({uri});
 
   return result;
 }
@@ -174,8 +173,8 @@ std::string SampleUtils::build_vfs_plugin_uri(const std::string& uri) {
 SampleAndIndex SampleUtils::build_vfs_plugin_sample_and_index(
     const SampleAndIndex& sample) {
   return {
-      .sample_uri = build_vfs_plugin_uri(sample.sample_uri),
-      .index_uri = build_vfs_plugin_uri(sample.index_uri)};
+      build_vfs_plugin_uri(sample.sample_uri),
+      build_vfs_plugin_uri(sample.index_uri)};
 }
 
 std::vector<SampleAndIndex> SampleUtils::build_vfs_plugin_sample_list(
@@ -184,8 +183,7 @@ std::vector<SampleAndIndex> SampleUtils::build_vfs_plugin_sample_list(
   for (const auto& s : samples) {
     // Local URIs can be skipped and read directly with htslib
     if (utils::is_local_uri(s.sample_uri)) {
-      local_paths.push_back(
-          {.sample_uri = s.sample_uri, .index_uri = s.index_uri});
+      local_paths.push_back({s.sample_uri, s.index_uri});
       continue;
     }
     local_paths.push_back(build_vfs_plugin_sample_and_index(s));

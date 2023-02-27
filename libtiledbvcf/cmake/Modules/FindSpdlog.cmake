@@ -56,7 +56,8 @@ if (NOT SPDLOG_FOUND)
   if(SUPERBUILD)
     if (WIN32)
       find_package(Git REQUIRED)
-      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR} && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
+      # current directory needs to be where base git file is, hence <>/.., as CMAKE_SOURCE_DIR is below the .git location.
+      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
     else()
       set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
     endif()
@@ -73,8 +74,8 @@ if (NOT SPDLOG_FOUND)
       PREFIX "externals"
       # Set download name to avoid collisions with only the version number in the filename
       DOWNLOAD_NAME ep_spdlog.zip
-      URL "https://github.com/gabime/spdlog/archive/v1.9.0.zip"
-      URL_HASH SHA1=6259d1b6c5b9b565aa3ba5a6315d49f76d90ec0a
+      URL "https://github.com/gabime/spdlog/archive/v1.11.0.zip"
+      URL_HASH SHA1=4075d3da589d2000cffbd53ea8d31715a64ff8c6
       PATCH_COMMAND
         ${CONDITIONAL_PATCH}
       CMAKE_ARGS
@@ -87,6 +88,7 @@ if (NOT SPDLOG_FOUND)
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DSPDLOG_BUILD_SHARED=OFF
+        -DSPDLOG_BUILD_EXAMPLE=ON #OFF
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE
