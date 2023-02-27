@@ -225,7 +225,12 @@ void Reader::read(const bool release_buffs) {
   alloc_buffers(release_buffs);
   set_buffers();
 
-  check_error(reader, tiledb_vcf_reader_read(reader));
+  {
+    // Release python GIL while reading data from TileDB
+    py::gil_scoped_release release;
+    check_error(reader, tiledb_vcf_reader_read(reader));
+  }
+
   tiledb_vcf_read_status_t status;
   check_error(reader, tiledb_vcf_reader_get_status(reader, &status));
   if (status != TILEDB_VCF_COMPLETED && status != TILEDB_VCF_INCOMPLETE)

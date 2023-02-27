@@ -2136,3 +2136,73 @@ TEST_CASE(
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);
 }
+
+// TODO: Enable this test case when the issue related to reading annotation VCFs
+// with dictionary encoded sample name is resolved.
+/*
+TEST_CASE(
+    "TileDB-VCF: Test export annotation VCF", "[tiledbvcf][ingest][export]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+
+  CreationParams create_args;
+  create_args.uri = dataset_uri;
+  TileDBVCFDataset::create(create_args);
+
+  // Ingest annotation vcf
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/no-sample.bcf"};
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Read from annotation vcf
+  {
+    Reader reader;
+
+    // Allocate some buffers to receive data
+    UserBuffer sample_name, pos, info_ac;
+    sample_name.resize(3 * 1024);
+    sample_name.offsets().resize(3 * 100);
+    sample_name.bitmap().resize(3 * 100);
+    pos.resize(3 * 1024);
+    info_ac.resize(3 * 1024);
+    info_ac.offsets().resize(3 * 100);
+    info_ac.bitmap().resize(3 * 100);
+
+    // Set buffers on the reader
+    reader.set_buffer_values(
+        "sample_name", sample_name.data<void>(), sample_name.size());
+    reader.set_buffer_offsets(
+        "sample_name",
+        sample_name.offsets().data(),
+        sample_name.offsets().size() * sizeof(int32_t));
+    reader.set_buffer_values("pos_start", pos.data<void>(), pos.size());
+
+    reader.set_buffer_values("info_AC", info_ac.data<void>(), info_ac.size());
+    reader.set_buffer_offsets(
+        "info_AC", info_ac.offsets().data(), info_ac.offsets().size());
+
+    ExportParams params;
+    params.uri = dataset_uri;
+    params.regions = {"1:1-10000000"};
+    reader.set_all_params(params);
+    reader.open_dataset(dataset_uri);
+    reader.read();
+    REQUIRE(reader.read_status() == ReadStatus::COMPLETED);
+    REQUIRE(reader.num_records_exported() == 2);
+  }
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+}
+*/
