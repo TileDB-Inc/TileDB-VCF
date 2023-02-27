@@ -213,9 +213,7 @@ TEST_CASE("TileDB-VCF: Test ingest annotation VCF", "[tiledbvcf][ingest]") {
     REQUIRE_THROWS(writer.ingest_samples());
   }
 
-  // Ingest vcf without sample name
-  // TODO: enable this test
-  /*
+  // Ingest annotation vcf
   {
     Writer writer;
     IngestionParams params;
@@ -224,7 +222,6 @@ TEST_CASE("TileDB-VCF: Test ingest annotation VCF", "[tiledbvcf][ingest]") {
     writer.set_all_params(params);
     writer.ingest_samples();
   }
-  */
 
   if (vfs.is_dir(dataset_uri))
     vfs.remove_dir(dataset_uri);

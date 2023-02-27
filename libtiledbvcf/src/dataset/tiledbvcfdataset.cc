@@ -1050,184 +1050,172 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
-  // Capture NED and return empty results if the array is empty
-  auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
-  if (non_empty_domain.first.empty() && non_empty_domain.second.empty()) {
-    return result;
-  }
-
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
         "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
-  // Fetch the required VCF headers in this do/while(!retry) loop.
-  // A retry will only be required if fetching the first sample and the first
-  // sample was deleted.
-  bool retry = false;
-  do {
-    Query query(*ctx_, *vcf_header_array_);
+  Query query(*ctx_, *vcf_header_array_);
 
-    // Add first sample from NED captured above to the range, unless retrying
-    // because the first sample was deleted.
-    if (first_sample && !retry) {
-      query.add_range(0, non_empty_domain.first, non_empty_domain.first);
-    }
-
-    // Add samples from input param to query range, if not fetching all samples.
-    if (!all_samples) {
+  if (!samples.empty()) {
+    // If all samples but we have a sample list we know its sorted and can use
+    // the min/max
+    if (all_samples) {
+      query.add_range(
+          0, samples[0].sample_name, samples[samples.size() - 1].sample_name);
+    } else {
       for (const auto& sample : samples) {
         query.add_range(0, sample.sample_name, sample.sample_name);
       }
     }
+  } else if (all_samples) {
+    // When no samples are passed grab the first one
+    auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
+    if (!non_empty_domain.first.empty())
+      query.add_range(0, non_empty_domain.first, non_empty_domain.second);
+  } else if (first_sample) {
+    // When no samples are passed grab the first one
+    auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
+    if (!non_empty_domain.first.empty())
+      query.add_range(0, non_empty_domain.first, non_empty_domain.first);
+  }
+  query.set_layout(TILEDB_ROW_MAJOR);
 
-    query.set_layout(TILEDB_ROW_MAJOR);
+  uint64_t header_offset_element = 0;
+  uint64_t header_data_element = 0;
+  uint64_t sample_offset_element = 0;
+  uint64_t sample_data_element = 0;
+#if TILEDB_VERSION_MAJOR == 2 and TILEDB_VERSION_MINOR < 2
+  std::pair<uint64_t, uint64_t> header_est_size =
+      query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size.first, static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size.second / sizeof(char), static_cast<uint64_t>(1));
 
-    uint64_t header_offset_element = 0;
-    uint64_t header_data_element = 0;
-    uint64_t sample_offset_element = 0;
-    uint64_t sample_data_element = 0;
+  // Sample estimate
+  std::pair<uint64_t, uint64_t> sample_est_size =
+      query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size.first, static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size.second / sizeof(char), static_cast<uint64_t>(1));
+#else
+  std::array<uint64_t, 2> header_est_size = query.est_result_size_var("header");
+  header_offset_element =
+      std::max(header_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  header_data_element =
+      std::max(header_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+
+  // Sample estimate
+  std::array<uint64_t, 2> sample_est_size = query.est_result_size_var("sample");
+  sample_offset_element =
+      std::max(sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
+  sample_data_element =
+      std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+#endif
+
+  std::vector<uint64_t> offsets(header_offset_element);
+  std::vector<char> data(header_data_element);
+  std::vector<uint64_t> sample_offsets(sample_offset_element);
+  std::vector<char> sample_data(sample_data_element);
+  LOG_DEBUG(
+      "[fetch_vcf_headers_v4] allocate done (VmRSS = {})",
+      utils::memory_usage_str());
+
+  Query::Status status;
+  uint32_t sample_idx = 0;
+
+  do {
+    // Always reset buffer to avoid issue with core library and REST not using
+    // original buffer sizes
+    query.set_buffer("header", offsets, data);
+    query.set_buffer("sample", sample_offsets, sample_data);
+
+    status = query.submit();
 
     LOG_DEBUG(
-        "[fetch_vcf_headers_v4] estimate start (VmRSS = {})",
+        "[fetch_vcf_headers_v4] query done (VmRSS = {})",
         utils::memory_usage_str());
 
-    std::array<uint64_t, 2> header_est_size =
-        query.est_result_size_var("header");
-    header_offset_element = std::max(
-        header_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
-    header_data_element =
-        std::max(header_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+    auto result_el = query.result_buffer_elements();
+    uint64_t num_offsets = result_el["header"].first;
+    uint64_t num_chars = result_el["header"].second;
+    uint64_t num_samples_offsets = result_el["sample"].first;
+    uint64_t num_samples_chars = result_el["sample"].second;
 
-    // Sample estimate
-    std::array<uint64_t, 2> sample_est_size =
-        query.est_result_size_var("sample");
-    sample_offset_element = std::max(
-        sample_est_size[0] / sizeof(uint64_t), static_cast<uint64_t>(1));
-    sample_data_element =
-        std::max(sample_est_size[1] / sizeof(char), static_cast<uint64_t>(1));
+    bool has_results = num_chars != 0;
 
-    LOG_DEBUG(
-        "[fetch_vcf_headers_v4] allocate start (VmRSS = {})",
-        utils::memory_usage_str());
-    std::vector<uint64_t> offsets(header_offset_element);
-    std::vector<char> data(header_data_element);
-    std::vector<uint64_t> sample_offsets(sample_offset_element);
-    std::vector<char> sample_data(sample_data_element);
-    LOG_DEBUG(
-        "[fetch_vcf_headers_v4] allocate done (VmRSS = {})",
-        utils::memory_usage_str());
+    if (status == Query::Status::INCOMPLETE && !has_results) {
+      // If there are no results, double the size of the buffer and then
+      // resubmit the query.
 
-    Query::Status status;
-    uint32_t sample_idx = 0;
-    bool exit_query = false;
+      if (num_chars == 0)
+        data.resize(data.size() * 2);
 
-    // Loop on an incomplete query
-    do {
-      // Always reset buffer to avoid issue with core library and REST not using
-      // original buffer sizes
-      query.set_buffer("header", offsets, data);
-      query.set_buffer("sample", sample_offsets, sample_data);
+      if (num_offsets == 0)
+        offsets.resize(offsets.size() * 2);
 
-      status = query.submit();
+      if (num_samples_chars == 0)
+        sample_data.resize(sample_data.size() * 2);
 
-      LOG_DEBUG(
-          "[fetch_vcf_headers_v4] query done (VmRSS = {})",
-          utils::memory_usage_str());
+      if (num_samples_offsets == 0)
+        sample_offsets.resize(sample_offsets.size() * 2);
 
-      auto result_el = query.result_buffer_elements();
-      uint64_t num_offsets = result_el["header"].first;
-      uint64_t num_chars = result_el["header"].second;
-      uint64_t num_samples_offsets = result_el["sample"].first;
-      uint64_t num_samples_chars = result_el["sample"].second;
+    } else if (has_results) {
+      // Parse the samples.
 
-      bool has_results = num_chars != 0;
+      for (size_t offset_idx = 0; offset_idx < num_offsets; ++offset_idx) {
+        // Get sample
+        char* sample_beg = sample_data.data() + sample_offsets[offset_idx];
+        uint64_t sample_end = offset_idx == num_samples_offsets - 1 ?
+                                  num_samples_chars :
+                                  sample_offsets[offset_idx + 1];
+        uint64_t sample_size = sample_end - sample_offsets[offset_idx];
+        std::string sample(sample_beg, sample_size);
 
-      if (status == Query::Status::INCOMPLETE && !has_results) {
-        // If there are no results, double the size of the buffer and then
-        // resubmit the query.
+        char* beg_hdr = data.data() + offsets[offset_idx];
+        uint64_t end =
+            offset_idx == num_offsets - 1 ? num_chars : offsets[offset_idx + 1];
+        uint64_t start = offsets[offset_idx];
+        uint64_t hdr_size = end - start;
 
-        if (num_chars == 0)
-          data.resize(data.size() * 2);
+        std::string hdr_str(beg_hdr, hdr_size);
 
-        if (num_offsets == 0)
-          offsets.resize(offsets.size() * 2);
+        bcf_hdr_t* hdr = bcf_hdr_init("r");
+        if (!hdr)
+          throw std::runtime_error(
+              "Error fetching VCF header data; error allocating VCF header.");
 
-        if (num_samples_chars == 0)
-          sample_data.resize(sample_data.size() * 2);
+        if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
+          throw std::runtime_error(
+              "TileDBVCFDataset::fetch_vcf_headers_v4: Error parsing the BCF "
+              "header for sample " +
+              sample + ".");
+        }
 
-        if (num_samples_offsets == 0)
-          sample_offsets.resize(sample_offsets.size() * 2);
-
-      } else if (first_sample && !has_results) {
-        LOG_DEBUG(
-            "[fetch_vcf_headers_v4] first sample deleted, retry (VmRSS = "
-            "{})",
-            utils::memory_usage_str());
-        retry = true;
-      } else if (has_results) {
-        retry = false;
-        // Parse the samples.
-
-        for (size_t offset_idx = 0; offset_idx < num_offsets; ++offset_idx) {
-          // Get sample
-          char* sample_beg = sample_data.data() + sample_offsets[offset_idx];
-          uint64_t sample_end = offset_idx == num_samples_offsets - 1 ?
-                                    num_samples_chars :
-                                    sample_offsets[offset_idx + 1];
-          uint64_t sample_size = sample_end - sample_offsets[offset_idx];
-          std::string sample(sample_beg, sample_size);
-
-          char* beg_hdr = data.data() + offsets[offset_idx];
-          uint64_t end = offset_idx == num_offsets - 1 ?
-                             num_chars :
-                             offsets[offset_idx + 1];
-          uint64_t start = offsets[offset_idx];
-          uint64_t hdr_size = end - start;
-
-          std::string hdr_str(beg_hdr, hdr_size);
-
-          bcf_hdr_t* hdr = bcf_hdr_init("r");
-          if (!hdr)
+        if (!sample.empty()) {
+          if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
             throw std::runtime_error(
-                "Error fetching VCF header data; error allocating VCF header.");
-
-          if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
-            throw std::runtime_error(
-                "TileDBVCFDataset::fetch_vcf_headers_v4: Error parsing the BCF "
-                "header for sample " +
+                "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample "
+                "to "
+                "BCF header for sample " +
                 sample + ".");
           }
-
-          if (!sample.empty()) {
-            if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
-              throw std::runtime_error(
-                  "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample "
-                  "to "
-                  "BCF header for sample " +
-                  sample + ".");
-            }
-          }
-
-          if (bcf_hdr_sync(hdr) < 0)
-            throw std::runtime_error(
-                "Error in bcftools: failed to update VCF header.");
-
-          result.emplace(
-              std::make_pair(sample_idx, SafeBCFHdr(hdr, bcf_hdr_destroy)));
-          if (lookup_map != nullptr)
-            (*lookup_map)[sample] = sample_idx;
-
-          ++sample_idx;
-
-          // Exit the query if only looking for the first sample.
-          if (first_sample) {
-            exit_query = true;
-            break;
-          }
         }
+
+        if (bcf_hdr_sync(hdr) < 0)
+          throw std::runtime_error(
+              "Error in bcftools: failed to update VCF header.");
+
+        result.emplace(
+            std::make_pair(sample_idx, SafeBCFHdr(hdr, bcf_hdr_destroy)));
+        if (lookup_map != nullptr)
+          (*lookup_map)[sample] = sample_idx;
+
+        ++sample_idx;
       }
-    } while (status == Query::Status::INCOMPLETE && !exit_query);
-  } while (retry);
+    }
+  } while (status == Query::Status::INCOMPLETE);
 
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();
