@@ -364,10 +364,32 @@ void VariantStats::process(
 
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
+  int gt0 = bcf_gt_allele(dst_[0]);
+  int gt1 = bcf_gt_allele(dst_[1]);
+  int gt0_missing = bcf_gt_is_missing(dst_[0]);
+  int gt1_missing = bcf_gt_is_missing(dst_[1]);
 
-  // Skip missing GT
-  if (ngt <= 0 || bcf_gt_is_missing(dst_[0])) {
-    return;
+  // Only haploid and diploid are supported
+  if (ngt > 2) {
+    LOG_FATAL(
+        "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
+        sample_name,
+        contig,
+        pos,
+        ngt);
+  }
+
+  // Skip if alleles are missing
+  if (ngt == 1) {
+    if (gt0_missing) {
+      return;
+    }
+  } else if (ngt == 2) {
+    if (gt0_missing && gt1_missing) {
+      return;
+    }
+  } else {
+    return;  // ngt <= 0
   }
 
   // Add sample name to the set of sample name in this query
@@ -377,30 +399,21 @@ void VariantStats::process(
   auto ref = rec->d.allele[0];
   values_[ref][N_CALLED] += count_delta_;
 
-  int gt0 = bcf_gt_allele(dst_[0]);
-  std::string allele0 = rec->d.allele[gt0];
+  // If not missing, update allele count for GT[0]
+  if (!gt0_missing) {
+    std::string alt0 = rec->d.allele[gt0];
+    values_[alt0][AC] += count_delta_;
+  }
 
-  // Update allele count for GT[0]
-  values_[allele0][AC] += count_delta_;
-
-  if (ngt == 2) {
-    int gt1 = bcf_gt_allele(dst_[1]);
-    std::string allele1 = rec->d.allele[gt1];
-
-    // Update allele count for GT[1]
-    values_[allele1][AC] += count_delta_;
+  // If not missing, update allele count for GT[1]
+  if (ngt == 2 && !gt1_missing) {
+    std::string alt1 = rec->d.allele[gt1];
+    values_[alt1][AC] += count_delta_;
 
     // Update homozygote count, only diploid genotype calls are counted
     if (gt0 == gt1) {
-      values_[allele1][N_HOM] += count_delta_;
+      values_[alt1][N_HOM] += count_delta_;
     }
-  } else if (ngt > 2) {
-    LOG_FATAL(
-        "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
-        sample_name,
-        contig,
-        pos,
-        ngt);
   }
 }
 

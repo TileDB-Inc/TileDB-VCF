@@ -8,7 +8,7 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 # Enable tracing
-set -x
+set -ex
 
 build_dir=$PWD/$1
 input_dir=$PWD/$2
@@ -485,11 +485,12 @@ echo "** End expected error messages."
 clean_up
 
 #test ingesting with stats enabled, and querying with IAF
+# also test ingesting stats where one allele is missing (chr2 in first.vcf)
 mkdir -p ${upload_dir}/outputs
 cp -R ${input_dir}/stats ${upload_dir}
 for file in ${upload_dir}/stats/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
 for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
-$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats --log-level trace
+$tilevcf create -u ${upload_dir}/pre_test --enable-variant-stats --enable-allele-count --log-level trace
 $tilevcf store -u ${upload_dir}/pre_test --log-level trace ${upload_dir}/stats/*.vcf.gz
 $tilevcf export -u ${upload_dir}/pre_test -d ${upload_dir}/outputs -Ov --af-filter '< 0.2' --log-level trace
 test ! -e ${upload_dir}/outputs/first.vcf || exit 1

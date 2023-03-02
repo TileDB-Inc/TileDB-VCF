@@ -11,3 +11,5 @@ chr1	1	.	T	C,<NON_REF>	829.77	.	ExcessHet=3.0103	GT	0/1
 chr1	2	.	G	GTTTA,T,<NON_REF>	1042.73	.	ExcessHet=4.8532	GT	0/1
 chr1	3	.	C	A,G	10.032	.	ExcessHet=2.0134	GT	2/2
 chr1	4	.	G	GTTTA,<NON_REF>	1042.73	.	ExcessHet=4.8532	GT	1/1
+chr2	1	.	G	GTTTA	1042.73	.	ExcessHet=4.8532	GT	./1
+chr2	1	.	G	GTTTA	1042.73	.	ExcessHet=4.8532	GT	1/.
