@@ -2255,7 +2255,7 @@ void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   LOG_DEBUG("Consolidate vcf_header array commits.");
   consolidate_vcf_header_array_commits(params);
   LOG_DEBUG("Consolidate allele_count array commits.");
-  Group group(*ctx_, root_uri_, TILEDB_READ);
+  Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::consolidate_commits(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array commits.");
   VariantStats::consolidate_commits(ctx_, group);
@@ -2284,7 +2284,7 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
   LOG_DEBUG("Consolidate vcf_header array fragment metadata.");
   consolidate_vcf_header_array_fragment_metadata(params);
   LOG_DEBUG("Consolidate allele_count array fragment metadata.");
-  Group group(*ctx_, root_uri_, TILEDB_READ);
+  Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::consolidate_fragment_metadata(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array fragment metadata.");
   VariantStats::consolidate_fragment_metadata(ctx_, group);
@@ -2332,7 +2332,7 @@ void TileDBVCFDataset::vacuum_commits(const UtilsParams& params) {
   LOG_DEBUG("Vacuum vcf_header array commits.");
   vacuum_vcf_header_array_commits(params);
   LOG_DEBUG("Vacuum allele_count array commits.");
-  Group group(*ctx_, root_uri_, TILEDB_READ);
+  Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::vacuum_commits(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array commits.");
   VariantStats::vacuum_commits(ctx_, group);
@@ -2360,7 +2360,7 @@ void TileDBVCFDataset::vacuum_fragment_metadata(const UtilsParams& params) {
   LOG_DEBUG("Vacuum vcf_header array fragment metadata.");
   vacuum_vcf_header_array_fragment_metadata(params);
   LOG_DEBUG("Vacuum allele_count array fragment metadata.");
-  Group group(*ctx_, root_uri_, TILEDB_READ);
+  Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::vacuum_fragment_metadata(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array fragment metadata.");
   VariantStats::vacuum_fragment_metadata(ctx_, group);
