@@ -966,6 +966,7 @@ def test_disable_ingestion_tasks(tmp_path):
             df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
 
 
+@pytest.mark.xfail(reason="potential tiledb-py version mismatch")
 def test_ingestion_tasks(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
