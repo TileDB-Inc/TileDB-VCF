@@ -1106,7 +1106,13 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
 
-@pytest.mark.skipif(shutil.which("bcftools") is None, reason="no bcftools")
+# Ok to skip is missing bcftools in Windows CI job
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
+)
 def test_ingest_with_stats(tmp_path):
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
