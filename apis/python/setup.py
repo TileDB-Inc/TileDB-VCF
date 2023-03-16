@@ -101,7 +101,7 @@ def find_libtiledbvcf():
         p.native_lib_install_dirs = [LIBTILEDBVCF_PATH]
 
     libdirs = ["lib"]
-    libnames = ["libtiledbvcf.dylib", "libtiledbvcf.so"]
+    libnames = ["libtiledbvcf.dylib", "libtiledbvcf.so", "tiledbvcf.lib"]
     for root in p.native_lib_install_dirs:
         for libdir in libdirs:
             for libname in libnames:
