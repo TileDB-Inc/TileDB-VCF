@@ -207,7 +207,11 @@ add_executable(tiledbvcf-bin
   ${CMAKE_CURRENT_SOURCE_DIR}/cli/tiledbvcf.cc
 )
 
-set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
+if (WIN32)
+  set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcfcli)
+else()
+  set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
+endif()
 
 if(!WIN32)
   target_link_libraries(tiledbvcf-bin
@@ -309,8 +313,28 @@ if (WIN32)
 endif()
 # TBD: how to handle the tiledbvcf4test, don't really want it part of ultimate distribution...
 # ... does release packaging simply need to ignore it?
+
+if(WIN32)
+  # Having the .dll and the .exe with the same name was resulting in a .exp
+  # file for the .exe being 'last out' (replacing one of same name for the .dll)
+  # and was causing the python api extension
+  # to link to the .exe, which was not functional.
+  # So, tiledbvcf-bin now sets an output (above somewhere) of tiledbvcfcli.exe
+  # and we install it here RENAMEing it to match the known name in pre-existing
+  # *nix world.
+  install(PROGRAMS $<TARGET_FILE:tiledbvcf-bin>
+    RENAME tiledbvcf.exe
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+else()
+  install(
+    TARGETS tiledbvcf-bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
+
 install(
-  TARGETS tiledbvcf tiledbvcf-bin ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
+  TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
