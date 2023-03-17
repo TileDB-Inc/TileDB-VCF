@@ -10,6 +10,8 @@ def _load_libs():
     """Loads the required TileDB-VCF native library."""
     if sys.platform == "darwin":
         lib_name = "libtiledbvcf.dylib"
+    elif sys.platform == "win32":
+        lib_name = "tiledbvcf.dll"
     else:
         lib_name = "libtiledbvcf.so"
 

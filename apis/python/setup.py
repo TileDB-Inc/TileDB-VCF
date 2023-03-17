@@ -101,7 +101,7 @@ def find_libtiledbvcf():
         p.native_lib_install_dirs = [LIBTILEDBVCF_PATH]
 
     libdirs = ["lib"]
-    libnames = ["libtiledbvcf.dylib", "libtiledbvcf.so"]
+    libnames = ["libtiledbvcf.dylib", "libtiledbvcf.so", "tiledbvcf.lib"]
     for root in p.native_lib_install_dirs:
         for libdir in libdirs:
             for libname in libnames:
@@ -223,11 +223,19 @@ class BuildExtCmd(build_ext):
     """Builds the Pybind11 extension module."""
 
     def build_extensions(self):
-        opts = ["-std=c++11", "-g"]
-        if TILEDBVCF_DEBUG_BUILD:
-            opts.extend(["-O0"])
-        else:
-            opts.extend(["-O2"])
+        if sys.platform != "win32":
+            opts = ["-std=c++11", "-g"]
+            if TILEDBVCF_DEBUG_BUILD:
+                opts.extend(["-O0"])
+            else:
+                opts.extend(["-O2"])
+        else:  # windows
+            # Note: newer versions of msvc cl may not recognize -std:c++11
+            opts = ["-std:c++11", "-Zi"]
+            if TILEDBVCF_DEBUG_BUILD:
+                opts.extend(["-Od"])
+            else:
+                opts.extend(["-O2"])
 
         link_opts = []
         for ext in self.extensions:
@@ -243,7 +251,7 @@ class BuildExtCmd(build_ext):
             ext.include_dirs.append(pyarrow.get_include())
 
             # don't overlink the arrow core library
-            if "arrow" in ext.libraries:
+            if (sys.platform != "win32") and ("arrow" in ext.libraries):
                 ext.libraries.remove("arrow")
             ext.library_dirs.extend(pyarrow.get_library_dirs())
 
