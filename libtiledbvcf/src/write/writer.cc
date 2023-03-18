@@ -621,7 +621,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
               LOG_FATAL(
                   "Error submitting TileDB write query; unexpected query "
                   "status: {}",
-                  query_->query_status());
+                  // TODO: fix for SC-26607
+                  static_cast<int>(query_->query_status()));
             }
             worker->buffers().clear_query_buffers(
                 query_.get(), dataset_->metadata().version);
@@ -630,7 +631,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
               LOG_FATAL(
                   "Error submitting TileDB write query; unexpected query "
                   "status: {}",
-                  query_->query_status());
+                  // TODO: fix for SC-26607
+                  static_cast<int>(query_->query_status()));
             }
           }
 
@@ -1037,13 +1039,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             if (query_->query_status() == Query::Status::FAILED) {
               LOG_FATAL(
                   "Error submitting TileDB write query: status = {}",
-                  query_->query_status());
+                  // TODO: fix for SC-26607
+                  static_cast<int>(query_->query_status()));
             }
           } else {
             if (query_->query_status() != Query::Status::COMPLETE) {
               LOG_FATAL(
                   "Error submitting TileDB write query: status = {}",
-                  query_->query_status());
+                  // TODO: fix for SC-26607
+                  static_cast<int>(query_->query_status()));
             }
           }
 
@@ -1168,7 +1172,8 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
       if (query->query_status() == Query::Status::FAILED) {
         LOG_FATAL(
             "Error submitting TileDB write query: status = {}",
-            query->query_status());
+            // TODO: fix for SC-26607
+            static_cast<int>(query->query_status()));
       }
     } else {
       auto st = query->submit();
