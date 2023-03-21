@@ -83,7 +83,6 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
     // If the dataset doesn't exist lets not error out, the user might be
     // creating a new dataset
   }
-  remote_ = uri.find("file://") == std::string::npos;
 }
 
 void Writer::init(const IngestionParams& params) {
@@ -137,7 +136,6 @@ void Writer::init(const IngestionParams& params) {
   Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::init(ctx_, group);
   VariantStats::init(ctx_, group);
-  remote_ = dataset_->data_uri().find("file://") == std::string::npos;
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -456,10 +454,11 @@ void Writer::ingest_samples() {
     result = ingest_samples(ingestion_params_, local_samples, regions);
 
     // Make sure to finalize for v2/v3
-    if (remote_) {
-      query_->submit_and_finalize();
-    } else {
-      query_->finalize();
+    query_->submit_and_finalize();
+    if (query_->query_status() == Query::Status::FAILED) {
+      LOG_FATAL(
+          "Error submitting TileDB write query; unexpected query "
+          "status: FAILED");
     }
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
@@ -614,27 +613,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
         if (worker->records_buffered() > 0) {
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
-          query_->submit();
-
-          if (remote_) {
-            if (query_->query_status() == Query::Status::FAILED) {
-              LOG_FATAL(
-                  "Error submitting TileDB write query; unexpected query "
-                  "status: {}",
-                  // TODO: fix for SC-26607
-                  static_cast<int>(query_->query_status()));
-            }
-            worker->buffers().clear_query_buffers(
-                query_.get(), dataset_->metadata().version);
-          } else {
-            if (query_->query_status() != Query::Status::COMPLETE) {
-              LOG_FATAL(
-                  "Error submitting TileDB write query; unexpected query "
-                  "status: {}",
-                  // TODO: fix for SC-26607
-                  static_cast<int>(query_->query_status()));
-            }
+          auto status = query_->submit();
+          if (status == Query::Status::FAILED) {
+            LOG_FATAL(
+                "Error submitting TileDB write query; unexpected query "
+                "status: FAILED");
           }
+
+          worker->buffers().clear_query_buffers(
+              query_.get(), dataset_->metadata().version);
 
           LOG_INFO(
               "Writing {} for contig {} (task {} / {})",
@@ -993,10 +980,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // Write and finalize anchors stored in the anchor worker.
                 anchors_ingested += write_anchors(anchor_worker);
 
-                if (remote_) {
-                  worker->buffers().clear_query_buffers(
-                      query_.get(), dataset_->metadata().version);
-                }
+                worker->buffers().clear_query_buffers(
+                    query_.get(), dataset_->metadata().version);
                 // Finalize fragment for this contig async
                 // it is okay to move the query because we reset it next.
                 // NOTE: Finalize after the stats arrays and anchor fragment
@@ -1033,22 +1018,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           worker->buffers().set_buffers(
               query_.get(), dataset_->metadata().version);
 
-          query_->submit();
-          if (remote_) {
-            // TODO: Set query status to complete if we cache entire submit
-            if (query_->query_status() == Query::Status::FAILED) {
-              LOG_FATAL(
-                  "Error submitting TileDB write query: status = {}",
-                  // TODO: fix for SC-26607
-                  static_cast<int>(query_->query_status()));
-            }
-          } else {
-            if (query_->query_status() != Query::Status::COMPLETE) {
-              LOG_FATAL(
-                  "Error submitting TileDB write query: status = {}",
-                  // TODO: fix for SC-26607
-                  static_cast<int>(query_->query_status()));
-            }
+          auto status = query_->submit();
+          if (status == Query::Status::FAILED) {
+            LOG_FATAL("Error submitting TileDB write query: status = FAILED");
           }
 
           {
@@ -1107,7 +1079,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
 
-      if (finished && remote_) {
+      if (finished) {
         worker->buffers().clear_query_buffers(
             query_.get(), dataset_->metadata().version);
       }
@@ -1167,30 +1139,20 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     worker.buffers().set_buffers(query.get(), dataset_->metadata().version);
 
     // Submit and finalize the query
-    if (remote_) {
-      query->submit_and_finalize();
-      if (query->query_status() == Query::Status::FAILED) {
-        LOG_FATAL(
-            "Error submitting TileDB write query: status = {}",
-            // TODO: fix for SC-26607
-            static_cast<int>(query->query_status()));
-      }
-    } else {
-      auto st = query->submit();
-      if (st != Query::Status::COMPLETE) {
-        // TBD: Not sure how spdlog interface or our cpp build params changed
-        // that spdlog apparently does not like the bare enum.... Any more
-        // desireable way of handling this? (Searches found mention of
-        // 'formatter', but... that seemed more verbose for just this one
-        // case... refs https://github.com/fmtlib/fmt/issues/391
-        // https://github.com/gabime/spdlog#user-defined-types
-        // )
-        std::stringstream st_str;
-        st_str << st;
-        LOG_FATAL(
-            "Error submitting TileDB write query: status = {}", st_str.str());
-      }
-      query->finalize();
+    query->submit_and_finalize();
+    auto st = query->query_status();
+    if (st == Query::Status::FAILED) {
+      // TBD: Not sure how spdlog interface or our cpp build params changed
+      // that spdlog apparently does not like the bare enum.... Any more
+      // desireable way of handling this? (Searches found mention of
+      // 'formatter', but... that seemed more verbose for just this one
+      // case... refs https://github.com/fmtlib/fmt/issues/391
+      // https://github.com/gabime/spdlog#user-defined-types
+      // )
+      std::stringstream st_str;
+      st_str << st;
+      LOG_FATAL(
+          "Error submitting TileDB write query: status = FAILED", st_str.str());
     }
   }
   return records;
@@ -1410,10 +1372,9 @@ void Writer::dataset_version(int32_t* version) const {
 }
 
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
-  if (remote_) {
-    query->submit_and_finalize();
-  } else {
-    query->finalize();
+  query->submit_and_finalize();
+  if (query->query_status() == Query::Status::FAILED) {
+    LOG_FATAL("Error submitting TileDB write query: status = FAILED");
   }
 }
 
