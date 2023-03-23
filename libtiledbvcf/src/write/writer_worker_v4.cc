@@ -257,9 +257,9 @@ bool WriterWorkerV4::resume() {
   return true;
 }
 
-void WriterWorkerV4::flush_ingestion_tasks() {
-  ac_.flush();
-  vs_.flush();
+void WriterWorkerV4::flush_ingestion_tasks(bool clear) {
+  ac_.flush(clear);
+  vs_.flush(clear);
 }
 
 void WriterWorkerV4::drain_anchors(WriterWorkerV4& anchor_worker) {

@@ -179,9 +179,8 @@ class VariantStats {
 
   /**
    * @brief Write buffered stats to the TileDB array and reset the buffers.
-   *
    */
-  void flush();
+  void flush(bool clear = false);
 
  private:
   //===================================================================
@@ -233,9 +232,6 @@ class VariantStats {
 
   // Sample names included in the fragment
   inline static std::set<std::string> fragment_sample_names_;
-
-  // Remote flag, true when the VCF dataset is remote.
-  inline static bool remote_ = false;
 
   //===================================================================
   //= private non-static
