@@ -293,12 +293,12 @@ void VariantStats::flush(bool clear) {
 
   int buffered_records = attr_buffers_[AC].size();
 
-  if (buffered_records == 0) {
-    LOG_DEBUG("VariantStats: flush called with 0 records ");
-    return;
-  }
-
   if (!clear) {
+    if (buffered_records == 0) {
+      LOG_DEBUG("VariantStats: flush called with 0 records ");
+      return;
+    }
+
     std::lock_guard<std::mutex> lock(query_lock_);
     contig_records_ += buffered_records;
 

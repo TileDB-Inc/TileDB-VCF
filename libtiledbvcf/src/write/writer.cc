@@ -974,6 +974,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // Start finalize of previous contig.
 
                 // Finalize stats arrays.
+                worker->flush_ingestion_tasks();
                 worker->flush_ingestion_tasks(true);
                 AlleleCount::finalize();
                 VariantStats::finalize();
@@ -1083,7 +1084,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       if (finished) {
         worker->buffers().clear_query_buffers(
             query_.get(), dataset_->metadata().version);
-        worker->flush_ingestion_tasks(true);
       }
     }
     if (records_ingested > prev_records) {
@@ -1102,6 +1102,12 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   //=================================================================
   // Start finalize of last contig.
 
+  for (auto& worker : workers) {
+    if (worker->records_buffered() > 0) {
+      worker->flush_ingestion_tasks();
+      worker->flush_ingestion_tasks(true);
+    }
+  }
   // Finalize stats arrays.
   AlleleCount::finalize();
   VariantStats::finalize();
