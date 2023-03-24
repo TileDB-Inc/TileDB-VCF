@@ -105,7 +105,7 @@ struct IngestionParams {
   // Max size of TileDB buffers before flushing. Defaults to 1GB
   uint32_t max_tiledb_buffer_size_mb = 1024;  // legacy option
   bool use_legacy_max_tiledb_buffer_size_mb =
-      false;  // if true, use legacy option
+      false;                                  // if true, use legacy option
   float ratio_output_flush =
       0.75;  // ratio of output buffer capacity that triggers a flush to TileDB
 
