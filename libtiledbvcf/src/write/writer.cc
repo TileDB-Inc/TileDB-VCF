@@ -454,6 +454,9 @@ void Writer::ingest_samples() {
     result = ingest_samples(ingestion_params_, local_samples, regions);
 
     // Make sure to finalize for v2/v3
+    if (utils::query_buffers_set(query_.get())) {
+      LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
+    }
     query_->submit_and_finalize();
     if (query_->query_status() == Query::Status::FAILED) {
       LOG_FATAL(
@@ -1380,6 +1383,9 @@ void Writer::dataset_version(int32_t* version) const {
 }
 
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
+  if (utils::query_buffers_set(query.get())) {
+    LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
+  }
   query->submit_and_finalize();
   if (query->query_status() == Query::Status::FAILED) {
     LOG_FATAL("Error submitting TileDB write query: status = FAILED");

@@ -157,6 +157,9 @@ void VariantStats::finalize() {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
   if (contig_records_ > 0) {
+    if (utils::query_buffers_set(query_.get())) {
+      LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
+    }
     query_->submit_and_finalize();
     if (query_->query_status() == Query::Status::FAILED) {
       LOG_FATAL("Error submitting TileDB write query: status = FAILED");
