@@ -179,9 +179,8 @@ class VariantStats {
 
   /**
    * @brief Write buffered stats to the TileDB array and reset the buffers.
-   *
    */
-  void flush();
+  void flush(bool clear = false);
 
  private:
   //===================================================================

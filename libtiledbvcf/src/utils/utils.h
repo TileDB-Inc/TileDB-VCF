@@ -506,6 +506,13 @@ bool contains(std::vector<T>& vec, T& item) {
   return std::find(vec.begin(), vec.end(), item) != vec.end();
 }
 
+/**
+ * Checks if any query buffers are set.
+ * @param query Pointer to query to check for set buffers.
+ * @return True if the buffers are set, False if they are not set.
+ */
+bool query_buffers_set(tiledb::Query* query);
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb
