@@ -62,7 +62,7 @@ void check_iter_v2(
 
     bool b = vcf->next();
     if (i < expected.size() - 1)
-      REQUIRE(b);  // should be more records in vcf
+      REQUIRE(b);   // should be more records in vcf
     else
       REQUIRE(!b);  // should not be more records in vcf
   }

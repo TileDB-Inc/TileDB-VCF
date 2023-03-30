@@ -104,7 +104,7 @@ class WriterWorkerV4 : public WriterWorker {
   void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
 
   /** Flush ingestion tasks. */
-  void flush_ingestion_tasks();
+  void flush_ingestion_tasks(bool clear = false);
 
   /** Drain local heap of anchors into the anchor worker. */
   void drain_anchors(WriterWorkerV4& anchor_worker);

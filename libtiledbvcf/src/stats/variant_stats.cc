@@ -156,8 +156,16 @@ void VariantStats::finalize() {
 
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
+  if (contig_records_ > 0) {
+    if (utils::query_buffers_set(query_.get())) {
+      LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
+    }
+    query_->submit_and_finalize();
+    if (query_->query_status() == Query::Status::FAILED) {
+      LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+    }
+  }
   contig_records_ = 0;
-  query_->finalize();
 
   // Write fragment uri -> sample names to array metadata
   auto frag_num = query_->fragment_num();
@@ -194,7 +202,7 @@ void VariantStats::close() {
   LOG_DEBUG("VariantStats: Close array");
 
   if (query_ != nullptr) {
-    query_->finalize();
+    // Following VariantStats::finalize(), the query will be uninitialized.
     query_ = nullptr;
   }
 
@@ -278,7 +286,7 @@ VariantStats::~VariantStats() {
   }
 }
 
-void VariantStats::flush() {
+void VariantStats::flush(bool clear) {
   if (!enabled_) {
     return;
   }
@@ -288,12 +296,12 @@ void VariantStats::flush() {
 
   int buffered_records = attr_buffers_[AC].size();
 
-  if (buffered_records == 0) {
-    LOG_DEBUG("VariantStats: flush called with 0 records ");
-    return;
-  }
+  if (!clear) {
+    if (buffered_records == 0) {
+      LOG_DEBUG("VariantStats: flush called with 0 records ");
+      return;
+    }
 
-  {
     std::lock_guard<std::mutex> lock(query_lock_);
     contig_records_ += buffered_records;
 
@@ -315,24 +323,46 @@ void VariantStats::flush() {
     }
 
     auto st = query_->submit();
-
-    if (st != Query::Status::COMPLETE) {
+    if (st == Query::Status::FAILED) {
       LOG_FATAL("VariantStats: error submitting TileDB write query");
     }
 
     // Insert sample names from this query into the set of fragment sample names
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
-  }
 
-  // Clear buffers
-  contig_buffer_.clear();
-  contig_offsets_.clear();
-  pos_buffer_.clear();
-  allele_buffer_.clear();
-  allele_offsets_.clear();
-  for (int i = 0; i < LAST_; i++) {
-    attr_buffers_[i].clear();
+    // Clear buffers
+    contig_buffer_.clear();
+    contig_offsets_.clear();
+    pos_buffer_.clear();
+    allele_buffer_.clear();
+    allele_offsets_.clear();
+    for (int i = 0; i < LAST_; i++) {
+      attr_buffers_[i].clear();
+    }
+  } else {
+    std::lock_guard<std::mutex> lock(query_lock_);
+
+    // Clear buffers
+    contig_buffer_.clear();
+    contig_offsets_.clear();
+    pos_buffer_.clear();
+    allele_buffer_.clear();
+    allele_offsets_.clear();
+    for (int i = 0; i < LAST_; i++) {
+      attr_buffers_[i].clear();
+    }
+
+    // For remote global order writes, zero query buffers prior to
+    // submit_and_finalize.
+    query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
+        .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
+        .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
+        .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
+    for (int i = 0; i < LAST_; i++) {
+      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
+    }
   }
 }
 
