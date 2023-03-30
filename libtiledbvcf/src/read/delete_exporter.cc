@@ -49,8 +49,10 @@ bool DeleteExporter::export_record(
   // Flush and finalize the stats array querys when moving to a new contig
   if (contig_ != query_region.seq_name && !contig_.empty()) {
     ac_.flush();
+    ac_.flush(true);
     ac_.finalize();
     vs_.flush();
+    vs_.flush(true);
     vs_.finalize();
   }
   contig_ = query_region.seq_name;

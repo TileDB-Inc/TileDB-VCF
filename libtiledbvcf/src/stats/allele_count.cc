@@ -157,8 +157,16 @@ void AlleleCount::finalize() {
 
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("AlleleCount: Finalize query with {} records", contig_records_);
+  if (contig_records_ > 0) {
+    if (utils::query_buffers_set(query_.get())) {
+      LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
+    }
+    query_->submit_and_finalize();
+    if (query_->query_status() == Query::Status::FAILED) {
+      LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+    }
+  }
   contig_records_ = 0;
-  query_->finalize();
 
   // Write fragment uri -> sample names to array metadata
   auto frag_num = query_->fragment_num();
@@ -195,7 +203,7 @@ void AlleleCount::close() {
   LOG_DEBUG("AlleleCount: Close array");
 
   if (query_ != nullptr) {
-    query_->finalize();
+    // Following AlleleCount::finalize(), the query will be uninitialized.
     query_ = nullptr;
   }
 
@@ -278,7 +286,7 @@ AlleleCount::~AlleleCount() {
   }
 }
 
-void AlleleCount::flush() {
+void AlleleCount::flush(bool clear) {
   if (!enabled_) {
     return;
   }
@@ -288,12 +296,12 @@ void AlleleCount::flush() {
 
   int buffered_records = count_buffer_.size();
 
-  if (buffered_records == 0) {
-    LOG_DEBUG("AlleleCount: flush called with 0 records ");
-    return;
-  }
+  if (!clear) {
+    if (buffered_records == 0) {
+      LOG_DEBUG("AlleleCount: flush called with 0 records ");
+      return;
+    }
 
-  {
     std::lock_guard<std::mutex> lock(query_lock_);
     contig_records_ += buffered_records;
 
@@ -318,29 +326,59 @@ void AlleleCount::flush() {
         .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
 
     auto st = query_->submit();
-
-    if (st != Query::Status::COMPLETE) {
+    if (st == Query::Status::FAILED) {
       LOG_FATAL("AlleleCount: error submitting TileDB write query");
     }
 
     // Insert sample names from this query into the set of fragment sample names
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
-  }
 
-  // Clear buffers
-  contig_buffer_.clear();
-  contig_offsets_.clear();
-  pos_buffer_.clear();
-  ref_buffer_.clear();
-  ref_offsets_.clear();
-  alt_buffer_.clear();
-  alt_offsets_.clear();
-  filter_buffer_.clear();
-  filter_offsets_.clear();
-  gt_buffer_.clear();
-  gt_offsets_.clear();
-  count_buffer_.clear();
+    // Clear buffers
+    contig_buffer_.clear();
+    contig_offsets_.clear();
+    pos_buffer_.clear();
+    ref_buffer_.clear();
+    ref_offsets_.clear();
+    alt_buffer_.clear();
+    alt_offsets_.clear();
+    filter_buffer_.clear();
+    filter_offsets_.clear();
+    gt_buffer_.clear();
+    gt_offsets_.clear();
+    count_buffer_.clear();
+  } else {
+    std::lock_guard<std::mutex> lock(query_lock_);
+
+    // Clear buffers
+    contig_buffer_.clear();
+    contig_offsets_.clear();
+    pos_buffer_.clear();
+    ref_buffer_.clear();
+    ref_offsets_.clear();
+    alt_buffer_.clear();
+    alt_offsets_.clear();
+    filter_buffer_.clear();
+    filter_offsets_.clear();
+    gt_buffer_.clear();
+    gt_offsets_.clear();
+    count_buffer_.clear();
+
+    // For remote global order writes, zero query buffers prior to
+    // submit_and_finalize.
+    query_->set_data_buffer(COLUMN_NAME[CONTIG], contig_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[CONTIG], contig_offsets_)
+        .set_data_buffer(COLUMN_NAME[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_NAME[REF], ref_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[REF], ref_offsets_)
+        .set_data_buffer(COLUMN_NAME[ALT], alt_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[ALT], alt_offsets_)
+        .set_data_buffer(COLUMN_NAME[FILTER], filter_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[FILTER], filter_offsets_)
+        .set_data_buffer(COLUMN_NAME[GT], gt_buffer_)
+        .set_offsets_buffer(COLUMN_NAME[GT], gt_offsets_)
+        .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
+  }
 }
 
 void AlleleCount::process(

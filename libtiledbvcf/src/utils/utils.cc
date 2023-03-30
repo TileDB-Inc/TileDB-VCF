@@ -601,6 +601,30 @@ std::string memory_usage_str() {
 #endif
 }
 
+bool query_buffers_set(tiledb::Query* query) {
+  std::vector<std::string> buffer_names;
+  auto dims = query->array().schema().domain().dimensions();
+  auto attrs = query->array().schema().attributes();
+  std::for_each(dims.begin(), dims.end(), [&](const auto& dim) {
+    buffer_names.push_back(dim.name());
+  });
+  std::for_each(attrs.begin(), attrs.end(), [&](const auto& attr) {
+    buffer_names.push_back(attr.first);
+  });
+  for (const auto& name : buffer_names) {
+    uint64_t nelements;
+    uint64_t element_size;
+    void* data;
+    query->get_data_buffer(name, &data, &nelements, &element_size);
+    if (nelements > 0) {
+      // Log debug, let caller decide if this is fatal.
+      LOG_DEBUG("Query buffer for '{}' contains {} elements", name, nelements);
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb
