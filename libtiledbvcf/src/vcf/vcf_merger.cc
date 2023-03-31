@@ -345,25 +345,30 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
       auto [missing, vector_end] = get_missing_vector_end(type);
       (void)vector_end;  // unused
 
-      int values_read = bcf_get_info_values(
+      uint32_t values_read = bcf_get_info_values(
           hdrs_[sample_num], rec.get(), key_str, (void**)(&dst_), &ndst_, type);
       int* data = (int*)(dst_);
 
       // set expected values to number of values read
       if (number == BCF_VL_VAR || type == BCF_HT_FLAG) {
         values = values_read;
-
-        // data contains 4 char values per int
-        if (type == BCF_HT_STR) {
-          values = ceil(values / 4.0);
-        }
       }
 
       if (number == BCF_VL_FIXED || number == BCF_VL_VAR) {
         // merge first value seen in sample order
         if (md_.info[key].size() == 0) {
-          for (int j = 0; j < values; j++) {
-            md_.info[key].push_back(*data++);
+          if (type == BCF_HT_STR) {
+            // bcftools uses strlen to determine the length of BCF_HT_STR fields
+            // For type BCF_HT_STR, values_read is the number of bytes and
+            //   md_.info[key] is a vector of uint32_t (4 bytes)
+            // Allocate enough uint32_t to hold values_read bytes
+            //   and a null terminator.
+            md_.info[key].resize(utils::ceil(values_read + 1, 4), 0);
+            memcpy(md_.info[key].data(), data, values_read);
+          } else {
+            for (int j = 0; j < values; j++) {
+              md_.info[key].push_back(*data++);
+            }
           }
         }
       } else if (number == BCF_VL_A || number == BCF_VL_R) {
@@ -389,7 +394,7 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
         }
         // merge last value seen in sample order
         md_.info[key].resize(values, missing);
-        for (int ai = 0; ai < values_read; ai++) {
+        for (uint32_t ai = 0; ai < values_read; ai++) {
           int a, b;
           bcf_gt2alleles(ai, &a, &b);
           a = md_.allele_maps[sample_num][a];
