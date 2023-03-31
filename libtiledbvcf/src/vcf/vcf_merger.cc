@@ -487,12 +487,16 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
 
     bool first_variable_length = true;
     for (const auto& [sample_num, rec_in] : md_.samples) {
+      // Use hts_dst and hts_ndst to avoid buffer overrun issue when reusing
+      // dst_ and ndst_ with `bcf_get_format_values`.
+      int* hts_dst = nullptr;
+      int hts_ndst = 0;
       int values_read = bcf_get_format_values(
           hdrs_[sample_num],
           rec_in.get(),
           key_str,
-          (void**)(&dst_),
-          &ndst_,
+          (void**)(&hts_dst),
+          &hts_ndst,
           type);
 
       if (values_read <= 0) {
@@ -519,13 +523,13 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
         }
       }
 
-      int* src = dst_;
+      int* src = hts_dst;
       auto dst = buffer_.data<int>();
 
       // merge string
       if (type == BCF_HT_STR) {
         values_read -= 1;
-        sample_strings[sample_num] = std::string((char*)(dst_), values_read);
+        sample_strings[sample_num] = std::string((char*)(hts_dst), values_read);
         max_string_len = std::max(max_string_len, values_read);
       } else if (
           number == BCF_VL_FIXED || number == BCF_VL_VAR ||
@@ -557,6 +561,7 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
           }
         }
       }
+      hts_free(hts_dst);
     }
 
     if (type == BCF_HT_STR) {
