@@ -367,12 +367,10 @@ def test_incomplete_read_generator():
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
-    overall_df = None
+    dfs = []
     for df in test_ds.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
-        if overall_df is None:
-            overall_df = df
-        else:
-            overall_df = overall_df.append(df, ignore_index=True)
+        dfs.append(df)
+    overall_df = pd.concat(dfs, ignore_index=True)
 
     assert len(overall_df) == 6
     _check_dfs(
