@@ -12,7 +12,7 @@ dependencies:
   - vs2019_win-64
   # build tiledbvcf-py
   - numpy
-  - pandas
+  - pandas<2.0
   - pyarrow=9.0
   - pybind11
   - python
