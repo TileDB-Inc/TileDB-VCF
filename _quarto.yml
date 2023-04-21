@@ -1,0 +1,81 @@
+# Cloned from https://github.com/TileDB-Inc/tiledb-quarto-template
+project:
+  type: website
+  output-dir: docs
+  render:
+    - "!libtiledbvcf/"
+    - "documentation/index.md"
+    - "documentation"
+    - "examples/README.md"
+
+format:
+  html:
+    toc: true
+    theme: 
+      light: [flatly, "quarto-materials/tiledb.scss"]
+    mainfont: Helvetica
+    fontsize: 1rem
+    linkcolor: "#4d9fff"
+    code-copy: true
+    code-overflow: wrap
+    css: "quarto-materials/tiledb.css"
+
+website:
+  favicon: "images/favicon.ico"
+  site-url: https://tiledb-inc.github.io/TileDB-VCF/
+  repo-url: https://github.com/TileDB-Inc/TileDB-VCF
+  # You may want one or both of these, or neither:
+  repo-actions: [edit, issue]
+  page-navigation: true
+  navbar:
+    background: light
+    logo: "quarto-materials/tiledb-logo.png"
+    collapse-below: lg
+    left:
+      - text: "Home page"
+        href: "https://tiledb.com"
+      - text: "Login"
+        href: "https://cloud.tiledb.com/auth/login"
+      - text: "Contact us"
+        href: "https://tiledb.com/contact"
+      - text: "Repo"
+        href: "https://github.com/TileDB-Inc/TileDB-VCF"
+
+  sidebar:
+    - style: "floating"
+      collapse-level: 2
+      align: left
+      contents:
+        - href: "documentation/index.md"
+
+        - section:
+          href: "examples/README.md"
+
+        - section:
+          href: "documentation/ingestion/overview.md"
+          contents:
+            - href: "documentation/ingestion/cli.md"
+            - href: "documentation/ingestion/python.md"
+            - href: "documentation/ingestion/distributed-ingestion.md"
+
+        - section:
+          href: "documentation/api-reference/overview.md"
+          contents:
+            - href: "documentation/api-reference/cli.md"
+            - href: "documentation/api-reference/python.md"
+
+        - section:
+          href: "documentation/how-to/overview.md"
+          contents:
+            - href: "documentation/how-to/create-a-dataset.md"
+            - href: "documentation/how-to/export-to-vcf.md"
+            - href: "documentation/how-to/handle-large-queries.md"
+            - href: "documentation/how-to/ingest-samples.md"
+            - href: "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.md"
+            - href: "documentation/how-to/perform-distributed-queries-with-dask.md"
+            - href: "documentation/how-to/perform-distributed-queries-with-spark.md"
+            - href: "documentation/how-to/read-from-the-dataset.md"
+            - href: "documentation/how-to/work-with-cloud-object-stores.md"
+
+        - href: "documentation/the-solution.md"
+        - href: "documentation/data-model.md"

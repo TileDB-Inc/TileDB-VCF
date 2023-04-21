@@ -1,0 +1,205 @@
+/*
+Cloned from https://github.com/TileDB-Inc/tiledb-quarto-template
+
+tiledb light blue #4d9fff
+tiledb dark  blue #0a2580
+*/
+
+/*-- scss:defaults --*/
+/*
+$navbar-bg: #800000;
+$navbar-fg: #eeeeee;
+$sidebar-fg: #800000;
+$footer-bg: #800000;
+$footer-fg: #eeeeee;
+*/
+
+/*-- scss:rules --*/
+h1,
+h2,
+h3 {
+  font-weight: 600; /* semibold */
+  /*
+  color: #4d9fff;
+  background-color: #e0e0e0;
+  */
+  padding: 6px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.38;
+}
+
+p,
+ul {
+  line-height: 1.74 !important;
+  border-radius: 0 !important;
+}
+
+li {
+  line-height: 2.06 !important;
+}
+
+.navbar-dark {
+  background-image: url('./quarto-materials/Background-tdb-header.jpg');
+  background-position: center;
+  background-size: cover;
+}
+
+.navbar-nav .nav-link {
+  border-radius: 8px !important;
+}
+
+.nav-link {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  color: white;
+  font-weight: 500;
+  &:hover {
+    color: rgba(255, 255, 255, 1) !important;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  transition: all 0.3s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:focus {
+  color: white !important;
+}
+
+.navbar #quarto-search.type-overlay .aa-Autocomplete svg.aa-SubmitIcon {
+  color: white;
+}
+
+.sidebar.sidebar-navigation .active,
+.sidebar.sidebar-navigation .show > .nav-link {
+  color: #2c4396 !important;
+}
+
+.sidebar-item {
+  margin-bottom: 0.75em;
+}
+
+.sidebar-section {
+  margin-top: 0.75em;
+  padding-bottom: 0.75em;
+  padding-left: 1.25em;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-item-container a {
+  color: rgba(0, 0, 0, 0.6) !important;
+  &:hover {
+    color: rgba(0, 0, 0, 0.8) !important;
+  }
+  &:visited {
+    color: rgba(0, 0, 0, 0.4) !important;
+  }
+  transition: 0.3s ease color;
+}
+
+.sidebar.sidebar-navigation .active {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7) !important;
+  background-color: transparent !important;
+  padding-left: 0px !important;
+}
+
+.figure-img {
+  border-radius: 6px;
+  box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.nav-page span {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.nav-page i {
+  transition: color 0.3s ease;
+}
+
+code,
+p code:not(.sourceCode),
+li code:not(.sourceCode),
+kbd,
+pre {
+  font-size: 14px !important;
+  padding: 0.3em 0.8em !important;
+  border-radius: 6px !important;
+}
+
+.sidebar nav[role="doc-toc"] > ul li a {
+  padding: 0.6rem 0.8rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  &:hover {
+    color: rgba(0, 0, 0, 0.8);
+  }
+  transition: 0.3s ease color;
+}
+
+.sidebar nav[role="doc-toc"] ul > li > ul > li > a.active {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.sidebar.sidebar-navigation > * {
+  padding-top: 1.6em !important;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.navbar-dark .navbar-toggler {
+  color: white !important;
+  border-color: white !important;
+  background-color: rgba(255, 255, 255, 0.94);
+}
+
+// Search form
+
+.aa-DetachedContainer {
+  background-color: transparent !important;
+}
+
+.aa-DetachedContainer--modal {
+  border-radius: 12px !important;
+}
+
+.aa-DetachedFormContainer {
+  border-bottom: none !important;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  padding: 12px !important;
+}
+
+.aa-Autocomplete .aa-Form .aa-InputWrapper .aa-Input,
+.aa-DetachedFormContainer .aa-Form .aa-InputWrapper .aa-Input {
+  height: calc(2.5em + (0.1rem + 2px)) !important;
+}
+
+.aa-Autocomplete .aa-Form,
+.aa-DetachedFormContainer .aa-Form {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.4);
+  border: none !important;
+  border-radius: 8px !important;
+  transition: box-shadow 0.3s ease;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.aa-Autocomplete .aa-Form:focus-within,
+.aa-DetachedFormContainer .aa-Form:focus-within {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+}
