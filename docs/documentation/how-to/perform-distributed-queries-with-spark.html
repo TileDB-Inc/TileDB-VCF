@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Python</title>
+  <title>perform-distributed-queries-with-spark</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -83,8 +83,8 @@
   <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../../site_libs/quarto-search/quarto-search.js"></script>
-  <link href="../../documentation/ingestion/distributed-ingestion.html" rel="next">
-  <link href="../../documentation/ingestion/cli.html" rel="prev">
+  <link href="../../documentation/how-to/read-from-the-dataset.html" rel="next">
+  <link href="../../documentation/how-to/perform-distributed-queries-with-dask.html" rel="prev">
   <link href="../../images/favicon.ico" rel="icon">
   <script src="../../site_libs/quarto-html/quarto.js"></script>
   <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -151,7 +151,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Python</h1>
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -184,7 +184,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Python</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -254,7 +254,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Spark</a>
+  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link active">Perform Distributed Queries with Spark</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -277,37 +277,92 @@
         <nav id="TOC" role="doc-toc">
 <h2 id="toc-title">On this page</h2>
 <ul>
-<li><a href="#python-ingestion" class="nav-link active" data-scroll-target="#python-ingestion">Python Ingestion</a></li>
+<li><a href="#perform-distributed-queries-with-spark" class="nav-link active" data-scroll-target="#perform-distributed-queries-with-spark">Perform Distributed Queries with Spark</a>
+<ul class="collapse">
+<li><a href="#reading" class="nav-link" data-scroll-target="#reading">Reading</a></li>
+<li><a href="#partitioning" class="nav-link" data-scroll-target="#partitioning">Partitioning</a></li>
+<li><a href="#memory" class="nav-link" data-scroll-target="#memory">Memory</a></li>
+<li><a href="#examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
+</ul></li>
 </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/ingestion/python.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/how-to/perform-distributed-queries-with-spark.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
-<header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Python</h1></div></header>
+<section id="perform-distributed-queries-with-spark" class="level1">
+<h1>Perform Distributed Queries with Spark</h1>
+<section id="reading" class="level2">
+<h2 class="anchored" data-anchor-id="reading">Reading</h2>
+<p>TileDB-VCF’s Spark API offers a <code>DataSourceV2</code> data source to read TileDB-VCF datasets into a Spark dataframe. To begin, launch a Spark shell with:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">spark-shell</span> <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--jars</span> build/libs/TileDB-VCF-Spark-0.1.0-SNAPSHOT.jar</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Depending on the size of the dataset and query results, you may need to increase the configured memory from the defaults.:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">spark-shell</span> <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--jars</span> build/libs/TileDB-VCF-Spark-0.1.0-SNAPSHOT.jar <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--driver-memory</span> 16g <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--executor-memory</span> 16g</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>While the Spark API offers much of the same functionality provided by the CLI, the main considerations when using the Spark API are typically dataframe partitioning and memory overhead.</p>
+</section>
+<section id="partitioning" class="level2">
+<h2 class="anchored" data-anchor-id="partitioning">Partitioning</h2>
+<p>There are two ways to partition a TileDB-VCF dataframe, which can be used separately or together:</p>
+<ul>
+<li>Partitioning over samples (<code>.option("sample_partitions", N)</code>).</li>
+<li>Partitioning over genomic regions (<code>.option("range_partitions", M)</code>).</li>
+</ul>
+<p>Conceptually, these correspond to partitioning over rows and columns, respectively, in the underlying TileDB array. For example, if you are reading a subset of 200 samples in a dataset, and specify 10 sample partitions, Spark will create 10 jobs, each of which will be responsible for handling the export from 20 of the 200 selected samples.</p>
+<p>Similarly, if the provided BED file contains 1,000,000 regions, and you specify 10 region partitions, Spark will create 10 jobs, each of which will be responsible for handling the export of 100,000 of the 1,000,000 regions (across all samples).</p>
+<p>These two partitioning parameters can be composed to form rectangular regions of work to distribute across the available Spark executors.</p>
+<div class="callout-info callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Info
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The CLI interface offers the same partitioning feature, using the <code>--sample-partition</code> and <code>--region-partition</code> flags. </p>
+</div>
+</div>
+</section>
+<section id="memory" class="level2">
+<h2 class="anchored" data-anchor-id="memory">Memory</h2>
+<p>Because TileDB-VCF is implemented as a native library, the Spark API makes use of both JVM on-heap and off-heap memory. This can make it challenging to correctly tune the memory consumption of each Spark job.</p>
+<p>The <code>.option("memory", mb)</code> option is used as a best-effort memory budget that any particular job is allowed to consume, across <em>on-heap</em> and <em>off-heap</em> allocations. Increasing the available memory with this option can result in large performance improvements, provided the executors are configured with sufficient memory to avoid OOM failures.</p>
+</section>
+<section id="examples" class="level2">
+<h2 class="anchored" data-anchor-id="examples">Examples</h2>
+<p>To export a few genomic regions from a dataset (which must be accessible by the Spark jobs; here we assume it is located on S3):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode scala code-with-copy"><code class="sourceCode scala"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> df <span class="op">=</span> spark<span class="op">.</span>read<span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">"io.tiledb.vcf"</span><span class="op">)</span>\</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"uri"</span><span class="op">,</span> <span class="st">"s3://my-bucket/my-dataset"</span><span class="op">)</span>\</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"ranges"</span><span class="op">,</span> <span class="st">"chr1:1000-2000,chr2:500-501"</span><span class="op">)</span>\</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"samples"</span><span class="op">,</span> <span class="st">"sampleA,sampleB,sampleD"</span><span class="op">)</span>\</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"range_partitions"</span><span class="op">,</span> <span class="dv">2</span><span class="op">).</span><span class="fu">load</span><span class="op">()</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>df<span class="op">.</span><span class="fu">createOrReplaceTempView</span><span class="op">(</span><span class="st">"vcf"</span><span class="op">)</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>spark<span class="op">.</span><span class="fu">sql</span><span class="op">(</span><span class="st">"select contig, posStart, alleles, genotype from vcf"</span><span class="op">).</span>show</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Because there are only two regions specified, and two region partitions, each of the two Spark jobs started will read one of the given regions.</p>
+<p>We can also place a list of sample names and a list of genomic regions to read in explicit text files, and use those during reading:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode scala code-with-copy"><code class="sourceCode scala"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> df <span class="op">=</span> spark<span class="op">.</span>read<span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">"io.tiledb.vcf"</span><span class="op">)</span>\</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"uri"</span><span class="op">,</span> <span class="st">"s3://my-bucket/my-dataset"</span><span class="op">)</span>\</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"bedfile"</span><span class="op">,</span> <span class="st">"s3://my-bucket/query.bed"</span><span class="op">)</span>\</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"samplefile"</span><span class="op">,</span> <span class="st">"s3://my-bucket/sample-names.txt"</span><span class="op">)</span>\</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"memory"</span><span class="op">,</span> <span class="dv">8</span><span class="op">*</span><span class="dv">1024</span><span class="op">)</span>\</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"sample_partitions"</span><span class="op">,</span> <span class="dv">10</span><span class="op">)</span>\</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">option</span><span class="op">(</span><span class="st">"range_partitions"</span><span class="op">,</span> <span class="dv">2</span><span class="op">).</span><span class="fu">load</span><span class="op">()</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>df<span class="op">.</span><span class="fu">createOrReplaceTempView</span><span class="op">(</span><span class="st">"vcf"</span><span class="op">)</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>spark<span class="op">.</span><span class="fu">sql</span><span class="op">(</span><span class="st">"select contig, posStart, alleles, genotype from vcf"</span><span class="op">).</span>show</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Here, we’ve also increased the memory budget to 8GB, and added partitioning over samples.</p>
 
-<section id="python-ingestion" class="level2">
-<h2 class="anchored" data-anchor-id="python-ingestion">Python Ingestion</h2>
-<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../../documentation/ingestion/cli.html">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
-<p>The text file <code>data/s3-bcf-samples.txt</code> contains a list of S3 URIs pointing to 7 BCF files from the same cohort.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data/s3-bcf-samples.txt"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    sample_uris <span class="op">=</span> [l.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>) <span class="cf">for</span> l <span class="kw">in</span> f.readlines()]</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sample_uris</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">## ['s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf',</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf',</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf',</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf',</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf',</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf',</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf']</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You can add them to your existing dataset by re-opening it in <em>write</em> mode and providing the file URIs. It’s also necessary to allocate scratch space so the files can be downloaded to a temporary location prior to ingestion.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>small_ds <span class="op">=</span> tiledbvcf.Dataset(<span class="st">'small_dataset'</span>, mode <span class="op">=</span> <span class="st">"w"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>small_ds.ingest_samples(sample_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>The TileDB-VCF dataset located at <code>small_dataset</code> now includes records for 660 variants across 10 samples. The next section provides examples demonstrating how to query this dataset.</p>
 
 
-
+</section>
 </section>
 </main> <!-- /main -->
 <script type="application/javascript">
@@ -388,13 +443,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../documentation/ingestion/cli.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
+      <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Perform Distributed Queries with Dask</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/ingestion/distributed-ingestion.html" class="pagination-link">
-        <span class="nav-page-text">Distributed Ingestion</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../documentation/how-to/read-from-the-dataset.html" class="pagination-link">
+        <span class="nav-page-text">Read from the Dataset</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

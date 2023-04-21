@@ -129,6 +129,81 @@
 </li>
     </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">API Reference</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/api-reference/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+    </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../documentation/how-to/overview.html" class="sidebar-item-text sidebar-link">How To</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">Create a Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">Export to VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">Handle Large Queries</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">Ingest Samples</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with TileDB-Cloud</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Dask</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Spark</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">Read from the Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">Work with Cloud Object Stores</a>
+  </div>
+</li>
+    </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -177,7 +252,19 @@
 </figure>
 </div>
 <p>This is the motivation behind <em>anchors</em>. TileDB-VCF expands the user’s query range on the left by <code>anchor_gap</code>. It then reports as results the cells that are included in the expanded query if their end position (stored in an attribute) comes after the query range start endpoint. In the example above, TileDB-VCF retrieves anchor <code>a1</code> and Indel/CNV <code>v3</code>. It reports <code>v1</code> as a result (as it can be extracted directly from anchor <code>a1</code>), but filters out <code>v3</code>.</p>
-<p>{% hint style=“info” %} By representing each sample’s variants as non-empty cells in a 2D plane and using anchors and expanded queries, we managed to model population variants as 3D sparse arrays and use the vanilla functionality of TileDB-Embedded, inheriting all its powerful features out of the box. {% endhint %}</p>
+<div class="callout-info callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Info
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>By representing each sample’s variants as non-empty cells in a 2D plane and using anchors and expanded queries, we managed to model population variants as 3D sparse arrays and use the vanilla functionality of TileDB-Embedded, inheriting all its powerful features out of the box.</p>
+</div>
+</div>
 <p>Quite often, the analyses requires data retrieval based on numerous query ranges (up to the order of millions), which must be submitted simultaneously. TileDB-VCF leverages the highly optimized multi-range subarray functionality of TileDB Embedded, which leads to unparalleled performance for such scenarios.</p>
 <p><em>But what about updates?</em> That’s the topic of the next section.</p>
 </section>
@@ -193,7 +280,19 @@
 </section>
 <section id="collaboration" class="level2">
 <h2 class="anchored" data-anchor-id="collaboration">Collaboration</h2>
-<p>{% hint style=“info” %} The shear volume of data generated by modern population genomics applications creates enormous challenges around data management and collaboration. {% endhint %}</p>
+<div class="callout-info callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Info
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The shear volume of data generated by modern population genomics applications creates enormous challenges around data management and collaboration.</p>
+</div>
+</div>
 <p>TileDB Cloud offers groundbreaking features for collaborative genomic research:</p>
 <ol type="1">
 <li>Popular public datasets made available in the TileDB format for direct analysis</li>

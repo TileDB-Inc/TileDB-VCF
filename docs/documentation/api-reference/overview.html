@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Ingestion</title>
+  <title>API Reference</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -20,8 +20,8 @@
   <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../../site_libs/quarto-search/quarto-search.js"></script>
-  <link href="../../documentation/ingestion/cli.html" rel="next">
-  <link href="../../examples/README.md" rel="prev">
+  <link href="../../documentation/api-reference/cli.html" rel="next">
+  <link href="../../documentation/ingestion/distributed-ingestion.html" rel="prev">
   <link href="../../images/favicon.ico" rel="icon">
   <script src="../../site_libs/quarto-html/quarto.js"></script>
   <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -56,7 +56,7 @@
   <![endif]-->
   <link rel="stylesheet" href="../../quarto-materials/tiledb.css">
 </head>
-<body class="floating fullcontent">
+<body class="floating">
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
     <nav class="navbar navbar-expand-lg navbar-dark ">
@@ -88,7 +88,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Ingestion</h1>
+      <h1 class="quarto-secondary-nav-title">API Reference</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -108,7 +108,7 @@
 </li>
         <li class="sidebar-item sidebar-item-section">
     <div class="sidebar-item-container"> 
-        <a href="../../documentation/ingestion/overview.html" class="sidebar-item-text sidebar-link active">Ingestion</a>
+        <a href="../../documentation/ingestion/overview.html" class="sidebar-item-text sidebar-link">Ingestion</a>
       <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
         <i class="bi bi-chevron-right ms-2"></i>
       </a>
@@ -133,7 +133,7 @@
   </li>
         <li class="sidebar-item sidebar-item-section">
     <div class="sidebar-item-container"> 
-        <a href="../../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">API Reference</a>
+        <a href="../../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link active">API Reference</a>
       <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
         <i class="bi bi-chevron-right ms-2"></i>
       </a>
@@ -210,17 +210,29 @@
     </div>
 </nav>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc">
+<h2 id="toc-title">On this page</h2>
+<ul>
+<li><a href="#api-reference" class="nav-link active" data-scroll-target="#api-reference">API Reference</a></li>
+</ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/api-reference/overview.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 <header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Ingestion</h1></div></header>
-<p>Ingestion of VCF files is easy and straight forward.</p>
-<p>TileDB offers quick and easy <a href="../../documentation/ingestion/cli.html">cli</a>, a <a href="../../documentation/ingestion/python.html">python api</a> and capabilities in TileDB Cloud for simple <a href="../../documentation/ingestion/distributed-ingestion.html">one-line distributed ingestion</a> supporting millions of VCF files.</p>
+<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">API Reference</h1></div></header>
+
+<section id="api-reference" class="level1">
+<h1>API Reference</h1>
+<p>This is the API reference for TileDB-VCF:</p>
+<p>{% content-ref url=“cli.md” %} <a href="../../documentation/api-reference/cli.html">cli.md</a> {% endcontent-ref %}</p>
+<p>{% content-ref url=“python.md” %} <a href="../../documentation/api-reference/python.html">python.md</a> {% endcontent-ref %}</p>
 
 
 
+</section>
 </main> <!-- /main -->
 <script type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -300,12 +312,12 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../examples/README.md" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"></span>
+      <a href="../../documentation/ingestion/distributed-ingestion.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Distributed Ingestion</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/ingestion/cli.html" class="pagination-link">
+      <a href="../../documentation/api-reference/cli.html" class="pagination-link">
         <span class="nav-page-text">CLI</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>

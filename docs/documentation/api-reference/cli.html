@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="generator" content="quarto-0.9.141">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>cli</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+
+  <script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+  <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+  <script src="../../site_libs/clipboard/clipboard.min.js"></script>
+  <meta name="quarto:offset" content="../../">
+  <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+  <script src="../../site_libs/quarto-search/fuse.min.js"></script>
+  <script src="../../site_libs/quarto-search/quarto-search.js"></script>
+  <link href="../../documentation/api-reference/python.html" rel="next">
+  <link href="../../documentation/api-reference/overview.html" rel="prev">
+  <link href="../../images/favicon.ico" rel="icon">
+  <script src="../../site_libs/quarto-html/quarto.js"></script>
+  <script src="../../site_libs/quarto-html/popper.min.js"></script>
+  <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+  <script src="../../site_libs/quarto-html/anchor.min.js"></script>
+  <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+  <link id="quarto-text-highlighting-styles" href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet">
+  <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+  <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+  <link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <script id="quarto-search-options" type="application/json">{
+    "location": "navbar",
+    "copy-button": false,
+    "collapse-after": 3,
+    "panel-placement": "end",
+    "type": "overlay",
+    "limit": 20,
+    "language": {
+      "search-no-results-text": "No results",
+      "search-matching-documents-text": "matching documents",
+      "search-copy-link-title": "Copy link to search",
+      "search-hide-matches-text": "Hide additional matches",
+      "search-more-match-text": "more match in this document",
+      "search-more-matches-text": "more matches in this document",
+      "search-clear-button-title": "Clear",
+      "search-detached-cancel-button-title": "Cancel",
+      "search-submit-button-title": "Submit"
+    }
+  }</script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="../../quarto-materials/tiledb.css">
+</head>
+<body class="floating">
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <a class="navbar-brand" href="../../index.html">
+    <img src="../../quarto-materials/tiledb-logo.png" alt="">
+  </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://tiledb.com">Home page</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://cloud.tiledb.com/auth/login">Login</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://tiledb.com/contact">Contact us</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://github.com/TileDB-Inc/TileDB-VCF">Repo</a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/index.html" class="sidebar-item-text sidebar-link">TileDB-VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../../documentation/ingestion/overview.html" class="sidebar-item-text sidebar-link">Ingestion</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/ingestion/distributed-ingestion.html" class="sidebar-item-text sidebar-link">Distributed Ingestion</a>
+  </div>
+</li>
+    </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">API Reference</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link active">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/api-reference/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+    </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../../documentation/how-to/overview.html" class="sidebar-item-text sidebar-link">How To</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">Create a Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">Export to VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">Handle Large Queries</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">Ingest Samples</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with TileDB-Cloud</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Dask</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Spark</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">Read from the Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">Work with Cloud Object Stores</a>
+  </div>
+</li>
+    </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc">
+<h2 id="toc-title">On this page</h2>
+<ul>
+<li><a href="#cli" class="nav-link active" data-scroll-target="#cli">CLI</a>
+<ul class="collapse">
+<li><a href="#available-commands" class="nav-link" data-scroll-target="#available-commands">Available Commands</a></li>
+<li><a href="#create" class="nav-link" data-scroll-target="#create">Create</a>
+<ul class="collapse">
+<li><a href="#usage" class="nav-link" data-scroll-target="#usage">Usage</a></li>
+<li><a href="#options" class="nav-link" data-scroll-target="#options">Options</a></li>
+</ul></li>
+<li><a href="#store" class="nav-link" data-scroll-target="#store">Store</a>
+<ul class="collapse">
+<li><a href="#usage-1" class="nav-link" data-scroll-target="#usage-1">Usage</a></li>
+<li><a href="#options-1" class="nav-link" data-scroll-target="#options-1">Options</a></li>
+</ul></li>
+<li><a href="#export" class="nav-link" data-scroll-target="#export">Export</a>
+<ul class="collapse">
+<li><a href="#usage-2" class="nav-link" data-scroll-target="#usage-2">Usage</a></li>
+<li><a href="#options-2" class="nav-link" data-scroll-target="#options-2">Options</a></li>
+</ul></li>
+<li><a href="#list" class="nav-link" data-scroll-target="#list">List</a>
+<ul class="collapse">
+<li><a href="#usage-3" class="nav-link" data-scroll-target="#usage-3">Usage</a></li>
+<li><a href="#options-3" class="nav-link" data-scroll-target="#options-3">Options</a></li>
+</ul></li>
+<li><a href="#stat" class="nav-link" data-scroll-target="#stat">Stat</a>
+<ul class="collapse">
+<li><a href="#usage-4" class="nav-link" data-scroll-target="#usage-4">Usage</a></li>
+<li><a href="#options-4" class="nav-link" data-scroll-target="#options-4">Options</a></li>
+</ul></li>
+<li><a href="#utils" class="nav-link" data-scroll-target="#utils">Utils</a>
+<ul class="collapse">
+<li><a href="#usage-5" class="nav-link" data-scroll-target="#usage-5">Usage</a></li>
+<li><a href="#options-5" class="nav-link" data-scroll-target="#options-5">Options</a></li>
+</ul></li>
+</ul></li>
+</ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/api-reference/cli.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<section id="cli" class="level1">
+<h1>CLI</h1>
+<section id="available-commands" class="level2">
+<h2 class="anchored" data-anchor-id="available-commands">Available Commands</h2>
+<ol type="1">
+<li><code>create</code>a new dataset</li>
+<li><code>store</code>specified VCF files in a dataset</li>
+<li><code>export</code>data from a dataset</li>
+<li><code>list</code>all sample names present in a dataset</li>
+<li><code>stat</code>prints high-level statistics about a dataset</li>
+<li><code>utils</code> utility functions for dataset</li>
+</ol>
+</section>
+<section id="create" class="level2">
+<h2 class="anchored" data-anchor-id="create">Create</h2>
+<p>Create an empty TileDB-VCF dataset.</p>
+<section id="usage" class="level3">
+<h3 class="anchored" data-anchor-id="usage">Usage</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> create <span class="at">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [-a <span class="op">&lt;</span>fields<span class="op">&gt;</span>] [-c <span class="op">&lt;</span>N<span class="op">&gt;</span>] [-g <span class="op">&lt;</span>N<span class="op">&gt;</span>] [--tiledb-config <span class="op">&lt;</span>params<span class="op">&gt;</span>] [--checksum <span class="op">&lt;</span>checksum<span class="op">&gt;</span>] [-n]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options" class="level3">
+<h3 class="anchored" data-anchor-id="options">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 87%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>-a</code>,<code>--attributes</code></td>
+<td>Info or format field names (comma-delimited) to store as separate attributes. Names should be <code>fmt_X</code> or <code>info_X</code> for a field name <code>X</code> (case sensitive).</td>
+</tr>
+<tr class="odd">
+<td><code>-c</code>,<code>--tile-capacity</code></td>
+<td>Tile capacity to use for the array schema [default <code>10000</code>].</td>
+</tr>
+<tr class="even">
+<td><code>-g</code>,<code>--anchor-gap</code></td>
+<td>Anchor gap size to use [default <code>1000</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+<tr class="even">
+<td><code>--checksum</code></td>
+<td>Checksum to use for dataset validation on read and writes [default <code>"sha256"</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>-n</code>,<code>--no-duplicates</code></td>
+<td>Do not allow records with duplicate end positions to be written to the array.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="store" class="level2">
+<h2 class="anchored" data-anchor-id="store">Store</h2>
+<p>Ingests registered samples into a TileDB-VCF dataset.</p>
+<section id="usage-1" class="level3">
+<h3 class="anchored" data-anchor-id="usage-1">Usage</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="at">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [-t <span class="op">&lt;</span>N<span class="op">&gt;</span>] [-p <span class="op">&lt;</span>MB<span class="op">&gt;</span>] [-d <span class="op">&lt;</span>path<span class="op">&gt;</span>] [-s <span class="op">&lt;</span>MB<span class="op">&gt;</span>] [-n <span class="op">&lt;</span>N<span class="op">&gt;</span>] [-k <span class="op">&lt;</span>N<span class="op">&gt;</span>] [-b <span class="op">&lt;</span>MB<span class="op">&gt;</span>] [-v] [--remove-sample-file] [--tiledb-config <span class="op">&lt;</span>params<span class="op">&gt;</span>] <span class="er">(</span><span class="ex">[-f</span> <span class="op">&lt;</span>path<span class="op">&gt;</span>] <span class="kw">|</span> <span class="op">&lt;</span>paths<span class="op">&gt;</span>...<span class="kw">)</span> <span class="ex">[-e</span> <span class="op">&lt;</span>N<span class="op">&gt;</span>] [--stats] [--stats-vcf-header-array]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options-1" class="level3">
+<h3 class="anchored" data-anchor-id="options-1">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 7%">
+<col style="width: 92%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>-t</code>,<code>--threads</code></td>
+<td>Number of threads [default <code>16</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>-p</code>,<code>--s3-part-size</code></td>
+<td>[S3 only] Part size to use for writes (MB) [default <code>50</code>].</td>
+</tr>
+<tr class="even">
+<td><code>-d</code>,<code>--scratch-dir</code></td>
+<td>Directory used for local storage of downloaded remote samples.</td>
+</tr>
+<tr class="odd">
+<td><code>-s</code>,<code>--scratch-mb</code></td>
+<td>Amount of local storage (in MB) allocated for downloading remote VCF files prior to ingestion [default <code>0</code>]. The you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s sample_bactch_size (which by default is 10). You can read more about the data model here.</td>
+</tr>
+<tr class="even">
+<td><code>-n</code>, <code>--max-record-buff</code></td>
+<td>Max number of BCF records to buffer per file [default <code>50000</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>-k</code>, <code>--thread-task-size</code></td>
+<td>Max length (# columns) of an ingestion task. Affects load balancing of ingestion work across threads, and total memory consumption [default <code>5000000</code>].</td>
+</tr>
+<tr class="even">
+<td><code>-b</code>, <code>--mem-budget-mb</code></td>
+<td>The total memory budget (MB) used when submitting TileDB queries [default <code>1024</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>-v</code>, <code>--verbose</code></td>
+<td>Enable verbose output.</td>
+</tr>
+<tr class="even">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+<tr class="odd">
+<td><code>-f</code>, <code>--samples-file</code></td>
+<td>File with 1 VCF path to be ingested per line. The format can also include an explicit index path on each line, in the format <code>&lt;vcf-uri&gt;&lt;TAB&gt;&lt;index-uri&gt;</code>.</td>
+</tr>
+<tr class="even">
+<td><code>--remove-sample-file</code></td>
+<td>If specified, the samples file (<code>-f</code> argument) is deleted after successful ingestion</td>
+</tr>
+<tr class="odd">
+<td><code>-e</code>, <code>--sample-batch-size</code></td>
+<td>Number of samples per batch for ingestion [default <code>10</code>].</td>
+</tr>
+<tr class="even">
+<td><code>--stats</code></td>
+<td>Enable TileDB stats</td>
+</tr>
+<tr class="odd">
+<td><code>--stats-vcf-header-array</code></td>
+<td>Enable TileDB stats for vcf header array usage.</td>
+</tr>
+<tr class="even">
+<td><code>--resume</code></td>
+<td>Resume incomplete ingestion of sample batch.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="export" class="level2">
+<h2 class="anchored" data-anchor-id="export">Export</h2>
+<p>Exports data from a TileDB-VCF dataset.</p>
+<section id="usage-2" class="level3">
+<h3 class="anchored" data-anchor-id="usage-2">Usage</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> export <span class="at">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [-O <span class="op">&lt;</span>format<span class="op">&gt;</span>] [-o <span class="op">&lt;</span>path<span class="op">&gt;</span>] [-t <span class="op">&lt;</span>fields<span class="op">&gt;</span>] <span class="er">(</span><span class="ex">[-r</span> <span class="op">&lt;</span>regions<span class="op">&gt;</span>] <span class="kw">|</span> <span class="ex">[-R</span> <span class="op">&lt;</span>path<span class="op">&gt;</span>]<span class="kw">)</span> <span class="ex">[--sorted]</span> [-n <span class="op">&lt;</span>N<span class="op">&gt;</span>] [-d <span class="op">&lt;</span>path<span class="op">&gt;</span>] [--sample-partition <span class="op">&lt;</span>I:N<span class="op">&gt;</span>] [--region-partition <span class="op">&lt;</span>I:N<span class="op">&gt;</span>] [--upload-dir <span class="op">&lt;</span>path<span class="op">&gt;</span>] [--tiledb-config <span class="op">&lt;</span>params<span class="op">&gt;</span>] [-v] [-c] [-b <span class="op">&lt;</span>MB<span class="op">&gt;</span>] <span class="er">(</span><span class="ex">[-f</span> <span class="op">&lt;</span>path<span class="op">&gt;</span>] <span class="kw">|</span> <span class="ex">[-s</span> <span class="op">&lt;</span>samples<span class="op">&gt;</span>]<span class="kw">)</span> <span class="ex">[--stats]</span> [--stats-vcf-header-array]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options-2" class="level3">
+<h3 class="anchored" data-anchor-id="options-2">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 90%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>-O</code>,<code>--output-format</code></td>
+<td>Export format. Options are: <code>b</code>: bcf (compressed); <code>u</code>: bcf; <code>z</code>: vcf.gz; <code>v</code>: vcf; <code>t</code>: TSV. [default <code>b</code>] .</td>
+</tr>
+<tr class="odd">
+<td><code>-o</code>,<code>--output-path</code></td>
+<td>[TSV export only] The name of the output TSV file.</td>
+</tr>
+<tr class="even">
+<td><code>-t</code>,<code>--tsv-fields</code></td>
+<td>[TSV export only] An ordered CSV list of fields to export in the TSV. A field name can be one of <code>SAMPLE</code>, <code>ID</code>, <code>REF</code>, <code>ALT</code>, <code>QUAL</code>, <code>POS</code>, <code>CHR</code>, <code>FILTER</code>. Additionally, <code>INFO</code> fields can be specified by <code>I</code> and <code>FMT</code> fields with <code>S</code>. To export the intersecting query region for each row in the output, use the field names <code>Q:POS</code>, <code>Q:END</code>, or <code>Q:LINE</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>-r</code>,<code>--regions</code></td>
+<td>CSV list of regions to export in the format <code>chr:min-max</code>.</td>
+</tr>
+<tr class="even">
+<td><code>-R</code>,<code>--regions-file</code></td>
+<td>File containing regions (BED format).</td>
+</tr>
+<tr class="odd">
+<td><code>--sorted</code></td>
+<td>Do not sort regions or regions file if they are pre-sorted.</td>
+</tr>
+<tr class="even">
+<td><code>-n</code>,<code>--limit</code></td>
+<td>Only export the first <em>N</em> intersecting records.</td>
+</tr>
+<tr class="odd">
+<td><code>-d</code>,<code>--output-dir</code></td>
+<td>Directory used for local output of exported samples.</td>
+</tr>
+<tr class="even">
+<td><code>--sample-partition</code></td>
+<td>Partitions the list of samples to be exported and causes this export to export only a specific partition of them. Specify in the format <code>I:N</code> where <code>I</code> is the partition index and <code>N</code> is the total number of partitions. Useful for batch exports.</td>
+</tr>
+<tr class="odd">
+<td><code>--region-partition</code></td>
+<td>Partitions the list of regions to be exported and causes this export to export only a specific partition of them. Specify in the format <code>I:N</code> where <code>I</code> is the partition index and <code>N</code> is the total number of partitions. Useful for batch exports.</td>
+</tr>
+<tr class="even">
+<td><code>--upload-dir</code></td>
+<td>If set, all output file(s) from the export process will be copied to the given directory (or S3 prefix) upon completion.</td>
+</tr>
+<tr class="odd">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+<tr class="even">
+<td><code>-v</code>,<code>--verbose</code></td>
+<td>Enable verbose output.</td>
+</tr>
+<tr class="odd">
+<td><code>-c</code>,<code>--count-only</code></td>
+<td>Don’t write output files, only print the count of the resulting number of intersecting records.</td>
+</tr>
+<tr class="even">
+<td><code>-b</code>,<code>--mem-budget-mb</code></td>
+<td>The memory budget (MB) used when submitting TileDB queries [default <code>2048</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>--mem-budget-buffer-percentage</code></td>
+<td>The percentage of the memory budget to use for TileDB query buffers [default <code>25</code>].</td>
+</tr>
+<tr class="even">
+<td><code>--mem-budget-tile-cache-percentage</code></td>
+<td>The percentage of the memory budget to use for TileDB tile cache [default <code>10</code>].</td>
+</tr>
+<tr class="odd">
+<td><code>-f</code>,<code>--samples-file</code></td>
+<td>File with 1 VCF path to be registered per line. The format can also include an explicit index path on each line, in the format in the format <code>&lt;vcf-uri&gt;&lt;TAB&gt;&lt;index-uri&gt;</code>.</td>
+</tr>
+<tr class="even">
+<td><code>--stats</code></td>
+<td>Enable TileDB stats</td>
+</tr>
+<tr class="odd">
+<td><code>--stats-vcf-header-array</code></td>
+<td>Enable TileDB stats for vcf header array usage.</td>
+</tr>
+<tr class="even">
+<td><code>--disable-check-samples</code></td>
+<td>Disable validating that samples passed exist in dataset before executing query and error if any sample requested is not in the dataset.</td>
+</tr>
+<tr class="odd">
+<td><code>--disable-progress-estimation</code></td>
+<td>Disable progress estimation in verbose mode. Progress estimation can sometimes cause a performance impact.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="list" class="level2">
+<h2 class="anchored" data-anchor-id="list">List</h2>
+<p>Lists all sample names present in a TileDB-VCF dataset.</p>
+<section id="usage-3" class="level3">
+<h3 class="anchored" data-anchor-id="usage-3">Usage</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> list <span class="at">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [--tiledb-config ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options-3" class="level3">
+<h3 class="anchored" data-anchor-id="options-3">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 87%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="stat" class="level2">
+<h2 class="anchored" data-anchor-id="stat">Stat</h2>
+<p>Prints high-level statistics about a TileDB-VCF dataset.</p>
+<section id="usage-4" class="level3">
+<h3 class="anchored" data-anchor-id="usage-4">Usage</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> stat <span class="at">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [--tiledb-config ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options-4" class="level3">
+<h3 class="anchored" data-anchor-id="options-4">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 87%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="utils" class="level2">
+<h2 class="anchored" data-anchor-id="utils">Utils</h2>
+<p>Utils for working with a TileDB-VCF dataset, such for consolidating and vacuuming fragments or fragment metadata.</p>
+<section id="usage-5" class="level3">
+<h3 class="anchored" data-anchor-id="usage-5">Usage</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> utils <span class="er">(</span><span class="ex">consolidate</span><span class="kw">|</span><span class="ex">vacuum</span><span class="kw">)</span> <span class="kw">(</span><span class="ex">fragment_meta</span><span class="kw">|</span><span class="ex">fragments</span><span class="kw">)</span> <span class="ex">-u</span> <span class="op">&lt;</span>uri<span class="op">&gt;</span> [--tiledb-config ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="options-5" class="level3">
+<h3 class="anchored" data-anchor-id="options-5">Options</h3>
+<table class="table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 87%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-u</code>,<code>--uri</code></td>
+<td>TileDB dataset URI.</td>
+</tr>
+<tr class="even">
+<td><code>--tiledb-config</code></td>
+<td>CSV string of the format <code>'param1=val1,param2=val2...'</code> specifying optional TileDB configuration parameter settings.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+</section>
+</section>
+</section>
+</main> <!-- /main -->
+<script type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    setTimeout(function() {
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../../documentation/api-reference/overview.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">API Reference</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../../documentation/api-reference/python.html" class="pagination-link">
+        <span class="nav-page-text">Python</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+</body></html>

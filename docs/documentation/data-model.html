@@ -129,6 +129,81 @@
 </li>
     </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">API Reference</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/api-reference/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+    </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../documentation/how-to/overview.html" class="sidebar-item-text sidebar-link">How To</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">Create a Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">Export to VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">Handle Large Queries</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">Ingest Samples</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with TileDB-Cloud</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Dask</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Spark</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">Read from the Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">Work with Cloud Object Stores</a>
+  </div>
+</li>
+    </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -305,7 +380,19 @@
 </tbody>
 </table>
 <p>The <code>info_*</code> and <code>fmt_*</code> attributes allow individual <code>INFO</code> or <code>FMT</code> VCF fields to be extracted into explicit array attributes. This can be beneficial if your queries frequently access only a subset of the <code>INFO</code> or <code>FMT</code> fields, as no unrelated data then needs to be fetched from storage.</p>
-<p>{% hint style=“info” %} The choice of which fields to extract as explicit array attributes is user-configurable during array creation. {% endhint %}</p>
+<div class="callout-note callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The choice of which fields to extract as explicit array attributes is user-configurable during array creation.</p>
+</div>
+</div>
 <p>Any extra info or format fields not extracted as explicit array attributes are stored in the byte blob attributes, <code>info</code> and <code>fmt</code>.</p>
 </section>
 <section id="metadata" class="level3">
@@ -316,7 +403,7 @@
 <li><code>version</code> Array schema version</li>
 </ul>
 <p>These metadata values are updated during array creation, and are used during the export phase. The metadata is stored as “array metadata” in the sparse <code>data</code> array.</p>
-<p>{% hint style=“warning” %} When ingesting samples, the <em>sample header</em> must be identical for all samples with respect to the contig mappings. That means all samples must have the exact same set of contigs listed in the VCF header. This requirement will be relaxed in future versions. {% endhint %}</p>
+<p>::: {.callout-warning} When ingesting samples, the <em>sample header</em> must be identical for all samples with respect to the contig mappings. That means all samples must have the exact same set of contigs listed in the VCF header. This requirement will be relaxed in future versions. {% endhint %}</p>
 </section>
 </section>
 <section id="vcf-headers-array" class="level2">

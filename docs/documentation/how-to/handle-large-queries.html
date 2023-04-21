@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Python</title>
+  <title>handle-large-queries</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -83,8 +83,8 @@
   <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../../site_libs/quarto-search/quarto-search.js"></script>
-  <link href="../../documentation/ingestion/distributed-ingestion.html" rel="next">
-  <link href="../../documentation/ingestion/cli.html" rel="prev">
+  <link href="../../documentation/how-to/ingest-samples.html" rel="next">
+  <link href="../../documentation/how-to/export-to-vcf.html" rel="prev">
   <link href="../../images/favicon.ico" rel="icon">
   <script src="../../site_libs/quarto-html/quarto.js"></script>
   <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -151,7 +151,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Python</h1>
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -184,7 +184,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Python</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -234,7 +234,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">Handle Large Queries</a>
+  <a href="../../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link active">Handle Large Queries</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -277,37 +277,98 @@
         <nav id="TOC" role="doc-toc">
 <h2 id="toc-title">On this page</h2>
 <ul>
-<li><a href="#python-ingestion" class="nav-link active" data-scroll-target="#python-ingestion">Python Ingestion</a></li>
+<li><a href="#handle-large-queries" class="nav-link active" data-scroll-target="#handle-large-queries">Handle Large Queries</a>
+<ul class="collapse">
+<li><a href="#setting-the-memory-budget" class="nav-link" data-scroll-target="#setting-the-memory-budget">Setting the Memory Budget</a></li>
+<li><a href="#performing-batched-reads" class="nav-link" data-scroll-target="#performing-batched-reads">Performing Batched Reads</a></li>
+<li><a href="#iteration" class="nav-link" data-scroll-target="#iteration">Iteration</a></li>
+</ul></li>
 </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/ingestion/python.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/how-to/handle-large-queries.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
-<header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Python</h1></div></header>
+<section id="handle-large-queries" class="level1">
+<h1>Handle Large Queries</h1>
+<p>Unlike TileDB-VCF’s CLI, which exports directly to disk, results for queries performed using Python are read into memory. Therefore, when querying even moderately sized genomic datasets, the amount of available memory must be taken into consideration.</p>
+<p>This guide demonstrates several of the TileDB-VCF features for overcoming memory limitations when querying large datasets. </p>
+<section id="setting-the-memory-budget" class="level2">
+<h2 class="anchored" data-anchor-id="setting-the-memory-budget">Setting the Memory Budget</h2>
+<p>One strategy for accommodating large queries is to simply increase the amount of memory available to <code>tiledbvcf</code>. By default <code>tiledbvcf</code> allocates 2GB of memory for queries. However, this value can be adjusted using the <code>memory_budget_mb</code> parameter. For the purposes of this tutorial the budget will be <em>decreased</em> to demonstrate how <code>tiledbvcf</code> is able to perform genome-scale queries even in a memory constrained environment.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> tiledbvcf.ReadConfig(memory_budget_mb<span class="op">=</span><span class="dv">256</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode <span class="op">=</span> <span class="st">"r"</span>, cfg <span class="op">=</span> cfg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="performing-batched-reads" class="level2">
+<h2 class="anchored" data-anchor-id="performing-batched-reads">Performing Batched Reads</h2>
+<p>For queries that encompass many genomic regions you can simply provide an external <code>bed</code> file. In this example, you will query for any variants located in the promoter region of a known gene located on chromosomes 1-4.</p>
+<p>After performing a query, you can use <code>read_completed()</code> to verify whether or not <em>all</em> results were successfully returned.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>attrs <span class="op">=</span> [<span class="st">"sample_name"</span>, <span class="st">"contig"</span>, <span class="st">"pos_start"</span>, <span class="st">"fmt_GT"</span>]</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(attrs, bed_file <span class="op">=</span> <span class="st">"data/gene-promoters-hg38.bed"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ds.read_completed()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">## False</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>In this case, it returned <code>False</code>, indicating the requested data was too large to fit into the allocated memory so <code>tiledbvcf</code> retrieved as many records as possible in this first batch. The remaining records can be retrieved using <code>continue_read()</code>. Here, we’ve setup our code to accommodate the possibility that the full set of results are split across multiple batches.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"The dataframe contains"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="kw">not</span> ds.read_completed():</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> (<span class="ss">f"</span><span class="ch">\t</span><span class="ss">...</span><span class="sc">{</span>df<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">}</span><span class="ss"> rows"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.append(ds.continue_read())</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="ss">f"</span><span class="ch">\t</span><span class="ss">...</span><span class="sc">{</span>df<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">}</span><span class="ss"> rows"</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">## The dataframe contains</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">##   ...1525201 rows</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">##   ...3050402 rows</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">##   ...3808687 rows</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Here is the final dataframe, which includes 3,808,687 records:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">##         sample_name contig  pos_start    fmt_GT</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">## 0       v2-Qhhvcspe   chr1          1  [-1, -1]</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">## 1       v2-YMaDHIoW   chr1          1  [-1, -1]</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">## 2       v2-Mcwmkqnx   chr1          1  [-1, -1]</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">## 3       v2-RzweTRSv   chr1          1  [-1, -1]</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">## 4       v2-ijrKdkKh   chr1          1  [-1, -1]</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">## ...             ...    ...        ...       ...</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">## 758280  v2-PDeVyHSO   chr4  190063262    [0, 0]</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">## 758281  v2-PDeVyHSO   chr4  190063264  [-1, -1]</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">## 758282  v2-PDeVyHSO   chr4  190063265  [-1, -1]</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">## 758283  v2-PDeVyHSO   chr4  190063392    [0, 0]</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">## 758284  v2-PDeVyHSO   chr4  190063418  [-1, -1]</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">## </span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">## [3808687 rows x 4 columns]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="iteration" class="level2">
+<h2 class="anchored" data-anchor-id="iteration">Iteration</h2>
+<p>A Python generator version of the <code>read</code> method is also provided. This pattern provides a powerful interface for batch processing variant data.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode <span class="op">=</span> <span class="st">"r"</span>, cfg <span class="op">=</span> cfg)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> batch <span class="kw">in</span> ds.read_iter(attrs, bed_file <span class="op">=</span> <span class="st">"data/gene-promoters-hg38.bed"</span>):</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.append(batch, ignore_index <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>df</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">##          sample_name contig  pos_start    fmt_GT</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">## 0        v2-Qhhvcspe   chr1          1  [-1, -1]</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">## 1        v2-YMaDHIoW   chr1          1  [-1, -1]</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">## 3        v2-RzweTRSv   chr1          1  [-1, -1]</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">## 4        v2-ijrKdkKh   chr1          1  [-1, -1]</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">## ...              ...    ...        ...       ...</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co">## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co">## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co">## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co">## </span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="co">## [3808687 rows x 4 columns]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 
-<section id="python-ingestion" class="level2">
-<h2 class="anchored" data-anchor-id="python-ingestion">Python Ingestion</h2>
-<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../../documentation/ingestion/cli.html">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
-<p>The text file <code>data/s3-bcf-samples.txt</code> contains a list of S3 URIs pointing to 7 BCF files from the same cohort.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data/s3-bcf-samples.txt"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    sample_uris <span class="op">=</span> [l.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>) <span class="cf">for</span> l <span class="kw">in</span> f.readlines()]</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sample_uris</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">## ['s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf',</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf',</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf',</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf',</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf',</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf',</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf']</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You can add them to your existing dataset by re-opening it in <em>write</em> mode and providing the file URIs. It’s also necessary to allocate scratch space so the files can be downloaded to a temporary location prior to ingestion.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>small_ds <span class="op">=</span> tiledbvcf.Dataset(<span class="st">'small_dataset'</span>, mode <span class="op">=</span> <span class="st">"w"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>small_ds.ingest_samples(sample_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>The TileDB-VCF dataset located at <code>small_dataset</code> now includes records for 660 variants across 10 samples. The next section provides examples demonstrating how to query this dataset.</p>
 
 
-
+</section>
 </section>
 </main> <!-- /main -->
 <script type="application/javascript">
@@ -388,13 +449,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../documentation/ingestion/cli.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
+      <a href="../../documentation/how-to/export-to-vcf.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Export to VCF</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/ingestion/distributed-ingestion.html" class="pagination-link">
-        <span class="nav-page-text">Distributed Ingestion</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../documentation/how-to/ingest-samples.html" class="pagination-link">
+        <span class="nav-page-text">Ingest Samples</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

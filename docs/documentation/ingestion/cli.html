@@ -194,6 +194,81 @@
 </li>
     </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">API Reference</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/api-reference/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+    </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../../documentation/how-to/overview.html" class="sidebar-item-text sidebar-link">How To</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">Create a Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">Export to VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">Handle Large Queries</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">Ingest Samples</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with TileDB-Cloud</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Dask</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Spark</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">Read from the Dataset</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">Work with Cloud Object Stores</a>
+  </div>
+</li>
+    </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -220,7 +295,19 @@
 
 <section id="create-a-new-dataset" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-new-dataset">Create a new dataset</h2>
-<p>{% hint style=“success” %} The files used in the following examples can be obtained <a href="https://github.com/TileDB-Inc/TileDB-Examples/tree/master/genomics/data">here</a>. {% endhint %}</p>
+<div class="callout-note callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The files used in the following examples can be obtained <a href="https://github.com/TileDB-Inc/TileDB-Examples/tree/master/genomics/data">here</a>.</p>
+</div>
+</div>
 <p>The first step is to <strong>create</strong> an empty dataset. Let’s save the dataset in a new array called <code>small_dataset</code>:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> create <span class="at">--uri</span> small_dataset</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
@@ -267,9 +354,33 @@
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf</span></span>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf</span></span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>{% hint style=“info” %} Samples in this second batch are stored as <code>BCF</code> files which are also supported by TileDB-VCF. {% endhint %}</p>
+<div class="callout-info callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Info
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Samples in this second batch are stored as <code>BCF</code> files which are also supported by TileDB-VCF.</p>
+</div>
+</div>
 <p>This process is identical to the steps perfo_r_med above, the only changes needed to our code involve setting <code>--scratch-mb</code> to allocate some temporary space for downloading the files and providing the URLs for the remote files. In this case, we’ll simply pass the <code>s3-bcf-samples.txt</code> file, which includes a list of the BCF files we want to ingest.</p>
-<p>{% hint style=“info” %} When ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s <code>sample_bactch_size</code> (which by default is 10). You can read more about the data model <a href="../../documentation/data-model.html">here</a>. {% endhint %}</p>
+<div class="callout-info callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Info
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s <code>sample_bactch_size</code> (which by default is 10). You can read more about the data model <a href="../../documentation/data-model.html">here</a>.</p>
+</div>
+</div>
 <p>You can add the <code>--verbose</code> flag to print out more information during the <code>store</code> phase.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="dt">\</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--uri</span> small_dataset <span class="dt">\</span></span>
@@ -290,7 +401,19 @@
 <section id="incremental-updates" class="level2">
 <h2 class="anchored" data-anchor-id="incremental-updates">Incremental Updates</h2>
 <p>A key advantage to using TileDB as a data store for genomic variant data is the ability to efficiently add new samples as they become available. The dataset creation command should be called <em>once</em>. Then you can invoke the store command multiple commands.</p>
-<p>{% hint style=“success” %} The <code>store</code> command is <em>thread-</em> and <em>process-safe</em>, even on the cloud. That means it can be invoked <strong>in parallel</strong>, arbitrarily scaling out the ingestion of massive datasets. {% endhint %}</p>
+<div class="callout-note callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <code>store</code> command is <em>thread-</em> and <em>process-safe</em>, even on the cloud. That means it can be invoked <strong>in parallel</strong>, arbitrarily scaling out the ingestion of massive datasets.</p>
+</div>
+</div>
 <p>Suppose we run the store for the first 3 local samples, followed by the store command for the 7 samples stored on the S3. If we run the <code>stat</code> command, we can verify that our dataset now includes 10 samples.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> stat <span class="at">--uri</span> small_dataset</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">## Statistics for dataset 'small_dataset':</span></span>

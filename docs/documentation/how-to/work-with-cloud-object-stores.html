@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Python</title>
+  <title>work-with-cloud-object-stores</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -83,8 +83,7 @@
   <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../../site_libs/quarto-search/quarto-search.js"></script>
-  <link href="../../documentation/ingestion/distributed-ingestion.html" rel="next">
-  <link href="../../documentation/ingestion/cli.html" rel="prev">
+  <link href="../../documentation/how-to/read-from-the-dataset.html" rel="prev">
   <link href="../../images/favicon.ico" rel="icon">
   <script src="../../site_libs/quarto-html/quarto.js"></script>
   <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -151,7 +150,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Python</h1>
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -184,7 +183,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Python</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -264,7 +263,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">Work with Cloud Object Stores</a>
+  <a href="../../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link active">Work with Cloud Object Stores</a>
   </div>
 </li>
     </ul>
@@ -277,37 +276,88 @@
         <nav id="TOC" role="doc-toc">
 <h2 id="toc-title">On this page</h2>
 <ul>
-<li><a href="#python-ingestion" class="nav-link active" data-scroll-target="#python-ingestion">Python Ingestion</a></li>
+<li><a href="#work-with-cloud-object-stores" class="nav-link active" data-scroll-target="#work-with-cloud-object-stores">Work with Cloud Object Stores</a>
+<ul class="collapse">
+<li><a href="#remote-datasets" class="nav-link" data-scroll-target="#remote-datasets">Remote Datasets</a></li>
+<li><a href="#remote-vcf-files" class="nav-link" data-scroll-target="#remote-vcf-files">Remote VCF Files</a>
+<ul class="collapse">
+<li><a href="#direct-ingestion" class="nav-link" data-scroll-target="#direct-ingestion">Direct Ingestion</a></li>
+<li><a href="#batched-downloading" class="nav-link" data-scroll-target="#batched-downloading">Batched Downloading</a></li>
+</ul></li>
+<li><a href="#authentication" class="nav-link" data-scroll-target="#authentication">Authentication</a>
+<ul class="collapse">
+<li><a href="#using-the-aws-cli" class="nav-link" data-scroll-target="#using-the-aws-cli">1. Using the AWS CLI</a></li>
+<li><a href="#using-configuration-parameters" class="nav-link" data-scroll-target="#using-configuration-parameters">2. Using Configuration Parameters</a></li>
+<li><a href="#using-environment-variables" class="nav-link" data-scroll-target="#using-environment-variables">3. Using Environment Variables</a></li>
+</ul></li>
+</ul></li>
 </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/ingestion/python.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/how-to/work-with-cloud-object-stores.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
-<header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Python</h1></div></header>
+<section id="work-with-cloud-object-stores" class="level1">
+<h1>Work with Cloud Object Stores</h1>
+<p>TileDB Embedded provides native support for reading from and writing to cloud object stores like AWS S3, Google Cloud Storage, and Microsoft Azure Blob Store. This guide will cover some considerations for using TileDB-VCF with these services. The examples will focus exclusively on S3, which is the most widely used, but note any of the aforementioned services can be substituted, as well as on-premise services like MinIO that provide S3-compatible APIs.</p>
+<section id="remote-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="remote-datasets">Remote Datasets</h2>
+<p>The process of creating a TileDB-VCF dataset on S3 is nearly identical to creating a local dataset. The only difference being an <code>s3://</code> address is passed to the <code>--uri</code> argument rather than a local file path.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> create <span class="at">--uri</span> s3://my-bucket/my_dataset</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This also works when querying a TileDB-VCF dataset located on S3.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> export <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--uri</span> s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--sample-names</span> v2-tJjMfKyL,v2-eBAdKwID <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-Ot</span> <span class="at">--tsv-fields</span> <span class="st">"CHR,POS,REF,S:GT"</span> <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--regions</span> <span class="st">"chr7:144000320-144008793,chr11:56490349-56491395"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="remote-vcf-files" class="level2">
+<h2 class="anchored" data-anchor-id="remote-vcf-files">Remote VCF Files</h2>
+<p>VCF files located on S3 can be ingested directly into a TileDBVCF dataset using 1 of 2 different possible approaches. </p>
+<section id="direct-ingestion" class="level3">
+<h3 class="anchored" data-anchor-id="direct-ingestion">Direct Ingestion</h3>
+<p>The first approach is the easiest, you simply pass the <code>tiledbvcf store</code> command a list of S3 URIs and TileDB-VCF takes care of the rest:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--uri</span> my_dataset <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>In this approach, remote VCF <em>index</em> files (which are relatively tiny) are downloaded locally, allowing TileDB-VCF to retrieve chunks of variant data from the remote VCF files without having to download them in full. By default, index files are downloaded to your current working directory, however, you can choose to store them in different location (e.g., a temporary directory) using the <code>--scratch-dir</code> argument.</p>
+</section>
+<section id="batched-downloading" class="level3">
+<h3 class="anchored" data-anchor-id="batched-downloading">Batched Downloading</h3>
+<p>The second approach is to download batches of VCF files in their entirety before ingestion, which may slightly improve ingestion performance. This approach requires allocating TileDB-VCF with scratch disk space using the <code>--scratch-mb</code> and <code>--scratch-dir</code> arguments.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--uri</span> my_dataset <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--scratch-dir</span> <span class="st">"</span><span class="va">$TMPDIR</span><span class="st">"</span> <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--scratch-mb</span> 4096 <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The number of VCF files that are downloaded at a time is determined by the <code>--sample-batch-size</code> parameter, which defaults to 10. Downloading and ingestion happens asynchronously, so, for example, batch 3 will be downloaded as batch 2 is being ingestion. As a result, you must configure enough scratch space to store at least 20 samples, assuming a batch size of 10.</p>
+</section>
+</section>
+<section id="authentication" class="level2">
+<h2 class="anchored" data-anchor-id="authentication">Authentication</h2>
+<p>For TileDB to access a remote storage bucket you must be properly authenticated on the machine running TileDB. For S3, this means having access to the appropriate AWS <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-creds">access key ID and secret access key</a>. This typically happens in one of three ways:</p>
+<section id="using-the-aws-cli" class="level3">
+<h3 class="anchored" data-anchor-id="using-the-aws-cli">1. Using the AWS CLI</h3>
+<p>If the AWS Command Line Interface (CLI) is installed on your machine, running <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-creds"><code>aws configure</code></a> will store your credentials in a local profile that TileDB can access. You can verify the CLI has been previously configured by running:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>If properly configured, this will output a list of the S3 buckets you (and thus TileDB) can access.</p>
+</section>
+<section id="using-configuration-parameters" class="level3">
+<h3 class="anchored" data-anchor-id="using-configuration-parameters">2. Using Configuration Parameters</h3>
+<p>You can pass your AWS access key ID and secret access key to TileDB-VCF directly via the <code>--tiledb-config</code> argument, which expects a comma-separated string:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--uri</span> my_dataset <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">--tiledb-config</span> vfs.s3.aws_access_key_id=<span class="op">&lt;</span>id<span class="op">&gt;</span>,vfs.s3.aws_secret_access_key=<span class="op">&lt;</span>secret<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="using-environment-variables" class="level3">
+<h3 class="anchored" data-anchor-id="using-environment-variables">3. Using Environment Variables</h3>
+<p>Your AWS credentials can also be passed to TileDB by defining the <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code> environment variables.</p>
 
-<section id="python-ingestion" class="level2">
-<h2 class="anchored" data-anchor-id="python-ingestion">Python Ingestion</h2>
-<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../../documentation/ingestion/cli.html">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
-<p>The text file <code>data/s3-bcf-samples.txt</code> contains a list of S3 URIs pointing to 7 BCF files from the same cohort.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data/s3-bcf-samples.txt"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    sample_uris <span class="op">=</span> [l.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>) <span class="cf">for</span> l <span class="kw">in</span> f.readlines()]</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sample_uris</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">## ['s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf',</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf',</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf',</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf',</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf',</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf',</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf']</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You can add them to your existing dataset by re-opening it in <em>write</em> mode and providing the file URIs. It’s also necessary to allocate scratch space so the files can be downloaded to a temporary location prior to ingestion.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>small_ds <span class="op">=</span> tiledbvcf.Dataset(<span class="st">'small_dataset'</span>, mode <span class="op">=</span> <span class="st">"w"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>small_ds.ingest_samples(sample_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>The TileDB-VCF dataset located at <code>small_dataset</code> now includes records for 660 variants across 10 samples. The next section provides examples demonstrating how to query this dataset.</p>
 
 
-
+</section>
+</section>
 </section>
 </main> <!-- /main -->
 <script type="application/javascript">
@@ -388,14 +438,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../documentation/ingestion/cli.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
+      <a href="../../documentation/how-to/read-from-the-dataset.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Read from the Dataset</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/ingestion/distributed-ingestion.html" class="pagination-link">
-        <span class="nav-page-text">Distributed Ingestion</span> <i class="bi bi-arrow-right-short"></i>
-      </a>
   </div>
 </nav>
 </div> <!-- /content -->

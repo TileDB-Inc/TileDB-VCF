@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Python</title>
+  <title>perform-distributed-queries-with-dask</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -83,8 +83,8 @@
   <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../../site_libs/quarto-search/quarto-search.js"></script>
-  <link href="../../documentation/ingestion/distributed-ingestion.html" rel="next">
-  <link href="../../documentation/ingestion/cli.html" rel="prev">
+  <link href="../../documentation/how-to/perform-distributed-queries-with-spark.html" rel="next">
+  <link href="../../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" rel="prev">
   <link href="../../images/favicon.ico" rel="icon">
   <script src="../../site_libs/quarto-html/quarto.js"></script>
   <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -151,7 +151,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Python</h1>
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -184,7 +184,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Python</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -249,7 +249,7 @@
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">Perform Distributed Queries with Dask</a>
+  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link active">Perform Distributed Queries with Dask</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -277,37 +277,63 @@
         <nav id="TOC" role="doc-toc">
 <h2 id="toc-title">On this page</h2>
 <ul>
-<li><a href="#python-ingestion" class="nav-link active" data-scroll-target="#python-ingestion">Python Ingestion</a></li>
+<li><a href="#perform-distributed-queries-with-dask" class="nav-link active" data-scroll-target="#perform-distributed-queries-with-dask">Perform Distributed Queries with Dask</a>
+<ul class="collapse">
+<li><a href="#dask-dataframes" class="nav-link" data-scroll-target="#dask-dataframes">Dask DataFrames</a></li>
+<li><a href="#map-operations" class="nav-link" data-scroll-target="#map-operations">Map Operations</a></li>
+</ul></li>
 </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/ingestion/python.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/how-to/perform-distributed-queries-with-dask.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
-<header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Python</h1></div></header>
+<section id="perform-distributed-queries-with-dask" class="level1">
+<h1>Perform Distributed Queries with Dask</h1>
+<p>The <code>tiledbvcf</code> Python package includes integration with <a href="https://dask.org">Dask</a> to enable distributing large queries across node clusters. </p>
+<section id="dask-dataframes" class="level2">
+<h2 class="anchored" data-anchor-id="dask-dataframes">Dask DataFrames</h2>
+<p>You can use the <code>tiledbvcf</code> package’s Dask integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI and Spark. </p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> dask</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(<span class="st">'my-large-dataset'</span>, mode<span class="op">=</span><span class="st">'r'</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dask_df <span class="op">=</span> ds.read_dask(attrs<span class="op">=</span>[<span class="st">'sample_name'</span>, <span class="st">'pos_start'</span>, <span class="st">'pos_end'</span>],</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>                       bed_file<span class="op">=</span><span class="st">'very-large-bedfile.bed'</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>                       region_partitions<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>                       sample_partitions<span class="op">=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The result is a Dask dataframe (rather than a Pandas dataframe). We’re using a local machine for simplicity but the API works on any Dask cluster. </p>
+</section>
+<section id="map-operations" class="level2">
+<h2 class="anchored" data-anchor-id="map-operations">Map Operations</h2>
+<p>If you plan to perform filter the results in a Dask dataframe, it may be more efficient to use <code>map_dask()</code> rather than <code>read_dask()</code>. The <code>map_dask()</code> function takes an additional parameter, <code>fnc</code>, allowing you to provide a filtering function that is applied immediately after performing the read but before inserting the result of the partition into the Dask dataframe.</p>
+<p>In the following example, any variants overlapping regions in <code>very-large-bedfile.bed</code> are filtered out if their start position overlaps the first 25kb of the chromosome.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.TileDBVCFDataset(<span class="st">'my-large-dataset'</span>, mode<span class="op">=</span><span class="st">'r'</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>dask_df <span class="op">=</span> ds.map_dask(<span class="kw">lambda</span> df: df[df.pos_start <span class="op">&lt;</span> <span class="dv">25000</span>],</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                      attrs<span class="op">=</span>[<span class="st">'sample_name'</span>, <span class="st">'pos_start'</span>, <span class="st">'pos_end'</span>],</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                      bed_file<span class="op">=</span><span class="st">'very-large-bedfile.bed'</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                      region_partitions<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                      sample_partitions<span class="op">=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This approach can be more efficient than using <code>read_dask()</code> with a separate filtering step because it avoids the possibility that partitions require multiple read operations due to memory constraints. </p>
+<p>The pseudocode describing the <code>read_partition()</code> algorithm (i.e., the code responsible for reading the partition on a Dask worker) is:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode<span class="op">=</span><span class="st">'r'</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>overall_df <span class="op">=</span> ds.read(attrs, samples, regions, ...)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="kw">not</span> ds.read_completed():</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> ds.continue_read()</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    overall_df <span class="op">=</span> overall_df.append(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>When using <code>map_dask()</code> instead, the pseudocode becomes:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode<span class="op">=</span><span class="st">'r'</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>overall_df <span class="op">=</span> filter_fnc(ds.read(attrs, samples, regions, ...))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="kw">not</span> ds.read_completed():</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> filter_fnc(ds.continue_read())</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    overall_df <span class="op">=</span> overall_df.append(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>You can see that if the provided <code>filter_fnc()</code> reduces the size of the data substantially, using <code>map_dask()</code> can reduce the likelihood that the Dask workers will run out of memory and avoid needing to perform multiple reads.</p>
 
-<section id="python-ingestion" class="level2">
-<h2 class="anchored" data-anchor-id="python-ingestion">Python Ingestion</h2>
-<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../../documentation/ingestion/cli.html">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
-<p>The text file <code>data/s3-bcf-samples.txt</code> contains a list of S3 URIs pointing to 7 BCF files from the same cohort.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data/s3-bcf-samples.txt"</span>) <span class="im">as</span> f:</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    sample_uris <span class="op">=</span> [l.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>) <span class="cf">for</span> l <span class="kw">in</span> f.readlines()]</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sample_uris</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">## ['s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf',</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf',</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf',</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf',</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf',</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf',</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">##   's3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf']</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>You can add them to your existing dataset by re-opening it in <em>write</em> mode and providing the file URIs. It’s also necessary to allocate scratch space so the files can be downloaded to a temporary location prior to ingestion.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>small_ds <span class="op">=</span> tiledbvcf.Dataset(<span class="st">'small_dataset'</span>, mode <span class="op">=</span> <span class="st">"w"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>small_ds.ingest_samples(sample_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>The TileDB-VCF dataset located at <code>small_dataset</code> now includes records for 660 variants across 10 samples. The next section provides examples demonstrating how to query this dataset.</p>
 
 
-
+</section>
 </section>
 </main> <!-- /main -->
 <script type="application/javascript">
@@ -388,13 +414,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../documentation/ingestion/cli.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
+      <a href="../../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Perform Distributed Queries with TileDB-Cloud</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/ingestion/distributed-ingestion.html" class="pagination-link">
-        <span class="nav-page-text">Distributed Ingestion</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="pagination-link">
+        <span class="nav-page-text">Perform Distributed Queries with Spark</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
