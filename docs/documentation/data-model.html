@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="generator" content="quarto-0.9.141">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>data-model</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+
+  <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+  <script src="../site_libs/quarto-nav/headroom.min.js"></script>
+  <script src="../site_libs/clipboard/clipboard.min.js"></script>
+  <meta name="quarto:offset" content="../">
+  <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+  <script src="../site_libs/quarto-search/fuse.min.js"></script>
+  <script src="../site_libs/quarto-search/quarto-search.js"></script>
+  <link href="../images/favicon.ico" rel="icon">
+  <script src="../site_libs/quarto-html/quarto.js"></script>
+  <script src="../site_libs/quarto-html/popper.min.js"></script>
+  <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+  <script src="../site_libs/quarto-html/anchor.min.js"></script>
+  <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+  <link id="quarto-text-highlighting-styles" href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet">
+  <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+  <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+  <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <script id="quarto-search-options" type="application/json">{
+    "location": "navbar",
+    "copy-button": false,
+    "collapse-after": 3,
+    "panel-placement": "end",
+    "type": "overlay",
+    "limit": 20,
+    "language": {
+      "search-no-results-text": "No results",
+      "search-matching-documents-text": "matching documents",
+      "search-copy-link-title": "Copy link to search",
+      "search-hide-matches-text": "Hide additional matches",
+      "search-more-match-text": "more match in this document",
+      "search-more-matches-text": "more matches in this document",
+      "search-clear-button-title": "Clear",
+      "search-detached-cancel-button-title": "Cancel",
+      "search-submit-button-title": "Submit"
+    }
+  }</script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="../quarto-materials/tiledb.css">
+</head>
+<body class="floating">
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <a class="navbar-brand" href="../index.html">
+    <img src="../quarto-materials/tiledb-logo.png" alt="">
+  </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://tiledb.com">Home page</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://cloud.tiledb.com/auth/login">Login</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://tiledb.com/contact">Contact us</a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://github.com/TileDB-Inc/TileDB-VCF">Repo</a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">(Untitled)</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/index.html" class="sidebar-item-text sidebar-link">TileDB-VCF</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+    <div class="sidebar-item-container"> 
+        <a href="../documentation/ingestion/overview.html" class="sidebar-item-text sidebar-link">Ingestion</a>
+      <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true">
+        <i class="bi bi-chevron-right ms-2"></i>
+      </a>
+    </div>
+    <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/ingestion/distributed-ingestion.html" class="sidebar-item-text sidebar-link">Distributed Ingestion</a>
+  </div>
+</li>
+    </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc">
+<h2 id="toc-title">On this page</h2>
+<ul>
+<li><a href="#data-model" class="nav-link active" data-scroll-target="#data-model">Data Model</a>
+<ul class="collapse">
+<li><a href="#tiledb-vcf-dataset" class="nav-link" data-scroll-target="#tiledb-vcf-dataset">TileDB-VCF Dataset</a></li>
+<li><a href="#data-array" class="nav-link" data-scroll-target="#data-array">Data Array</a>
+<ul class="collapse">
+<li><a href="#basic-schema-parameters" class="nav-link" data-scroll-target="#basic-schema-parameters">Basic schema parameters</a></li>
+<li><a href="#dimensions" class="nav-link" data-scroll-target="#dimensions">Dimensions</a></li>
+<li><a href="#attributes" class="nav-link" data-scroll-target="#attributes">Attributes</a></li>
+<li><a href="#metadata" class="nav-link" data-scroll-target="#metadata">Metadata</a></li>
+</ul></li>
+<li><a href="#vcf-headers-array" class="nav-link" data-scroll-target="#vcf-headers-array">VCF Headers Array</a>
+<ul class="collapse">
+<li><a href="#basic-schema-parameters-1" class="nav-link" data-scroll-target="#basic-schema-parameters-1">Basic schema parameters</a></li>
+<li><a href="#dimensions-1" class="nav-link" data-scroll-target="#dimensions-1">Dimensions</a></li>
+<li><a href="#attributes-1" class="nav-link" data-scroll-target="#attributes-1">Attributes</a></li>
+</ul></li>
+<li><a href="#putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together">Putting It All Together</a></li>
+<li><a href="#configurable-parameters" class="nav-link" data-scroll-target="#configurable-parameters">Configurable Parameters</a></li>
+</ul></li>
+</ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/data-model.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<section id="data-model" class="level1">
+<h1>Data Model</h1>
+<p><a href="../documentation/the-solution.html">The Solution</a> section provides a high-level overview of <em>how</em> and <em>why</em> TileDB-VCF uses 3D sparse arrays to store genomic variant data. What follows are the technical implementation details about the underlying arrays, including their schemas, dimensions, tiling order, attributes, metadata.</p>
+<section id="tiledb-vcf-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="tiledb-vcf-dataset">TileDB-VCF Dataset</h2>
+<p>A TileDB-VCF dataset is composed of a group of two or more separate TileDB arrays:</p>
+<ul>
+<li>a 3D sparse array for the actual genomic variants and associated fields/attributes</li>
+<li>a 1D sparse array for the metadata stored in each single-sample VCF header</li>
+</ul>
+</section>
+<section id="data-array" class="level2">
+<h2 class="anchored" data-anchor-id="data-array">Data Array</h2>
+<section id="basic-schema-parameters" class="level3">
+<h3 class="anchored" data-anchor-id="basic-schema-parameters">Basic schema parameters</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: left;"><strong>Parameter</strong></th>
+<th style="text-align: left;"><strong>Value</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Array type</td>
+<td style="text-align: left;">Sparse</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Rank</td>
+<td style="text-align: left;">3D</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Cell order</td>
+<td style="text-align: left;">Row-major</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Tile order</td>
+<td style="text-align: left;">Row-major</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dimensions" class="level3">
+<h3 class="anchored" data-anchor-id="dimensions">Dimensions</h3>
+<p>The dimensions in the schema are:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Dimension Name</th>
+<th style="text-align: left;">TileDB Datatype</th>
+<th style="text-align: left;">Corresponding VCF Field</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>contig</code></td>
+<td style="text-align: left;"><code>TILEDB_STRING_ASCII</code></td>
+<td style="text-align: left;"><code>CHR</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>start_pos</code></td>
+<td style="text-align: left;"><code>uint32_t</code></td>
+<td style="text-align: left;">VCF<code>POS</code>plus TileDB anchors</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>sample</code></td>
+<td style="text-align: left;"><code>TILEDB_STRING_ASCII</code></td>
+<td style="text-align: left;">Sample name</td>
+</tr>
+</tbody>
+</table>
+<p>As mentioned before, the coordinates of the 3D array are <code>contig</code> along the first dimension, chromosomal location of the variants start position along the second dimension, and <code>sample</code> names along the third dimension.</p>
+</section>
+<section id="attributes" class="level3">
+<h3 class="anchored" data-anchor-id="attributes">Attributes</h3>
+<p>For each field in a single-sample VCF record there is a corresponding attribute in the schema.</p>
+<table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Attribute Name</th>
+<th style="text-align: left;">TileDB Datatype</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>end_pos</code></td>
+<td style="text-align: left;"><code>uint32_t</code></td>
+<td style="text-align: left;">VCF <code>END</code> position of VCF records</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>qual</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;">VCF <code>QUAL</code> field</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>alleles</code></td>
+<td style="text-align: left;"><code>var&lt;char&gt;</code></td>
+<td style="text-align: left;">CSV list of <code>REF</code> and <code>ALT</code> VCF fields</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>id</code></td>
+<td style="text-align: left;"><code>var&lt;char&gt;</code></td>
+<td style="text-align: left;">VCF <code>ID</code> field</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>filter_ids</code></td>
+<td style="text-align: left;"><code>var&lt;int32_t&gt;</code></td>
+<td style="text-align: left;">Vector of integer IDs of entries in the <code>FILTER</code> VCF field</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>real_start_pos</code></td>
+<td style="text-align: left;"><code>uint32_t</code></td>
+<td style="text-align: left;">VCF <code>POS</code>(no anchors)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>info</code></td>
+<td style="text-align: left;"><code>var&lt;uint8_t&gt;</code></td>
+<td style="text-align: left;">Byte blob containing any <code>INFO</code> fields that are not stored as explicit attributes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>fmt</code></td>
+<td style="text-align: left;"><code>var&lt;uint8_t&gt;</code></td>
+<td style="text-align: left;">Byte blob containing any <code>FMT</code> fields that are not stored as explicit attributes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>info_*</code></td>
+<td style="text-align: left;"><code>var&lt;uint8_t&gt;</code></td>
+<td style="text-align: left;">One or more attributes storing specific VCF <code>INFO</code> fields, e.g.&nbsp;<code>info_DP</code>, <code>info_MQ</code>, etc.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>fmt_*</code></td>
+<td style="text-align: left;"><code>var&lt;uint8_t&gt;</code></td>
+<td style="text-align: left;">One or more attributes storing specific VCF <code>FORMAT</code> fields, e.g.&nbsp;<code>fmt_GT</code>, <code>fmt_MIN_DP</code>, etc.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>info_*</code> and <code>fmt_*</code> attributes allow individual <code>INFO</code> or <code>FMT</code> VCF fields to be extracted into explicit array attributes. This can be beneficial if your queries frequently access only a subset of the <code>INFO</code> or <code>FMT</code> fields, as no unrelated data then needs to be fetched from storage.</p>
+<p>{% hint style=“info” %} The choice of which fields to extract as explicit array attributes is user-configurable during array creation. {% endhint %}</p>
+<p>Any extra info or format fields not extracted as explicit array attributes are stored in the byte blob attributes, <code>info</code> and <code>fmt</code>.</p>
+</section>
+<section id="metadata" class="level3">
+<h3 class="anchored" data-anchor-id="metadata">Metadata</h3>
+<ul>
+<li><code>anchor_gap</code> Anchor gap value</li>
+<li><code>extra_attributes</code> List of <code>INFO</code> or <code>FMT</code> field names that are stored as explicit array attributes</li>
+<li><code>version</code> Array schema version</li>
+</ul>
+<p>These metadata values are updated during array creation, and are used during the export phase. The metadata is stored as “array metadata” in the sparse <code>data</code> array.</p>
+<p>{% hint style=“warning” %} When ingesting samples, the <em>sample header</em> must be identical for all samples with respect to the contig mappings. That means all samples must have the exact same set of contigs listed in the VCF header. This requirement will be relaxed in future versions. {% endhint %}</p>
+</section>
+</section>
+<section id="vcf-headers-array" class="level2">
+<h2 class="anchored" data-anchor-id="vcf-headers-array">VCF Headers Array</h2>
+<p>The <code>vcf_headers</code> array stores the original text of every ingested VCF header in order to:</p>
+<ol type="1">
+<li>ensure the original VCF file can be fully recovered for any given sample</li>
+<li>reconstruct an <code>htslib</code> header instance when reading from the dataset, which is used for operations such as mapping a filter ID back to the filter string, etc.</li>
+</ol>
+<section id="basic-schema-parameters-1" class="level3">
+<h3 class="anchored" data-anchor-id="basic-schema-parameters-1">Basic schema parameters</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Array type</td>
+<td style="text-align: left;">Sparse</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Rank</td>
+<td style="text-align: left;">1D</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Cell order</td>
+<td style="text-align: left;">Row-major</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Tile order</td>
+<td style="text-align: left;">Row-major</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dimensions-1" class="level3">
+<h3 class="anchored" data-anchor-id="dimensions-1">Dimensions</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Dimension Name</th>
+<th style="text-align: left;">TileDB Datatype</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>sample</code></td>
+<td style="text-align: left;"><code>TILEDB_STRING_ASCII</code></td>
+<td style="text-align: left;">Sample name</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="attributes-1" class="level3">
+<h3 class="anchored" data-anchor-id="attributes-1">Attributes</h3>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Attribute Name</th>
+<th style="text-align: left;">TileDB Datatype</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>header</code></td>
+<td style="text-align: left;"><code>var&lt;char&gt;</code></td>
+<td style="text-align: left;">Original text of the VCF header</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="putting-it-all-together" class="level2">
+<h2 class="anchored" data-anchor-id="putting-it-all-together">Putting It All Together</h2>
+<p>To summarize, we’ve described three main entities:</p>
+<ul>
+<li>The variant data array (3D sparse)</li>
+<li>The general metadata, stored in the variant data array as metadata</li>
+<li>The VCF header array (1D sparse)</li>
+</ul>
+<p>All together we term this a “TileDB-VCF dataset.” Expressed as a directory hierarchy, a TileDB-VCF dataset has the following structure:</p>
+<pre class="text"><code>&lt;dataset_uri&gt;/
+  |_ __tiledb_group.tdb
+  |_ data/
+      |_ __array_schema.tdb
+      |_ __meta/
+            |_ &lt;general-metadata-here&gt;
+      ... &lt;other array directories/fragments and files&gt;
+  |_ vcf_headers/
+      |_ __array_schema.tdb
+      ... &lt;other array directories/fragments and files&gt;</code></pre>
+<p>The root of the dataset, <code>&lt;dataset_uri&gt;</code> is a TileDB group. The <code>data</code> member is the TileDB 3D sparse array storing the variant data. This array stores the general TileDB-VCF metadata as its array metadata in folder <code>data/__meta</code>. The <code>vcf_headers</code> member is the TileDB 1D sparse array containing the VCF header data.</p>
+</section>
+<section id="configurable-parameters" class="level2">
+<h2 class="anchored" data-anchor-id="configurable-parameters">Configurable Parameters</h2>
+<p>During <em>array creation</em>, there are several array-related parameters that the user can control. These are:</p>
+<ul>
+<li>Array data tile capacity (default 10,000)</li>
+<li>The “anchor gap” size (default 1,000)</li>
+<li>The list of <code>INFO</code> and <code>FMT</code> fields to store as explicit array attributes (default is none).</li>
+</ul>
+<p>Once chosen, these parameters <em>cannot be changed</em>.</p>
+<p>During <em>sample ingestion</em>, the user can specify the:</p>
+<ul>
+<li>Sample batch size (default 10)</li>
+</ul>
+<p>The above parameters may impact read and write performance, as well as the size of the persisted array. Therefore, some care should be taken to determine good values for these parameters before ingesting a large amount of data into an array.</p>
+
+
+
+</section>
+</section>
+</main> <!-- /main -->
+<script type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    setTimeout(function() {
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+</body></html>

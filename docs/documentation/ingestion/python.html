@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Ingestion</title>
+  <title>Python</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -151,7 +151,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Ingestion</h1>
+      <h1 class="quarto-secondary-nav-title">Python</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -179,12 +179,12 @@
     <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">Ingestion</a>
+  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">CLI</a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Ingestion</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link active">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -210,11 +210,11 @@
 <main class="content" id="quarto-document-content">
 <header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Ingestion</h1></div></header>
+<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Python</h1></div></header>
 
 <section id="python-ingestion" class="level2">
 <h2 class="anchored" data-anchor-id="python-ingestion">Python Ingestion</h2>
-<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../api-reference/cli.md">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
+<p>Similar to TileDB-VCF’s command-line interface (CLI), <code>tiledbvcf</code> supports ingesting VCF (or BCF) files into TileDB, either when creating a new dataset <em>or</em> updating an existing dataset with additional samples. See the <a href="../../documentation/ingestion/cli.html">CLI Usage</a> for a more detailed description of the ingestion process. Here, we’ll only focus on the mechanics of ingestion from Python.</p>
 <p>The text file <code>data/s3-bcf-samples.txt</code> contains a list of S3 URIs pointing to 7 BCF files from the same cohort.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"data/s3-bcf-samples.txt"</span>) <span class="im">as</span> f:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    sample_uris <span class="op">=</span> [l.rstrip(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>) <span class="cf">for</span> l <span class="kw">in</span> f.readlines()]</span>
@@ -314,7 +314,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="../../documentation/ingestion/cli.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Ingestion</span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">

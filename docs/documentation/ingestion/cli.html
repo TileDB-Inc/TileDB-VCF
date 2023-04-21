@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="quarto-0.9.141">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Ingestion</title>
+  <title>CLI</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -151,7 +151,7 @@
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Ingestion</h1>
+      <h1 class="quarto-secondary-nav-title">CLI</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -179,12 +179,12 @@
     <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link active">Ingestion</a>
+  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link active">CLI</a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Ingestion</a>
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">Python</a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -216,7 +216,7 @@
 <main class="content" id="quarto-document-content">
 <header id="title-block-header" class="quarto-title-block default">
 
-<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">Ingestion</h1></div></header>
+<div class="quarto-title"><h1 class="title d-none d-lg-block display-7">CLI</h1></div></header>
 
 <section id="create-a-new-dataset" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-new-dataset">Create a new dataset</h2>
@@ -269,7 +269,7 @@
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>{% hint style=“info” %} Samples in this second batch are stored as <code>BCF</code> files which are also supported by TileDB-VCF. {% endhint %}</p>
 <p>This process is identical to the steps perfo_r_med above, the only changes needed to our code involve setting <code>--scratch-mb</code> to allocate some temporary space for downloading the files and providing the URLs for the remote files. In this case, we’ll simply pass the <code>s3-bcf-samples.txt</code> file, which includes a list of the BCF files we want to ingest.</p>
-<p>{% hint style=“info” %} When ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s <code>sample_bactch_size</code> (which by default is 10). You can read more about the data model <a href="../data-model.md">here</a>. {% endhint %}</p>
+<p>{% hint style=“info” %} When ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s <code>sample_bactch_size</code> (which by default is 10). You can read more about the data model <a href="../../documentation/data-model.html">here</a>. {% endhint %}</p>
 <p>You can add the <code>--verbose</code> flag to print out more information during the <code>store</code> phase.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tiledbvcf</span> store <span class="dt">\</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--uri</span> small_dataset <span class="dt">\</span></span>
@@ -389,7 +389,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
   <div class="nav-page nav-page-next">
       <a href="../../documentation/ingestion/python.html" class="pagination-link">
-        <span class="nav-page-text">Ingestion</span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text">Python</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
