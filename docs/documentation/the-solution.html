@@ -20,6 +20,8 @@
   <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
   <script src="../site_libs/quarto-search/fuse.min.js"></script>
   <script src="../site_libs/quarto-search/quarto-search.js"></script>
+  <link href="../documentation/data-model.html" rel="next">
+  <link href="../documentation/how-to/work-with-cloud-object-stores.html" rel="prev">
   <link href="../images/favicon.ico" rel="icon">
   <script src="../site_libs/quarto-html/quarto.js"></script>
   <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -204,6 +206,16 @@
 </li>
     </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link active">The Solution</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../documentation/data-model.html" class="sidebar-item-text sidebar-link">Data Model</a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -234,7 +246,7 @@
 <p>Population variant data can be efficiently represented using a 3D sparse array. For each sample, imagine a 2D plane where the vertical axis is the contig and the horizontal axis is the genomic position. Every variant can be represented as a range within this plane; it can be unary (i.e., a SNP) or it can be a longer range (e.g., INDEL or CNV). Each sample is then indexed by a third dimension, which is unbounded to accommodate populations of any size. The figure below shows an example for one sample, with several variants distributed across contigs <code>chr1</code> , <code>chr2</code> and <code>chr3</code>.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="../../../.gitbook/assets/genomics_representation_start_2%20%283%29.png" class="img-fluid figure-img"></p>
+<p><img src="./assets/genomics_representation_start_2%20%283%29.png" class="img-fluid figure-img"></p>
 <p></p><figcaption aria-hidden="true" class="figure-caption">3D array representation of population variants</figcaption><p></p>
 </figure>
 </div>
@@ -247,7 +259,7 @@
 <p>The typical access pattern used for variant data involves one or more rectangles covering a set of genomic ranges across one or more samples. In the figure below, let the black rectangle be the user’s query. Observe that the results are highlighted in blue (<code>v1, v2, v4, v7</code>). However, the rectangle misses <code>v1</code>, i.e., the case where an Indel/CNV range <em>intersects</em> the query rectangle, but the start position is <em>outside</em> the rectangle.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="../../../.gitbook/assets/genomics_retrieval%20%283%29.png" class="img-fluid figure-img"></p>
+<p><img src="./assets/genomics_retrieval%20%283%29.png" class="img-fluid figure-img"></p>
 <p></p><figcaption aria-hidden="true" class="figure-caption">Interval intersection using expanded query ranges and anchors</figcaption><p></p>
 </figure>
 </div>
@@ -386,6 +398,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Work with Cloud Object Stores</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../documentation/data-model.html" class="pagination-link">
+        <span class="nav-page-text">Data Model</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
