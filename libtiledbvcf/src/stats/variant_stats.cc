@@ -149,12 +149,11 @@ void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
   ctx_ = ctx;
 }
 
-void VariantStats::finalize() {
+void VariantStats::finalize_query() {
   if (!enabled_) {
     return;
   }
 
-  std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
   if (contig_records_ > 0) {
     if (utils::query_buffers_set(query_.get())) {
@@ -202,7 +201,6 @@ void VariantStats::close() {
   LOG_DEBUG("VariantStats: Close array");
 
   if (query_ != nullptr) {
-    // Following VariantStats::finalize(), the query will be uninitialized.
     query_ = nullptr;
   }
 
@@ -286,7 +284,7 @@ VariantStats::~VariantStats() {
   }
 }
 
-void VariantStats::flush(bool clear) {
+void VariantStats::flush(bool finalize) {
   if (!enabled_) {
     return;
   }
@@ -296,19 +294,26 @@ void VariantStats::flush(bool clear) {
 
   int buffered_records = attr_buffers_[AC].size();
 
-  if (!clear) {
-    if (buffered_records == 0) {
-      LOG_DEBUG("VariantStats: flush called with 0 records ");
-      return;
-    }
+  if (contig_offsets_.data() == nullptr) {
+    LOG_DEBUG("VariantStats: flush called with no records written");
+    return;
+  }
 
-    std::lock_guard<std::mutex> lock(query_lock_);
-    contig_records_ += buffered_records;
+  if (buffered_records == 0 && !finalize) {
+    LOG_DEBUG("VariantStats: flush called with 0 records ");
+    return;
+  }
 
+  std::lock_guard<std::mutex> lock(query_lock_);
+  contig_records_ += buffered_records;
+
+  if (buffered_records) {
     LOG_DEBUG(
         "VariantStats: flushing {} records from {}:{}-{}",
         buffered_records,
-        contig_buffer_.substr(0, contig_offsets_[1]),
+        contig_offsets_.size() > 1 ?
+            contig_buffer_.substr(0, contig_offsets_[1]) :
+            contig_buffer_,
         pos_buffer_.front(),
         pos_buffer_.back());
 
@@ -340,19 +345,9 @@ void VariantStats::flush(bool clear) {
     for (int i = 0; i < LAST_; i++) {
       attr_buffers_[i].clear();
     }
-  } else {
-    std::lock_guard<std::mutex> lock(query_lock_);
+  }
 
-    // Clear buffers
-    contig_buffer_.clear();
-    contig_offsets_.clear();
-    pos_buffer_.clear();
-    allele_buffer_.clear();
-    allele_offsets_.clear();
-    for (int i = 0; i < LAST_; i++) {
-      attr_buffers_[i].clear();
-    }
-
+  if (finalize) {
     // For remote global order writes, zero query buffers prior to
     // submit_and_finalize.
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
@@ -363,6 +358,7 @@ void VariantStats::flush(bool clear) {
     for (int i = 0; i < LAST_; i++) {
       query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
     }
+    finalize_query();
   }
 }
 
@@ -394,6 +390,12 @@ void VariantStats::process(
 
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
+
+  // Skip if no GT data
+  if (ngt < 0) {
+    return;
+  }
+
   int gt0 = bcf_gt_allele(dst_[0]);
   int gt1 = bcf_gt_allele(dst_[1]);
   int gt0_missing = bcf_gt_is_missing(dst_[0]);

@@ -105,13 +105,7 @@ class VariantStats {
   static void init(std::shared_ptr<Context> ctx, const Group& group);
 
   /**
-   * @brief Finalize the currently open write query.
-   *
-   */
-  static void finalize();
-
-  /**
-   * @brief Finalize the query and close the array.
+   * @brief Close the array.
    *
    */
   static void close();
@@ -179,6 +173,12 @@ class VariantStats {
 
   /**
    * @brief Write buffered stats to the TileDB array and reset the buffers.
+   *
+   * If finalize is true, the query buffers are cleared and the query is
+   * finalized. Finalize should be called after all records have been
+   * processed for a contig or merged contig.
+   *
+   * @param finalize If true, finalize the query.
    */
   void flush(bool clear = false);
 
@@ -186,6 +186,12 @@ class VariantStats {
   //===================================================================
   //= private static
   //===================================================================
+
+  /**
+   * @brief Finalize the currently open write query.
+   *
+   */
+  static void finalize_query();
 
   /**
    * @brief Get the URI for the array from the root URI

@@ -341,4 +341,10 @@ void Writer::set_enable_variant_stats(bool enable) {
       writer, tiledb_vcf_writer_set_enable_variant_stats(writer, enable));
 }
 
+void Writer::set_compress_sample_dim(bool enable) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_compress_sample_dim(writer, enable));
+}
+
 }  // namespace tiledbvcfpy

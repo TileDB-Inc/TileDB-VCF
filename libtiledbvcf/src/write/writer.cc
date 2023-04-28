@@ -28,7 +28,6 @@
 #include <sys/resource.h>
 #endif
 #include <future>
-#include <sstream>
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
@@ -454,15 +453,7 @@ void Writer::ingest_samples() {
     result = ingest_samples(ingestion_params_, local_samples, regions);
 
     // Make sure to finalize for v2/v3
-    if (utils::query_buffers_set(query_.get())) {
-      LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
-    }
-    query_->submit_and_finalize();
-    if (query_->query_status() == Query::Status::FAILED) {
-      LOG_FATAL(
-          "Error submitting TileDB write query; unexpected query "
-          "status: FAILED");
-    }
+    query_->finalize();
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     result = ingest_samples_v4(
@@ -905,6 +896,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   std::string last_region_contig = regions[0].seq_name;
   std::string starting_region_contig_for_merge = regions[0].seq_name;
   bool finished = tasks.empty();
+  WriterWorker* last_worker = nullptr;
   while (!finished) {
     finished = true;
 
@@ -915,6 +907,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         continue;
 
       WriterWorker* worker = workers[i].get();
+      last_worker = worker;
       bool task_complete = false;
       while (!task_complete) {
         TRY_CATCH_THROW(task_complete = tasks[i].get());
@@ -977,10 +970,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // Start finalize of previous contig.
 
                 // Finalize stats arrays.
-                worker->flush_ingestion_tasks();
                 worker->flush_ingestion_tasks(true);
-                AlleleCount::finalize();
-                VariantStats::finalize();
 
                 // Write and finalize anchors stored in the anchor worker.
                 anchors_ingested += write_anchors(anchor_worker);
@@ -1051,7 +1041,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             last_start_pos = last;
           }
 
-          // Flush ingestion tasks
+          // Flush stats arrays without finalizing the query.
           worker->flush_ingestion_tasks();
         } else {
           LOG_DEBUG("No records found for {}", worker->region().seq_name);
@@ -1105,15 +1095,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   //=================================================================
   // Start finalize of last contig.
 
-  for (auto& worker : workers) {
-    if (worker->records_buffered() > 0) {
-      worker->flush_ingestion_tasks();
-      worker->flush_ingestion_tasks(true);
-    }
-  }
   // Finalize stats arrays.
-  AlleleCount::finalize();
-  VariantStats::finalize();
+  if (last_worker) {
+    last_worker->flush_ingestion_tasks(true);
+  }
 
   // Write and finalize anchors stored in the anchor worker.
   anchors_ingested += write_anchors(anchor_worker);
@@ -1153,17 +1138,7 @@ size_t Writer::write_anchors(WriterWorkerV4& worker) {
     query->submit_and_finalize();
     auto st = query->query_status();
     if (st == Query::Status::FAILED) {
-      // TBD: Not sure how spdlog interface or our cpp build params changed
-      // that spdlog apparently does not like the bare enum.... Any more
-      // desireable way of handling this? (Searches found mention of
-      // 'formatter', but... that seemed more verbose for just this one
-      // case... refs https://github.com/fmtlib/fmt/issues/391
-      // https://github.com/gabime/spdlog#user-defined-types
-      // )
-      std::stringstream st_str;
-      st_str << st;
-      LOG_FATAL(
-          "Error submitting TileDB write query: status = FAILED", st_str.str());
+      LOG_FATAL("Error submitting TileDB write query: status = FAILED");
     }
   }
   return records;
@@ -1459,6 +1434,10 @@ void Writer::set_enable_allele_count(bool enable) {
 
 void Writer::set_enable_variant_stats(bool enable) {
   creation_params_.enable_variant_stats = enable;
+}
+
+void Writer::set_compress_sample_dim(bool enable) {
+  creation_params_.compress_sample_dim = enable;
 }
 
 }  // namespace vcf

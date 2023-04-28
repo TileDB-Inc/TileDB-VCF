@@ -150,12 +150,11 @@ void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
   ctx_ = ctx;
 }
 
-void AlleleCount::finalize() {
+void AlleleCount::finalize_query() {
   if (!enabled_) {
     return;
   }
 
-  std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("AlleleCount: Finalize query with {} records", contig_records_);
   if (contig_records_ > 0) {
     if (utils::query_buffers_set(query_.get())) {
@@ -203,7 +202,6 @@ void AlleleCount::close() {
   LOG_DEBUG("AlleleCount: Close array");
 
   if (query_ != nullptr) {
-    // Following AlleleCount::finalize(), the query will be uninitialized.
     query_ = nullptr;
   }
 
@@ -272,6 +270,7 @@ void AlleleCount::vacuum_fragment_metadata(
   cfg["sm.vacuum.mode"] = "fragment_meta";
   tiledb::Array::vacuum(*ctx, uri, &cfg);
 }
+
 //===================================================================
 //= public functions
 //===================================================================
@@ -286,7 +285,7 @@ AlleleCount::~AlleleCount() {
   }
 }
 
-void AlleleCount::flush(bool clear) {
+void AlleleCount::flush(bool finalize) {
   if (!enabled_) {
     return;
   }
@@ -296,19 +295,26 @@ void AlleleCount::flush(bool clear) {
 
   int buffered_records = count_buffer_.size();
 
-  if (!clear) {
-    if (buffered_records == 0) {
-      LOG_DEBUG("AlleleCount: flush called with 0 records ");
-      return;
-    }
+  if (contig_offsets_.data() == nullptr) {
+    LOG_DEBUG("AlleleCount: flush called with no records written");
+    return;
+  }
 
-    std::lock_guard<std::mutex> lock(query_lock_);
-    contig_records_ += buffered_records;
+  if (buffered_records == 0 && !finalize) {
+    LOG_DEBUG("AlleleCount: flush called with 0 records");
+    return;
+  }
 
+  std::lock_guard<std::mutex> lock(query_lock_);
+  contig_records_ += buffered_records;
+
+  if (buffered_records) {
     LOG_DEBUG(
         "AlleleCount: flushing {} records from {}:{}-{}",
         buffered_records,
-        contig_buffer_.substr(0, contig_offsets_[1]),
+        contig_offsets_.size() > 1 ?
+            contig_buffer_.substr(0, contig_offsets_[1]) :
+            contig_buffer_,
         pos_buffer_.front(),
         pos_buffer_.back());
 
@@ -347,23 +353,9 @@ void AlleleCount::flush(bool clear) {
     gt_buffer_.clear();
     gt_offsets_.clear();
     count_buffer_.clear();
-  } else {
-    std::lock_guard<std::mutex> lock(query_lock_);
+  }
 
-    // Clear buffers
-    contig_buffer_.clear();
-    contig_offsets_.clear();
-    pos_buffer_.clear();
-    ref_buffer_.clear();
-    ref_offsets_.clear();
-    alt_buffer_.clear();
-    alt_offsets_.clear();
-    filter_buffer_.clear();
-    filter_offsets_.clear();
-    gt_buffer_.clear();
-    gt_offsets_.clear();
-    count_buffer_.clear();
-
+  if (finalize) {
     // For remote global order writes, zero query buffers prior to
     // submit_and_finalize.
     query_->set_data_buffer(COLUMN_NAME[CONTIG], contig_buffer_)
@@ -378,6 +370,8 @@ void AlleleCount::flush(bool clear) {
         .set_data_buffer(COLUMN_NAME[GT], gt_buffer_)
         .set_offsets_buffer(COLUMN_NAME[GT], gt_offsets_)
         .set_data_buffer(COLUMN_NAME[COUNT], count_buffer_);
+
+    finalize_query();
   }
 }
 
@@ -406,6 +400,12 @@ void AlleleCount::process(
 
   // Read GT data from record
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
+
+  // Skip if no GT data
+  if (ngt < 0) {
+    return;
+  }
+
   int gt0 = bcf_gt_allele(dst_[0]);
   int gt1 = bcf_gt_allele(dst_[1]);
   int gt0_missing = bcf_gt_is_missing(dst_[0]);

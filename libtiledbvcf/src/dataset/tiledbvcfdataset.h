@@ -63,9 +63,9 @@ struct CreationParams {
   tiledb_filter_type_t checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   bool allow_duplicates = true;
   std::string vcf_uri;
-  bool enable_allele_count = false;
-  bool enable_variant_stats = false;
-  bool compress_sample_dim = false;
+  bool enable_allele_count = true;
+  bool enable_variant_stats = true;
+  bool compress_sample_dim = true;
 };
 
 /** Arguments/params for dataset registration. */

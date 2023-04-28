@@ -35,6 +35,18 @@ def _check_dfs(expected, actual):
         assert_series(expected[k], actual[k])
 
 
+def check_if_compatible(uri):
+    try:
+        with tiledb.open(uri):
+            return True
+    except tiledb.cc.TileDBError as e:
+        if "Incompatible format version" in str(e):
+            raise pytest.skip.Exception(
+                "Test skipped due to incompatible format version"
+            )
+        raise
+
+
 @pytest.fixture
 def test_ds():
     return tiledbvcf.Dataset(
@@ -979,6 +991,8 @@ def test_ingestion_tasks(tmp_path):
     # query allele_count array with TileDB
     ac_uri = os.path.join(tmp_path, "dataset", "allele_count")
 
+    check_if_compatible(ac_uri)
+
     contig = "1"
     region = slice(69896)
     with tiledb.open(ac_uri) as A:
@@ -1323,5 +1337,20 @@ def test_vcf_attrs(tmp_path):
     assert sorted(ds.attributes()) == sorted(queryable_attrs)
 
 
-if __name__ == "__main__":
-    test_allele_count("/tmp/gspowley-debug")
+@pytest.mark.parametrize("compress", [True, False])
+def test_sample_compression(tmp_path, compress):
+    # Create the dataset
+    dataset_uri = os.path.join(tmp_path, "sample_compression")
+    array_uri = os.path.join(dataset_uri, "data")
+    ds = tiledbvcf.Dataset(dataset_uri, mode="w")
+    ds.create_dataset(compress_sample_dim=compress)
+
+    check_if_compatible(array_uri)
+
+    # Check for the presence of the Zstd filter
+    found_zstd = False
+    with tiledb.open(array_uri) as A:
+        for filter in A.domain.dim("sample").filters:
+            found_zstd = found_zstd or "Zstd" in str(filter)
+
+    assert found_zstd == compress
