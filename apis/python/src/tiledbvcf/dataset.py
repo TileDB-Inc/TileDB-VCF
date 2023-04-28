@@ -425,7 +425,7 @@ class Dataset(object):
 
         if enable_variant_stats is not None:
             self.writer.set_enable_variant_stats(enable_variant_stats)
-            
+
         if compress_sample_dim is not None:
             self.writer.set_compress_sample_dim(compress_sample_dim)
 
