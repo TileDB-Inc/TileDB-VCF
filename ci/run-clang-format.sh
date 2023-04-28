@@ -32,6 +32,8 @@ pushd "$SOURCE_DIR" || exit
 if [ "$APPLY_FIXES" == "1" ]; then
   $CLANG_FORMAT -i "$@"
 else
+  $CLANG_FORMAT --version
+  $CLANG_FORMAT --dry-run "$@"
   NUM_CORRECTIONS=$("$CLANG_FORMAT" --output-replacements-xml "$@" | grep --count offset)
   if [ "$NUM_CORRECTIONS" -gt "0" ]; then
     echo "clang-format suggested $NUM_CORRECTIONS changes, please run 'make format'!"
