@@ -437,19 +437,20 @@ void add_create(CLI::App& app) {
       "Allow records with duplicate start positions to be written to the "
       "array.");
   cmd->add_flag(
-      "--compress-sample-dim",
+      "--compress-sample-dim,!--no-compress-sample-dim",
       args->compress_sample_dim,
-      "Add zstd compression to the sample dimension.");
+      "Enable/disable compression of the sample dimension. Enabled by "
+      "default.");
 
   cmd->option_defaults()->group("Ingestion task options");
   cmd->add_flag(
-      "--enable-allele-count",
+      "--enable-allele-count,!--disable-allele-count",
       args->enable_allele_count,
-      "Enable allele count ingestion task");
+      "Enable/disable allele count array creation. Enabled by default.");
   cmd->add_flag(
-      "--enable-variant-stats",
+      "--enable-variant-stats,!--disable-variant-stats",
       args->enable_variant_stats,
-      "Enable variant stats ingestion task");
+      "Enable/disable variant stats array creation. Enabled by default.");
 
   cmd->option_defaults()->group("TileDB options");
   cmd->add_option(
@@ -602,7 +603,7 @@ void add_store(CLI::App& app) {
 
   cmd->option_defaults()->group("Contig options");
   cmd->add_flag(
-      "--disable-contig-fragment-merging",
+      "!--disable-contig-fragment-merging",
       args->contig_fragment_merging,
       "Disable merging of contigs into fragments. Generally contig fragment "
       "merging is good, this is a performance optimization to reduce the "
@@ -784,7 +785,7 @@ void add_export(CLI::App& app) {
       "the format I:N where I is the partition index and N is the "
       "total number of partitions. Useful for batch exports.");
   cmd->add_flag(
-      "--disable-check-samples",
+      "!--disable-check-samples",
       args->check_samples_exist,
       "Disable validating that sample passed exist in dataset before "
       "executing query and error if any sample requested is not in the "

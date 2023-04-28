@@ -87,13 +87,9 @@ class DeleteExporter : public Exporter {
    * @brief Flush and close the stats array writers.
    */
   void close() override {
-    ac_.flush();
     ac_.flush(true);
-    ac_.finalize();
     ac_.close();
-    vs_.flush();
     vs_.flush(true);
-    vs_.finalize();
     vs_.close();
   }
 

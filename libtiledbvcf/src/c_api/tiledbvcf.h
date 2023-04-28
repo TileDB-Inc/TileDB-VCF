@@ -1587,6 +1587,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_enable_allele_count(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_enable_variant_stats(
     tiledb_vcf_writer_t* writer, bool enable);
 
+/**
+ * Sets enable for sample dimension compression
+ * @param writer VCF writer object
+ * @param enable enable/disable
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_compress_sample_dim(
+    tiledb_vcf_writer_t* writer, bool enable);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

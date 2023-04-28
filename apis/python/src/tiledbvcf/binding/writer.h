@@ -230,6 +230,11 @@ class Writer {
   */
   void set_enable_variant_stats(bool enable);
 
+  /**
+    Enable compression of the sample dimension
+  */
+  void set_compress_sample_dim(bool enable);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

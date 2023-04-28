@@ -366,7 +366,7 @@ HG01762	1	13354	13389	T	12142	15000
 HG00280	1	17480	17486	A	17485	18000
 EOF
 ) || exit 1
-rm -f HG00280.vcf HG01762.vcf region-map.txt /tmp/pfx.tsv
+rm -f HG00280.vcf HG01762.vcf region-map.txt pfx.tsv
 
 # Check multiple register/store stages
 rm -rf ingested_1_2 HG00280.vcf HG01762.vcf
@@ -398,7 +398,7 @@ Statistics for dataset 'ingested_1_2':
 - Tile capacity: 10,000
 - Anchor gap: 1,000
 - Number of samples: 2
-- Extracted attributes: none
+- Extracted attributes: fmt_GT
 EOF
 ) || exit 1
 

@@ -90,7 +90,7 @@ class WriterWorker {
   virtual bool resume() = 0;
 
   /** Flush ingestion tasks. */
-  virtual void flush_ingestion_tasks(bool clear = false) {
+  virtual void flush_ingestion_tasks(bool finalize = false) {
   }
 
   /** Return a handle to the attribute buffers */

@@ -376,6 +376,7 @@ class Dataset(object):
         allow_duplicates=True,
         enable_allele_count=False,
         enable_variant_stats=False,
+        compress_sample_dim=True,
     ):
         """Create a new dataset
 
@@ -393,6 +394,7 @@ class Dataset(object):
             positions to be written to the array.
         :param bool enable_allele_count: Enable the allele count ingestion task.
         :param bool enable_variant_stats: Enable the variant stats ingestion task.
+        :param bool compress_sample_dim: Enable compression on the sample dimension.
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -423,6 +425,9 @@ class Dataset(object):
 
         if enable_variant_stats is not None:
             self.writer.set_enable_variant_stats(enable_variant_stats)
+            
+        if compress_sample_dim is not None:
+            self.writer.set_compress_sample_dim(compress_sample_dim)
 
         # Create is a no-op if the dataset already exists.
         # TODO: Inform user if dataset already exists?
