@@ -1349,4 +1349,3 @@ def test_sample_compression(tmp_path, compress):
             found_zstd = found_zstd or "Zstd" in str(filter)
             
     assert found_zstd == compress
-    
