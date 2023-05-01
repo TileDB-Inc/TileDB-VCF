@@ -37,6 +37,18 @@ test:
 	pytest apis/python
 	python -c "import tiledbvcf; print(tiledbvcf.version)"
 
+# docs
+# -------------------------------------------------------------------
+.PHONY: notebooks
+notebooks:
+	@for f in `find examples -name "*.ipynb"`; do \
+		jupyter nbconvert --execute --to=notebook --inplace $$f; \
+	done
+
+.PHONY: docs
+docs:
+	quarto render --fail-if-warnings
+
 # format
 # -------------------------------------------------------------------
 .PHONY: check-format
@@ -69,6 +81,8 @@ Rules:
   install [options]   Build C++ library and install python module
   update              Incrementally build C++ library and update python module
   test                Run tests
+  notebooks           Execute notebooks and update cell outputs
+  docs                Render the documentation
   check-format        Run C++ format check
   format              Run C++ format
   clean               Remove build artifacts

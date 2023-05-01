@@ -1,0 +1,9 @@
+# requirements to execute example notebooks
+tiledb
+tiledb.cloud
+jupyterlab
+seaborn
+plotly
+networkx
+pydot
+ipywidgets
