@@ -410,19 +410,19 @@ void TileDBVCFDataset::create_empty_data_array(
   auto real_start_pos = Attribute::create<uint32_t>(
       ctx, AttrNames::V4::real_start_pos, int_attr_filters);  // a0
   auto end_pos = Attribute::create<uint32_t>(
-      ctx, AttrNames::V4::end_pos, int_attr_filters);         // a1
+      ctx, AttrNames::V4::end_pos, int_attr_filters);  // a1
   auto qual = Attribute::create<float>(
-      ctx, AttrNames::V4::qual, float_attr_filters);          // a2
+      ctx, AttrNames::V4::qual, float_attr_filters);  // a2
   auto alleles = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V4::alleles, byte_attr_filters);        // a3
+      ctx, AttrNames::V4::alleles, byte_attr_filters);  // a3
   auto id = Attribute::create<std::vector<char>>(
-      ctx, AttrNames::V4::id, byte_attr_filters);             // a4
+      ctx, AttrNames::V4::id, byte_attr_filters);  // a4
   auto filters_ids = Attribute::create<std::vector<int32_t>>(
-      ctx, AttrNames::V4::filter_ids, int_attr_filters);      // a5
+      ctx, AttrNames::V4::filter_ids, int_attr_filters);  // a5
   auto info = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V4::info, byte_attr_filters);           // a6
+      ctx, AttrNames::V4::info, byte_attr_filters);  // a6
   auto fmt = Attribute::create<std::vector<uint8_t>>(
-      ctx, AttrNames::V4::fmt, byte_attr_filters);            // a7
+      ctx, AttrNames::V4::fmt, byte_attr_filters);  // a7
   schema.add_attributes(
       real_start_pos, end_pos, qual, alleles, id, filters_ids, info, fmt);
 
