@@ -305,11 +305,11 @@ void TileDBVCFDataset::create_empty_metadata(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum) {
-  // If the dataset is local, create the metadata group to preserve the V4
-  // directory structure. We do not create the group on TileDB Cloud because it
-  // is unused and will create an orphaned group.
+  // If the dataset is local, create the metadata directory to preserve the V4
+  // directory structure.
   if (!cloud_dataset(root_uri)) {
-    create_group(ctx, metadata_group_uri(root_uri));
+    tiledb::VFS vfs(ctx);
+    vfs.create_dir(metadata_group_uri(root_uri));
   }
   create_sample_header_array(ctx, root_uri, checksum);
 
