@@ -1,6 +1,6 @@
 <a href="https://tiledb.com"><img src="https://github.com/TileDB-Inc/TileDB/raw/dev/doc/source/_static/tiledb-logo_color_no_margin_@4x.png" alt="TileDB logo" width="400"></a>
 
-[![Build Status](https://img.shields.io/azure-devops/build/tiledb-inc/836549eb-f74a-4986-a18f-7fbba6bbb5f0/8/master?label=Azure%20Pipelines&logo=azure-pipelines&style=flat-square)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=master)
+[![Build Status](https://img.shields.io/azure-devops/build/tiledb-inc/836549eb-f74a-4986-a18f-7fbba6bbb5f0/8/master?label=Azure%20Pipelines&logo=azure-pipelines&style=flat-square)](https://dev.azure.com/TileDB-Inc/CI/_build/latest?definitionId=8&branchName=main)
 [![Docker-CLI](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-cli&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-cli)
 [![Docker-Py](https://img.shields.io/static/v1?label=Docker&message=tiledbvcf-py&color=099cec&logo=docker&style=flat-square)](https://hub.docker.com/repository/docker/tiledb/tiledbvcf-py)
 
@@ -112,11 +112,3 @@ https://github.com/TileDB-Inc/TileDB/blob/dev/CODE_OF_CONDUCT.md).
 [docshowto]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics/how-to
 [docsreference]: https://docs.tiledb.com/main/integrations-and-extensions/genomics/population-genomics/api-reference
 [blog]: https://tiledb.com/blog/population-genomics-is-a-data-management-problem
-
-
-[install]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/quick-install
-[build]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/installation/building-from-source
-
-[use-cli]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/cli
-[use-py]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/python
-[use-spark]: https://docs.tiledb.com/main/integrations-and-extensions/population-genomics/usage/spark

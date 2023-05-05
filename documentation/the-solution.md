@@ -30,7 +30,7 @@ _But what about updates?_ That's the topic of the next section.
 
 ## Updates
 
-TileDB-VCF is based on TileDB Embedded which supports [rapid updates](https://docs.tiledb.com/main/solutions/tiledb-embedded/internal-mechanics/writing) via [immutable fragments](https://docs.tiledb.com/main/basic-concepts/data-format#immutable-fragments). That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency.  With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, **solving the N+1 problem**.
+TileDB-VCF is based on TileDB Embedded which supports [rapid updates](https://docs.tiledb.com/main/background/internal-mechanics/writing) via [immutable fragments](https://docs.tiledb.com/main/background/key-concepts-and-data-format#fragments-1). That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency.  With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, **solving the N+1 problem**.
 
 ## Easy and cost-efficient scaling
 

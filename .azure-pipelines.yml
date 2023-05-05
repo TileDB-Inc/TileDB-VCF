@@ -1,13 +1,13 @@
 trigger:
   branches:
     include:
-    - master
+    - main
     - release-*
     - refs/tags/*
 
 variables:
   isRefTag: $[startsWith(variables['Build.SourceBranch'], 'refs/tags')]
-  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
 
 stages:
   - stage: CI
@@ -78,7 +78,7 @@ stages:
         - template: ci/build-images.yml
 
   - stage: BuildNativeLibs
-    condition: or(eq(variables.isMaster, true), eq(variables.isRefTag, true))
+    condition: or(eq(variables.isMain, true), eq(variables.isRefTag, true))
     jobs:
       - job: Linux_OSX
         strategy:

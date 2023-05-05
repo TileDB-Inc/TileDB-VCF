@@ -19,7 +19,7 @@ steps:
 
   - task: Docker@2
     displayName: Push Latest Tag
-    condition: eq(variables['build.sourceBranch'], 'refs/heads/master')
+    condition: eq(variables['build.sourceBranch'], 'refs/heads/main')
     inputs:
       command: push
       containerRegistry: 'dockerHub'
