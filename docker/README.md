@@ -138,13 +138,13 @@ Check out [TileDB-VCF's docs][vcf-docs] for installation instructions, detailed 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/TileDB-Inc/TileDB-VCF/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/TileDB-Inc/TileDB-VCF/blob/main/LICENSE) file for details.
 
 <!-- links -->
 [vcf-repo]: https://github.com/TileDB-Inc/TileDB-VCF
 [docker]: https://hub.docker.com/u/tiledb
 [tiledb]: https://github.com/TileDB-Inc/TileDB
-[vcf-docs]: https://docs.tiledb.com/solutions/integrations/population-genomics
-[cli-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/cli
-[py-api]:  https://docs.tiledb.com/solutions/integrations/population-genomics/api-reference/python
+[vcf-docs]: https://tiledb-inc.github.io/TileDB-VCF/documentation/index.html
+[cli-api]:  https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/cli.html
+[py-api]:  https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/python.html
 [vcf-samples-20]: https://console.tiledb.com/arrays/details/TileDB-Inc/vcf-samples-20-data
