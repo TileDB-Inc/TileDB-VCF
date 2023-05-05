@@ -203,7 +203,7 @@ class Dataset(object):
         samples_file=None,
         bed_file=None,
         skip_check_samples=False,
-        set_af_filter="",
+        set_af_filter: str = "",
         enable_progress_estimation=False,
     ):
         """Reads data from a TileDB-VCF dataset into Pandas dataframe.
@@ -222,6 +222,7 @@ class Dataset(object):
             one per line.
         :param str bed_file: URI of a BED file of genomic regions to be read.
         :param bool skip_check_samples: Should checking the samples requested exist in the array
+        :param string set_af_filter: Set an expression to filter by internal allele frequency. When set, it adds a column for this value: INFO_TILEDB_IAF; example: AF<0.1
         :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
         :return: Pandas DataFrame or PyArrow Array containing results.
         """
