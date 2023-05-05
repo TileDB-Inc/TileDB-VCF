@@ -282,7 +282,7 @@ Info
 </section>
 <section id="updates" class="level2">
 <h2 class="anchored" data-anchor-id="updates">Updates</h2>
-<p>TileDB-VCF is based on TileDB Embedded which supports <a href="https://docs.tiledb.com/main/solutions/tiledb-embedded/internal-mechanics/writing">rapid updates</a> via <a href="https://docs.tiledb.com/main/basic-concepts/data-format#immutable-fragments">immutable fragments</a>. That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency. With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, <strong>solving the N+1 problem</strong>.</p>
+<p>TileDB-VCF is based on TileDB Embedded which supports <a href="https://docs.tiledb.com/main/background/internal-mechanics/writing">rapid updates</a> via <a href="https://docs.tiledb.com/main/background/key-concepts-and-data-format#fragments-1">immutable fragments</a>. That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency. With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, <strong>solving the N+1 problem</strong>.</p>
 </section>
 <section id="easy-and-cost-efficient-scaling" class="level2">
 <h2 class="anchored" data-anchor-id="easy-and-cost-efficient-scaling">Easy and cost-efficient scaling</h2>
