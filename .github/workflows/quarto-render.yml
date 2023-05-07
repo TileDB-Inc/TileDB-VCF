@@ -13,8 +13,7 @@ jobs:
 
     - name: "Install Quarto"
       uses: quarto-dev/quarto-actions/setup@v2
-      with:
-      
+
     - name: "Quarto render"
       shell: bash
       run: |
