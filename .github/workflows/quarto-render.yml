@@ -17,7 +17,7 @@ jobs:
     - name: "Quarto render"
       shell: bash
       run: |
-        quarto -v
+        quartodoc build
         quarto render --fail-if-warnings
         # https://github.com/quarto-dev/quarto-cli/issues/493
 

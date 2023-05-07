@@ -47,6 +47,7 @@ notebooks:
 
 .PHONY: docs
 docs:
+	quartodoc build
 	quarto render --fail-if-warnings
 
 # format
