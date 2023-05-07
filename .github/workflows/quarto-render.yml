@@ -17,6 +17,8 @@ jobs:
     - name: "Quarto render"
       shell: bash
       run: |
+        pip install quartodoc
+        ln -s apis/python/src/tiledbvcf
         quartodoc build
         quarto render --fail-if-warnings
         # https://github.com/quarto-dev/quarto-cli/issues/493

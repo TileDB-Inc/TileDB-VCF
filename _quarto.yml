@@ -3,11 +3,11 @@ project:
   type: website
   output-dir: docs
   render:
-    - "!libtiledbvcf/"
     - "documentation/index.md"
     - "documentation"
     - "examples/README.md"
     - "examples"
+    - "reference"
 
 format:
   html:
@@ -20,6 +20,17 @@ format:
     code-copy: true
     code-overflow: wrap
     css: "quarto-materials/tiledb.css"
+
+quartodoc:
+  title: "Python"
+  package: tiledbvcf
+  sections:
+    - title: "tiledbvcf"
+      desc: ""
+      contents:
+        - config_logging
+        - ReadConfig
+        - Dataset
 
 website:
   favicon: "images/favicon.ico"
@@ -67,7 +78,7 @@ website:
           href: "documentation/api-reference/overview.md"
           contents:
             - href: "documentation/api-reference/cli.md"
-            - href: "documentation/api-reference/python.md"
+            - href: "reference/index.qmd"
 
         - section:
           href: "documentation/how-to/overview.md"
