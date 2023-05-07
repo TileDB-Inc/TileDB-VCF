@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>the-solution</title>
+<title>dataset</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -30,8 +30,6 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../documentation/data-model.html" rel="next">
-<link href="../documentation/how-to/work-with-cloud-object-stores.html" rel="prev">
 <link href="../images/favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -110,7 +108,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../documentation/the-solution.html">The Solution</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -276,7 +274,7 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link active">
+  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The Solution</span></a>
   </div>
 </li>
@@ -296,82 +294,206 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-solution" id="toc-the-solution" class="nav-link active" data-scroll-target="#the-solution">The Solution</a>
+  <li><a href="#tiledbvcf.Dataset" id="toc-tiledbvcf.Dataset" class="nav-link active" data-scroll-target="#tiledbvcf.Dataset">Dataset</a>
   <ul class="collapse">
-  <li><a href="#storing-variants-as-3d-sparse-arrays" id="toc-storing-variants-as-3d-sparse-arrays" class="nav-link" data-scroll-target="#storing-variants-as-3d-sparse-arrays">Storing variants as 3D sparse arrays</a></li>
-  <li><a href="#fast-retrieval" id="toc-fast-retrieval" class="nav-link" data-scroll-target="#fast-retrieval">Fast retrieval</a></li>
-  <li><a href="#updates" id="toc-updates" class="nav-link" data-scroll-target="#updates">Updates</a></li>
-  <li><a href="#easy-and-cost-efficient-scaling" id="toc-easy-and-cost-efficient-scaling" class="nav-link" data-scroll-target="#easy-and-cost-efficient-scaling">Easy and cost-efficient scaling</a></li>
-  <li><a href="#collaboration" id="toc-collaboration" class="nav-link" data-scroll-target="#collaboration">Collaboration</a></li>
-  <li><a href="#whats-next" id="toc-whats-next" class="nav-link" data-scroll-target="#whats-next">What’s next?</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
+  <ul class="collapse">
+  <li><a href="#tiledbvcf.Dataset.attributes" id="toc-tiledbvcf.Dataset.attributes" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.attributes">attributes</a></li>
+  <li><a href="#tiledbvcf.Dataset.continue_read" id="toc-tiledbvcf.Dataset.continue_read" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.continue_read">continue_read</a></li>
+  <li><a href="#tiledbvcf.Dataset.continue_read_arrow" id="toc-tiledbvcf.Dataset.continue_read_arrow" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</a></li>
+  <li><a href="#tiledbvcf.Dataset.count" id="toc-tiledbvcf.Dataset.count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.count">count</a></li>
+  <li><a href="#tiledbvcf.Dataset.create_dataset" id="toc-tiledbvcf.Dataset.create_dataset" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.create_dataset">create_dataset</a></li>
+  <li><a href="#tiledbvcf.Dataset.export" id="toc-tiledbvcf.Dataset.export" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.export">export</a></li>
+  <li><a href="#tiledbvcf.Dataset.ingest_samples" id="toc-tiledbvcf.Dataset.ingest_samples" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.ingest_samples">ingest_samples</a></li>
+  <li><a href="#tiledbvcf.Dataset.read" id="toc-tiledbvcf.Dataset.read" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read">read</a></li>
+  <li><a href="#tiledbvcf.Dataset.read_arrow" id="toc-tiledbvcf.Dataset.read_arrow" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_arrow">read_arrow</a></li>
+  <li><a href="#tiledbvcf.Dataset.read_completed" id="toc-tiledbvcf.Dataset.read_completed" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_completed">read_completed</a></li>
+  <li><a href="#tiledbvcf.Dataset.read_iter" id="toc-tiledbvcf.Dataset.read_iter" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_iter">read_iter</a></li>
+  <li><a href="#tiledbvcf.Dataset.sample_count" id="toc-tiledbvcf.Dataset.sample_count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.sample_count">sample_count</a></li>
+  <li><a href="#tiledbvcf.Dataset.samples" id="toc-tiledbvcf.Dataset.samples" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.samples">samples</a></li>
+  <li><a href="#tiledbvcf.Dataset.schema_version" id="toc-tiledbvcf.Dataset.schema_version" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.schema_version">schema_version</a></li>
+  <li><a href="#tiledbvcf.Dataset.tiledb_stats" id="toc-tiledbvcf.Dataset.tiledb_stats" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.tiledb_stats">tiledb_stats</a></li>
+  <li><a href="#tiledbvcf.Dataset.version" id="toc-tiledbvcf.Dataset.version" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.version">version</a></li>
+  </ul></li>
   </ul></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/the-solution.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/reference/Dataset.qmd" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 
 
-<section id="the-solution" class="level1">
-<h1>The Solution</h1>
-<section id="storing-variants-as-3d-sparse-arrays" class="level2">
-<h2 class="anchored" data-anchor-id="storing-variants-as-3d-sparse-arrays">Storing variants as 3D sparse arrays</h2>
-<p>Population variant data can be efficiently represented using a 3D sparse array. For each sample, imagine a 2D plane where the vertical axis is the contig and the horizontal axis is the genomic position. Every variant can be represented as a range within this plane; it can be unary (i.e., a SNP) or it can be a longer range (e.g., INDEL or CNV). Each sample is then indexed by a third dimension, which is unbounded to accommodate populations of any size. The figure below shows an example for one sample, with several variants distributed across contigs <code>chr1</code> , <code>chr2</code> and <code>chr3</code>.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./assets/genomics_representation_start_2 (3).png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">3D array representation of population variants</figcaption>
-</figure>
-</div>
-<p>In TileDB-VCF, we represent the <em>start</em> position of each range as <em>a non-empty cell</em> in a sparse array (black squares in the above figure). In each of those array cells, we store the <em>end</em> position of each cell (to create a range) along with all other fields in the corresponding single-sample VCF files for each variant (e.g., <code>REF</code>, <code>ALT</code>, etc.). Therefore, for every sample, we map variants to 2D non-empty sparse array cells.</p>
-<p>To facilitate rapid retrieval of interval intersections (explained in the next section), we also inject <em>anchors</em> (green square in the above figure) to breakup long ranges. Specifically, we create a new non-empty cell every <code>anchor_gap</code> bases from the start of the range (where <code>anchor_gap</code> is a user-defined parameter), which is identical to the range cell, except that (1) it has a new start coordinate and (2) it stores the real start position in an attribute.</p>
-<p>Note that regardless of the number of samples, we do not inject any additional information other than that of the anchors, which is user configurable and turns out to be negligible for real datasets. In other words, this solution leads to <em>linear</em> storage in the number of samples, thus being scalable.</p>
+<section id="tiledbvcf.Dataset" class="level1">
+<h1>Dataset</h1>
+<p><code>Dataset(self, uri, mode='r', cfg=None, stats=False, verbose=False)</code></p>
+<p>A handle on a TileDB-VCF dataset.</p>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.attributes">attributes</a></td>
+<td>List queryable attributes available in the VCF dataset</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.continue_read">continue_read</a></td>
+<td>Continue an incomplete read</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</a></td>
+<td>Continue an incomplete read</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.count">count</a></td>
+<td>Counts data in a TileDB-VCF dataset.</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.create_dataset">create_dataset</a></td>
+<td>Create a new dataset</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.export">export</a></td>
+<td>Exports data from a TileDB-VCF dataset to multiple VCF files or a combined VCF file.</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.ingest_samples">ingest_samples</a></td>
+<td>Ingest samples</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.read">read</a></td>
+<td>Reads data from a TileDB-VCF dataset into Pandas dataframe.</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.read_arrow">read_arrow</a></td>
+<td>Reads data from a TileDB-VCF dataset into Arrow table.</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.read_completed">read_completed</a></td>
+<td>Returns true if the previous read operation was complete.</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.read_iter">read_iter</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.sample_count">sample_count</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.samples">samples</a></td>
+<td>Retrieve list of sample names registered in the VCF dataset</td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.schema_version">schema_version</a></td>
+<td>Retrieve the VCF dataset’s schema version</td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.tiledb_stats">tiledb_stats</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.version">version</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<section id="tiledbvcf.Dataset.attributes" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.attributes">attributes</h3>
+<p><code>Dataset.attributes(self, attr_type='all')</code></p>
+<p>List queryable attributes available in the VCF dataset</p>
+<p>:param str type: The subset of attributes to retrieve; “info” or “fmt” will only retrieve attributes ingested from the VCF INFO and FORMAT fields, respectively, “builtin” retrieves the static attributes defined in TileDB-VCF’s schema, “all” (the default) returns all queryable attributes :returns: a list of strings representing the attribute names</p>
 </section>
-<section id="fast-retrieval" class="level2">
-<h2 class="anchored" data-anchor-id="fast-retrieval">Fast retrieval</h2>
-<p>The typical access pattern used for variant data involves one or more rectangles covering a set of genomic ranges across one or more samples. In the figure below, let the black rectangle be the user’s query. Observe that the results are highlighted in blue (<code>v1, v2, v4, v7</code>). However, the rectangle misses <code>v1</code>, i.e., the case where an Indel/CNV range <em>intersects</em> the query rectangle, but the start position is <em>outside</em> the rectangle.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./assets/genomics_retrieval (3).png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">Interval intersection using expanded query ranges and anchors</figcaption>
-</figure>
-</div>
-<p>This is the motivation behind <em>anchors</em>. TileDB-VCF expands the user’s query range on the left by <code>anchor_gap</code>. It then reports as results the cells that are included in the expanded query if their end position (stored in an attribute) comes after the query range start endpoint. In the example above, TileDB-VCF retrieves anchor <code>a1</code> and Indel/CNV <code>v3</code>. It reports <code>v1</code> as a result (as it can be extracted directly from anchor <code>a1</code>), but filters out <code>v3</code>.</p>
-<div class="callout-info">
-<p>By representing each sample’s variants as non-empty cells in a 2D plane and using anchors and expanded queries, we managed to model population variants as 3D sparse arrays and use the vanilla functionality of TileDB-Embedded, inheriting all its powerful features out of the box.</p>
-</div>
-<p>Quite often, the analyses requires data retrieval based on numerous query ranges (up to the order of millions), which must be submitted simultaneously. TileDB-VCF leverages the highly optimized multi-range subarray functionality of TileDB Embedded, which leads to unparalleled performance for such scenarios.</p>
-<p><em>But what about updates?</em> That’s the topic of the next section.</p>
+<section id="tiledbvcf.Dataset.continue_read" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.continue_read">continue_read</h3>
+<p><code>Dataset.continue_read(self, release_buffers=True)</code></p>
+<p>Continue an incomplete read :return: Pandas DataFrame</p>
 </section>
-<section id="updates" class="level2">
-<h2 class="anchored" data-anchor-id="updates">Updates</h2>
-<p>TileDB-VCF is based on TileDB Embedded which supports <a href="https://docs.tiledb.com/main/background/internal-mechanics/writing">rapid updates</a> via <a href="https://docs.tiledb.com/main/background/key-concepts-and-data-format#fragments-1">immutable fragments</a>. That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency. With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, <strong>solving the N+1 problem</strong>.</p>
+<section id="tiledbvcf.Dataset.continue_read_arrow" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</h3>
+<p><code>Dataset.continue_read_arrow(self, release_buffers=True)</code></p>
+<p>Continue an incomplete read :return: PyArrow Table</p>
 </section>
-<section id="easy-and-cost-efficient-scaling" class="level2">
-<h2 class="anchored" data-anchor-id="easy-and-cost-efficient-scaling">Easy and cost-efficient scaling</h2>
-<p>TileDB-VCF allows you to efficiently store, update and access enormous population genomic datasets, all <em>open-source</em>. And although it is a C++ embedded library (which works on a single machine), it also integrates very well with Spark and Dask, enabling you to scale your analysis to large clusters. However, the burden of managing clusters (spinning them up, deploying the software, monitoring the resources, etc.), falls entirely on you, which is quite an undertaking.</p>
-<p>Enter TileDB Cloud!</p>
-<p>TileDB Cloud allows you to perform parallel ingestion and parallel slicing / processing, <strong>100% serverless</strong>. This means that you do not have to spin up large clusters or pay for idle time. You can easily slice data or define complex task flows comprised of thousands of tasks, which TileDB Cloud deploys elastically in its serverless infrastructure, providing an unmatched combination of ease of use and low cost on the cloud—even for your most challenging analyses.</p>
+<section id="tiledbvcf.Dataset.count" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.count">count</h3>
+<p><code>Dataset.count(self, samples=None, regions=None)</code></p>
+<p>Counts data in a TileDB-VCF dataset.</p>
+<p>:param list of str samples: CSV list of sample names to include in the count. :param list of str regions: CSV list of genomic regions include in the count :return: Number of intersecting records in the dataset</p>
 </section>
-<section id="collaboration" class="level2">
-<h2 class="anchored" data-anchor-id="collaboration">Collaboration</h2>
-<div class="callout-info">
-<p>The shear volume of data generated by modern population genomics applications creates enormous challenges around data management and collaboration.</p>
-</div>
-<p>TileDB Cloud offers groundbreaking features for collaborative genomic research:</p>
-<ol type="1">
-<li>Popular public datasets made available in the TileDB format for direct analysis</li>
-<li>Easy mechanism for one to share their data and code (Jupyter notebooks and user-defined functions), either with a specific set of users or the entire world</li>
-<li>Easy ways to explore and discover public data and code.</li>
-</ol>
-<p><em>Join our vision to build a growing community around open data and code!</em></p>
+<section id="tiledbvcf.Dataset.create_dataset" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.create_dataset">create_dataset</h3>
+<p><code>Dataset.create_dataset(self, extra_attrs=None, vcf_attrs=None, tile_capacity=None, anchor_gap=None, checksum_type=None, allow_duplicates=True, enable_allele_count=False, enable_variant_stats=False, compress_sample_dim=True)</code></p>
+<p>Create a new dataset</p>
+<p>:param list of str extra_attrs: CSV list of extra attributes to materialize from fmt and info fields. :param str vcf_attrs: URI of VCF file with all fmt and info fields to materialize in the dataset. :param int tile_capacity: Tile capacity to use for the array schema (default = 10000). :param int anchor_gap: Length of gaps between inserted anchor records in bases (default = 1000). :param str checksum_type: Optional override checksum type for creating new dataset valid values are sha256, md5 or none. :param bool allow_duplicates: Allow records with duplicate start positions to be written to the array. :param bool enable_allele_count: Enable the allele count ingestion task. :param bool enable_variant_stats: Enable the variant stats ingestion task. :param bool compress_sample_dim: Enable compression on the sample dimension.</p>
 </section>
-<section id="whats-next" class="level2">
-<h2 class="anchored" data-anchor-id="whats-next">What’s next?</h2>
-<p>If you are familiar with the TileDB Embedded data model, you can delve into the technical details of how TileDB-VCF stores genomic variant data using [D sparse arrays. Otherwise you can proceed with <a href="installation/">installation instructions</a> and tutorials.</p>
+<section id="tiledbvcf.Dataset.export" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.export">export</h3>
+<p><code>Dataset.export(self, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')</code></p>
+<p>Exports data from a TileDB-VCF dataset to multiple VCF files or a combined VCF file.</p>
+<p>:param list of str samples: CSV list of sample names to be read. :param list of str regions: CSV list of genomic regions to be read. :param str samples_file: URI of file containing sample names to be read, one per line. :param str bed_file: URI of a BED file of genomic regions to be read. :param bool skip_check_samples: Should checking the samples requested exist in the array :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases. :param bool merge: Merge samples to create a combined VCF file. :param str output_format: Export file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’: vcf.gz, ‘v’: vcf :param str output_path: Combined VCF output file. :param str output_dir: Directory used for local output of exported samples.</p>
+</section>
+<section id="tiledbvcf.Dataset.ingest_samples" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.ingest_samples">ingest_samples</h3>
+<p><code>Dataset.ingest_samples(self, sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)</code></p>
+<p>Ingest samples</p>
+<p>:param list of str sample_uris: CSV list of sample names to include in the count. :param int threads: Set the number of threads used for ingestion. :param int total_memory_budget_mb: Total memory budget for ingestion (MiB) :param float total_memory_percentage: Percentage of total system memory used for ingestion (overrides ‘total_memory_budget_mb’) :param float ratio_tiledb_memory: Ratio of memory budget allocated to TileDB::sm.mem.total_budget :param int max_tiledb_memory_mb: Maximum memory allocated to TileDB::sm.mem.total_budget (MiB) :param int input_record_buffer_mb: Size of input record buffer for each sample file (MiB) :param int avg_vcf_record_size: Average VCF record size (bytes) :param float ratio_task_size: Ratio of worker task size to computed task size :param float ratio_output_flush: Ratio of output buffer capacity that triggers a flush to TileDB :param str scratch_space_path: Directory used for local storage of downloaded remote samples. :param int scratch_space_size: Amount of local storage that can be used for downloading remote samples (MB). :param int sample_batch_size: Number of samples per batch for ingestion (default 10). :param bool resume: Whether to check and attempt to resume a partial completed ingestion :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size. :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats. :param list contigs_to_allow_merging: List of contigs that should be allowed to be merged into combined fragments. :param list contig_mode: Select which contigs are ingested: ‘all’, ‘separate’, or ‘merged’ contigs (default ‘all’).</p>
+<p>:param int thread_task_size: Set the max length (# columns) of an ingestion task. Affects load balancing of ingestion work across threads, and total memory consumption. (Legacy option) :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing (Legacy option) :param int record_limit: Limit the number of VCF records read into memory per file (Legacy option)</p>
+</section>
+<section id="tiledbvcf.Dataset.read" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read">read</h3>
+<p><code>Dataset.read(self, attrs, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', enable_progress_estimation=False)</code></p>
+<p>Reads data from a TileDB-VCF dataset into Pandas dataframe.</p>
+<p>For large datasets, a call to <code>read()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
+<p>You can also use the Python generator version, <code>read_iter()</code>.</p>
+<p>:param list of str attrs: List of attribute names to be read. :param list of str samples: CSV list of sample names to be read. :param list of str regions: CSV list of genomic regions to be read. :param str samples_file: URI of file containing sample names to be read, one per line. :param str bed_file: URI of a BED file of genomic regions to be read. :param bool skip_check_samples: Should checking the samples requested exist in the array :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases. :return: Pandas DataFrame or PyArrow Array containing results.</p>
+</section>
+<section id="tiledbvcf.Dataset.read_arrow" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_arrow">read_arrow</h3>
+<p><code>Dataset.read_arrow(self, attrs, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', enable_progress_estimation=False)</code></p>
+<p>Reads data from a TileDB-VCF dataset into Arrow table.</p>
+<p>For large datasets, a call to <code>read()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
+<p>You can also use the Python generator version, <code>read_iter()</code>.</p>
+<p>:param list of str attrs: List of attribute names to be read. :param list of str samples: CSV list of sample names to be read. :param list of str regions: CSV list of genomic regions to be read. :param str samples_file: URI of file containing sample names to be read, one per line. :param str bed_file: URI of a BED file of genomic regions to be read. :param bool skip_check_samples: Should checking the samples requested exist in the array :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases. :return: Pandas DataFrame or PyArrow Array containing results.</p>
+</section>
+<section id="tiledbvcf.Dataset.read_completed" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_completed">read_completed</h3>
+<p><code>Dataset.read_completed(self)</code></p>
+<p>Returns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.</p>
+</section>
+<section id="tiledbvcf.Dataset.read_iter" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_iter">read_iter</h3>
+<p><code>Dataset.read_iter(self, attrs, samples=None, regions=None, samples_file=None, bed_file=None)</code></p>
+</section>
+<section id="tiledbvcf.Dataset.sample_count" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.sample_count">sample_count</h3>
+<p><code>Dataset.sample_count(self)</code></p>
+</section>
+<section id="tiledbvcf.Dataset.samples" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.samples">samples</h3>
+<p><code>Dataset.samples(self)</code></p>
+<p>Retrieve list of sample names registered in the VCF dataset</p>
+</section>
+<section id="tiledbvcf.Dataset.schema_version" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.schema_version">schema_version</h3>
+<p><code>Dataset.schema_version(self)</code></p>
+<p>Retrieve the VCF dataset’s schema version</p>
+</section>
+<section id="tiledbvcf.Dataset.tiledb_stats" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.tiledb_stats">tiledb_stats</h3>
+<p><code>Dataset.tiledb_stats(self)</code></p>
+</section>
+<section id="tiledbvcf.Dataset.version" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.version">version</h3>
+<p><code>Dataset.version(self)</code></p>
 
 
+</section>
 </section>
 </section>
 
@@ -609,18 +731,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Work with Cloud Object Stores</span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../documentation/data-model.html" class="pagination-link">
-        <span class="nav-page-text">Data Model</span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
 </div> <!-- /content -->
 
 
