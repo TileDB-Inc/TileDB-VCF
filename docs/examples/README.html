@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>the-solution</title>
+<title>Examples</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -30,8 +30,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../documentation/data-model.html" rel="next">
-<link href="../documentation/how-to/work-with-cloud-object-stores.html" rel="prev">
+<link href="../examples/tutorial_tiledbvcf_basics.html" rel="next">
+<link href="../documentation/index.html" rel="prev">
 <link href="../images/favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -110,7 +110,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../documentation/the-solution.html">The Solution</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/README.html">Examples</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -130,7 +130,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../examples/README.html" class="sidebar-item-text sidebar-link">
+            <a href="../examples/README.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Examples</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
@@ -276,7 +276,7 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link active">
+  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The Solution</span></a>
   </div>
 </li>
@@ -296,80 +296,75 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#the-solution" id="toc-the-solution" class="nav-link active" data-scroll-target="#the-solution">The Solution</a>
+  <li><a href="#tiledb-vcf-basics" id="toc-tiledb-vcf-basics" class="nav-link active" data-scroll-target="#tiledb-vcf-basics">TileDB-VCF Basics</a>
   <ul class="collapse">
-  <li><a href="#storing-variants-as-3d-sparse-arrays" id="toc-storing-variants-as-3d-sparse-arrays" class="nav-link" data-scroll-target="#storing-variants-as-3d-sparse-arrays">Storing variants as 3D sparse arrays</a></li>
-  <li><a href="#fast-retrieval" id="toc-fast-retrieval" class="nav-link" data-scroll-target="#fast-retrieval">Fast retrieval</a></li>
-  <li><a href="#updates" id="toc-updates" class="nav-link" data-scroll-target="#updates">Updates</a></li>
-  <li><a href="#easy-and-cost-efficient-scaling" id="toc-easy-and-cost-efficient-scaling" class="nav-link" data-scroll-target="#easy-and-cost-efficient-scaling">Easy and cost-efficient scaling</a></li>
-  <li><a href="#collaboration" id="toc-collaboration" class="nav-link" data-scroll-target="#collaboration">Collaboration</a></li>
-  <li><a href="#whats-next" id="toc-whats-next" class="nav-link" data-scroll-target="#whats-next">What’s next?</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">Overview</a></li>
+  </ul></li>
+  <li><a href="#tiledb-vcf-allele-frequencies" id="toc-tiledb-vcf-allele-frequencies" class="nav-link" data-scroll-target="#tiledb-vcf-allele-frequencies">TileDB-VCF Allele Frequencies</a>
+  <ul class="collapse">
+  <li><a href="#overview-1" id="toc-overview-1" class="nav-link" data-scroll-target="#overview-1">Overview</a></li>
+  </ul></li>
+  <li><a href="#tiledb-vcf-task-graph-based-genome-wide-analysis" id="toc-tiledb-vcf-task-graph-based-genome-wide-analysis" class="nav-link" data-scroll-target="#tiledb-vcf-task-graph-based-genome-wide-analysis">TileDB-VCF Task Graph-Based Genome-wide Analysis</a>
+  <ul class="collapse">
+  <li><a href="#overview-2" id="toc-overview-2" class="nav-link" data-scroll-target="#overview-2">Overview</a></li>
   </ul></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/the-solution.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/examples/README.md" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Examples</h1>
+</div>
 
 
-<section id="the-solution" class="level1">
-<h1>The Solution</h1>
-<section id="storing-variants-as-3d-sparse-arrays" class="level2">
-<h2 class="anchored" data-anchor-id="storing-variants-as-3d-sparse-arrays">Storing variants as 3D sparse arrays</h2>
-<p>Population variant data can be efficiently represented using a 3D sparse array. For each sample, imagine a 2D plane where the vertical axis is the contig and the horizontal axis is the genomic position. Every variant can be represented as a range within this plane; it can be unary (i.e., a SNP) or it can be a longer range (e.g., INDEL or CNV). Each sample is then indexed by a third dimension, which is unbounded to accommodate populations of any size. The figure below shows an example for one sample, with several variants distributed across contigs <code>chr1</code> , <code>chr2</code> and <code>chr3</code>.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./assets/genomics_representation_start_2 (3).png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">3D array representation of population variants</figcaption>
-</figure>
-</div>
-<p>In TileDB-VCF, we represent the <em>start</em> position of each range as <em>a non-empty cell</em> in a sparse array (black squares in the above figure). In each of those array cells, we store the <em>end</em> position of each cell (to create a range) along with all other fields in the corresponding single-sample VCF files for each variant (e.g., <code>REF</code>, <code>ALT</code>, etc.). Therefore, for every sample, we map variants to 2D non-empty sparse array cells.</p>
-<p>To facilitate rapid retrieval of interval intersections (explained in the next section), we also inject <em>anchors</em> (green square in the above figure) to breakup long ranges. Specifically, we create a new non-empty cell every <code>anchor_gap</code> bases from the start of the range (where <code>anchor_gap</code> is a user-defined parameter), which is identical to the range cell, except that (1) it has a new start coordinate and (2) it stores the real start position in an attribute.</p>
-<p>Note that regardless of the number of samples, we do not inject any additional information other than that of the anchors, which is user configurable and turns out to be negligible for real datasets. In other words, this solution leads to <em>linear</em> storage in the number of samples, thus being scalable.</p>
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>This section provides fully runable examples.</p>
+<section id="tiledb-vcf-basics" class="level2">
+<h2 class="anchored" data-anchor-id="tiledb-vcf-basics">TileDB-VCF Basics</h2>
+<p>notebook: <a href="https://cloud.tiledb.com/notebooks/details/TileDB-Inc/337a0fd0-7f10-446f-b4a3-e924f7d3c209/preview">tutorial_tiledbvcf_basics</a></p>
+<section id="overview" class="level3">
+<h3 class="anchored" data-anchor-id="overview">Overview</h3>
+<p>Provides a high-level overview of how to work with VCF data using TileDB. You’ll see how to use TileDB-VCF’s Python package to:</p>
+<ul>
+<li>create and populate new TileDB-VCF datasets</li>
+<li>query variant data by genomic region and/or sample and selectively retrieve specific VCF attributes</li>
+<li>parallelize queries by partitioning the data and distributing the queries across multiple processes</li>
+<li>easily scale queries using TileDB Cloud’s serverless infrastructure## Introduction</li>
+</ul>
 </section>
-<section id="fast-retrieval" class="level2">
-<h2 class="anchored" data-anchor-id="fast-retrieval">Fast retrieval</h2>
-<p>The typical access pattern used for variant data involves one or more rectangles covering a set of genomic ranges across one or more samples. In the figure below, let the black rectangle be the user’s query. Observe that the results are highlighted in blue (<code>v1, v2, v4, v7</code>). However, the rectangle misses <code>v1</code>, i.e., the case where an Indel/CNV range <em>intersects</em> the query rectangle, but the start position is <em>outside</em> the rectangle.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./assets/genomics_retrieval (3).png" class="img-fluid figure-img"></p>
-<figcaption class="figure-caption">Interval intersection using expanded query ranges and anchors</figcaption>
-</figure>
-</div>
-<p>This is the motivation behind <em>anchors</em>. TileDB-VCF expands the user’s query range on the left by <code>anchor_gap</code>. It then reports as results the cells that are included in the expanded query if their end position (stored in an attribute) comes after the query range start endpoint. In the example above, TileDB-VCF retrieves anchor <code>a1</code> and Indel/CNV <code>v3</code>. It reports <code>v1</code> as a result (as it can be extracted directly from anchor <code>a1</code>), but filters out <code>v3</code>.</p>
-<div class="callout-info">
-<p>By representing each sample’s variants as non-empty cells in a 2D plane and using anchors and expanded queries, we managed to model population variants as 3D sparse arrays and use the vanilla functionality of TileDB-Embedded, inheriting all its powerful features out of the box.</p>
-</div>
-<p>Quite often, the analyses requires data retrieval based on numerous query ranges (up to the order of millions), which must be submitted simultaneously. TileDB-VCF leverages the highly optimized multi-range subarray functionality of TileDB Embedded, which leads to unparalleled performance for such scenarios.</p>
-<p><em>But what about updates?</em> That’s the topic of the next section.</p>
 </section>
-<section id="updates" class="level2">
-<h2 class="anchored" data-anchor-id="updates">Updates</h2>
-<p>TileDB-VCF is based on TileDB Embedded which supports <a href="https://docs.tiledb.com/main/background/internal-mechanics/writing">rapid updates</a> via <a href="https://docs.tiledb.com/main/background/key-concepts-and-data-format#fragments-1">immutable fragments</a>. That means that every time a new batch of samples is added to the 3D array, the previous contents of the array are not modified at all. Each batch write operation is totally independent and _lock-free—_any number of threads or processes can write simultaneously without synchronization, while ensuring consistency. With TileDB-VCF, both update time and storage size scales linearly with the number of new samples, <strong>solving the N+1 problem</strong>.</p>
+<section id="tiledb-vcf-allele-frequencies" class="level2">
+<h2 class="anchored" data-anchor-id="tiledb-vcf-allele-frequencies">TileDB-VCF Allele Frequencies</h2>
+<p>notebook: <a href="https://cloud.tiledb.com/notebooks/details/TileDB-Inc/3e07f857-12dc-4004-a103-6eaf5058c41c/preview">tutorial_tiledbvcf_allele_frequencies</a></p>
+<section id="overview-1" class="level3">
+<h3 class="anchored" data-anchor-id="overview-1">Overview</h3>
+<p>Provides a high-level overview of how to work with allele frequencies as part of TileDB-VCF. You’ll see how to use TileDB-VCF’s Python package to:</p>
+<ul>
+<li>Selecting allele frequencies</li>
+<li>Filtering on allele frequencies</li>
+<li>Direct allele frequency access</li>
+</ul>
 </section>
-<section id="easy-and-cost-efficient-scaling" class="level2">
-<h2 class="anchored" data-anchor-id="easy-and-cost-efficient-scaling">Easy and cost-efficient scaling</h2>
-<p>TileDB-VCF allows you to efficiently store, update and access enormous population genomic datasets, all <em>open-source</em>. And although it is a C++ embedded library (which works on a single machine), it also integrates very well with Spark and Dask, enabling you to scale your analysis to large clusters. However, the burden of managing clusters (spinning them up, deploying the software, monitoring the resources, etc.), falls entirely on you, which is quite an undertaking.</p>
-<p>Enter TileDB Cloud!</p>
-<p>TileDB Cloud allows you to perform parallel ingestion and parallel slicing / processing, <strong>100% serverless</strong>. This means that you do not have to spin up large clusters or pay for idle time. You can easily slice data or define complex task flows comprised of thousands of tasks, which TileDB Cloud deploys elastically in its serverless infrastructure, providing an unmatched combination of ease of use and low cost on the cloud—even for your most challenging analyses.</p>
 </section>
-<section id="collaboration" class="level2">
-<h2 class="anchored" data-anchor-id="collaboration">Collaboration</h2>
-<div class="callout-info">
-<p>The shear volume of data generated by modern population genomics applications creates enormous challenges around data management and collaboration.</p>
-</div>
-<p>TileDB Cloud offers groundbreaking features for collaborative genomic research:</p>
-<ol type="1">
-<li>Popular public datasets made available in the TileDB format for direct analysis</li>
-<li>Easy mechanism for one to share their data and code (Jupyter notebooks and user-defined functions), either with a specific set of users or the entire world</li>
-<li>Easy ways to explore and discover public data and code.</li>
-</ol>
-<p><em>Join our vision to build a growing community around open data and code!</em></p>
-</section>
-<section id="whats-next" class="level2">
-<h2 class="anchored" data-anchor-id="whats-next">What’s next?</h2>
-<p>If you are familiar with the TileDB Embedded data model, you can delve into the technical details of how TileDB-VCF stores genomic variant data using [D sparse arrays. Otherwise you can proceed with <a href="installation/">installation instructions</a> and tutorials.</p>
+<section id="tiledb-vcf-task-graph-based-genome-wide-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="tiledb-vcf-task-graph-based-genome-wide-analysis">TileDB-VCF Task Graph-Based Genome-wide Analysis</h2>
+<p>notebook: <a href="https://cloud.tiledb.com/notebooks/details/TileDB-Inc/e637f616-a541-4167-a0b3-45ef7277042c/preview">tutorial_tiledbvcf_gwas</a></p>
+<section id="overview-2" class="level3">
+<h3 class="anchored" data-anchor-id="overview-2">Overview</h3>
+<p>In this notebook we’ll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB Cloud’s serverless computation platform.</p>
 
 
 </section>
@@ -611,13 +606,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="pagination-link">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Work with Cloud Object Stores</span>
+      <a href="../documentation/index.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">TileDB-VCF</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../documentation/data-model.html" class="pagination-link">
-        <span class="nav-page-text">Data Model</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../examples/tutorial_tiledbvcf_basics.html" class="pagination-link">
+        <span class="nav-page-text">TileDB-VCF Tutorial</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
