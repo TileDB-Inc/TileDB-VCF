@@ -207,6 +207,14 @@ void Reader::read(const bool release_buffs) {
   if (tiledb_vcf_reader_get_af_filter_exists(reader, &af_filter_enabled) ==
       TILEDB_VCF_ERR)
     throw std::runtime_error("TileDB-VCF-Py: Error finding AF filter.");
+  if (!af_filter_enabled) {
+    for (std::string attribute : attributes_) {
+      if (attribute == "info_TILEDB_IAF") {
+        tiledb_vcf_reader_set_af_filter(reader, ">=0");
+        af_filter_enabled = true;
+      }
+    }
+  }
   if (af_filter_enabled) {
     // add alleles buffer only if not already present
     bool add_alleles = true;
