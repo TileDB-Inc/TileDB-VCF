@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>config_logging</title>
+<title>index</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,23 +23,25 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<link href="../images/favicon.ico" rel="icon">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../documentation/how-to/create-a-dataset.html" rel="next">
+<link href="../../documentation/api-reference/cli.html" rel="prev">
+<link href="../../documentation/assets/tiledb.ico" rel="icon">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -61,7 +63,7 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="../quarto-materials/tiledb.css">
+<link rel="stylesheet" href="../../quarto-materials/tiledb.css">
 </head>
 
 <body class="nav-sidebar floating nav-fixed">
@@ -71,8 +73,8 @@ ul.task-list li input[type="checkbox"] {
     <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container">
-    <a href="../index.html" class="navbar-brand navbar-brand-logo">
-    <img src="../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo">
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -108,7 +110,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../documentation/api-reference/cli.html">API Reference</a></li><li class="breadcrumb-item"><a href="../../documentation/reference/index.html">Python</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -122,34 +124,34 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">TileDB-VCF</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../examples/README.html" class="sidebar-item-text sidebar-link">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
  <span class="menu-text">Examples</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/tutorial_tiledbvcf_basics.html" class="sidebar-item-text sidebar-link">
+  <a href="../../examples/tutorial_tiledbvcf_basics.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">TileDB-VCF Tutorial</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/tutorial_tiledbvcf_allele_frequencies.html" class="sidebar-item-text sidebar-link">
+  <a href="../../examples/tutorial_tiledbvcf_allele_frequencies.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">TileDB-VCF Allele Frequencies</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/tutorial_tiledbvcf_gwas.html" class="sidebar-item-text sidebar-link">
+  <a href="../../examples/tutorial_tiledbvcf_gwas.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">GWAS with the 1000 Genomes TileDB-VCF Dataset</span></a>
   </div>
 </li>
@@ -157,28 +159,28 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../documentation/ingestion/overview.html" class="sidebar-item-text sidebar-link">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
  <span class="menu-text">Ingestion</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/ingestion/cli.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">CLI</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/ingestion/python.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Python</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/ingestion/distributed-ingestion.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/ingestion/distributed-ingestion.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Distributed Ingestion</span></a>
   </div>
 </li>
@@ -186,22 +188,22 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../documentation/api-reference/overview.html" class="sidebar-item-text sidebar-link">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
  <span class="menu-text">API Reference</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/api-reference/cli.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">CLI</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/reference/index.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Python</span></a>
   </div>
 </li>
@@ -209,81 +211,92 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../documentation/how-to/overview.html" class="sidebar-item-text sidebar-link">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">How To</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/create-a-dataset.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Create a Dataset</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/export-to-vcf.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Export to VCF</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/handle-large-queries.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Handle Large Queries</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/ingest-samples.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Ingest Samples</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Perform Distributed Queries with TileDB-Cloud</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Perform Distributed Queries with Dask</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Perform Distributed Queries with Spark</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Read from the Dataset</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/how-to/work-with-cloud-object-stores.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work with Cloud Object Stores</span></a>
   </div>
 </li>
       </ul>
   </li>
-        <li class="sidebar-item">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Background</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/the-solution.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/the-solution.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The Solution</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/data-model.html" class="sidebar-item-text sidebar-link">
+  <a href="../../documentation/data-model.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Data Model</span></a>
   </div>
 </li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -294,22 +307,41 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#tiledbvcf.config_logging" id="toc-tiledbvcf.config_logging" class="nav-link active" data-scroll-target="#tiledbvcf.config_logging">config_logging</a></li>
+  <li><a href="#python" id="toc-python" class="nav-link active" data-scroll-target="#python">Python</a>
+  <ul class="collapse">
+  <li><a href="#tiledbvcf" id="toc-tiledbvcf" class="nav-link" data-scroll-target="#tiledbvcf">tiledbvcf</a></li>
+  </ul></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/reference/config_logging.qmd" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/edit/main/documentation/reference/index.qmd" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 
 
-<section id="tiledbvcf.config_logging" class="level1">
-<h1>config_logging</h1>
-<p><code>config_logging(level='fatal', log_file='')</code></p>
-<p>Configure tiledbvcf logging.</p>
-<p>:param str level: log level “fatal,error,warn,info,debug,trace” :param str log_file: log message file</p>
+<section id="python" class="level1">
+<h1>Python</h1>
+<section id="tiledbvcf" class="level2">
+<h2 class="anchored" data-anchor-id="tiledbvcf">tiledbvcf</h2>
+<table class="table">
+<tbody>
+<tr class="odd">
+<td><a href="../../documentation/reference/Dataset.html#tiledbvcf.Dataset">Dataset</a></td>
+<td>A class that provides read/write access to a TileDB-VCF dataset.</td>
+</tr>
+<tr class="even">
+<td><a href="../../documentation/reference/ReadConfig.html#tiledbvcf.ReadConfig">ReadConfig</a></td>
+<td>Config settings for a TileDB-VCF dataset.</td>
+</tr>
+<tr class="odd">
+<td><a href="../../documentation/reference/config_logging.html#tiledbvcf.config_logging">config_logging</a></td>
+<td>Configure tiledbvcf logging.</td>
+</tr>
+</tbody>
+</table>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -546,6 +578,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../../documentation/api-reference/cli.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">CLI</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../../documentation/how-to/create-a-dataset.html" class="pagination-link">
+        <span class="nav-page-text">Create a Dataset</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
