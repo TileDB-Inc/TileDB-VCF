@@ -1,6 +1,7 @@
-from collections import namedtuple
-
 import warnings
+from collections import namedtuple
+from typing import List
+
 import pandas as pd
 import pyarrow as pa
 
@@ -50,7 +51,7 @@ sort_regions : bool
     Whether or not to sort the regions to be read, default True
 memory_budget_mb : int
     Memory budget (MB) for buffer and internal allocations, default 2048MB
-tiledb_config : list
+tiledb_config : List[str]
     List of strings of format 'option=value'
 buffer_percentage : int
     Percentage of memory to dedicate to TileDB Query Buffers, default 25
@@ -195,9 +196,9 @@ class Dataset(object):
 
     def read_arrow(
         self,
-        attrs: list = DEFAULT_ATTRS,
-        samples: str | list = None,
-        regions: str | list = None,
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -263,9 +264,9 @@ class Dataset(object):
 
     def read(
         self,
-        attrs: list = DEFAULT_ATTRS,
-        samples: str | list = None,
-        regions: str | list = None,
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -333,8 +334,8 @@ class Dataset(object):
 
     def export(
         self,
-        samples: str | list = None,
-        regions: str | list = None,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -404,9 +405,9 @@ class Dataset(object):
 
     def read_iter(
         self,
-        attrs: list = DEFAULT_ATTRS,
-        samples: str | list = None,
-        regions: str | list = None,
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
     ):
@@ -497,8 +498,8 @@ class Dataset(object):
 
     def count(
         self,
-        samples: str | list = None,
-        regions: str | list = None,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
     ) -> int:
         """
         Count records in the dataset.
@@ -613,7 +614,7 @@ class Dataset(object):
 
     def ingest_samples(
         self,
-        sample_uris: list = None,
+        sample_uris: List[str] = None,
         threads: int = None,
         total_memory_budget_mb: int = None,
         total_memory_percentage: float = None,
@@ -628,8 +629,8 @@ class Dataset(object):
         sample_batch_size: int = None,
         resume: bool = False,
         contig_fragment_merging: bool = True,
-        contigs_to_keep_separate: list = None,
-        contigs_to_allow_merging: list = None,
+        contigs_to_keep_separate: List[str] = None,
+        contigs_to_allow_merging: List[str] = None,
         contig_mode: str = "all",
         thread_task_size: int = None,
         memory_budget_mb: int = None,

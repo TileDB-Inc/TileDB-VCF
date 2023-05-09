@@ -47,7 +47,7 @@ notebooks:
 
 .PHONY: docs
 docs:
-	@ln -s apis/python/src/tiledbvcf
+	@ln -sf apis/python/src/tiledbvcf
 	quartodoc build
 	@rm tiledbvcf
 	quarto render --fail-if-warnings
