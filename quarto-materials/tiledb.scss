@@ -81,12 +81,12 @@ li {
 }
 
 .sidebar-item {
-  margin-bottom: 0.75em;
+//  margin-bottom: 0.75em;
 }
 
 .sidebar-section {
-  margin-top: 0.75em;
-  padding-bottom: 0.75em;
+//  margin-top: 0.75em;
+//  padding-bottom: 0.75em;
   padding-left: 1.25em;
   border-left: 1px solid rgba(0, 0, 0, 0.1);
 }
@@ -134,7 +134,7 @@ pre {
 }
 
 .sidebar nav[role="doc-toc"] > ul li a {
-  padding: 0.6rem 0.8rem;
+  // padding: 0.6rem 0.8rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.6);
   &:hover {
@@ -152,7 +152,7 @@ pre {
 }
 
 .sidebar.sidebar-navigation > * {
-  padding-top: 1.6em !important;
+  // padding-top: 1.6em !important;
 }
 
 .nav-tabs .nav-link:hover,

@@ -3,14 +3,20 @@ project:
   type: website
   output-dir: docs
   render:
-    - "!libtiledbvcf/"
-    - "documentation/index.md"
     - "documentation"
+    - "documentation/index.md"
+    - "documentation/reference"
     - "examples/README.md"
     - "examples"
 
 format:
   html:
+    # https://quarto.org/docs/output-formats/page-layout.html#grid-customization
+    grid:
+      sidebar-width: 350px
+      body-width: 1000px
+      margin-width: 350px
+      gutter-width: 1rem
     toc: true
     theme: 
       light: [flatly, "quarto-materials/tiledb.scss"]
@@ -21,8 +27,20 @@ format:
     code-overflow: wrap
     css: "quarto-materials/tiledb.css"
 
+quartodoc:
+  title: "Python"
+  package: tiledbvcf
+  dir: "documentation/reference"
+  sections:
+    - title: "tiledbvcf"
+      desc: ""
+      contents:
+        - Dataset
+        - ReadConfig
+        - config_logging
+
 website:
-  favicon: "images/favicon.ico"
+  favicon: "documentation/assets/tiledb.ico"
   site-url: https://tiledb-inc.github.io/TileDB-VCF/
   repo-url: https://github.com/TileDB-Inc/TileDB-VCF
   # You may want one or both of these, or neither:
@@ -49,29 +67,28 @@ website:
       contents:
         - href: "documentation/index.md"
 
-        - section:
-          href: "examples/README.md"
+        - section: "Examples"
           contents:
+            # - href: "examples/overview.md"
             - href: "examples/tutorial_tiledbvcf_basics.ipynb"
             - href: "examples/tutorial_tiledbvcf_allele_frequencies.ipynb"
             - href: "examples/tutorial_tiledbvcf_gwas.ipynb"
 
-        - section:
-          href: "documentation/ingestion/overview.md"
+        - section: "Ingestion"
           contents:
+            # - href: "documentation/ingestion/overview.md"
             - href: "documentation/ingestion/cli.md"
             - href: "documentation/ingestion/python.md"
             - href: "documentation/ingestion/distributed-ingestion.md"
 
-        - section:
-          href: "documentation/api-reference/overview.md"
+        - section: "API Reference"
           contents:
             - href: "documentation/api-reference/cli.md"
-            - href: "documentation/api-reference/python.md"
+            - href: "documentation/reference/index.qmd"
 
-        - section:
-          href: "documentation/how-to/overview.md"
+        - section: "How To"
           contents:
+            # - href: "documentation/how-to/overview.md"
             - href: "documentation/how-to/create-a-dataset.md"
             - href: "documentation/how-to/export-to-vcf.md"
             - href: "documentation/how-to/handle-large-queries.md"
@@ -82,5 +99,7 @@ website:
             - href: "documentation/how-to/read-from-the-dataset.md"
             - href: "documentation/how-to/work-with-cloud-object-stores.md"
 
-        - href: "documentation/the-solution.md"
-        - href: "documentation/data-model.md"
+        - section: "Background"
+          contents:
+            - href: "documentation/the-solution.md"
+            - href: "documentation/data-model.md"

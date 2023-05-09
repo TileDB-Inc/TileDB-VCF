@@ -33,7 +33,7 @@ Similarly, if the provided BED file contains 1,000,000 regions, and you specify 
 
 These two partitioning parameters can be composed to form rectangular regions of work to distribute across the available Spark executors.
 
-::: {.callout-info}
+::: {.callout-note}
 The CLI interface offers the same partitioning feature, using the `--sample-partition` and `--region-partition` flags.&#x20;
 :::
 

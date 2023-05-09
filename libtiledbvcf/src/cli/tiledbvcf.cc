@@ -940,7 +940,8 @@ int main(int argc, char** argv) {
       "  This command-line utility provides an interface to create, store and\n"
       "  efficiently retrieve variant-call data in the TileDB storage "
       "format.\n\n"
-      "  More information: TileDB <https://tiledb.com>"};
+      "  More information: TileDB-VCF "
+      "<https://tiledb-inc.github.io/TileDB-VCF>"};
   app.formatter(std::make_shared<VcfFormatter>(right_width));
   app.get_formatter()->column_width(left_width);
   app.failure_message(CLI::FailureMessage::help);

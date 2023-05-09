@@ -78,13 +78,13 @@ cat data/s3-bcf-samples.txt
 ## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf
 ```
 
-::: {.callout-info}
+::: {.callout-note}
 Samples in this second batch are stored as `BCF` files which are also supported by TileDB-VCF.
 :::
 
 This process is identical to the steps perfo_r_med above, the only changes needed to our code involve setting `--scratch-mb` to allocate some temporary space for downloading the files and providing the URLs for the remote files. In this case, we'll simply pass the `s3-bcf-samples.txt` file, which includes a list of the BCF files we want to ingest.
 
-::: {.callout-info}
+::: {.callout-note}
 When ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension's `sample_bactch_size` \(which by default is 10\). You can read more about the data model [here](../data-model.md).
 :::
 
