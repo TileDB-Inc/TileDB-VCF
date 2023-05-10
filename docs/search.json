@@ -1,5 +1,40 @@
 [
   {
+    "objectID": "documentation/index.html",
+    "href": "documentation/index.html",
+    "title": "TileDB-VCF",
+    "section": "",
+    "text": "A C++ library for efficient storage and retrieval of genomic variant-call data using TileDB Embedded."
+  },
+  {
+    "objectID": "documentation/index.html#features",
+    "href": "documentation/index.html#features",
+    "title": "TileDB-VCF",
+    "section": "Features",
+    "text": "Features\n\nEasily ingest large amounts of variant-call data at scale\nSupports ingesting single sample VCF and BCF files\nNew samples are added incrementally, avoiding computationally expensive merging operations\nAllows for highly compressed storage using TileDB sparse arrays\nEfficient, parallelized queries of variant data stored locally or remotely on S3\nExport lossless VCF/BCF files or extract specific slices of a dataset"
+  },
+  {
+    "objectID": "documentation/index.html#whats-included",
+    "href": "documentation/index.html#whats-included",
+    "title": "TileDB-VCF",
+    "section": "What’s Included?",
+    "text": "What’s Included?\n\nCommand line interface (CLI)\nAPIs for C, C++, Python, and Java\nIntegrates with Spark and Dask"
+  },
+  {
+    "objectID": "documentation/index.html#quick-start",
+    "href": "documentation/index.html#quick-start",
+    "title": "TileDB-VCF",
+    "section": "Quick Start",
+    "text": "Quick Start\nThe documentation website provides comprehensive usage examples but here are a few quick exercises to get you started.\nWe’ll use a dataset that includes 20 synthetic samples, each one containing over 20 million variants. We host a publicly accessible version of this dataset on S3, so if you have TileDB-VCF installed and you’d like to follow along just swap out the uri’s below for s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20. And if you don’t have TileDB-VCF installed yet, you can use our Docker images to test things out.\n\nCLI\nExport complete chr1 BCF files for a subset of samples:\ntiledbvcf export \\\n  --uri vcf-samples-20 \\\n  --regions chr1:1-248956422 \\\n  --sample-names v2-usVwJUmo,v2-WpXCYApL\nCreate a TSV file containing all variants within one or more regions of interest:\ntiledbvcf export \\\n  --uri vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"\n\n\nPython\nRunning the same query in python\nimport tiledbvcf\n\nds = tiledbvcf.Dataset(uri = \"vcf-samples-20\", mode=\"r\")\n\nds.read(\n    attrs = [\"sample_name\", \"pos_start\", \"fmt_GT\"],\n    regions = [\"chr7:144000320-144008793\", \"chr11:56490349-56491395\"],\n    samples = [\"v2-tJjMfKyL\", \"v2-eBAdKwID\"]\n)\nreturns results as a pandas DataFrame\n     sample_name  pos_start    fmt_GT\n0    v2-nGEAqwFT  143999569  [-1, -1]\n1    v2-tJjMfKyL  144000262  [-1, -1]\n2    v2-tJjMfKyL  144000518  [-1, -1]\n3    v2-nGEAqwFT  144000339  [-1, -1]\n4    v2-nzLyDgYW  144000102  [-1, -1]\n..           ...        ...       ...\n566  v2-nGEAqwFT   56491395    [0, 0]\n567  v2-ijrKdkKh   56491373    [0, 0]\n568  v2-eBAdKwID   56491391    [0, 0]\n569  v2-tJjMfKyL   56491392  [-1, -1]\n570  v2-nzLyDgYW   56491365  [-1, -1]"
+  },
+  {
+    "objectID": "documentation/index.html#want-to-learn-more",
+    "href": "documentation/index.html#want-to-learn-more",
+    "title": "TileDB-VCF",
+    "section": "Want to Learn More?",
+    "text": "Want to Learn More?\n\nBlog “Population Genomics is a Data Management Problem”\nCheck out the full documentation\n\nWhy use TileDB-VCF?\nData Model\nInstallation\nHow To\nReference"
+  },
+  {
     "objectID": "documentation/ingestion/cli.html",
     "href": "documentation/ingestion/cli.html",
     "title": "CLI",
@@ -502,41 +537,6 @@
     "title": "Handle Large Queries",
     "section": "",
     "text": "A Python generator version of the read method is also provided. This pattern provides a powerful interface for batch processing variant data.\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\ndf = pd.DataFrame()\nfor batch in ds.read_iter(attrs, bed_file = \"data/gene-promoters-hg38.bed\"):\n    df = df.append(batch, ignore_index = True)\n\ndf\n\n##          sample_name contig  pos_start    fmt_GT\n## 0        v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1        v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3        v2-RzweTRSv   chr1          1  [-1, -1]\n## 4        v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...              ...    ...        ...       ...\n## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]"
-  },
-  {
-    "objectID": "documentation/index.html",
-    "href": "documentation/index.html",
-    "title": "TileDB-VCF",
-    "section": "",
-    "text": "A C++ library for efficient storage and retrieval of genomic variant-call data using TileDB Embedded."
-  },
-  {
-    "objectID": "documentation/index.html#features",
-    "href": "documentation/index.html#features",
-    "title": "TileDB-VCF",
-    "section": "Features",
-    "text": "Features\n\nEasily ingest large amounts of variant-call data at scale\nSupports ingesting single sample VCF and BCF files\nNew samples are added incrementally, avoiding computationally expensive merging operations\nAllows for highly compressed storage using TileDB sparse arrays\nEfficient, parallelized queries of variant data stored locally or remotely on S3\nExport lossless VCF/BCF files or extract specific slices of a dataset"
-  },
-  {
-    "objectID": "documentation/index.html#whats-included",
-    "href": "documentation/index.html#whats-included",
-    "title": "TileDB-VCF",
-    "section": "What’s Included?",
-    "text": "What’s Included?\n\nCommand line interface (CLI)\nAPIs for C, C++, Python, and Java\nIntegrates with Spark and Dask"
-  },
-  {
-    "objectID": "documentation/index.html#quick-start",
-    "href": "documentation/index.html#quick-start",
-    "title": "TileDB-VCF",
-    "section": "Quick Start",
-    "text": "Quick Start\nThe documentation website provides comprehensive usage examples but here are a few quick exercises to get you started.\nWe’ll use a dataset that includes 20 synthetic samples, each one containing over 20 million variants. We host a publicly accessible version of this dataset on S3, so if you have TileDB-VCF installed and you’d like to follow along just swap out the uri’s below for s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20. And if you don’t have TileDB-VCF installed yet, you can use our Docker images to test things out.\n\nCLI\nExport complete chr1 BCF files for a subset of samples:\ntiledbvcf export \\\n  --uri vcf-samples-20 \\\n  --regions chr1:1-248956422 \\\n  --sample-names v2-usVwJUmo,v2-WpXCYApL\nCreate a TSV file containing all variants within one or more regions of interest:\ntiledbvcf export \\\n  --uri vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"\n\n\nPython\nRunning the same query in python\nimport tiledbvcf\n\nds = tiledbvcf.Dataset(uri = \"vcf-samples-20\", mode=\"r\")\n\nds.read(\n    attrs = [\"sample_name\", \"pos_start\", \"fmt_GT\"],\n    regions = [\"chr7:144000320-144008793\", \"chr11:56490349-56491395\"],\n    samples = [\"v2-tJjMfKyL\", \"v2-eBAdKwID\"]\n)\nreturns results as a pandas DataFrame\n     sample_name  pos_start    fmt_GT\n0    v2-nGEAqwFT  143999569  [-1, -1]\n1    v2-tJjMfKyL  144000262  [-1, -1]\n2    v2-tJjMfKyL  144000518  [-1, -1]\n3    v2-nGEAqwFT  144000339  [-1, -1]\n4    v2-nzLyDgYW  144000102  [-1, -1]\n..           ...        ...       ...\n566  v2-nGEAqwFT   56491395    [0, 0]\n567  v2-ijrKdkKh   56491373    [0, 0]\n568  v2-eBAdKwID   56491391    [0, 0]\n569  v2-tJjMfKyL   56491392  [-1, -1]\n570  v2-nzLyDgYW   56491365  [-1, -1]"
-  },
-  {
-    "objectID": "documentation/index.html#want-to-learn-more",
-    "href": "documentation/index.html#want-to-learn-more",
-    "title": "TileDB-VCF",
-    "section": "Want to Learn More?",
-    "text": "Want to Learn More?\n\nBlog “Population Genomics is a Data Management Problem”\nCheck out the full documentation\n\nWhy use TileDB-VCF?\nData Model\nInstallation\nHow To\nReference"
   },
   {
     "objectID": "examples/overview.html",
