@@ -622,10 +622,10 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-4">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 14%">
-<col style="width: 16%">
-<col style="width: 54%">
-<col style="width: 14%">
+<col style="width: 13%">
+<col style="width: 21%">
+<col style="width: 51%">
+<col style="width: 13%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -638,13 +638,13 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>samples</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Sample names to include in the count.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="even">
 <td><code>regions</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Genomic regions to include in the count.</td>
 <td><code>None</code></td>
 </tr>
@@ -757,9 +757,9 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-6">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 23%">
-<col style="width: 10%">
-<col style="width: 58%">
+<col style="width: 22%">
+<col style="width: 13%">
+<col style="width: 56%">
 <col style="width: 8%">
 </colgroup>
 <thead>
@@ -773,13 +773,13 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>samples</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="even">
 <td><code>regions</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -844,8 +844,8 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <colgroup>
 <col style="width: 7%">
-<col style="width: 2%">
-<col style="width: 87%">
+<col style="width: 3%">
+<col style="width: 86%">
 <col style="width: 2%">
 </colgroup>
 <thead>
@@ -859,7 +859,7 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>sample_uris</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of sample URIs to ingest.</td>
 <td><code>None</code></td>
 </tr>
@@ -949,13 +949,13 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td><code>contigs_to_keep_separate</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>contigs_to_allow_merging</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of contigs that should be allowed to be merged into combined fragments.</td>
 <td><code>None</code></td>
 </tr>
@@ -997,9 +997,9 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-8">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 17%">
-<col style="width: 7%">
-<col style="width: 65%">
+<col style="width: 16%">
+<col style="width: 10%">
+<col style="width: 63%">
 <col style="width: 9%">
 </colgroup>
 <thead>
@@ -1013,19 +1013,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -1089,9 +1089,9 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-9">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 17%">
-<col style="width: 7%">
-<col style="width: 65%">
+<col style="width: 16%">
+<col style="width: 10%">
+<col style="width: 63%">
 <col style="width: 9%">
 </colgroup>
 <thead>
@@ -1105,19 +1105,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -1203,9 +1203,9 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <colgroup>
 <col style="width: 14%">
-<col style="width: 11%">
-<col style="width: 57%">
 <col style="width: 15%">
+<col style="width: 55%">
+<col style="width: 14%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1218,19 +1218,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>list</td>
+<td>List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str | list</td>
+<td>str, List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
