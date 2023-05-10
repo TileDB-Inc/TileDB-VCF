@@ -1,6 +1,6 @@
 # Ingest Samples
 
-::: {.callout-info}
+::: {.callout-note}
 Indexed files are required for ingestion. If your VCF/BCF files have not been indexed, you can use [`bcftools`](https://samtools.github.io/bcftools/bcftools.html)to do so:
 :::
 
@@ -30,6 +30,6 @@ Alternatively, provide a text file with the absolute locations of the VCF files,
 tiledbvcf store --uri my_vcf_dataset --samples-file samples.txt
 ```
 
-::: {.callout-info}
+::: {.callout-note}
 **Incremental updates** work in the same manner as the ingestion above, nothing special is needed. In addition, the ingestion is thread- and process-safe and, therefore, can be performed _in parallel_.
 :::

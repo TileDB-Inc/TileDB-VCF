@@ -86,3 +86,10 @@ pre {
   white-space: -pre-wrap; /* Opera 4-6 */
   white-space: -o-pre-wrap; /* Opera 7 */
 }
+
+.callout-warning {
+  padding: 1em;
+  border-left: 0.25em solid #f6c23e; /* yellow */
+  background-color: #fff3cd; /* yellow-light */
+  margin: 1em 0;
+}

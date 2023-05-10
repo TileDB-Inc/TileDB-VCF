@@ -37,6 +37,7 @@ scripts/deps-staging/*
 .idea
 *temp*
 *.DS_Store
+documentation/reference/
 doc/venv
 doc/source/__pycache__
 doc/source/_build

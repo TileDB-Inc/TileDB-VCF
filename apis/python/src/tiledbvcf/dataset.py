@@ -1,10 +1,19 @@
+import warnings
+from collections import namedtuple
+from typing import List
+
 import pandas as pd
 import pyarrow as pa
-import sys
-import warnings
 
-from collections import namedtuple
 from . import libtiledbvcf
+
+DEFAULT_ATTRS = [
+    "sample_name",
+    "contig",
+    "pos_start",
+    "alleles",
+    "fmt_GT",
+]
 
 ReadConfig = namedtuple(
     "ReadConfig",
@@ -27,16 +36,42 @@ ReadConfig = namedtuple(
         "tiledb_tile_cache_percentage",
     ],
 )
+"""
+Config settings for a TileDB-VCF dataset.
+
+Attributes
+----------
+limit : int
+    Max number of records (rows) to read
+region_partition : tuple
+    Region partition tuple (idx, num_partitions)
+sample_partition : tuple
+    Samples partition tuple (idx, num_partitions)
+sort_regions : bool
+    Whether or not to sort the regions to be read, default True
+memory_budget_mb : int
+    Memory budget (MB) for buffer and internal allocations, default 2048MB
+tiledb_config : List[str]
+    List of strings of format 'option=value'
+buffer_percentage : int
+    Percentage of memory to dedicate to TileDB Query Buffers, default 25
+tiledb_tile_cache_percentage : int
+    Percentage of memory to dedicate to TileDB Tile Cache, default 10
+"""
 ReadConfig.__new__.__defaults__ = (None,) * 8  # len(ReadConfig._fields)
 
 
-def config_logging(level="fatal", log_file=""):
-    """Configure tiledbvcf logging.
-
-    :param str level: log level "fatal,error,warn,info,debug,trace"
-    :param str log_file: log message file
+def config_logging(level: str = "fatal", log_file: str = ""):
     """
+    Configure tiledbvcf logging.
 
+    Parameters
+    ----------
+    level
+        Log level from (fatal|error|warn|info|debug|trace)
+    log_file
+        Log file path.
+    """
     if level not in ["fatal", "error", "warn", "info", "debug", "trace"]:
         raise Exception(f"Unsupported log level: {level}")
 
@@ -44,18 +79,31 @@ def config_logging(level="fatal", log_file=""):
 
 
 class Dataset(object):
-    """A handle on a TileDB-VCF dataset."""
+    """
+    A class that provides read/write access to a TileDB-VCF dataset.
 
-    def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False):
-        """Initializes a TileDB-VCF dataset for interaction.
+    Parameters
+    ----------
+    uri
+        URI of the dataset.
+    mode
+        Mode of operation ('r'|'w')
+    cfg
+        TileDB-VCF configuration.
+    stats
+        Enable internal TileDB statistics.
+    verbose
+        Enable verbose output.
+    """
 
-        :param uri: URI of TileDB-VCF dataset
-        :param mode: Mode of operation.
-        :type mode: 'r' or 'w'
-        :param cfg: TileDB VCF configuration (optional)
-        :param stats: Enable internal TileDB statistics (default False)
-        :param verbose: Enable TileDB-VCF verbose output (default False)
-        """
+    def __init__(
+        self,
+        uri: str,
+        mode: bool = "r",
+        cfg: ReadConfig = None,
+        stats: bool = False,
+        verbose: bool = False,
+    ):
         self.uri = uri
         self.mode = mode
         self.cfg = cfg
@@ -148,36 +196,55 @@ class Dataset(object):
 
     def read_arrow(
         self,
-        attrs,
-        samples=None,
-        regions=None,
-        samples_file=None,
-        bed_file=None,
-        skip_check_samples=False,
-        set_af_filter="",
-        enable_progress_estimation=False,
-    ):
-        """Reads data from a TileDB-VCF dataset into Arrow table.
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
+        samples_file: str = None,
+        bed_file: str = None,
+        skip_check_samples: bool = False,
+        set_af_filter: str = "",
+        enable_progress_estimation: bool = False,
+    ) -> pa.Table:
+        """
+        Read data from the dataset into a PyArrow Table.
 
-        For large datasets, a call to `read()` may not be able to fit all
+        For large queries, a call to `read_arrow()` may not be able to fit all
         results in memory. In that case, the returned table will contain as
         many results as possible, and in order to retrieve the rest of the
         results, use the `continue_read()` function.
 
-        You can also use the Python generator version, `read_iter()`.
+        Parameters
+        ----------
+        attrs
+            List of attribute names to be read.
+        samples
+            Sample names to be read.
+        regions
+            Genomic regions to be read.
+        samples_file
+            URI of file containing sample names to be read, one per line.
+        bed_file
+            URI of a BED file of genomic regions to be read.
+        skip_check_samples
+            Skip checking if the samples requested exist in the array.
+        set_af_filter
+            Filter variants by internal allele frequency. For example, to include
+            variants with AF > 0.1, set this to ">0.1".
+        enable_progress_estimation
+            **DEPRECATED** - This parameter will be removed in a future release.
 
-        :param list of str attrs: List of attribute names to be read.
-        :param list of str samples: CSV list of sample names to be read.
-        :param list of str regions: CSV list of genomic regions to be read.
-        :param str samples_file: URI of file containing sample names to be read,
-            one per line.
-        :param str bed_file: URI of a BED file of genomic regions to be read.
-        :param bool skip_check_samples: Should checking the samples requested exist in the array
-        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
-        :return: Pandas DataFrame or PyArrow Array containing results.
+        Returns
+        -------
+        :
+            Query results as a PyArrow Table.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        if isinstance(regions, str):
+            regions = [regions]
+        if isinstance(samples, str):
+            samples = [samples]
 
         self.reader.reset()
         self.reader.set_export_to_disk(False)
@@ -197,16 +264,17 @@ class Dataset(object):
 
     def read(
         self,
-        attrs,
-        samples=None,
-        regions=None,
-        samples_file=None,
-        bed_file=None,
-        skip_check_samples=False,
-        set_af_filter="",
-        enable_progress_estimation=False,
-    ):
-        """Reads data from a TileDB-VCF dataset into Pandas dataframe.
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
+        samples_file: str = None,
+        bed_file: str = None,
+        skip_check_samples: bool = False,
+        set_af_filter: str = "",
+        enable_progress_estimation: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Read data from the dataset into a Pandas DataFrame.
 
         For large datasets, a call to `read()` may not be able to fit all
         results in memory. In that case, the returned table will contain as
@@ -215,18 +283,38 @@ class Dataset(object):
 
         You can also use the Python generator version, `read_iter()`.
 
-        :param list of str attrs: List of attribute names to be read.
-        :param list of str samples: CSV list of sample names to be read.
-        :param list of str regions: CSV list of genomic regions to be read.
-        :param str samples_file: URI of file containing sample names to be read,
-            one per line.
-        :param str bed_file: URI of a BED file of genomic regions to be read.
-        :param bool skip_check_samples: Should checking the samples requested exist in the array
-        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
-        :return: Pandas DataFrame or PyArrow Array containing results.
+        Parameters
+        ----------
+        attrs
+            List of attribute names to be read.
+        samples
+            Sample names to be read.
+        regions
+            Genomic regions to be read.
+        samples_file
+            URI of file containing sample names to be read, one per line.
+        bed_file
+            URI of a BED file of genomic regions to be read.
+        skip_check_samples
+            Skip checking the samples requested exist in the array.
+        set_af_filter
+            Filter variants by internal allele frequency. For example, to include
+            variants with AF > 0.1, set this to ">0.1".
+        enable_progress_estimation
+            **DEPRECATED** - This parameter will be removed in a future release.
+
+        Returns
+        -------
+        :
+            Query results as a Pandas DataFrame.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        if isinstance(regions, str):
+            regions = [regions]
+        if isinstance(samples, str):
+            samples = [samples]
 
         self.reader.reset()
         self.reader.set_export_to_disk(False)
@@ -246,33 +334,50 @@ class Dataset(object):
 
     def export(
         self,
-        samples=None,
-        regions=None,
-        samples_file=None,
-        bed_file=None,
-        skip_check_samples=False,
-        enable_progress_estimation=False,
-        merge=False,
-        output_format="z",
-        output_path="",
-        output_dir=".",
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
+        samples_file: str = None,
+        bed_file: str = None,
+        skip_check_samples: bool = False,
+        enable_progress_estimation: bool = False,
+        merge: bool = False,
+        output_format: str = "z",
+        output_path: str = "",
+        output_dir: str = ".",
     ):
-        """Exports data from a TileDB-VCF dataset to multiple VCF files or a combined VCF file.
+        """
+        Exports data to multiple VCF files or a combined VCF file.
 
-        :param list of str samples: CSV list of sample names to be read.
-        :param list of str regions: CSV list of genomic regions to be read.
-        :param str samples_file: URI of file containing sample names to be read,
-            one per line.
-        :param str bed_file: URI of a BED file of genomic regions to be read.
-        :param bool skip_check_samples: Should checking the samples requested exist in the array
-        :param bool enable_progress_estimation: Should we skip estimating the progress in verbose mode? Estimating progress can have performance or memory impacts in some cases.
-        :param bool merge: Merge samples to create a combined VCF file.
-        :param str output_format: Export file format: 'b': bcf (compressed), 'u': bcf, 'z': vcf.gz, 'v': vcf
-        :param str output_path: Combined VCF output file.
-        :param str output_dir: Directory used for local output of exported samples.
+        Parameters
+        ----------
+        samples
+            Sample names to be read.
+        regions
+            Genomic regions to be read.
+        samples_file
+            URI of file containing sample names to be read, one per line.
+        bed_file
+            URI of a BED file of genomic regions to be read.
+        skip_check_samples
+            Skip checking the if samples requested exist in the array.
+        enable_progress_estimation
+            **DEPRECATED** - This parameter will be removed in a future release.
+        merge
+            Merge samples to create a combined VCF file.
+        output_format
+            Export file format: 'b': bcf (compressed), 'u': bcf, 'z':vcf.gz, 'v': vcf.
+        output_path
+            Combined VCF output file.
+        output_dir
+            Directory used for local output of exported samples.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        if isinstance(regions, str):
+            regions = [regions]
+        if isinstance(samples, str):
+            samples = [samples]
 
         self.reader.reset()
         self.reader.set_export_to_disk(True)
@@ -299,29 +404,73 @@ class Dataset(object):
             raise Exception("Unexpected read status during export.")
 
     def read_iter(
-        self, attrs, samples=None, regions=None, samples_file=None, bed_file=None
+        self,
+        attrs: List[str] = DEFAULT_ATTRS,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
+        samples_file: str = None,
+        bed_file: str = None,
     ):
+        """
+        Iterator version of `read()`.
+
+        Parameters
+        ----------
+        attrs
+            List of attribute names to be read.
+        samples
+            Sample names to be read.
+        regions
+            Genomic regions to be read.
+        samples_file
+            URI of file containing sample names to be read, one per line.
+        bed_file
+            URI of a BED file of genomic regions to be read.
+        """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        if isinstance(regions, str):
+            regions = [regions]
+        if isinstance(samples, str):
+            samples = [samples]
 
         if not self.read_completed():
             yield self.read(attrs, samples, regions, samples_file, bed_file)
         while not self.read_completed():
             yield self.continue_read()
 
-    def continue_read(self, release_buffers=True):
+    def continue_read(self, release_buffers: bool = True) -> pd.DataFrame:
         """
-        Continue an incomplete read
-        :return: Pandas DataFrame
+        Continue an incomplete read.
+
+        Parameters
+        ----------
+        release_buffers
+            Release the buffers after reading.
+
+        Returns
+        -------
+        :
+            The next batch of data as a Pandas DataFrame.
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
 
         return table.to_pandas()
 
-    def continue_read_arrow(self, release_buffers=True):
+    def continue_read_arrow(self, release_buffers: bool = True) -> pa.Table:
         """
-        Continue an incomplete read
-        :return: PyArrow Table
+        Continue an incomplete read.
+
+        Parameters
+        ----------
+        release_buffers
+            Release the buffers after reading.
+
+        Returns
+        -------
+        :
+            The next batch of data as a PyArrow Table.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -333,25 +482,48 @@ class Dataset(object):
             table = pa.Table.from_pandas(pd.DataFrame())
         return table
 
-    def read_completed(self):
-        """Returns true if the previous read operation was complete.
+    def read_completed(self) -> bool:
+        """
+        Returns true if the previous read operation was complete.
         A read is considered complete if the resulting dataframe contained
-        all results."""
+        all results.
+
+        Returns
+        -------
+            True if the previous read operation was complete.
+        """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
         return self.reader.completed()
 
-    def count(self, samples=None, regions=None):
-        """Counts data in a TileDB-VCF dataset.
+    def count(
+        self,
+        samples: (str, List[str]) = None,
+        regions: (str, List[str]) = None,
+    ) -> int:
+        """
+        Count records in the dataset.
 
-        :param list of str samples: CSV list of sample names to include in
-            the count.
-        :param list of str regions: CSV list of genomic regions include in
-            the count
-        :return: Number of intersecting records in the dataset
+        Parameters
+        ----------
+        samples
+            Sample names to include in the count.
+        regions
+            Genomic regions to include in the count.
+
+        Returns
+        -------
+        :
+            Number of intersecting records in the dataset.
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        if isinstance(regions, str):
+            regions = [regions]
+        if isinstance(samples, str):
+            samples = [samples]
+
         self.reader.reset()
         self.reader.set_export_to_disk(False)
 
@@ -368,33 +540,40 @@ class Dataset(object):
 
     def create_dataset(
         self,
-        extra_attrs=None,
-        vcf_attrs=None,
-        tile_capacity=None,
-        anchor_gap=None,
-        checksum_type=None,
-        allow_duplicates=True,
-        enable_allele_count=False,
-        enable_variant_stats=False,
-        compress_sample_dim=True,
+        extra_attrs: str = None,
+        vcf_attrs: str = None,
+        tile_capacity: int = None,
+        anchor_gap: int = None,
+        checksum_type: str = None,
+        allow_duplicates: bool = True,
+        enable_allele_count: bool = False,
+        enable_variant_stats: bool = False,
+        compress_sample_dim: bool = True,
     ):
-        """Create a new dataset
+        """
+        Create a new dataset.
 
-        :param list of str extra_attrs: CSV list of extra attributes to
-            materialize from fmt and info fields.
-        :param str vcf_attrs: URI of VCF file with all fmt and info fields
-            to materialize in the dataset.
-        :param int tile_capacity: Tile capacity to use for the array schema
-            (default = 10000).
-        :param int anchor_gap: Length of gaps between inserted anchor records in
-            bases (default = 1000).
-        :param str checksum_type: Optional override checksum type for creating
-            new dataset valid values are sha256, md5 or none.
-        :param bool allow_duplicates: Allow records with duplicate start
-            positions to be written to the array.
-        :param bool enable_allele_count: Enable the allele count ingestion task.
-        :param bool enable_variant_stats: Enable the variant stats ingestion task.
-        :param bool compress_sample_dim: Enable compression on the sample dimension.
+        Parameters
+        ----------
+        extra_attrs
+            CSV list of extra attributes to materialize from fmt and info fields.
+        vcf_attrs
+            URI of VCF file with all fmt and info fields to materialize in the dataset.
+        tile_capacity
+            Tile capacity to use for the array schema (default = 10000).
+        anchor_gap
+            Length of gaps between inserted anchor records in bases (default = 1000).
+        checksum_type
+            Optional override checksum type for creating new dataset
+            valid values are sha256, md5 or none.
+        allow_duplicates
+            Allow records with duplicate start positions to be written to the array.
+        enable_allele_count
+            Enable the allele count ingestion task.
+        enable_variant_stats
+            Enable the variant stats ingestion task.
+        compress_sample_dim
+            Enable compression on the sample dimension.
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -435,59 +614,87 @@ class Dataset(object):
 
     def ingest_samples(
         self,
-        sample_uris=None,
-        threads=None,
-        total_memory_budget_mb=None,
-        total_memory_percentage=None,
-        ratio_tiledb_memory=None,
-        max_tiledb_memory_mb=None,
-        input_record_buffer_mb=None,
-        avg_vcf_record_size=None,
-        ratio_task_size=None,
-        ratio_output_flush=None,
-        scratch_space_path=None,
-        scratch_space_size=None,
-        sample_batch_size=None,
-        resume=False,
-        contig_fragment_merging=True,
-        contigs_to_keep_separate=None,
-        contigs_to_allow_merging=None,
-        contig_mode="all",
-        thread_task_size=None,
-        memory_budget_mb=None,
-        record_limit=None,
+        sample_uris: List[str] = None,
+        threads: int = None,
+        total_memory_budget_mb: int = None,
+        total_memory_percentage: float = None,
+        ratio_tiledb_memory: float = None,
+        max_tiledb_memory_mb: int = None,
+        input_record_buffer_mb: int = None,
+        avg_vcf_record_size: int = None,
+        ratio_task_size: float = None,
+        ratio_output_flush: float = None,
+        scratch_space_path: str = None,
+        scratch_space_size: int = None,
+        sample_batch_size: int = None,
+        resume: bool = False,
+        contig_fragment_merging: bool = True,
+        contigs_to_keep_separate: List[str] = None,
+        contigs_to_allow_merging: List[str] = None,
+        contig_mode: str = "all",
+        thread_task_size: int = None,
+        memory_budget_mb: int = None,
+        record_limit: int = None,
     ):
-        """Ingest samples
+        """
+        Ingest VCF files into the dataset.
 
-        :param list of str sample_uris: CSV list of sample names to include in
-            the count.
-        :param int threads: Set the number of threads used for ingestion.
-        :param int total_memory_budget_mb: Total memory budget for ingestion (MiB)
-        :param float total_memory_percentage: Percentage of total system memory used for ingestion (overrides 'total_memory_budget_mb')
-        :param float ratio_tiledb_memory: Ratio of memory budget allocated to TileDB::sm.mem.total_budget
-        :param int max_tiledb_memory_mb: Maximum memory allocated to TileDB::sm.mem.total_budget (MiB)
-        :param int input_record_buffer_mb: Size of input record buffer for each sample file (MiB)
-        :param int avg_vcf_record_size: Average VCF record size (bytes)
-        :param float ratio_task_size: Ratio of worker task size to computed task size
-        :param float ratio_output_flush: Ratio of output buffer capacity that triggers a flush to TileDB
-        :param str scratch_space_path: Directory used for local storage of
-            downloaded remote samples.
-        :param int scratch_space_size: Amount of local storage that can be used
-            for downloading remote samples (MB).
-        :param int sample_batch_size: Number of samples per batch for ingestion (default 10).
-        :param bool resume: Whether to check and attempt to resume a partial completed ingestion
-        :param bool contig_fragment_merging: Whether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow-mering options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseduo contigs which are small in size.
-        :param list contigs_to_keep_separate: List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.
-        :param list contigs_to_allow_merging: List of contigs that should be allowed to be merged into combined fragments.
-        :param list contig_mode: Select which contigs are ingested: 'all', 'separate', or 'merged' contigs (default 'all').
-
-        :param int thread_task_size: Set the max length (# columns) of an
-            ingestion task. Affects load balancing of ingestion work across
-            threads, and total memory consumption. (Legacy option)
-        :param int memory_budget_mb: Set the max size (MB) of TileDB buffers before flushing
-            (Legacy option)
-        :param int record_limit: Limit the number of VCF records read into memory
-            per file (Legacy option)
+        Parameters
+        ----------
+        sample_uris
+            List of sample URIs to ingest.
+        threads
+            Set the number of threads used for ingestion.
+        total_memory_budget_mb
+            Total memory budget for ingestion (MiB).
+        total_memory_percentage
+            Percentage of total system memory used for ingestion
+            (overrides 'total_memory_budget_mb').
+        ratio_tiledb_memory
+            Ratio of memory budget allocated to `TileDB::sm.mem.total_budget`.
+        max_tiledb_memory_mb
+            Maximum memory allocated to TileDB::sm.mem.total_budget (MiB).
+        input_record_buffer_mb
+            Size of input record buffer for each sample file (MiB).
+        avg_vcf_record_size
+            Average VCF record size (bytes).
+        ratio_task_size
+            Ratio of worker task size to computed task size.
+        ratio_output_flush
+            Ratio of output buffer capacity that triggers a flush to TileDB.
+        scratch_space_path
+            Directory used for local storage of downloaded remote samples.
+        scratch_space_size
+            Amount of local storage that can be used for downloading
+            remote samples (MB).
+        sample_batch_size
+            Number of samples per batch for ingestion (default 10).
+        resume
+            Whether to check and attempt to resume a partial completed ingestion.
+        contig_fragment_merging
+            Whether to enable merging of contigs into fragments. This
+            overrides the contigs-to-keep-separate/contigs-to-allow-
+            merging options. Generally contig fragment merging is good,
+            this is a performance optimization to reduce the prefixes on
+            a s3/azure/gcs bucket when there is a large number of pseudo
+            contigs which are small in size.
+        contigs_to_keep_separate
+            List of contigs that should not be merged into combined
+            fragments. The default list includes all standard human
+            chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1)
+            formats.
+        contigs_to_allow_merging
+            List of contigs that should be allowed to be merged into
+            combined fragments.
+        contig_mode
+            Select which contigs are ingested: 'all', 'separate', or
+            'merged' contigs (default 'all').
+        thread_task_size
+            **DEPRECATED** - This parameter will be removed in a future release.
+        memory_budget_mb
+            **DEPRECATED** - This parameter will be removed in a future release.
+        record_limit
+            **DEPRECATED** - This parameter will be removed in a future release.
         """
 
         if self.mode != "w":
@@ -573,7 +780,15 @@ class Dataset(object):
             self.writer.register_samples()
         self.writer.ingest_samples()
 
-    def tiledb_stats(self):
+    def tiledb_stats(self) -> str:
+        """
+        Get TileDB stats as a string.
+
+        Returns
+        -------
+        :
+            TileDB stats as a string.
+        """
         if self.mode == "r":
             if not self.reader.get_tiledb_stats_enabled:
                 raise Exception("TileDB read stats not enabled")
@@ -584,32 +799,62 @@ class Dataset(object):
                 raise Exception("TileDB write stats not enabled")
             return self.writer.get_tiledb_stats()
 
-    def schema_version(self):
-        """Retrieve the VCF dataset's schema version"""
+    def schema_version(self) -> int:
+        """
+        Get the VCF schema version of the dataset.
+
+        Returns
+        -------
+        :
+            VCF schema version of the dataset.
+        """
         if self.mode != "r":
             return self.writer.get_schema_version()
         return self.reader.get_schema_version()
 
-    def sample_count(self):
+    def sample_count(self) -> int:
+        """
+        Get the number of samples in the dataset.
+
+        Returns
+        -------
+        :
+            Number of samples in the dataset.
+        """
         if self.mode != "r":
             raise Exception("Samples can only be retrieved for reader")
         return self.reader.get_sample_count()
 
-    def samples(self):
-        """Retrieve list of sample names registered in the VCF dataset"""
+    def samples(self) -> list:
+        """
+        Get the list of samples in the dataset.
+
+        Returns
+        -------
+        :
+            List of samples in the dataset.
+        """
         if self.mode != "r":
             raise Exception("Sample names can only be retrieved for reader")
         return self.reader.get_sample_names()
 
-    def attributes(self, attr_type="all"):
-        """List queryable attributes available in the VCF dataset
+    def attributes(self, attr_type="all") -> list:
+        """
+        Return a list of queryable attributes available in the VCF dataset.
 
-        :param str type: The subset of attributes to retrieve; "info" or "fmt"
-            will only retrieve attributes ingested from the VCF INFO and FORMAT
-            fields, respectively, "builtin" retrieves the static attributes
-            defined in TileDB-VCF's schema, "all" (the default) returns all
-            queryable attributes
-        :returns: a list of strings representing the attribute names
+        Parameters
+        ----------
+        attr_type : str
+            The subset of attributes to retrieve; "info" or "fmt" will
+            only retrieve attributes ingested from the VCF INFO and
+            FORMAT fields, respectively, "builtin" retrieves the static
+            attributes defined in TileDB-VCF's schema, "all" (the
+            default) returns all queryable attributes.
+
+        Returns
+        -------
+        :
+            A list of attribute names.
         """
 
         if self.mode != "r":
@@ -657,7 +902,15 @@ class Dataset(object):
         else:
             self.reader.set_samples("")
 
-    def version(self):
+    def version(self) -> str:
+        """
+        Return the TileDB-VCF version used to create the dataset.
+
+        Returns
+        -------
+        :
+            The TileDB-VCF version.
+        """
         if self.mode == "r":
             return self.reader.version()
 
@@ -665,18 +918,26 @@ class Dataset(object):
 
 
 class TileDBVCFDataset(Dataset):
-    """A handle on a TileDB-VCF dataset."""
+    """
+    A class that provides read/write access to a TileDB-VCF dataset.
+
+    **DEPRECATED** - This class will be removed in a future release, use `Dataset` instead.
+
+    Parameters
+    ----------
+    uri
+        URI of the dataset.
+    mode
+        Mode of operation ('r'|'w')
+    cfg
+        TileDB-VCF configuration.
+    stats
+        Enable internal TileDB statistics.
+    verbose
+        Enable verbose output.
+    """
 
     def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False):
-        """Initializes a TileDB-VCF dataset for interaction.
-
-        :param uri: URI of TileDB-VCF dataset
-        :param mode: Mode of operation.
-        :type mode: 'r' or 'w'
-        :param cfg: TileDB VCF configuration (optional)
-        :param stats: Enable or disable TileDB stats (optional)
-        :param verbose: Enable or disable TileDB VCF verbose output (optional)
-        """
         warnings.warn(
             "TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning
         )

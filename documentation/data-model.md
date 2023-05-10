@@ -14,21 +14,21 @@ A TileDB-VCF dataset is composed of a group of two or more separate TileDB array
 ### Basic schema parameters
 
 | **Parameter** | **Value** |
-| :--- | :--- |
-| Array type | Sparse |
-| Rank | 3D |
-| Cell order | Row-major |
-| Tile order | Row-major |
+| :------------ | :-------- |
+| Array type    | Sparse    |
+| Rank          | 3D        |
+| Cell order    | Row-major |
+| Tile order    | Row-major |
 
 ### Dimensions
 
 The dimensions in the schema are:
 
-| Dimension Name | TileDB Datatype | Corresponding VCF Field |
-| :--- | :--- | :--- |
-| `contig` | `TILEDB_STRING_ASCII` | `CHR` |
-| `start_pos` | `uint32_t` | VCF`POS`plus TileDB anchors |
-| `sample` | `TILEDB_STRING_ASCII` | Sample name |
+| Dimension Name | TileDB Datatype       | Corresponding VCF Field     |
+| :------------- | :-------------------- | :-------------------------- |
+| `contig`       | `TILEDB_STRING_ASCII` | `CHR`                       |
+| `start_pos`    | `uint32_t`            | VCF`POS`plus TileDB anchors |
+| `sample`       | `TILEDB_STRING_ASCII` | Sample name                 |
 
 As mentioned before, the coordinates of the 3D array are `contig` along the first dimension, chromosomal location of the variants start position along the second dimension, and `sample` names along the third dimension.
 
@@ -36,18 +36,18 @@ As mentioned before, the coordinates of the 3D array are `contig` along the firs
 
 For each field in a single-sample VCF record there is a corresponding attribute in the schema.
 
-| Attribute Name | TileDB Datatype | Description |
-| :--- | :--- | :--- |
-| `end_pos` | `uint32_t` | VCF `END` position of VCF records |
-| `qual` | `float` | VCF `QUAL` field |
-| `alleles` | `var<char>` | CSV list of `REF` and `ALT` VCF fields |
-| `id` | `var<char>` | VCF `ID` field |
-| `filter_ids` | `var<int32_t>` | Vector of integer IDs of entries in the `FILTER` VCF field |
-| `real_start_pos` | `uint32_t` | VCF `POS`\(no anchors\) |
-| `info` | `var<uint8_t>` | Byte blob containing any `INFO` fields that are not stored as explicit attributes |
-| `fmt` | `var<uint8_t>` | Byte blob containing any `FMT` fields that are not stored as explicit attributes |
-| `info_*` | `var<uint8_t>` | One or more attributes storing specific VCF `INFO` fields, e.g. `info_DP`, `info_MQ`, etc. |
-| `fmt_*` | `var<uint8_t>` | One or more attributes storing specific VCF `FORMAT` fields, e.g. `fmt_GT`, `fmt_MIN_DP`, etc. |
+| Attribute Name   | TileDB Datatype | Description                                                                                    |
+| :--------------- | :-------------- | :--------------------------------------------------------------------------------------------- |
+| `end_pos`        | `uint32_t`      | VCF `END` position of VCF records                                                              |
+| `qual`           | `float`         | VCF `QUAL` field                                                                               |
+| `alleles`        | `var<char>`     | CSV list of `REF` and `ALT` VCF fields                                                         |
+| `id`             | `var<char>`     | VCF `ID` field                                                                                 |
+| `filter_ids`     | `var<int32_t>`  | Vector of integer IDs of entries in the `FILTER` VCF field                                     |
+| `real_start_pos` | `uint32_t`      | VCF `POS`\(no anchors\)                                                                        |
+| `info`           | `var<uint8_t>`  | Byte blob containing any `INFO` fields that are not stored as explicit attributes              |
+| `fmt`            | `var<uint8_t>`  | Byte blob containing any `FMT` fields that are not stored as explicit attributes               |
+| `info_*`         | `var<uint8_t>`  | One or more attributes storing specific VCF `INFO` fields, e.g. `info_DP`, `info_MQ`, etc.     |
+| `fmt_*`          | `var<uint8_t>`  | One or more attributes storing specific VCF `FORMAT` fields, e.g. `fmt_GT`, `fmt_MIN_DP`, etc. |
 
 The `info_*` and `fmt_*` attributes allow individual `INFO` or `FMT` VCF fields to be extracted into explicit array attributes. This can be beneficial if your queries frequently access only a subset of the `INFO` or `FMT` fields, as no unrelated data then needs to be fetched from storage.
 
@@ -67,7 +67,7 @@ These metadata values are updated during array creation, and are used during the
 
 ::: {.callout-warning}
 When ingesting samples, the _sample header_ must be identical for all samples with respect to the contig mappings. That means all samples must have the exact same set of contigs listed in the VCF header. This requirement will be relaxed in future versions.
-{% endhint %}
+:::
 
 ## VCF Headers Array
 
@@ -78,24 +78,24 @@ The `vcf_headers` array stores the original text of every ingested VCF header in
 
 ### Basic schema parameters
 
-| Parameter | Value |
-| :--- | :--- |
-| Array type | Sparse |
-| Rank | 1D |
+| Parameter  | Value     |
+| :--------- | :-------- |
+| Array type | Sparse    |
+| Rank       | 1D        |
 | Cell order | Row-major |
 | Tile order | Row-major |
 
 ### Dimensions
 
-| Dimension Name | TileDB Datatype | Description |
-| :--- | :--- | :--- |
-| `sample` | `TILEDB_STRING_ASCII` | Sample name |
+| Dimension Name | TileDB Datatype       | Description |
+| :------------- | :-------------------- | :---------- |
+| `sample`       | `TILEDB_STRING_ASCII` | Sample name |
 
 ### Attributes
 
-| Attribute Name | TileDB Datatype | Description |
-| :--- | :--- | :--- |
-| `header` | `var<char>` | Original text of the VCF header |
+| Attribute Name | TileDB Datatype | Description                     |
+| :------------- | :-------------- | :------------------------------ |
+| `header`       | `var<char>`     | Original text of the VCF header |
 
 ## Putting It All Together
 

@@ -9,16 +9,18 @@ jobs:
   quarto-render-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: "Install Quarto"
       uses: quarto-dev/quarto-actions/setup@v2
-      with:
-        version: 0.9.141
       
     - name: "Quarto render"
       shell: bash
       run: |
+        pip install quartodoc
+        # create a symlink to the tiledbvcf python package, so it doesn't have to be installed
+        ln -s apis/python/src/tiledbvcf
+        quartodoc build
         quarto render --fail-if-warnings
         # https://github.com/quarto-dev/quarto-cli/issues/493
 

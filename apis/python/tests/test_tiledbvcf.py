@@ -65,11 +65,6 @@ def test_basic_count(test_ds):
     assert test_ds.count() == 14
 
 
-def test_read_must_specify_attrs(test_ds):
-    with pytest.raises(Exception):
-        df = test_ds.read()
-
-
 def test_retrieve_attributes(test_ds):
     builtin_attrs = [
         "sample_name",

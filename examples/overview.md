@@ -1,8 +1,8 @@
 ---
-title: Examples
+title: Overview
 ---
 
-This section provides fully runable examples.
+This section provides fully runnable examples.
 
 ## TileDB-VCF Basics
 
