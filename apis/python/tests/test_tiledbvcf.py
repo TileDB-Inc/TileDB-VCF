@@ -766,6 +766,12 @@ def test_read_config():
     with pytest.raises(TypeError):
         cfg = tiledbvcf.ReadConfig(abc=123)
 
+    # Expect an exception when passing both cfg and tiledb_config
+    with pytest.raises(Exception):
+        cfg = tiledbvcf.ReadConfig()
+        tiledb_config = {"foo": "bar"}
+        ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg, tiledb_config=tiledb_config)
+
 
 # This test is skipped because running it in the same process as all the normal
 # tests will cause it to fail (the first context created in a process determines
@@ -945,7 +951,7 @@ def test_disable_ingestion_tasks(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
-    ds.create_dataset()
+    ds.create_dataset(enable_allele_count=False, enable_variant_stats=False)
     ds.ingest_samples(samples)
 
     # TODO: remove this workaround when sc-19721 is resolved

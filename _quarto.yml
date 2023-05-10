@@ -3,8 +3,9 @@ project:
   type: website
   output-dir: docs
   render:
-    - "documentation"
+    # The first item will be the landing page
     - "documentation/index.md"
+    - "documentation"
     - "documentation/reference"
     - "examples/README.md"
     - "examples"

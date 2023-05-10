@@ -94,6 +94,8 @@ class Dataset(object):
         Enable internal TileDB statistics.
     verbose
         Enable verbose output.
+    tiledb_config
+        TileDB configuration, alternative to `cfg.tiledb_config`.
     """
 
     def __init__(
@@ -103,7 +105,14 @@ class Dataset(object):
         cfg: ReadConfig = None,
         stats: bool = False,
         verbose: bool = False,
+        tiledb_config: dict = None,
     ):
+        if cfg and tiledb_config:
+            raise Exception("Cannot specify both cfg and tiledb_config")
+
+        if tiledb_config:
+            cfg = ReadConfig(tiledb_config=tiledb_config)
+
         self.uri = uri
         self.mode = mode
         self.cfg = cfg
@@ -226,7 +235,7 @@ class Dataset(object):
         bed_file
             URI of a BED file of genomic regions to be read.
         skip_check_samples
-            Skip checking if the samples requested exist in the array.
+            Skip checking if the samples in `samples_file` exist in the dataset.
         set_af_filter
             Filter variants by internal allele frequency. For example, to include
             variants with AF > 0.1, set this to ">0.1".
@@ -296,7 +305,7 @@ class Dataset(object):
         bed_file
             URI of a BED file of genomic regions to be read.
         skip_check_samples
-            Skip checking the samples requested exist in the array.
+            Skip checking if the samples in `samples_file` exist in the dataset.
         set_af_filter
             Filter variants by internal allele frequency. For example, to include
             variants with AF > 0.1, set this to ">0.1".
@@ -359,7 +368,7 @@ class Dataset(object):
         bed_file
             URI of a BED file of genomic regions to be read.
         skip_check_samples
-            Skip checking the if samples requested exist in the array.
+            Skip checking if the samples in `samples_file` exist in the dataset.
         enable_progress_estimation
             **DEPRECATED** - This parameter will be removed in a future release.
         merge
@@ -385,7 +394,6 @@ class Dataset(object):
 
         regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
-        # self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
         self.reader.set_merge(merge)
@@ -479,6 +487,7 @@ class Dataset(object):
         try:
             table = self.reader.get_results_arrow()
         except:
+            # Return an empty table
             table = pa.Table.from_pandas(pd.DataFrame())
         return table
 
@@ -542,12 +551,12 @@ class Dataset(object):
         self,
         extra_attrs: str = None,
         vcf_attrs: str = None,
-        tile_capacity: int = None,
-        anchor_gap: int = None,
-        checksum_type: str = None,
+        tile_capacity: int = 10000,
+        anchor_gap: int = 1000,
+        checksum_type: str = "sha256",
         allow_duplicates: bool = True,
-        enable_allele_count: bool = False,
-        enable_variant_stats: bool = False,
+        enable_allele_count: bool = True,
+        enable_variant_stats: bool = True,
         compress_sample_dim: bool = True,
     ):
         """
@@ -560,12 +569,11 @@ class Dataset(object):
         vcf_attrs
             URI of VCF file with all fmt and info fields to materialize in the dataset.
         tile_capacity
-            Tile capacity to use for the array schema (default = 10000).
+            Tile capacity to use for the array schema.
         anchor_gap
-            Length of gaps between inserted anchor records in bases (default = 1000).
+            Length of gaps between inserted anchor records in bases.
         checksum_type
-            Optional override checksum type for creating new dataset
-            valid values are sha256, md5 or none.
+            Optional checksum type for the dataset, "sha256" or "md5".
         allow_duplicates
             Allow records with duplicate start positions to be written to the array.
         enable_allele_count
@@ -594,6 +602,8 @@ class Dataset(object):
             self.writer.set_anchor_gap(anchor_gap)
 
         if checksum_type is not None:
+            if checksum_type.lower() not in ["sha256", "md5"]:
+                raise Exception("Invalid checksum_type, must be 'sha256' or 'md5'.")
             checksum_type = checksum_type.lower()
             self.writer.set_checksum(checksum_type)
 
@@ -608,8 +618,7 @@ class Dataset(object):
         if compress_sample_dim is not None:
             self.writer.set_compress_sample_dim(compress_sample_dim)
 
-        # Create is a no-op if the dataset already exists.
-        # TODO: Inform user if dataset already exists?
+        # This call throws an exception if the dataset already exists.
         self.writer.create_dataset()
 
     def ingest_samples(
@@ -687,8 +696,7 @@ class Dataset(object):
             List of contigs that should be allowed to be merged into
             combined fragments.
         contig_mode
-            Select which contigs are ingested: 'all', 'separate', or
-            'merged' contigs (default 'all').
+            Select which contigs are ingested: 'all', 'separate', or 'merged'.
         thread_task_size
             **DEPRECATED** - This parameter will be removed in a future release.
         memory_budget_mb
@@ -868,25 +876,13 @@ class Dataset(object):
         comb_attrs = ("info", "fmt")
 
         if attr_type == "info":
-            return self._info_attrs()
+            return self.reader.get_info_attributes()
         elif attr_type == "fmt":
-            return self._fmt_attrs()
+            return self.reader.get_fmt_attributes()
         elif attr_type == "builtin":
-            return self._materialized_attrs()
+            return self.reader.get_materialized_attributes()
         else:
-            return self._queryable_attrs()
-
-    def _queryable_attrs(self):
-        return self.reader.get_queryable_attributes()
-
-    def _fmt_attrs(self):
-        return self.reader.get_fmt_attributes()
-
-    def _info_attrs(self):
-        return self.reader.get_info_attributes()
-
-    def _materialized_attrs(self):
-        return self.reader.get_materialized_attributes()
+            return self.reader.get_queryable_attributes()
 
     def _set_samples(self, samples=None, samples_file=None):
         if samples is not None and samples_file is not None:
