@@ -338,16 +338,16 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="tiledbvcf.Dataset" class="level1">
 <h1>Dataset</h1>
-<p><code>Dataset(self, uri, mode='r', cfg=None, stats=False, verbose=False)</code></p>
+<p><code>Dataset(self, uri, mode='r', cfg=None, stats=False, verbose=False, tiledb_config=None)</code></p>
 <p>A class that provides read/write access to a TileDB-VCF dataset.</p>
 <section id="parameters" class="level2">
 <h2 class="anchored" data-anchor-id="parameters">Parameters</h2>
 <table class="table">
 <colgroup>
-<col style="width: 15%">
 <col style="width: 17%">
-<col style="width: 51%">
-<col style="width: 15%">
+<col style="width: 12%">
+<col style="width: 59%">
+<col style="width: 11%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -387,6 +387,12 @@ ul.task-list li input[type="checkbox"] {
 <td>bool</td>
 <td>Enable verbose output.</td>
 <td><code>False</code></td>
+</tr>
+<tr class="even">
+<td><code>tiledb_config</code></td>
+<td>dict</td>
+<td>TileDB configuration, alternative to <code>cfg.tiledb_config</code>.</td>
+<td><code>None</code></td>
 </tr>
 </tbody>
 </table>
@@ -671,16 +677,16 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.create_dataset" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.create_dataset">create_dataset</h3>
-<p><code>Dataset.create_dataset(self, extra_attrs=None, vcf_attrs=None, tile_capacity=None, anchor_gap=None, checksum_type=None, allow_duplicates=True, enable_allele_count=False, enable_variant_stats=False, compress_sample_dim=True)</code></p>
+<p><code>Dataset.create_dataset(self, extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, compress_sample_dim=True)</code></p>
 <p>Create a new dataset.</p>
 <section id="parameters-5" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-5">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 17%">
-<col style="width: 5%">
-<col style="width: 69%">
-<col style="width: 7%">
+<col style="width: 19%">
+<col style="width: 6%">
+<col style="width: 63%">
+<col style="width: 9%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -706,20 +712,20 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td><code>tile_capacity</code></td>
 <td>int</td>
-<td>Tile capacity to use for the array schema (default = 10000).</td>
-<td><code>None</code></td>
+<td>Tile capacity to use for the array schema.</td>
+<td><code>10000</code></td>
 </tr>
 <tr class="even">
 <td><code>anchor_gap</code></td>
 <td>int</td>
-<td>Length of gaps between inserted anchor records in bases (default = 1000).</td>
-<td><code>None</code></td>
+<td>Length of gaps between inserted anchor records in bases.</td>
+<td><code>1000</code></td>
 </tr>
 <tr class="odd">
 <td><code>checksum_type</code></td>
 <td>str</td>
-<td>Optional override checksum type for creating new dataset valid values are sha256, md5 or none.</td>
-<td><code>None</code></td>
+<td>Optional checksum type for the dataset, “sha256” or “md5”.</td>
+<td><code>'sha256'</code></td>
 </tr>
 <tr class="even">
 <td><code>allow_duplicates</code></td>
@@ -731,13 +737,13 @@ ul.task-list li input[type="checkbox"] {
 <td><code>enable_allele_count</code></td>
 <td>bool</td>
 <td>Enable the allele count ingestion task.</td>
-<td><code>False</code></td>
+<td><code>True</code></td>
 </tr>
 <tr class="even">
 <td><code>enable_variant_stats</code></td>
 <td>bool</td>
 <td>Enable the variant stats ingestion task.</td>
-<td><code>False</code></td>
+<td><code>True</code></td>
 </tr>
 <tr class="odd">
 <td><code>compress_sample_dim</code></td>
@@ -798,7 +804,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
-<td>Skip checking the if samples requested exist in the array.</td>
+<td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
 <tr class="even">
@@ -962,7 +968,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td><code>contig_mode</code></td>
 <td>str</td>
-<td>Select which contigs are ingested: ‘all’, ‘separate’, or ‘merged’ contigs (default ‘all’).</td>
+<td>Select which contigs are ingested: ‘all’, ‘separate’, or ‘merged’.</td>
 <td><code>'all'</code></td>
 </tr>
 <tr class="odd">
@@ -1044,7 +1050,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
-<td>Skip checking the samples requested exist in the array.</td>
+<td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
 <tr class="odd">
@@ -1136,7 +1142,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
-<td>Skip checking if the samples requested exist in the array.</td>
+<td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
 <tr class="odd">
