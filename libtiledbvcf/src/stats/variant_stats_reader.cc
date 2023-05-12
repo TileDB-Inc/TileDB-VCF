@@ -66,11 +66,15 @@ void VariantStatsReader::wait() {
 }
 
 std::pair<bool, float> VariantStatsReader::pass(
-    uint32_t pos, const std::string& allele) {
+    uint32_t pos,
+    const std::string& allele,
+    bool scan_all_samples,
+    size_t num_samples) {
   if (!allele.compare("<NON_REF>")) {
     return {false, 0.0};
   }
-  float af = af_map_.af(pos, allele);
+  float af = scan_all_samples ? af_map_.af(pos, allele, num_samples) :
+                                af_map_.af(pos, allele);
 
   // Fail the filter if allele was not called
   if (af < 0.0) {

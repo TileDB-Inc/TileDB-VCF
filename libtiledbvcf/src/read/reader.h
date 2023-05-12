@@ -141,7 +141,7 @@ struct ExportParams {
   std::string af_filter = "";
 
   // Should all samples be scanned when computing internal allele frequency?
-  bool scan_all_samples;
+  bool scan_all_samples = false;
 };
 
 /* ********************************* */

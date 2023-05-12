@@ -28,6 +28,7 @@
 #include <iomanip>
 #include <random>
 #include <thread>
+#include <vector>
 
 #include "dataset/attribute_buffer_set.h"
 #include "read/bcf_exporter.h"
@@ -1282,8 +1283,14 @@ bool Reader::process_query_results_v4() {
 
       read_state_.query_results.af_values.clear();
       int allele_index = 0;
+      size_t num_samples = 0;
+      if (params_.scan_all_samples) {
+        num_samples = dataset_->sample_names().size();
+      }
+      bool is_ref = true;
       for (auto&& allele : alleles) {
-        auto [allele_passes, af] = af_filter_->pass(real_start, allele);
+        auto [allele_passes, af] = af_filter_->pass(
+            real_start, allele, params_.scan_all_samples, num_samples);
 
         // If the allele is in GT, consider it in the pass computation
         // TODO: when supporting greater than diploid organisms, expand the
