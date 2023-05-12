@@ -139,6 +139,9 @@ struct ExportParams {
   //   and VALUE = float
   // If empty, AF filtering is not applied
   std::string af_filter = "";
+
+  // Should all samples be scanned when computing internal allele frequency?
+  bool scan_all_samples;
 };
 
 /* ********************************* */
@@ -442,6 +445,12 @@ class Reader {
    * @param af_filter setting
    */
   void set_af_filter(const std::string& af_filter);
+
+  /**
+   * sets whether to scan all samples in the dataset when computing IAF
+   * @param af_filter setting
+   */
+  void set_scan_all_samples(bool scan_all_samples);
 
   /**
    * Sets disabling of progress estimation in verbose mode

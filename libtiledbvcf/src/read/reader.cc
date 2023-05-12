@@ -2562,6 +2562,10 @@ void Reader::set_af_filter(const std::string& af_filter) {
   }
 }
 
+void Reader::set_scan_all_samples(bool scan_all_samples) {
+  params_.scan_all_samples = scan_all_samples;
+}
+
 void Reader::set_tiledb_query_config() {
   assert(read_state_.query != nullptr);
   assert(buffers_a != nullptr);

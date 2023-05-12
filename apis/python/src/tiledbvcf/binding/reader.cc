@@ -201,6 +201,12 @@ void Reader::set_af_filter(const std::string& af_filter) {
       reader, tiledb_vcf_reader_set_af_filter(reader, af_filter.c_str()));
 }
 
+void Reader::set_scan_all_samples(const bool scan_all_samples) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_scan_all_samples(reader, scan_all_samples));
+}
+
 void Reader::read(const bool release_buffs) {
   auto reader = ptr.get();
   bool af_filter_enabled = false;
