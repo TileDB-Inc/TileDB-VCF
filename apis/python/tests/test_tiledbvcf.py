@@ -1168,6 +1168,18 @@ def test_ingest_with_stats(tmp_path):
         data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
         == 0.0625
     )
+    data_frame = ds.read(
+        samples=sample_names,
+        attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
+        scan_all_samples=True,
+    )
+    print(f"bad data frame: {data_frame}")
+    assert (
+        data_frame[
+            (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
+        ]["info_TILEDB_IAF"].iloc[0][0]
+        == 0.0625
+    )
 
 
 def test_ingest_mode_separate(tmp_path):
