@@ -214,9 +214,8 @@ class VariantStats {
       "contig", "pos", "allele"};
 
   // Array attributes
-  enum Attr { AC = 0, N_HOM, N_CALLED, LAST_ };
-  inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "n_hom", "n_called"};
+  enum Attr { AC = 0, N_HOM, LAST_ };
+  inline static const std::vector<std::string> ATTR_STR = {"ac", "n_hom"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -288,6 +287,15 @@ class VariantStats {
    *
    */
   void update_results();
+
+  /**
+   * @brief Create an ALT string from the reference and alternate alleles.
+   *
+   * @param ref Reference allele
+   * @param alt Alternate allele
+   * @return std::string ALT string
+   */
+  std::string alt_string(char* ref, char* alt);
 };
 
 }  // namespace tiledb::vcf

@@ -120,7 +120,6 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
     std::string array_uri = dataset_uri + "/variant_stats";
     REQUIRE(sum(ctx, array_uri, "ac", "vs") == 492);
     REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 163);
-    REQUIRE(sum(ctx, array_uri, "n_called", "vs") == 246);
   }
 
   // Delete
@@ -149,7 +148,6 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
     std::string array_uri = dataset_uri + "/variant_stats";
     REQUIRE(sum(ctx, array_uri, "ac", "vs") == 0);
     REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 0);
-    REQUIRE(sum(ctx, array_uri, "n_called", "vs") == 0);
   }
 
   if (vfs.is_dir(dataset_uri)) {
