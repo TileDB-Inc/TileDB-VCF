@@ -396,11 +396,6 @@ void VariantStats::process(
     return;
   }
 
-  int gt0 = bcf_gt_allele(dst_[0]);
-  int gt1 = bcf_gt_allele(dst_[1]);
-  int gt0_missing = bcf_gt_is_missing(dst_[0]);
-  int gt1_missing = bcf_gt_is_missing(dst_[1]);
-
   // Only haploid and diploid are supported
   if (ngt > 2) {
     LOG_FATAL(
@@ -410,6 +405,11 @@ void VariantStats::process(
         pos,
         ngt);
   }
+
+  int gt0 = bcf_gt_allele(dst_[0]);
+  int gt1 = ngt == 2 ? bcf_gt_allele(dst_[1]) : 0;
+  int gt0_missing = bcf_gt_is_missing(dst_[0]);
+  int gt1_missing = ngt == 2 ? bcf_gt_is_missing(dst_[1]) : 1;
 
   // Skip if alleles are missing
   if (ngt == 1) {
@@ -424,27 +424,40 @@ void VariantStats::process(
     return;  // ngt <= 0
   }
 
-  // Add sample name to the set of sample name in this query
+  // Add sample name to the set of sample names in this query
   sample_names_.insert(sample_name);
 
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
-  values_[ref][N_CALLED] += count_delta_;
 
   // If not missing, update allele count for GT[0]
   if (!gt0_missing) {
-    std::string alt0 = rec->d.allele[gt0];
-    values_[alt0][AC] += count_delta_;
+    auto alt = alt_string(ref, rec->d.allele[gt0]);
+
+    if (gt0 == 0) {
+      values_["ref"][AC] += count_delta_;
+    } else {
+      values_[alt][AC] += count_delta_;
+    }
   }
 
   // If not missing, update allele count for GT[1]
   if (ngt == 2 && !gt1_missing) {
-    std::string alt1 = rec->d.allele[gt1];
-    values_[alt1][AC] += count_delta_;
+    auto alt = alt_string(ref, rec->d.allele[gt1]);
+
+    if (gt0 == 0) {
+      values_["ref"][AC] += count_delta_;
+    } else {
+      values_[alt][AC] += count_delta_;
+    }
 
     // Update homozygote count, only diploid genotype calls are counted
     if (gt0 == gt1) {
-      values_[alt1][N_HOM] += count_delta_;
+      if (gt0 == 0) {
+        values_["ref"][N_HOM] += count_delta_;
+      } else {
+        values_[alt][N_HOM] += count_delta_;
+      }
     }
   }
 }
@@ -471,6 +484,14 @@ void VariantStats::update_results() {
       }
     }
     values_.clear();
+  }
+}
+
+std::string VariantStats::alt_string(char* ref, char* alt) {
+  if (strlen(ref) == 1 && strlen(alt) == 1) {
+    return std::string(alt);
+  } else {
+    return std::string(ref) + ">" + std::string(alt);
   }
 }
 
