@@ -59,6 +59,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/allele_count.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/column_buffer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/arrow_utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/managed_query.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats_reader.cc
@@ -94,6 +95,8 @@ add_library(TILEDB_VCF_OBJECTS OBJECT
 
 set_property(TARGET TILEDB_VCF_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+find_package(pybind11 CONFIG REQUIRED)
+
 target_include_directories(TILEDB_VCF_OBJECTS
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -101,6 +104,7 @@ target_include_directories(TILEDB_VCF_OBJECTS
     $<TARGET_PROPERTY:HTSlib::HTSlib,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_INCLUDE_DIRECTORIES>
+    ${pybind11_INCLUDE_DIRS}
 )
 
 target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
