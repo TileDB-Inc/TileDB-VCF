@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.353">
+<meta name="generator" content="quarto-1.3.361">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -56,7 +56,8 @@ ul.task-list li input[type="checkbox"] {
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 
@@ -564,7 +565,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>pd.DataFrame</td>
+<td>pandas.DataFrame</td>
 <td>The next batch of data as a Pandas DataFrame.</td>
 </tr>
 </tbody>
@@ -613,7 +614,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>pa.Table</td>
+<td>pyarrow.Table</td>
 <td>The next batch of data as a PyArrow Table.</td>
 </tr>
 </tbody>
@@ -628,10 +629,10 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-4">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 13%">
-<col style="width: 21%">
-<col style="width: 51%">
-<col style="width: 13%">
+<col style="width: 12%">
+<col style="width: 28%">
+<col style="width: 47%">
+<col style="width: 12%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -644,13 +645,13 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>samples</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Sample names to include in the count.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="even">
 <td><code>regions</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Genomic regions to include in the count.</td>
 <td><code>None</code></td>
 </tr>
@@ -763,10 +764,10 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-6">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 22%">
-<col style="width: 13%">
-<col style="width: 56%">
-<col style="width: 8%">
+<col style="width: 21%">
+<col style="width: 17%">
+<col style="width: 53%">
+<col style="width: 7%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -779,13 +780,13 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>samples</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="even">
 <td><code>regions</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -850,8 +851,8 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <colgroup>
 <col style="width: 7%">
-<col style="width: 3%">
-<col style="width: 86%">
+<col style="width: 5%">
+<col style="width: 84%">
 <col style="width: 2%">
 </colgroup>
 <thead>
@@ -865,7 +866,7 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>sample_uris</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of sample URIs to ingest.</td>
 <td><code>None</code></td>
 </tr>
@@ -955,13 +956,13 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td><code>contigs_to_keep_separate</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>contigs_to_allow_merging</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of contigs that should be allowed to be merged into combined fragments.</td>
 <td><code>None</code></td>
 </tr>
@@ -1004,8 +1005,8 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <colgroup>
 <col style="width: 16%">
-<col style="width: 10%">
-<col style="width: 63%">
+<col style="width: 13%">
+<col style="width: 61%">
 <col style="width: 9%">
 </colgroup>
 <thead>
@@ -1019,19 +1020,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -1079,7 +1080,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>pd.DataFrame</td>
+<td>pandas.DataFrame</td>
 <td>Query results as a Pandas DataFrame.</td>
 </tr>
 </tbody>
@@ -1096,8 +1097,8 @@ ul.task-list li input[type="checkbox"] {
 <table class="table">
 <colgroup>
 <col style="width: 16%">
-<col style="width: 10%">
-<col style="width: 63%">
+<col style="width: 13%">
+<col style="width: 61%">
 <col style="width: 9%">
 </colgroup>
 <thead>
@@ -1111,19 +1112,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
@@ -1171,7 +1172,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>pa.Table</td>
+<td>pyarrow.Table</td>
 <td>Query results as a PyArrow Table.</td>
 </tr>
 </tbody>
@@ -1208,9 +1209,9 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-10">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 14%">
-<col style="width: 15%">
-<col style="width: 55%">
+<col style="width: 13%">
+<col style="width: 20%">
+<col style="width: 52%">
 <col style="width: 14%">
 </colgroup>
 <thead>
@@ -1224,19 +1225,19 @@ ul.task-list li input[type="checkbox"] {
 <tbody>
 <tr class="odd">
 <td><code>attrs</code></td>
-<td>List[str]</td>
+<td>typing.List[str]</td>
 <td>List of attribute names to be read.</td>
 <td><code>DEFAULT_ATTRS</code></td>
 </tr>
 <tr class="even">
 <td><code>samples</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Sample names to be read.</td>
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
 <td><code>regions</code></td>
-<td>str, List[str]</td>
+<td>str, typing.List[str]</td>
 <td>Genomic regions to be read.</td>
 <td><code>None</code></td>
 </tr>
