@@ -889,6 +889,8 @@ bool Reader::next_read_batch_v4() {
     }
   }
 
+  read_state_.query_regions_v4.clear();
+
   // Default export results are not sorted
   read_state_.query->set_layout(TILEDB_UNORDERED);
   // If sorting export results, ask TileDB for results sorted on the anchors
