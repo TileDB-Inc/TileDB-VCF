@@ -852,37 +852,41 @@ bool Reader::next_read_batch_v4() {
   if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
     debug_ranges << std::endl << "regions:" << std::endl;
   }
-  for (const auto& query_region :
-       read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
-           .second) {
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+  if (false) {
+    for (const auto& query_region :
+         read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
+             .second) {
+      read_state_.query->add_range(
+          1, query_region.col_min, query_region.col_max);
+      if (params_.debug_params.print_tiledb_query_ranges &&
+          LOG_DEBUG_ENABLED()) {
+        debug_ranges << "[" << query_region.col_min << ", "
+                     << query_region.col_max << "]" << std::endl;
+      }
+
+      if (af_filter_) {
+        Region region(
+            query_region.contig, query_region.col_min, query_region.col_max);
+        af_filter_->add_region(region);
+      }
+    }
+
+    read_state_.query->add_range(
+        0,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
+        read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
     if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
-      debug_ranges << "[" << query_region.col_min << ", "
-                   << query_region.col_max << "]" << std::endl;
+      debug_ranges << std::endl << "contigs:" << std::endl;
+      debug_ranges << "["
+                   << read_state_
+                          .query_regions_v4[read_state_.query_contig_batch_idx]
+                          .first
+                   << ", "
+                   << read_state_
+                          .query_regions_v4[read_state_.query_contig_batch_idx]
+                          .first
+                   << "]" << std::endl;
     }
-
-    if (af_filter_) {
-      Region region(
-          query_region.contig, query_region.col_min, query_region.col_max);
-      af_filter_->add_region(region);
-    }
-  }
-
-  read_state_.query->add_range(
-      0,
-      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
-      read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
-  if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
-    debug_ranges << std::endl << "contigs:" << std::endl;
-    debug_ranges << "["
-                 << read_state_
-                        .query_regions_v4[read_state_.query_contig_batch_idx]
-                        .first
-                 << ", "
-                 << read_state_
-                        .query_regions_v4[read_state_.query_contig_batch_idx]
-                        .first
-                 << "]" << std::endl;
   }
 
   // Default export results are not sorted
@@ -2613,7 +2617,9 @@ void Reader::compute_memory_budget_details() {
   params_.memory_budget_breakdown.tiledb_memory_budget = memory_budget;
 
   // TileDB Cloud datasets use all the memory for buffers
-  if (dataset_ != nullptr && dataset_->tiledb_cloud_dataset()) {
+  // TODO: FIXME: dataset_ is not initialized when this is called
+  //  if (dataset_ != nullptr && dataset_->tiledb_cloud_dataset()) {
+  if (true) {
     LOG_DEBUG(
         "Overrode memory budgets because array is TileDB Cloud array. All "
         "memory will be given to buffers.");
