@@ -442,10 +442,10 @@ void VariantStats::process(
   }
 
   // If not missing, update allele count for GT[1]
-  if (ngt == 2 && !gt1_missing) {
+  if (!gt1_missing) {
     auto alt = alt_string(ref, rec->d.allele[gt1]);
 
-    if (gt0 == 0) {
+    if (gt1 == 0) {
       values_["ref"][AC] += count_delta_;
     } else {
       values_[alt][AC] += count_delta_;
