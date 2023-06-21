@@ -1287,10 +1287,16 @@ bool Reader::process_query_results_v4() {
       if (params_.scan_all_samples) {
         num_samples = dataset_->sample_names().size();
       }
+      bool ref_is_1bp = alleles[0].length() == 1;
       bool is_ref = true;
       for (auto&& allele : alleles) {
+        bool is_snp_or_ref = (allele.length() == 1 && ref_is_1bp) || is_ref;
         auto [allele_passes, af] = af_filter_->pass(
-            real_start, allele, params_.scan_all_samples, num_samples);
+            real_start,
+            is_snp_or_ref ? (is_ref ? "ref" : allele) :
+                            alleles[0] + ">" + allele,
+            params_.scan_all_samples,
+            num_samples);
 
         // If the allele is in GT, consider it in the pass computation
         // TODO: when supporting greater than diploid organisms, expand the
@@ -1310,6 +1316,7 @@ bool Reader::process_query_results_v4() {
         read_state_.query_results.af_values.push_back(af);
 
         LOG_TRACE("  pass = {}", pass);
+        is_ref = false;
       }
 
       // If all alleles do not pass the af filter, continue
