@@ -1290,9 +1290,20 @@ bool Reader::process_query_results_v4() {
       bool is_ref = true;
       for (auto&& allele : alleles) {
 	bool is_snp_or_ref = (allele.length() == 1 && ref_is_1bp) || is_ref;
+	std::string allele_representation;
+	if(is_snp_or_ref)
+	  {
+	    if(is_ref)
+	      {allele_representation = "ref";
+            } else {
+              allele_representation = allele;
+            }
+        } else {
+          allele_representation = alleles[0] + ">" + allele;
+        }
         auto [allele_passes, af] = af_filter_->pass(
             real_start,
-            is_snp_or_ref ? (is_ref ? "ref" : allele) : alleles[0] + ">" + allele,
+	    allele_representation,
             params_.scan_all_samples,
             num_samples);
 
