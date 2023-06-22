@@ -912,14 +912,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         continue;
 
       WriterWorker* worker = workers[i].get();
-      const std::string& contig = worker->region().seq_name;
+      const std::string& current_region_contig = worker->region().seq_name;
 
       // Remove current worker's contig from the list of active contigs
       active_contigs.pop_front();
       std::string next_region_contig =
           active_contigs.empty() ? "" : active_contigs.front();
       LOG_DEBUG(
-          "current contig = {} next contig = {}", contig, next_region_contig);
+          "Current contig = {} Next contig = {}",
+          current_region_contig,
+          next_region_contig);
 
       last_worker = worker;
       bool task_complete = false;
@@ -928,6 +930,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
         // Write worker buffers, if any data.
         if (worker->records_buffered() > 0) {
+          const std::string& contig = worker->region().seq_name;
           // Check if finished contig is allowed to be merged
           const bool contig_mergeable = check_contig_mergeable(contig);
           const bool last_contig_mergeable =
@@ -1073,9 +1076,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
       // Finalize the stats arrays if we are moving to a new contig
       // and the current or next contig is not mergeable.
-      if (contig != next_region_contig &&
+      if (current_region_contig != next_region_contig &&
           (!check_contig_mergeable(next_region_contig) ||
-           !check_contig_mergeable(contig))) {
+           !check_contig_mergeable(current_region_contig))) {
         worker->flush_ingestion_tasks(true);
       }
 
