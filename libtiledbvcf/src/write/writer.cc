@@ -877,11 +877,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   const size_t nregions = regions.size();
   size_t region_idx = 0;
   std::vector<std::future<bool>> tasks;
+
+  // Keep track of the contigs that are currently being processed by the workers
+  std::deque<std::string> active_contigs;
+
   for (unsigned i = 0; i < workers.size(); i++) {
     WriterWorker* worker = workers[i].get();
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
+        active_contigs.push_back(reg.seq_name);
         TRY_CATCH_THROW(
             tasks.push_back(std::async(std::launch::async, [worker, reg]() {
               return worker->parse(reg);
@@ -907,6 +912,17 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         continue;
 
       WriterWorker* worker = workers[i].get();
+      const std::string& current_region_contig = worker->region().seq_name;
+
+      // Remove current worker's contig from the list of active contigs
+      active_contigs.pop_front();
+      std::string next_region_contig =
+          active_contigs.empty() ? "" : active_contigs.front();
+      LOG_DEBUG(
+          "Current contig = {} Next contig = {}",
+          current_region_contig,
+          next_region_contig);
+
       last_worker = worker;
       bool task_complete = false;
       while (!task_complete) {
@@ -968,9 +984,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
                 //=================================================================
                 // Start finalize of previous contig.
-
-                // Finalize stats arrays.
-                worker->flush_ingestion_tasks(true);
 
                 // Write and finalize anchors stored in the anchor worker.
                 anchors_ingested += write_anchors(anchor_worker);
@@ -1061,10 +1074,19 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
 
+      // Finalize the stats arrays if we are moving to a new contig
+      // and the current or next contig is not mergeable.
+      if (current_region_contig != next_region_contig &&
+          (!check_contig_mergeable(next_region_contig) ||
+           !check_contig_mergeable(current_region_contig))) {
+        worker->flush_ingestion_tasks(true);
+      }
+
       // Start next region parsing using the same worker.
       while (region_idx < nregions) {
         Region reg = regions[region_idx++];
         if (nonempty_contigs.count(reg.seq_name) > 0) {
+          active_contigs.push_back(reg.seq_name);
           TRY_CATCH_THROW(
               tasks[i] = std::async(std::launch::async, [worker, reg]() {
                 return worker->parse(reg);

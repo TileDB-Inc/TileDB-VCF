@@ -152,8 +152,11 @@ steps:
           sudo chown -R $USER $CONDA
         fi
 
+        # Install mamba for faster environment creation
+        conda install -y mamba -n base -c conda-forge
+
         pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
-        conda env create --file conda-env.yml
+        $CONDA/bin/mamba env create --file conda-env.yml
         # Note that 'conda init' doesn't seem to work directly.
         source $CONDA/etc/profile.d/conda.sh
         conda activate tiledbvcf-py
