@@ -154,7 +154,6 @@ steps:
 
         # Install mamba for faster environment creation
         conda install -y mamba -n base -c conda-forge
-        ls -l $CONDA/bin
 
         pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
         $CONDA/bin/mamba env create --file conda-env.yml
