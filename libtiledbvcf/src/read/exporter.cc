@@ -128,6 +128,8 @@ void Exporter::recover_record(
       str_buffer.push_back('\0');
       st = bcf_update_info(
           hdr, dst, key, str_buffer.data(), str_buffer.size(), type);
+    } else if (type == BCF_HT_FLAG) {
+      st = bcf_update_info(hdr, dst, key, NULL, nvalues, type);
     } else {
       st = bcf_update_info(hdr, dst, key, info_ptr, nvalues, type);
     }
