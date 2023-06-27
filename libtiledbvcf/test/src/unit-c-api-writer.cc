@@ -219,6 +219,7 @@ TEST_CASE("C API: Writer with vcf attributes", "[capi][writer]") {
                                             "fmt_MIN_DP",
                                             "fmt_PL",
                                             "fmt_SB",
+                                            "info_DB",
                                             "info_BaseQRankSum",
                                             "info_ClippingRankSum",
                                             "info_DP",
