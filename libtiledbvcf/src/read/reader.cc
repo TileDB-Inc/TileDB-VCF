@@ -1287,14 +1287,11 @@ bool Reader::process_query_results_v4() {
       if (params_.scan_all_samples) {
         num_samples = dataset_->sample_names().size();
       }
-      bool ref_is_1bp = alleles[0].length() == 1;
       bool is_ref = true;
       for (auto&& allele : alleles) {
-        bool is_snp_or_ref = (allele.length() == 1 && ref_is_1bp) || is_ref;
         auto [allele_passes, af] = af_filter_->pass(
             real_start,
-            is_snp_or_ref ? (is_ref ? "ref" : allele) :
-                            alleles[0] + ">" + allele,
+            is_ref ? "ref" : alleles[0] + "," + allele,
             params_.scan_all_samples,
             num_samples);
 

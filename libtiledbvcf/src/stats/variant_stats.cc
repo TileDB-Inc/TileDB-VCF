@@ -488,11 +488,7 @@ void VariantStats::update_results() {
 }
 
 std::string VariantStats::alt_string(char* ref, char* alt) {
-  if (strlen(ref) == 1 && strlen(alt) == 1) {
-    return std::string(alt);
-  } else {
-    return std::string(ref) + ">" + std::string(alt);
-  }
+  return std::string(ref) + "," + std::string(alt);
 }
 
 }  // namespace tiledb::vcf
