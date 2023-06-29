@@ -174,18 +174,20 @@ class VariantStatsReader {
   VariantStatsReader(
       std::shared_ptr<Context> ctx,
       const Group& group,
-      bool async_query = true);
+      bool async_query = false);
 
   VariantStatsReader() = delete;
   VariantStatsReader(const VariantStatsReader&) = delete;
   VariantStatsReader(VariantStatsReader&&) = default;
 
   /**
-   * @brief Add a region to the allele frequency computation
+   * @brief Add a region to the next allele frequency computation
    *
    * @param region
    */
   void add_region(Region region) {
+    // Wait for any previous async queries to complete
+    wait();
     regions_.push_back(region);
   }
 
@@ -250,7 +252,7 @@ class VariantStatsReader {
   AFMap af_map_;
 
   // If true, query variant stats in parallel with the data array.
-  bool async_query_ = true;
+  bool async_query_ = false;
 
   // Future for compute thread
   std::future<void> compute_future_;

@@ -61,7 +61,9 @@ void VariantStatsReader::set_condition(std::string condition) {
 
 void VariantStatsReader::wait() {
   if (async_query_) {
-    TRY_CATCH_THROW(compute_future_.wait());
+    if (compute_future_.valid()) {
+      TRY_CATCH_THROW(compute_future_.wait());
+    }
   }
 }
 
