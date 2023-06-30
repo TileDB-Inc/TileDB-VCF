@@ -87,13 +87,11 @@ class AFMap {
       return -1.0;
     }
 
-    const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
-        pos_map_iterator->second;
+    const auto pos_map = pos_map_iterator->second;
 
     // We don't know that allele was called in this sample. Ask nicely for the
     // allele count.
-    decltype(pos_map.second)::const_iterator next_allele =
-        pos_map.second.find(allele);
+    auto next_allele = pos_map.second.find(allele);
 
     // First multiply by 1.0 to force a float type, then look up AC from the
     // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
