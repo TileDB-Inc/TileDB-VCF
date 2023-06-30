@@ -37,6 +37,28 @@ VariantStatsReader::VariantStatsReader(
   auto uri = VariantStats::get_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
+  const void* variant_stats_version_read;
+  int variant_stats_version;
+  tiledb_datatype_t version_datatype;
+  uint32_t version_count;
+  array_->get_metadata(
+      "version",
+      &version_datatype,
+      &version_count,
+      &variant_stats_version_read);
+  if (version_datatype == TILEDB_UINT32 && version_count == 1) {
+    std::memcpy(
+        &variant_stats_version,
+        variant_stats_version_read,
+        tiledb_datatype_size(version_datatype) * version_count);
+  } else {
+    throw std::runtime_error("Invalid metadata in stats table");
+  }
+  if (variant_stats_version != 2) {
+    throw std::runtime_error(
+        "Variant stats table invoked from dataset with incompatible stats "
+        "version");
+  }
 }
 
 void VariantStatsReader::compute_af() {
