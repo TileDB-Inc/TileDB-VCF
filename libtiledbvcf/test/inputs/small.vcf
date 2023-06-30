@@ -14,6 +14,7 @@
 ##GVCFBlock=minGQ=20(inclusive),maxGQ=60(exclusive)
 ##GVCFBlock=minGQ=5(inclusive),maxGQ=20(exclusive)
 ##GVCFBlock=minGQ=60(inclusive),maxGQ=2147483647(exclusive)
+##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
 ##INFO=<ID=BaseQRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities">
 ##INFO=<ID=ClippingRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases">
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have been filtered">
@@ -120,6 +121,6 @@
 ##bcftools_viewCommand=view -O b inputs/small.vcf.gz; Date=Fri Jul 13 11:40:03 2018
 ##bcftools_viewCommand=view inputs/small.bcf; Date=Fri Jul 13 11:51:09 2018
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG01762
-1	12141	.	C	<NON_REF>	.	.	END=12277	GT:DP:GQ:MIN_DP:PL	0/0:0:0:0:0,0,0
-1	12546	.	G	<NON_REF>	.	.	END=12771	GT:DP:GQ:MIN_DP:PL	0/0:0:0:0:0,0,0
-1	13354	.	T	<NON_REF>	.	.	END=13389	GT:DP:GQ:MIN_DP:PL	0/0:64:99:30:0,66,990
+1	12141	.	C	<NON_REF>	.	.	END=12277;DB;DP=42;DS	GT:DP:GQ:MIN_DP:PL	0/0:0:0:0:0,0,0
+1	12546	.	G	<NON_REF>	.	.	END=12771;DS;DP=123;DB	GT:DP:GQ:MIN_DP:PL	0/0:0:0:0:0,0,0
+1	13354	.	T	<NON_REF>	.	.	END=13389;DB;DS;DP=22	GT:DP:GQ:MIN_DP:PL	0/0:64:99:30:0,66,990
