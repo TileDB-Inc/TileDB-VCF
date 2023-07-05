@@ -96,9 +96,10 @@ class AFMap {
     // First multiply by 1.0 to force a float type, then look up AC from the
     // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
     // Divide by AN (pos_map.first) to get AF.
-    return 1.0 *
-           (next_allele == pos_map.second.end() ? 0 : next_allele->second) /
-           pos_map.first;
+    if (next_allele == pos_map.second.end()) {
+      return 0;
+    }
+    return 1.0 * next_allele->second / pos_map.first;
   }
 
   /**
@@ -133,9 +134,10 @@ class AFMap {
     // First multiply by 1.0 to force a float type, then look up AC from the
     // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
     // Divide by AN (pos_map.first) to get AF.
-    return 1.0 *
-           (next_allele == pos_map.second.end() ? 0 : next_allele->second) /
-           num_samples / 2;
+    if (next_allele == pos_map.second.end()) {
+      return 0;
+    }
+    return 1.0 * next_allele->second / pos_map.first;
   }
 
   /**
@@ -172,7 +174,7 @@ class VariantStatsReader {
   VariantStatsReader(
       std::shared_ptr<Context> ctx,
       const Group& group,
-      bool async_query = false);
+      bool async_query = true);
 
   VariantStatsReader() = delete;
   VariantStatsReader(const VariantStatsReader&) = delete;
@@ -250,7 +252,7 @@ class VariantStatsReader {
   AFMap af_map_;
 
   // If true, query variant stats in parallel with the data array.
-  bool async_query_ = false;
+  bool async_query_ = true;
 
   // Future for compute thread
   std::future<void> compute_future_;
