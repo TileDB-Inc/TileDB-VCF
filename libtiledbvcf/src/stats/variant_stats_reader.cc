@@ -54,9 +54,11 @@ VariantStatsReader::VariantStatsReader(
   } else {
     throw std::runtime_error("Invalid metadata in stats table");
   }
-  if (variant_stats_version != 2) {
+  if (variant_stats_version < 2) {
     throw std::runtime_error(
-        "Variant stats table invoked from dataset with incompatible stats "
+        "Variant stats table from dataset ingested with older version of "
+        "TileDB-VCF; to use internal IAF support, reingest this dataset with "
+        "stats enabled."
         "version");
   }
 }
