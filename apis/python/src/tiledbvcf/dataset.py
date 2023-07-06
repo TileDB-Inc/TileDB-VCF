@@ -212,6 +212,7 @@ class Dataset(object):
         bed_file: str = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
+        scan_all_samples: bool = False,
         enable_progress_estimation: bool = False,
     ) -> pa.Table:
         """
@@ -239,6 +240,8 @@ class Dataset(object):
         set_af_filter
             Filter variants by internal allele frequency. For example, to include
             variants with AF > 0.1, set this to ">0.1".
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
         enable_progress_estimation
             **DEPRECATED** - This parameter will be removed in a future release.
 
@@ -264,6 +267,7 @@ class Dataset(object):
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_af_filter(set_af_filter)
+        self.reader.set_scan_all_samples(scan_all_samples)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
@@ -280,6 +284,7 @@ class Dataset(object):
         bed_file: str = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
+        scan_all_samples: bool = False,
         enable_progress_estimation: bool = False,
     ) -> pd.DataFrame:
         """
@@ -334,6 +339,7 @@ class Dataset(object):
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_af_filter(set_af_filter)
+        self.reader.set_scan_all_samples(scan_all_samples)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
@@ -369,6 +375,11 @@ class Dataset(object):
             URI of a BED file of genomic regions to be read.
         skip_check_samples
             Skip checking if the samples in `samples_file` exist in the dataset.
+        set_af_filter
+            Filter variants by internal allele frequency. For example, to include
+            variants with AF > 0.1, set this to ">0.1".
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
         enable_progress_estimation
             **DEPRECATED** - This parameter will be removed in a future release.
         merge

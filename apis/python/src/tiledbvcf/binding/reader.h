@@ -154,6 +154,9 @@ class Reader {
   /** Set internal allele frequency filtering expression */
   void set_af_filter(const std::string& af_filter);
 
+  /** Set whether to scan all samples in the dataset when computing frequency */
+  void set_scan_all_samples(const bool scan_all_samples);
+
   /** Set the TileDB query buffer memory percentage */
   void set_buffer_percentage(float buffer_percentage);
 

@@ -942,6 +942,18 @@ int32_t tiledb_vcf_reader_set_af_filter(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_scan_all_samples(
+    tiledb_vcf_reader_t* reader, bool scan_all_samples) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          reader, reader->reader_->set_scan_all_samples(scan_all_samples)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*             BED FILE              */
 /* ********************************* */

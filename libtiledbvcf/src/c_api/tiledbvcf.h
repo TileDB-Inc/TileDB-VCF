@@ -919,6 +919,13 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_af_filter(
     tiledb_vcf_reader_t* reader, const char* af_filter);
 
 /**
+ * Sets whether to scan all samples for IAF computation
+ *
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_scan_all_samples(
+    tiledb_vcf_reader_t* reader, bool scan_all_samples);
+
+/**
  * Sets export output directory
  * @param reader VCF reader object
  * @param output_path setting

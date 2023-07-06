@@ -201,12 +201,26 @@ void Reader::set_af_filter(const std::string& af_filter) {
       reader, tiledb_vcf_reader_set_af_filter(reader, af_filter.c_str()));
 }
 
+void Reader::set_scan_all_samples(const bool scan_all_samples) {
+  auto reader = ptr.get();
+  check_error(
+      reader, tiledb_vcf_reader_set_scan_all_samples(reader, scan_all_samples));
+}
+
 void Reader::read(const bool release_buffs) {
   auto reader = ptr.get();
   bool af_filter_enabled = false;
   if (tiledb_vcf_reader_get_af_filter_exists(reader, &af_filter_enabled) ==
       TILEDB_VCF_ERR)
     throw std::runtime_error("TileDB-VCF-Py: Error finding AF filter.");
+  if (!af_filter_enabled) {
+    for (std::string attribute : attributes_) {
+      if (attribute == "info_TILEDB_IAF") {
+        tiledb_vcf_reader_set_af_filter(reader, ">=0");
+        af_filter_enabled = true;
+      }
+    }
+  }
   if (af_filter_enabled) {
     // add alleles buffer only if not already present
     bool add_alleles = true;
