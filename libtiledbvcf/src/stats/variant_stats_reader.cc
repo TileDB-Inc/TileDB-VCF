@@ -37,6 +37,30 @@ VariantStatsReader::VariantStatsReader(
   auto uri = VariantStats::get_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
+  const void* variant_stats_version_read;
+  int variant_stats_version;
+  tiledb_datatype_t version_datatype;
+  uint32_t version_count;
+  array_->get_metadata(
+      "version",
+      &version_datatype,
+      &version_count,
+      &variant_stats_version_read);
+  if (version_datatype == TILEDB_UINT32 && version_count == 1) {
+    std::memcpy(
+        &variant_stats_version,
+        variant_stats_version_read,
+        tiledb_datatype_size(version_datatype) * version_count);
+  } else {
+    throw std::runtime_error("Invalid metadata in stats table");
+  }
+  if (variant_stats_version < 2) {
+    throw std::runtime_error(
+        "Variant stats table from dataset ingested with older version of "
+        "TileDB-VCF; to use internal IAF support, reingest this dataset with "
+        "stats enabled."
+        "version");
+  }
 }
 
 void VariantStatsReader::compute_af() {
@@ -61,16 +85,22 @@ void VariantStatsReader::set_condition(std::string condition) {
 
 void VariantStatsReader::wait() {
   if (async_query_) {
-    TRY_CATCH_THROW(compute_future_.wait());
+    if (compute_future_.valid()) {
+      TRY_CATCH_THROW(compute_future_.wait());
+    }
   }
 }
 
 std::pair<bool, float> VariantStatsReader::pass(
-    uint32_t pos, const std::string& allele) {
+    uint32_t pos,
+    const std::string& allele,
+    bool scan_all_samples,
+    size_t num_samples) {
   if (!allele.compare("<NON_REF>")) {
     return {false, 0.0};
   }
-  float af = af_map_.af(pos, allele);
+  float af = scan_all_samples ? af_map_.af(pos, allele, num_samples) :
+                                af_map_.af(pos, allele);
 
   // Fail the filter if allele was not called
   if (af < 0.0) {
