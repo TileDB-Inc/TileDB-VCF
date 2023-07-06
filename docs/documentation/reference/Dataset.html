@@ -764,10 +764,10 @@ ul.task-list li input[type="checkbox"] {
 <h4 class="anchored" data-anchor-id="parameters-6">Parameters</h4>
 <table class="table">
 <colgroup>
-<col style="width: 21%">
-<col style="width: 17%">
-<col style="width: 53%">
-<col style="width: 7%">
+<col style="width: 16%">
+<col style="width: 13%">
+<col style="width: 63%">
+<col style="width: 6%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -807,6 +807,18 @@ ul.task-list li input[type="checkbox"] {
 <td>bool</td>
 <td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
+</tr>
+<tr class="even">
+<td><code>set_af_filter</code></td>
+<td></td>
+<td>Filter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.</td>
+<td>required</td>
+</tr>
+<tr class="odd">
+<td><code>scan_all_samples</code></td>
+<td></td>
+<td>Scan all samples when computing internal allele frequency.</td>
+<td>required</td>
 </tr>
 <tr class="even">
 <td><code>enable_progress_estimation</code></td>
@@ -996,7 +1008,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read">read</h3>
-<p><code>Dataset.read(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a Pandas DataFrame.</p>
 <p>For large datasets, a call to <code>read()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <p>You can also use the Python generator version, <code>read_iter()</code>.</p>
@@ -1089,7 +1101,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read_arrow" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_arrow">read_arrow</h3>
-<p><code>Dataset.read_arrow(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read_arrow(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a PyArrow Table.</p>
 <p>For large queries, a call to <code>read_arrow()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <section id="parameters-9" class="level4">
@@ -1153,6 +1165,12 @@ ul.task-list li input[type="checkbox"] {
 <td><code>''</code></td>
 </tr>
 <tr class="even">
+<td><code>scan_all_samples</code></td>
+<td>bool</td>
+<td>Scan all samples when computing internal allele frequency.</td>
+<td><code>False</code></td>
+</tr>
+<tr class="odd">
 <td><code>enable_progress_estimation</code></td>
 <td>bool</td>
 <td><strong>DEPRECATED</strong> - This parameter will be removed in a future release.</td>
