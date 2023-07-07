@@ -407,9 +407,24 @@ void AlleleCount::process(
   }
 
   int gt0 = bcf_gt_allele(dst_[0]);
-  int gt1 = bcf_gt_allele(dst_[1]);
+  int gt1 = ngt == 2 ? bcf_gt_allele(dst_[1]) : 0;
   int gt0_missing = bcf_gt_is_missing(dst_[0]);
-  int gt1_missing = bcf_gt_is_missing(dst_[1]);
+  int gt1_missing = ngt == 2 ? bcf_gt_is_missing(dst_[1]) : 1;
+  int n_allele = rec->n_allele;
+
+  // Skip if GT value is not a valid allele
+  if (gt0 >= n_allele || gt1 >= n_allele) {
+    LOG_WARN(
+        "AlleleCount: skipping invalid GT value: sample={} locus={}:{} "
+        "gt={}/{} n_allele={}",
+        sample_name,
+        contig,
+        pos + 1,
+        gt0,
+        gt1,
+        n_allele);
+    return;
+  }
 
   // Only haploid and diploid are supported
   if (ngt > 2) {
