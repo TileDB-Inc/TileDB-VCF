@@ -40,7 +40,7 @@ def check_if_compatible(uri):
         with tiledb.open(uri):
             return True
     except tiledb.cc.TileDBError as e:
-        if "Incompatible format version" in str(e):
+        if "incompatible format version" in str(e).lower():
             raise pytest.skip.Exception(
                 "Test skipped due to incompatible format version"
             )
