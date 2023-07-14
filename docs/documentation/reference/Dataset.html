@@ -309,6 +309,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#tiledbvcf.Dataset" id="toc-tiledbvcf.Dataset" class="nav-link active" data-scroll-target="#tiledbvcf.Dataset">Dataset</a>
   <ul class="collapse">
   <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
+  <li><a href="#attributes" id="toc-attributes" class="nav-link" data-scroll-target="#attributes">Attributes</a></li>
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
   <ul class="collapse">
   <li><a href="#tiledbvcf.Dataset.attributes" id="toc-tiledbvcf.Dataset.attributes" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.attributes">attributes</a></li>
@@ -394,6 +395,39 @@ ul.task-list li input[type="checkbox"] {
 <td>dict</td>
 <td>TileDB configuration, alternative to <code>cfg.tiledb_config</code>.</td>
 <td><code>None</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="attributes" class="level2">
+<h2 class="anchored" data-anchor-id="attributes">Attributes</h2>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.cfg">cfg</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.mode">mode</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.reader">reader</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#tiledbvcf.Dataset.uri">uri</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#tiledbvcf.Dataset.writer">writer</a></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -516,7 +550,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>list</td>
 <td>A list of attribute names.</td>
 </tr>
 </tbody>
@@ -565,7 +599,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>pandas.DataFrame</td>
 <td>The next batch of data as a Pandas DataFrame.</td>
 </tr>
 </tbody>
@@ -614,7 +648,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>pyarrow.Table</td>
 <td>The next batch of data as a PyArrow Table.</td>
 </tr>
 </tbody>
@@ -669,7 +703,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>int</td>
 <td>Number of intersecting records in the dataset.</td>
 </tr>
 </tbody>
@@ -1092,7 +1126,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>pandas.DataFrame</td>
 <td>Query results as a Pandas DataFrame.</td>
 </tr>
 </tbody>
@@ -1190,7 +1224,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>pyarrow.Table</td>
 <td>Query results as a PyArrow Table.</td>
 </tr>
 </tbody>
@@ -1290,7 +1324,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>int</td>
 <td>Number of samples in the dataset.</td>
 </tr>
 </tbody>
@@ -1312,7 +1346,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>list</td>
 <td>List of samples in the dataset.</td>
 </tr>
 </tbody>
@@ -1334,7 +1368,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>int</td>
 <td>VCF schema version of the dataset.</td>
 </tr>
 </tbody>
@@ -1356,7 +1390,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>str</td>
 <td>TileDB stats as a string.</td>
 </tr>
 </tbody>
@@ -1378,7 +1412,7 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>:</td>
+<td>str</td>
 <td>The TileDB-VCF version.</td>
 </tr>
 </tbody>
