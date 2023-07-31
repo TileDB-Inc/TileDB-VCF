@@ -75,6 +75,22 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
   throw std::runtime_error("[ColumnBuffer] Column name not found: " + name_str);
 }
 
+void ColumnBuffer::to_bitmap(tcb::span<uint8_t> bytemap) {
+  int i_dst = 0;
+  for (unsigned int i_src = 0; i_src < bytemap.size(); i_src++) {
+    // Overwrite every 8 bytes with a one-byte bitmap
+    if (i_src % 8 == 0) {
+      // Each bit in the bitmap corresponds to one byte in the bytemap
+      // Note: the bitmap must be byte-aligned (8 bits)
+      int bitmap = 0;
+      for (unsigned int i = i_src; i < i_src + 8 && i < bytemap.size(); i++) {
+        bitmap |= bytemap[i] << (i % 8);
+      }
+      bytemap[i_dst++] = bitmap;
+    }
+  }
+}
+
 //===================================================================
 //= public non-static
 //===================================================================

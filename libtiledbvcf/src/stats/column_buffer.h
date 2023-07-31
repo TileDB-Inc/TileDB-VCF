@@ -66,6 +66,12 @@ class ColumnBuffer {
   static std::shared_ptr<ColumnBuffer> create(
       std::shared_ptr<Array> array, std::string_view name);
 
+  /**
+   * @brief Convert a bytemap to a bitmap in place.
+   *
+   */
+  static void to_bitmap(tcb::span<uint8_t> bytemap);
+
   //===================================================================
   //= public non-static
   //===================================================================
