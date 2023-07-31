@@ -499,11 +499,8 @@ void Writer::ingest_samples() {
       time_sec,
       records_ingested / time_sec));
 
-  // Check records ingested matches total records in VCF files, unless resume
-  // is enabled because resume may not ingest all records in the VCF files
-  // (check not implemented for V2/V3)
-  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4 &&
-      !ingestion_params_.resume_sample_partial_ingestion) {
+  // Check if records ingested matches the expected total record count.
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
     if (records_ingested != total_records_expected_) {
       std::string message = fmt::format(
           "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
@@ -828,6 +825,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Remove the region if marked to skip
       if (skip) {
         LOG_DEBUG("Resume:   skipping contig {}", contig);
+        // Remove records from the total expected record count.
+        total_records_expected_ -= total_contig_records[contig];
+
         it = regions_v4.erase(it);
       } else {
         it++;
