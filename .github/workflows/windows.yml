@@ -15,16 +15,6 @@ on:
       - 'ci/gha-win-env.yml'
       - 'libtiledbvcf/**'
   workflow_dispatch:
-# Unfortunately, simply setting the default shell is currently insufficient to
-# activate the conda env for the cmd shell. This is a known, unresolved issue
-#
-# https://github.com/mamba-org/provision-with-micromamba/issues/39
-# https://github.com/mamba-org/provision-with-micromamba/pull/43
-# https://github.com/mamba-org/provision-with-micromamba/pull/56
-#
-# A workaround is to manually call `@CALL micromamba activate <name of env>`
-#
-# https://github.com/blue-yonder/turbodbc/pull/380/files#diff-72b980456954eec0c566d17ce7746f2c1f7c6b9b98b1ad01395b6f7cb8c4ca0b
 defaults:
   run:
     shell: cmd /C CALL {0}
@@ -34,27 +24,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install conda env
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ci/gha-win-env.yml
-          cache-env: true
+          cache-environment: true
+          init-shell: cmd.exe
+          condarc: |
+            channels:
+              - conda-forge
+              - tiledb
+            channel_priority: strict
       - name: Build libtiledbvcf
-        run: |
-          @CALL micromamba activate win-env
-          cmd /C CALL ci\build-libtiledbvcf.bat
+        run: cmd /C CALL ci\build-libtiledbvcf.bat
       - name: libtiledbvcf version
-        run: |
-          @CALL micromamba activate win-env
-          tiledbvcf.exe version
+        run: tiledbvcf.exe version
       - name: Build tiledbvcf-py
-        run: |
-          @CALL micromamba activate win-env
-          cmd /C CALL ci\build-tiledbvcf-py.bat
+        run: cmd /C CALL ci\build-tiledbvcf-py.bat
       - name: tiledbvcf-py version
-        run: |
-          @CALL micromamba activate win-env
-          python -c "import tiledbvcf; print(tiledbvcf.version)"
+        run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Test
-        run: |
-          @CALL micromamba activate win-env
-          pytest apis\python\tests
+        run: pytest apis\python\tests
