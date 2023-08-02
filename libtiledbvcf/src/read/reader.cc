@@ -1246,6 +1246,10 @@ bool Reader::process_query_results_v4() {
   const auto& regions = regions_indexes->second;
 
   bool apply_af_filter = af_filter_enabled();
+  size_t num_samples = 0;
+  if (params_.scan_all_samples) {
+    num_samples = dataset_->sample_names().size();
+  }
   for (; read_state_.cell_idx < num_cells; read_state_.cell_idx++) {
     // For easy reference
     const uint64_t i = params_.sort_real_start_pos ?
@@ -1283,10 +1287,6 @@ bool Reader::process_query_results_v4() {
 
       read_state_.query_results.af_values.clear();
       int allele_index = 0;
-      size_t num_samples = 0;
-      if (params_.scan_all_samples) {
-        num_samples = dataset_->sample_names().size();
-      }
       bool is_ref = true;
       for (auto&& allele : alleles) {
         auto [allele_passes, af] = af_filter_->pass(
