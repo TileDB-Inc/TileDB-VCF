@@ -1177,7 +1177,7 @@ def test_ingest_with_stats(tmp_path):
         data_frame[
             (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
         ]["info_TILEDB_IAF"].iloc[0][0]
-        == 0.0625
+        == 0.125
     )
 
 
