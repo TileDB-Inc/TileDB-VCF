@@ -62,3 +62,15 @@ docs/.quarto
 # Vim swapfiles
 .*.sw?
 .sw?
+
+## R package artifacts
+apis/r/tiledbvcf_*tar.gz
+apis/r/local/*
+apis/r/src/*.o
+apis/r/src/*.so
+apis/r/src/include/*
+apis/r/src/lib/*
+apis/r/src/Makevars
+
+# Catch-all wildcard
+local-*
