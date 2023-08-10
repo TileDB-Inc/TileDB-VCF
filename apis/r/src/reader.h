@@ -33,6 +33,7 @@
 #include <pybind11/stl.h>
 #else
 #include <memory>
+#include <string>
 #include <vector>
 #endif
 #include <tiledbvcf/tiledbvcf.h>
@@ -44,7 +45,8 @@
 namespace py = pybind11;
 #endif
 
-namespace tiledbvcfpy {
+//namespace tiledbvcfpy {
+namespace tiledbvcf {
 
 void config_logging(const std::string& level, const std::string& logfile);
 

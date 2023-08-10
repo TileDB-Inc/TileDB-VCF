@@ -65,7 +65,8 @@ void check_arrow_error(const arrow::Status& st) {
 #endif
 }  // namespace
 
-namespace tiledbvcfpy {
+//namespace tiledbvcfpy {
+namespace tiledbvcf {
 
 void config_logging(const std::string& level, const std::string& logfile) {
   tiledb_vcf_config_logging(level.c_str(), logfile.c_str());
