@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2023 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,9 @@
 #include <vector>
 #endif
 #include <tiledbvcf/tiledbvcf.h>
+#include "soma/column_buffer.h"
+#include "soma/column_buffer.h"
+#include "soma/array_buffers.h"
 
 #include <map>
 #include <set>
@@ -215,6 +218,7 @@ class Reader {
     /** Arrow array datatype (can be list or list of list). */
     std::shared_ptr<arrow::DataType> arrow_array_datatype;
 #endif
+    /** For now include the column buffer as is */
   };
 
   /** Helper function to free a C reader instance */
@@ -240,6 +244,9 @@ class Reader {
 
   /** List of attribute buffers. */
   std::vector<BufferInfo> buffers_;
+
+  /** ArrayBuffers object contains list of ColumnBuffers */
+  tiledbsoma::ArrayBuffers arrbuffers_;
 
   /** Allocate buffers for the read. */
   void alloc_buffers(const bool release_buffs = true);
