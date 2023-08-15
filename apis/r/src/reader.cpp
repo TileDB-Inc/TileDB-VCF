@@ -45,7 +45,7 @@ namespace {
 void check_error(tiledb_vcf_reader_t* reader, int32_t rc) {
   if (rc != TILEDB_VCF_OK) {
     std::string msg =
-        "TileDB-VCF-Py: Error getting tiledb_vcf_error_t error message.";
+        "TileDB-VCF-R: Error getting tiledb_vcf_error_t error message.";
     tiledb_vcf_error_t* err = nullptr;
     const char* c_msg = nullptr;
     if (tiledb_vcf_reader_get_last_error(reader, &err) == TILEDB_VCF_OK &&
@@ -58,7 +58,7 @@ void check_error(tiledb_vcf_reader_t* reader, int32_t rc) {
 #if defined(VCF_PYTHON)
 void check_arrow_error(const arrow::Status& st) {
   if (!st.ok()) {
-    std::string msg_str = "TileDB-VCF-Py Arrow error: " + st.message();
+    std::string msg_str = "TileDB-VCF-R Arrow error: " + st.message();
     throw std::runtime_error(msg_str);
   }
 }
@@ -78,7 +78,7 @@ Reader::Reader()
   tiledb_vcf_reader_t* r;
   if (tiledb_vcf_reader_alloc(&r) != TILEDB_VCF_OK)
     throw std::runtime_error(
-        "TileDB-VCF-Py: Failed to allocate tiledb_vcf_reader_t instance.");
+        "TileDB-VCF-R: Failed to allocate tiledb_vcf_reader_t instance.");
   ptr.reset(r);
 }
 
@@ -221,7 +221,7 @@ void Reader::read(const bool release_buffs) {
   bool af_filter_enabled = false;
   if (tiledb_vcf_reader_get_af_filter_exists(reader, &af_filter_enabled) ==
       TILEDB_VCF_ERR)
-    throw std::runtime_error("TileDB-VCF-Py: Error finding AF filter.");
+    throw std::runtime_error("TileDB-VCF-R: Error finding AF filter.");
   if (!af_filter_enabled) {
     for (std::string attribute : attributes_) {
       if (attribute == "info_TILEDB_IAF") {
@@ -262,7 +262,7 @@ void Reader::read(const bool release_buffs) {
   check_error(reader, tiledb_vcf_reader_get_status(reader, &status));
   if (status != TILEDB_VCF_COMPLETED && status != TILEDB_VCF_INCOMPLETE)
     throw std::runtime_error(
-        "TileDB-VCF-Py: Error submitting read; unhandled read status.");
+        "TileDB-VCF-R: Error submitting read; unhandled read status.");
 }
 
 void Reader::alloc_buffers(const bool release_buffs) {
@@ -325,7 +325,7 @@ void Reader::alloc_buffers(const bool release_buffs) {
     auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
     if (!maybe_buffer.ok()) {
       throw std::runtime_error(
-          "TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+          "TileDB-VCF-R: nullable bitmap buffer allocation failed");
     } else {
       buffer.data = std::move(*maybe_buffer);
     }
@@ -334,7 +334,7 @@ void Reader::alloc_buffers(const bool release_buffs) {
       auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
       if (!maybe_buffer.ok()) {
         throw std::runtime_error(
-            "TileDB-VCF-Py: offset buffer allocation failed");
+            "TileDB-VCF-R: offset buffer allocation failed");
       } else {
         buffer.offsets = std::move(*maybe_buffer);
       }
@@ -349,7 +349,7 @@ void Reader::alloc_buffers(const bool release_buffs) {
       auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
       if (!maybe_buffer.ok()) {
         throw std::runtime_error(
-            "TileDB-VCF-Py: list offset buffer allocation failed");
+            "TileDB-VCF-R: list offset buffer allocation failed");
       } else {
         buffer.list_offsets = std::move(*maybe_buffer);
       }
@@ -362,7 +362,7 @@ void Reader::alloc_buffers(const bool release_buffs) {
       auto maybe_buffer = arrow::AllocateBuffer(alloc_size_bytes);
       if (!maybe_buffer.ok()) {
         throw std::runtime_error(
-            "TileDB-VCF-Py: nullable bitmap buffer allocation failed");
+            "TileDB-VCF-R: nullable bitmap buffer allocation failed");
       } else {
         buffer.bitmap = std::move(*maybe_buffer);
       }
@@ -405,7 +405,7 @@ std::shared_ptr<arrow::Array> Reader::build_arrow_array_from_buffer(
         buffer, count, num_offsets, num_data_elements);
   } else {
     throw std::runtime_error(
-        "TileDB-VCF-Py: unknown datatype for arrow creation: " +
+        "TileDB-VCF-R: unknown datatype for arrow creation: " +
         std::to_string(buffer.datatype));
   }
   return array;
@@ -498,7 +498,7 @@ py::object Reader::get_results_arrow() {
   if (obj == nullptr) {
     PyErr_PrintEx(1);
     throw std::runtime_error(
-        "TileDB-VCF-Py: Error converting to Arrow; null Python object.");
+        "TileDB-VCF-R: Error converting to Arrow; null Python object.");
   }
   return py::reinterpret_steal<py::object>(obj);
 }
@@ -649,7 +649,7 @@ py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {
       return py::dtype::of<float>();
     default:
       throw std::runtime_error(
-          "TileDB-VCF-Py: Error converting to numpy dtype; unhandled "
+          "TileDB-VCF-R: Error converting to numpy dtype; unhandled "
           "datatype " +
           std::to_string(datatype));
   }
@@ -668,7 +668,7 @@ std::shared_ptr<arrow::DataType> Reader::to_arrow_datatype(
       return arrow::float32();
     default:
       throw std::runtime_error(
-          "TileDB-VCF-Py: Error converting to arrow datatype; unhandled "
+          "TileDB-VCF-R: Error converting to arrow datatype; unhandled "
           "datatype " +
           std::to_string(datatype));
   }

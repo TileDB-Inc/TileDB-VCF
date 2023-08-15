@@ -11,15 +11,15 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // vcf_read
-bool vcf_read(std::string& uri, std::vector<std::string>& attributes, std::string& regions, std::string& samples);
+bool vcf_read(std::string& uri, Rcpp::Nullable<Rcpp::CharacterVector> attributes, Rcpp::Nullable<std::string> regions, Rcpp::Nullable<std::string> samples);
 RcppExport SEXP _tiledbvcf_vcf_read(SEXP uriSEXP, SEXP attributesSEXP, SEXP regionsSEXP, SEXP samplesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string& >::type uri(uriSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string>& >::type attributes(attributesSEXP);
-    Rcpp::traits::input_parameter< std::string& >::type regions(regionsSEXP);
-    Rcpp::traits::input_parameter< std::string& >::type samples(samplesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::CharacterVector> >::type attributes(attributesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<std::string> >::type regions(regionsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<std::string> >::type samples(samplesSEXP);
     rcpp_result_gen = Rcpp::wrap(vcf_read(uri, attributes, regions, samples));
     return rcpp_result_gen;
 END_RCPP

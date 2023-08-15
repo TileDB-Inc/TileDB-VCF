@@ -5,15 +5,30 @@
 
 // [[Rcpp::export]]
 bool vcf_read(std::string& uri,
-              std::vector<std::string>& attributes,
-              std::string& regions,
-              std::string& samples) {
+              Rcpp::Nullable<Rcpp::CharacterVector> attributes = R_NilValue,
+              Rcpp::Nullable<std::string> regions = R_NilValue,
+              Rcpp::Nullable<std::string> samples = R_NilValue) {
+
+    tiledbvcf::config_logging("trace", "");
 
     tiledbvcf::Reader reader;
     reader.init(uri);
-    if (attributes.size() > 0) reader.set_attributes(attributes);
-    if (regions != "") reader.set_regions(regions);
-    if (samples != "") reader.set_samples(samples);
 
+    if (!attributes.isNull()) {
+        std::vector<std::string> attrs = Rcpp::as<std::vector<std::string>>(attributes);
+        reader.set_attributes(attrs);
+    }
+
+    if (!regions.isNull()) {
+        std::string reg = Rcpp::as<std::string>(regions);
+        reader.set_regions(reg);
+    }
+
+    if (!samples.isNull()) {
+        std::string samp = Rcpp::as<std::string>(samples);
+        reader.set_samples(samp);
+    }
+
+    reader.read(false);
     return true;
 }
