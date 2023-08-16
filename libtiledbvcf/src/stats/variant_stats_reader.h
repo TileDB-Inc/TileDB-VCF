@@ -137,7 +137,7 @@ class AFMap {
     if (next_allele == pos_map.second.end()) {
       return 0;
     }
-    return 1.0 * next_allele->second / num_samples;
+    return 1.0 * next_allele->second / num_samples / 2;
   }
 
   /**

@@ -152,6 +152,12 @@ steps:
           sudo chown -R $USER $CONDA
         fi
 
+        if [[ "$AGENT_OS" == "Darwin" ]]; then
+           conda install -y libarchive=3.6.2=h6d8d9f1_0 -n base -c conda-forge
+        else
+           conda install -y libarchive -n base -c conda-forge
+        fi
+
         # Install mamba for faster environment creation
         conda install -y mamba -n base -c conda-forge
 
