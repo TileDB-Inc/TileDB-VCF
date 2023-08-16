@@ -41,7 +41,7 @@
 #include "../utils/logger.h"
 #include "column_buffer.h"
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 using namespace tiledb;
 
@@ -60,7 +60,7 @@ class ArrayBuffers {
      */
     std::shared_ptr<ColumnBuffer> at(const std::string& name) {
         if (!contains(name)) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 fmt::format("[ArrayBuffers] column '{}' does not exist", name));
         }
         return buffers_[name];
@@ -86,7 +86,7 @@ class ArrayBuffers {
     void emplace(
         const std::string& name, std::shared_ptr<ColumnBuffer> buffer) {
         if (contains(name)) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 fmt::format("[ArrayBuffers] column '{}' already exists", name));
         }
         names_.push_back(name);

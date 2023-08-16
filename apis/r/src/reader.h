@@ -246,7 +246,7 @@ class Reader {
   std::vector<BufferInfo> buffers_;
 
   /** ArrayBuffers object contains list of ColumnBuffers */
-  tiledbsoma::ArrayBuffers arrbuffers_;
+  tiledbvcf::ArrayBuffers arrbuffers_;
 
   /** Allocate buffers for the read. */
   void alloc_buffers(const bool release_buffs = true);

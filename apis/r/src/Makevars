@@ -1,12 +1,12 @@
 
-XTRA_FILES = soma/column_buffer.o
+XTRA_FILES = soma/column_buffer.o utils/logger.o
 
 PKG_CPPFLAGS = -Iexternal/
 
-PKG_LIBS = -ltiledbvcf
+PKG_LIBS = $(XTRA_FILES) -ltiledbvcf
 
 .Phony: all
 
-all: $(XRTA_FILES) $(SHLIB)
+all: $(XTRA_FILES) $(SHLIB)
 
 $(SHLIB): $(XTRA_FILES)

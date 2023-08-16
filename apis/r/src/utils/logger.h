@@ -53,7 +53,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 /** Definition of class Logger. */
 class Logger {

@@ -40,7 +40,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 /** Set log level for global logger and optionally set a logfile. */
 __attribute__((visibility("default"))) void LOG_CONFIG(

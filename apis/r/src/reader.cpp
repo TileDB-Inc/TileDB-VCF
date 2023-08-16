@@ -84,6 +84,7 @@ Reader::Reader()
 
 void Reader::init(const std::string& dataset_uri) {
   auto reader = ptr.get();
+  tiledbvcf::LOG_DEBUG(fmt::format("[init] Initialize for uri '{}'", dataset_uri));
   check_error(reader, tiledb_vcf_reader_init(reader, dataset_uri.c_str()));
 }
 
@@ -285,12 +286,13 @@ void Reader::alloc_buffers(const bool release_buffs) {
     num_buffers += var_len ? 1 : 0;
     num_buffers += nullable ? 1 : 0;
     num_buffers += list ? 1 : 0;
+    LOG_DEBUG(fmt::format("[alloc_buffers] buffer '{}' num {} var_len {} nullable {} list {}",
+                          attr.c_str(), num_buffers, var_len, nullable, list));
   }
 
   if (num_buffers == 0)
     return;
 
-#if defined(VCF_PYTHON)
   // Only use one third the budget because TileDB-VCF gets the other two thirds.
   const int64_t budget_mb = mem_budget_mb_ / 3.0;
 
@@ -301,7 +303,7 @@ void Reader::alloc_buffers(const bool release_buffs) {
   } else {
     alloc_size_bytes = (budget_mb * 1024 * 1024) / num_buffers;
   }
-#endif
+  LOG_DEBUG(fmt::format("[alloc_buffers] alloc_size_bytes {}", alloc_size_bytes));
 
   for (const auto& attr : attributes_) {
     tiledb_vcf_attr_datatype_t datatype = TILEDB_VCF_UINT8;
@@ -316,7 +318,11 @@ void Reader::alloc_buffers(const bool release_buffs) {
     buffer.attr_name = attr;
 
 #if defined(VCF_PYTHON)
-    auto dtype = to_numpy_dtype(datatype);
+    //auto dtype = to_numpy_dtype(datatype);
+    std::string dtype = "SKIPPED"; // to_numpy_dtype(datatype);
+    LOG_DEBUG(fmt::format("[alloc_buffers] buffer '{}' datatype {} numpy_dtype {}",
+                          attr.c_str(), datatype, dtype));
+
     buffer.datatype = datatype;
     buffer.arrow_datatype = to_arrow_datatype(datatype);
     buffer.arrow_array_datatype = to_arrow_datatype(datatype);

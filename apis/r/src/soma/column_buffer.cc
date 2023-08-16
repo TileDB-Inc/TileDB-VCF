@@ -32,7 +32,7 @@
 
 #include "column_buffer.h"
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 using namespace tiledb;
 
@@ -56,7 +56,7 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
         bool is_nullable = attr.nullable();
 
         if (!is_var && attr.cell_val_num() != 1) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] Values per cell > 1 is not supported: " +
                 name_str);
         }
@@ -71,7 +71,7 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
                       dim.type() == TILEDB_STRING_UTF8;
 
         if (!is_var && dim.cell_val_num() != 1) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] Values per cell > 1 is not supported: " +
                 name_str);
         }
@@ -79,7 +79,7 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
         return ColumnBuffer::alloc(schema, name_str, type, is_var, false);
     }
 
-    throw TileDBSOMAError("[ColumnBuffer] Column name not found: " + name_str);
+    throw TileDBVCFError("[ColumnBuffer] Column name not found: " + name_str);
 }
 
 void ColumnBuffer::to_bitmap(tcb::span<uint8_t> bytemap) {
@@ -202,7 +202,7 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::alloc(
         try {
             num_bytes = std::stoull(value_str);
         } catch (const std::exception& e) {
-            throw TileDBSOMAError(fmt::format(
+            throw TileDBVCFError(fmt::format(
                 "[ColumnBuffer] Error parsing {}: '{}' ({})",
                 CONFIG_KEY_INIT_BYTES,
                 value_str,

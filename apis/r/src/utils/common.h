@@ -37,17 +37,17 @@
 
 #include <string>
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 using MetadataValue =
     std::tuple<std::string, tiledb_datatype_t, uint32_t, const void*>;
 enum MetadataInfo { key = 0, dtype, num, value };
 
-class TileDBSOMAError : public std::runtime_error {
+class TileDBVCFError : public std::runtime_error {
    public:
-    explicit TileDBSOMAError(const char* m)
+    explicit TileDBVCFError(const char* m)
         : std::runtime_error(m){};
-    explicit TileDBSOMAError(std::string m)
+    explicit TileDBVCFError(std::string m)
         : std::runtime_error(m.c_str()){};
 
    public:

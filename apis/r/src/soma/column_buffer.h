@@ -41,7 +41,7 @@
 #include "../utils/logger.h"
 #include "span/span.hpp"
 
-namespace tiledbsoma {
+namespace tiledbvcf {
 
 using namespace tiledb;
 
@@ -191,7 +191,7 @@ class ColumnBuffer {
      */
     tcb::span<uint64_t> offsets() {
         if (!is_var_) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] Offsets buffer not defined for " + name_);
         }
 
@@ -205,7 +205,7 @@ class ColumnBuffer {
      */
     tcb::span<uint8_t> validity() {
         if (!is_nullable_) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] Validity buffer not defined for " + name_);
         }
         return tcb::span<uint8_t>(validity_.data(), num_cells_);
@@ -289,7 +289,7 @@ class ColumnBuffer {
      */
     void convert_enumeration() {
         if (!has_enumeration_) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] No enumeration defined for " + name_);
         }
         const size_t n_vec = enums_.size(); // plus one for extra offset
@@ -311,7 +311,7 @@ class ColumnBuffer {
      */
     tcb::span<uint32_t> enum_offsets() {
         if (!has_enumeration_) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] No enumeration defined for " + name_);
         }
         return tcb::span<uint32_t>(enum_offsets_.data(), enum_offsets_.size());
@@ -323,7 +323,7 @@ class ColumnBuffer {
      */
     tcb::span<char> enum_string() {
         if (!has_enumeration_) {
-            throw TileDBSOMAError(
+            throw TileDBVCFError(
                 "[ColumnBuffer] No enumeration defined for " + name_);
         }
         return tcb::span<char>(enum_str_.data(), enum_str_.length());
