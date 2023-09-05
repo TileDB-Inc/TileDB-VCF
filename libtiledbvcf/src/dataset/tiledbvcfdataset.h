@@ -66,6 +66,7 @@ struct CreationParams {
   bool enable_allele_count = true;
   bool enable_variant_stats = true;
   bool compress_sample_dim = true;
+  int compression_level = 4;
 };
 
 /** Arguments/params for dataset registration. */
@@ -872,7 +873,8 @@ class TileDBVCFDataset {
       const Metadata& metadata,
       const tiledb_filter_type_t& checksum,
       const bool allow_duplicates,
-      const bool compress_sample_dim);
+      const bool compress_sample_dim,
+      const int compression_level);
 
   /**
    * Creates the empty sample header array for a new dataset.
