@@ -1462,5 +1462,9 @@ void Writer::set_compress_sample_dim(bool enable) {
   creation_params_.compress_sample_dim = enable;
 }
 
+void Writer::set_compression_level(int level) {
+  creation_params_.compression_level = level;
+}
+
 }  // namespace vcf
 }  // namespace tiledb
