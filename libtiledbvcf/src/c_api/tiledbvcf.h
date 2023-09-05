@@ -1602,6 +1602,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_enable_variant_stats(
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_compress_sample_dim(
     tiledb_vcf_writer_t* writer, bool enable);
 
+/**
+ * Sets zstd compression level
+ * @param writer VCF writer object
+ * @param level compression level
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_writer_set_compression_level(tiledb_vcf_writer_t* writer, int level);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

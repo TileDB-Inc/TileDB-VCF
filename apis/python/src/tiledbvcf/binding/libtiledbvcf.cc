@@ -114,5 +114,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_contig_mode", &Writer::set_contig_mode)
       .def("set_enable_allele_count", &Writer::set_enable_allele_count)
       .def("set_enable_variant_stats", &Writer::set_enable_variant_stats)
-      .def("set_compress_sample_dim", &Writer::set_compress_sample_dim);
+      .def("set_compress_sample_dim", &Writer::set_compress_sample_dim)
+      .def("set_compression_level", &Writer::set_compression_level);
 }

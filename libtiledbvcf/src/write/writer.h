@@ -371,6 +371,9 @@ class Writer {
   /** Enable sample dimension compression. */
   void set_compress_sample_dim(bool enable);
 
+  /** Set zstd compression level */
+  void set_compression_level(int level);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

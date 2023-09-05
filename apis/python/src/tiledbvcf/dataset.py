@@ -569,6 +569,7 @@ class Dataset(object):
         enable_allele_count: bool = True,
         enable_variant_stats: bool = True,
         compress_sample_dim: bool = True,
+        compression_level: int = 4,
     ):
         """
         Create a new dataset.
@@ -593,6 +594,8 @@ class Dataset(object):
             Enable the variant stats ingestion task.
         compress_sample_dim
             Enable compression on the sample dimension.
+        compression_level
+            Compression level for zstd compression.
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -628,6 +631,9 @@ class Dataset(object):
 
         if compress_sample_dim is not None:
             self.writer.set_compress_sample_dim(compress_sample_dim)
+
+        if compression_level is not None:
+            self.writer.set_compression_level(compression_level)
 
         # This call throws an exception if the dataset already exists.
         self.writer.create_dataset()
