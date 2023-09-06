@@ -251,7 +251,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
       metadata,
       params.checksum,
       params.allow_duplicates,
-      params.compress_sample_dim);
+      params.compress_sample_dim,
+      params.compression_level);
 
   if (params.enable_allele_count) {
     AlleleCount::create(ctx, params.uri, params.checksum);
@@ -330,7 +331,8 @@ void TileDBVCFDataset::create_empty_data_array(
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum,
     const bool allow_duplicates,
-    const bool compress_sample_dim) {
+    const bool compress_sample_dim,
+    const int compression_level) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
@@ -345,8 +347,14 @@ void TileDBVCFDataset::create_empty_data_array(
   FilterList float_attr_filters(ctx);
   FilterList byte_attr_filters(ctx);
 
+  // Use tile level filtering
+  str_attr_filters.set_max_chunk_size(0);
+  int_attr_filters.set_max_chunk_size(0);
+  float_attr_filters.set_max_chunk_size(0);
+  byte_attr_filters.set_max_chunk_size(0);
+
   Filter compression(ctx, TILEDB_FILTER_ZSTD);
-  compression.set_option(TILEDB_COMPRESSION_LEVEL, 4);
+  compression.set_option(TILEDB_COMPRESSION_LEVEL, compression_level);
 
   contig_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   pos_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})

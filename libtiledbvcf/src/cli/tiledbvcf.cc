@@ -441,6 +441,10 @@ void add_create(CLI::App& app) {
       args->compress_sample_dim,
       "Enable/disable compression of the sample dimension. Enabled by "
       "default.");
+  cmd->add_option(
+      "--compression-level",
+      args->compression_level,
+      "Set zstd compression level.");
 
   cmd->option_defaults()->group("Ingestion task options");
   cmd->add_flag(

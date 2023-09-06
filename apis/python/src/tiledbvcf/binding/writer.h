@@ -235,6 +235,11 @@ class Writer {
   */
   void set_compress_sample_dim(bool enable);
 
+  /**
+    Set zstd compression level
+  */
+  void set_compression_level(int level);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

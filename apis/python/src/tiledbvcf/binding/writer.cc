@@ -347,4 +347,9 @@ void Writer::set_compress_sample_dim(bool enable) {
       writer, tiledb_vcf_writer_set_compress_sample_dim(writer, enable));
 }
 
+void Writer::set_compression_level(int level) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_compression_level(writer, level));
+}
+
 }  // namespace tiledbvcfpy
