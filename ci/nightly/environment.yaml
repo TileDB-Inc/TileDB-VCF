@@ -1,0 +1,14 @@
+name: py4vcf
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - numpy
+  - pandas
+  - pyarrow=9
+  - pybind11
+  - python=3.9
+  - setuptools
+  - setuptools_scm
+  - setuptools_scm_git_archive
+  - wheel
