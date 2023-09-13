@@ -480,10 +480,18 @@ void VCFV4::Iter::swap(VCFV4::Iter& other) {
 bool VCFV4::Iter::next(bcf1_t* rec) {
   int ret;
 
+  // bcf_itr_next and tbx_itr_next return -2 on error
+
   if (tbx_ == nullptr) {
     ret = bcf_itr_next(fh_.get(), hts_iter_, rec);
+    if (ret < -1) {
+      throw std::runtime_error("Error reading VCF record");
+    }
   } else {
     ret = tbx_itr_next(fh_.get(), tbx_, hts_iter_, &tmps_);
+    if (ret < -1) {
+      throw std::runtime_error("Error reading VCF record");
+    }
     vcf_parse1(&tmps_, hdr_, rec);
   }
 
