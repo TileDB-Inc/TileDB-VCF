@@ -50,7 +50,7 @@ else()
     endif()
 
     # Try to download prebuilt artifacts unless the user specifies to build from source
-    if(DOWNLOAD_TILEDB_PREBUILT)
+    if(FALSE)
         if (WIN32) # Windows
           SET(DOWNLOAD_URL "https://github.com/TileDB-Inc/TileDB/releases/download/2.17.0-rc0/tiledb-windows-x86_64-2.17.0-rc0-46b9ca5.zip")
           SET(DOWNLOAD_SHA1 "740c7885b5191a467cb742b3420a51ae7b2a0a99")
@@ -87,8 +87,8 @@ else()
     else() # Build from source
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
-          URL "https://github.com/TileDB-Inc/TileDB/archive/2.17.0-rc0.zip"
-          URL_HASH SHA1=54c229897ead5fb578d28ba3c134e7f17a95c3a3
+          URL "https://github.com/TileDB-Inc/TileDB/archive/lr/filter-pipeline-vcf-fix/ch33912.zip"
+          # URL_HASH SHA1=54c229897ead5fb578d28ba3c134e7f17a95c3a3
           DOWNLOAD_NAME "tiledb.zip"
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
