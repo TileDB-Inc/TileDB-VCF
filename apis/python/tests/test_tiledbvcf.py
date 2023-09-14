@@ -44,7 +44,7 @@ def check_if_compatible(uri):
             raise pytest.skip.Exception(
                 "Test skipped due to incompatible format version"
             )
-        raise
+        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {str(e)}")
 
 
 @pytest.fixture

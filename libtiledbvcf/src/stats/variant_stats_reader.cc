@@ -131,6 +131,8 @@ std::pair<bool, float> VariantStatsReader::pass(
       break;
     case TILEDB_NE:
       pass = af != threshold_;
+    default:
+      throw std::runtime_error("[VariantStatsReader] Invalid IAF operation");
   }
 
   return {pass, af};
