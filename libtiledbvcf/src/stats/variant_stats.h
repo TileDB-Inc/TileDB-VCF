@@ -264,7 +264,7 @@ class VariantStats {
   std::vector<uint64_t> contig_offsets_;
 
   // Buffer for positions
-  std::vector<int32_t> pos_buffer_;
+  std::vector<uint32_t> pos_buffer_;
 
   // Buffer for alleles
   std::string allele_buffer_;
