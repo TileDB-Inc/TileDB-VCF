@@ -406,33 +406,35 @@ void VariantStats::process(
         ngt);
   }
 
-  int gt0 = bcf_gt_allele(dst_[0]);
-  int gt1 = ngt == 2 ? bcf_gt_allele(dst_[1]) : 0;
-  int gt0_missing = bcf_gt_is_missing(dst_[0]);
-  int gt1_missing = ngt == 2 ? bcf_gt_is_missing(dst_[1]) : 1;
+  std::vector<int> gt(ngt);
+  std::vector<int> gt_missing(ngt);
+  for (int i = 0; i < ngt; i++) {
+    gt[i] = bcf_gt_allele(dst_[i]);
+    gt_missing[i] = bcf_gt_is_missing(dst_[i]);
+  }
   int n_allele = rec->n_allele;
 
   // Skip if GT value is not a valid allele
-  if (gt0 >= n_allele || gt1 >= n_allele) {
+  if (gt[0] >= n_allele || gt[1] >= n_allele) {
     LOG_WARN(
         "VariantStats: skipping invalid GT value: sample={} locus={}:{} "
         "gt={}/{} n_allele={}",
         sample_name,
         contig,
         pos + 1,
-        gt0,
-        gt1,
+        gt[0],
+        gt[1],
         n_allele);
     return;
   }
 
   // Skip if alleles are missing
   if (ngt == 1) {
-    if (gt0_missing) {
+    if (gt_missing[0]) {
       return;
     }
   } else if (ngt == 2) {
-    if (gt0_missing && gt1_missing) {
+    if (gt_missing[0] && gt_missing[1]) {
       return;
     }
   } else {
@@ -446,10 +448,10 @@ void VariantStats::process(
   auto ref = rec->d.allele[0];
 
   // If not missing, update allele count for GT[0]
-  if (!gt0_missing) {
-    auto alt = alt_string(ref, rec->d.allele[gt0]);
+  if (!gt_missing[0]) {
+    auto alt = alt_string(ref, rec->d.allele[gt[0]]);
 
-    if (gt0 == 0) {
+    if (gt[0] == 0) {
       values_["ref"][AC] += count_delta_;
     } else {
       values_[alt][AC] += count_delta_;
@@ -457,18 +459,18 @@ void VariantStats::process(
   }
 
   // If not missing, update allele count for GT[1]
-  if (!gt1_missing) {
-    auto alt = alt_string(ref, rec->d.allele[gt1]);
+  if (!gt_missing[1]) {
+    auto alt = alt_string(ref, rec->d.allele[gt[1]]);
 
-    if (gt1 == 0) {
+    if (gt[1] == 0) {
       values_["ref"][AC] += count_delta_;
     } else {
       values_[alt][AC] += count_delta_;
     }
 
     // Update homozygote count, only diploid genotype calls are counted
-    if (gt0 == gt1) {
-      if (gt0 == 0) {
+    if (gt[0] == gt[1]) {
+      if (gt[0] == 0) {
         values_["ref"][N_HOM] += count_delta_;
       } else {
         values_[alt][N_HOM] += count_delta_;
