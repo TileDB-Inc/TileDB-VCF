@@ -406,33 +406,35 @@ void AlleleCount::process(
     return;
   }
 
-  int gt0 = bcf_gt_allele(dst_[0]);
-  int gt1 = ngt == 2 ? bcf_gt_allele(dst_[1]) : 0;
-  int gt0_missing = bcf_gt_is_missing(dst_[0]);
-  int gt1_missing = ngt == 2 ? bcf_gt_is_missing(dst_[1]) : 1;
+  std::vector<int> gt(ngt);
+  std::vector<int> gt_missing(ngt);
+  for (int i = 0; i < ngt; i++) {
+    gt[i] = bcf_gt_allele(dst_[i]);
+    gt_missing[i] = bcf_gt_is_missing(dst_[i]);
+  }
   int n_allele = rec->n_allele;
 
   // Skip if GT value is not a valid allele
-  if (gt0 >= n_allele || gt1 >= n_allele) {
+  if (gt[0] >= n_allele || gt[1] >= n_allele) {
     LOG_WARN(
         "AlleleCount: skipping invalid GT value: sample={} locus={}:{} "
         "gt={}/{} n_allele={}",
         sample_name,
         contig,
         pos + 1,
-        gt0,
-        gt1,
+        gt[0],
+        gt[1],
         n_allele);
     return;
   }
 
   // Skip if homozygous ref or alleles are missing
   if (ngt == 1) {
-    if (gt0 == 0 || gt0_missing) {
+    if (gt[0] == 0 || gt_missing[0]) {
       return;
     }
   } else if (ngt == 2) {
-    if ((gt0 == 0 && gt1 == 0) || (gt0_missing && gt1_missing)) {
+    if ((gt[0] == 0 && gt[1] == 0) || (gt_missing[0] && gt_missing[1])) {
       return;
     }
   } else {
@@ -455,39 +457,40 @@ void AlleleCount::process(
   // Sort ALT alleles and normalize GT
   //  - haploid GT = 1
   //  - diploid GT = 0,1 or 1,1 or 1,2
-  std::string alt;
-  std::string gt;
-  if (ngt == 1) {
-    // haploid
-    alt = rec->d.allele[gt0];
-    gt = "1";
-  } else {
-    // diploid
-    std::string_view alt0{gt0_missing ? "." : rec->d.allele[gt0]};
-    std::string_view alt1{gt1_missing ? "." : rec->d.allele[gt1]};
+  std::string selected_alt;
+  std::string selected_gt;
+  // diploid
+  std::vector<std::string_view> alt(ngt);
+  for (int i = 0; i < ngt; i++) {
+    alt[i] = gt_missing[i] ? "." : rec->d.allele[gt[i]];
+  }
 
-    if (gt0_missing || gt1_missing) {
-      gt = ".,1";
-      alt = gt0_missing ? alt1 : alt0;
-    } else if (!gt0 || !gt1) {
-      gt = "0,1";
-      alt = gt0 ? alt0 : alt1;
-    } else if (gt0 == gt1) {
-      gt = "1,1";
-      alt = alt0;
+  if (gt_missing[0] || gt_missing[1]) {
+    selected_gt = ".,1";
+    selected_alt = gt_missing[0] ? alt[1] : alt[0];
+  } else if (!gt[0] || !gt[1]) {
+    selected_gt = "0,1";
+    selected_alt = gt[0] ? alt[0] : alt[1];
+  } else if (gt[0] == gt[1]) {
+    selected_gt = "1,1";
+    selected_alt = alt[0];
+  } else {
+    selected_gt = "1,2";
+    if (alt[0] < alt[1]) {
+      selected_alt.append(alt[0]).append(",").append(alt[1]);
     } else {
-      gt = "1,2";
-      if (alt0 < alt1) {
-        alt.append(alt0).append(",").append(alt1);
-      } else {
-        alt.append(alt1).append(",").append(alt0);
-      }
+      selected_alt.append(alt[1]).append(",").append(alt[0]);
     }
   }
 
   // Build key = "ref:alt:filter:gt"
   std::string key(rec->d.allele[0]);
-  key.append(":").append(alt).append(":").append(filter).append(":").append(gt);
+  key.append(":")
+      .append(selected_alt)
+      .append(":")
+      .append(filter)
+      .append(":")
+      .append(selected_gt);
 
   // Update count
   count_[key] += count_delta_;
