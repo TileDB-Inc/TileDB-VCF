@@ -40,17 +40,21 @@ jobs:
       - name: Build libtiledb
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
       - name: Build libtiledbvcf
-        run: bash  TileDB-VCF/ci/nightly/build-libtiledbvcf.sh
+        run: bash TileDB-VCF/ci/nightly/build-libtiledbvcf.sh
       - name: Confirm linking
         run: |
           ldd install/lib/libtiledb.so
           ldd install/lib/libtiledbvcf.so | grep tile
+      - name: Install bcftools (for tests)
+        run: sudo apt install bcftools
+      - name: Test libtiledbvcf
+        run: bash TileDB-VCF/ci/nightly/test-libtiledbvcf.sh
       - name: Setup conda env
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: TileDB-VCF/ci/nightly/environment.yaml
           cache-environment: true
-      - name: Build tiledbvcf-py
+      - name: Build (and test) tiledbvcf-py
         # need -l to activate conda env
         shell: bash -l {0}
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
