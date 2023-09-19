@@ -24,7 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         libtiledb_version: [release-2.17, dev]
-        os: [ubuntu-latest]
+        os: [macos-11, ubuntu-latest]
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v3
@@ -39,14 +41,27 @@ jobs:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Build libtiledb
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
+      - name: Setup macOS (to build htslib from source)
+        if: runner.os == 'macOS'
+        run: brew install autoconf automake
       - name: Build libtiledbvcf
         run: bash TileDB-VCF/ci/nightly/build-libtiledbvcf.sh
-      - name: Confirm linking
+      - name: Confirm linking (linux)
+        if: runner.os == 'Linux'
         run: |
           ldd install/lib/libtiledb.so
           ldd install/lib/libtiledbvcf.so | grep tile
-      - name: Install bcftools (for tests)
+      - name: Confirm linking (osx)
+        if: runner.os == 'macOS'
+        run: |
+          otool -L install/lib/libtiledb.dylib
+          otool -L install/lib/libtiledbvcf.dylib | grep tile
+      - name: Install bcftools (for tests) (linux)
+        if: runner.os == 'Linux'
         run: sudo apt install bcftools
+      - name: Install bcftools (for tests) (osx)
+        if: runner.os == 'macOS'
+        run: brew install bcftools
       - name: Test libtiledbvcf
         run: bash TileDB-VCF/ci/nightly/test-libtiledbvcf.sh
       - name: Setup conda env
