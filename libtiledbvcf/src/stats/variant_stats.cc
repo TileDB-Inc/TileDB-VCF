@@ -396,16 +396,6 @@ void VariantStats::process(
     return;
   }
 
-  // Only haploid and diploid are supported
-  if (ngt > 2) {
-    LOG_FATAL(
-        "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
-        sample_name,
-        contig,
-        pos,
-        ngt);
-  }
-
   std::vector<int> gt(ngt);
   std::vector<int> gt_missing(ngt);
   for (int i = 0; i < ngt; i++) {
