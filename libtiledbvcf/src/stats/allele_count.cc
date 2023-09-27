@@ -426,16 +426,6 @@ void AlleleCount::process(
     return;
   }
 
-  // Only haploid and diploid are supported
-  if (ngt > 2) {
-    LOG_FATAL(
-        "Ploidy > 2 not supported: sample={} locus={}:{} ploidy={}",
-        sample_name,
-        contig,
-        pos,
-        ngt);
-  }
-
   // Skip if homozygous ref or alleles are missing
   if (ngt == 1) {
     if (gt0 == 0 || gt0_missing) {
