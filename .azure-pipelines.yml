@@ -87,6 +87,7 @@ stages:
               BUILD_PYTHON_API: ON
               BUILD_SPARK_API: ON
               #SDKROOT: '/Applications/Xcode_10.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk'
+              MACOSX_DEPLOYMENT_TARGET: '10.15'
 
         pool:
           vmImage: $(imageName)
