@@ -1148,7 +1148,7 @@ def test_ingest_with_stats(tmp_path):
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "outputs"))
+        shutil.rmtree(os.path.join(tmp_path, "stats_test"))
     tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
@@ -1179,6 +1179,52 @@ def test_ingest_with_stats(tmp_path):
         ]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
+
+
+# Ok to skip is missing bcftools in Windows CI job
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
+)
+def test_ingest_polyploid(tmp_path):
+    tmp_path_contents = os.listdir(tmp_path)
+    if "polyploid" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "polyploid"))
+    shutil.copytree(
+        os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
+    )
+    raw_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.vcf"))
+    print(f"raw inputs: {raw_inputs}")
+    for vcf_file in raw_inputs:
+        subprocess.run(
+            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
+            shell=True,
+            check=True,
+        )
+    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.gz"))
+    print(f"bgzipped inputs: {bgzipped_inputs}")
+    for vcf_file in bgzipped_inputs:
+        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
+    if "polyploid" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "polyploid"))
+    if "outputs" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "outputs"))
+    if "polyploid_test" in tmp_path_contents:
+        shutil.rmtree(os.path.join(tmp_path, "polyploid_test"))
+    tiledbvcf.config_logging("trace")
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="w")
+    ds.create_dataset(enable_variant_stats=True)
+    ds.ingest_samples(bgzipped_inputs)
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="r")
+    sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
+    data_frame = ds.read(
+        samples=sample_names,
+        attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
+        set_af_filter="<0.8",
+    )
+    print(data_frame)
 
 
 def test_ingest_mode_separate(tmp_path):

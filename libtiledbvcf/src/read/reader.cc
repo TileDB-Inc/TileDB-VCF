@@ -1298,14 +1298,18 @@ bool Reader::process_query_results_v4() {
         // If the allele is in GT, consider it in the pass computation
         // TODO: when supporting greater than diploid organisms, expand the
         // following boolean statement into a loop
-        if (!is_ref && ((gt.size() > 0 && allele_index == gt[0]) ||
-                        (gt.size() > 1 && allele_index == gt[1]))) {
-          pass = pass || allele_passes;
-        } else {
-          LOG_TRACE("  ignore allele {} not in GT", allele_index);
+        {
+          bool matches_any_allele = false;
+          for (unsigned int i = 0; i < gt.size(); i++) {
+            matches_any_allele = matches_any_allele || allele_index == gt[i];
+          }
+          if (!is_ref && matches_any_allele) {
+            pass = pass || allele_passes;
+          } else {
+            LOG_TRACE("  ignore allele {} not in GT", allele_index);
+          }
+          allele_index++;
         }
-        allele_index++;
-
         // build vector of IAF values for annotation
         // add annotation to read_state_.query_results
         //  - build vector of AFs matching the order of the VCF record

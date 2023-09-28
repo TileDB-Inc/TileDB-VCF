@@ -476,6 +476,19 @@ test ! -e ${upload_dir}/outputs/eighth.vcf || exit 1
 
 [ $(bcftools view -H ${upload_dir}/outputs/second.vcf  | wc -l) == "1" ] || exit 1
 
+rm -rf ${upload_dir}/outputs
+
+# test ingesting polyploid calls
+
+mkdir -p ${upload_dir}/outputs
+
+cp -R ${input_dir}/polyploid ${upload_dir}
+for file in ${upload_dir}/polyploid/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
+for file in ${upload_dir}/polyploid/*.gz;do bcftools index "${file}"; done
+$tilevcf create -u ${upload_dir}/polyploid_test --enable-variant-stats --enable-allele-count --log-level trace
+$tilevcf store -u ${upload_dir}/polyploid_test --log-level trace ${upload_dir}/polyploid/*.vcf.gz
+$tilevcf export -u ${upload_dir}/polyploid_test -d ${upload_dir}/outputs -Ov --af-filter '< 0.8' --log-level trace
+
 # test consolidate and vacuum
 # -------------------------------------------------------------------
 uri=${upload_dir}/pre_test
