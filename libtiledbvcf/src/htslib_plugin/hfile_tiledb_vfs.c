@@ -52,17 +52,29 @@ ssize_t tiledb_vfs_hfile_read(hFILE* fpv, void* buffer, size_t nbytes) {
   if (nbytes == 0)
     return 0;
 
-  int32_t rc = tiledb_vfs_read(fp->ctx, fp->vfs_fh, fp->offset, buffer, nbytes);
-  if (rc != TILEDB_OK) {
+  int retries = 3;
+  while (retries--) {
+    int32_t rc =
+        tiledb_vfs_read(fp->ctx, fp->vfs_fh, fp->offset, buffer, nbytes);
+
+    if (rc == TILEDB_OK) {
+      break;
+    }
+
     tiledb_error_t* error;
     tiledb_ctx_get_last_error(fp->ctx, &error);
     const char* msg;
     tiledb_error_message(error, &msg);
     hts_log_error("%s\n", msg);
 
-    if (error != NULL)
+    if (error != NULL) {
       tiledb_error_free(&error);
-    return -1;
+    }
+
+    if (retries == 0) {
+      return -1;
+    }
+    hts_log_info("retrying\n");
   }
   fp->offset += nbytes;
   return nbytes;
