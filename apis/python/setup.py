@@ -41,7 +41,7 @@ import sys
 
 TILEDBVCF_DEBUG_BUILD = False
 TILEDBVCF_S3 = True
-LIBTILEDBVCF_PATH = None
+LIBTILEDBVCF_PATH = os.environ.get("LIBTILEDBVCF_PATH", None)
 DOWNLOAD_TILEDB_PREBUILT = True
 
 args = sys.argv[:]
