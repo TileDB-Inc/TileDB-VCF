@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: TileDB-Inc/TileDB
-          ref: ${{ matrix.libtiledb_version }}
+          ref: awssdk-build-fix
           path: TileDB
       - name: Clone TileDB-VCF
         uses: actions/checkout@v3
