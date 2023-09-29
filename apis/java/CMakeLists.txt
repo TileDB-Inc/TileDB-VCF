@@ -37,8 +37,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Set C++11 as required standard for all C++ targets.
-set(CMAKE_CXX_STANDARD 11)
+# Set C++17 as required standard for all C++ targets.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
