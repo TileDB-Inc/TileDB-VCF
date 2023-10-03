@@ -15,5 +15,6 @@ dependencies:
   - wheel
   # test
   - dask
+  - fsspec<2023.3.0
   - pytest
   - tiledb-py
