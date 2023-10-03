@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         libtiledb_version: [release-2.17, dev]
-        os: [macos-11, ubuntu-latest]
+        os: [macos-12, ubuntu-latest]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
