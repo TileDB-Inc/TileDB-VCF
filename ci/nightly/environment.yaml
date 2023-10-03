@@ -14,5 +14,7 @@ dependencies:
   - setuptools_scm_git_archive
   - wheel
   # test
+  - dask
+  - fsspec<2023.3.0
   - pytest
   - tiledb-py
