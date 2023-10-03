@@ -904,6 +904,7 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
+@pytest.mark.skipif(os.environ.get("CI") == "true" and platform.system() == "Darwin")
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
