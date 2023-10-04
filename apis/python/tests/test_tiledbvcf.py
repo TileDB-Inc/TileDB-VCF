@@ -904,10 +904,6 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
-@pytest.mark.skipif(
-    os.environ.get("CI") == "true" and platform.system() == "Darwin",
-    reason="s3 access currently failing with dev libtiledb built on macOS with -D TILEDB_VCPKG=OFF",
-)
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
