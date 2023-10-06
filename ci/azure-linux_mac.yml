@@ -157,6 +157,9 @@ steps:
         conda config --add channels conda-forge
         conda config --set channel_priority strict
         conda update -n base --yes --all
+        conda list
+        ls -R $CONDA_PREFIX
+        rm -f $CONDA_PREFIX/conda-meta/pinned
 
         if [[ "$AGENT_OS" == "Darwin" ]]; then
            conda install -y libarchive=3.6.2=h6d8d9f1_0 -n base -c conda-forge
