@@ -159,8 +159,7 @@ steps:
         conda update -n base --yes conda
         conda update -n base --yes --all
         conda list
-        ls -R /usr/share/miniconda
-        rm -f /usr/share/miniconda/conda-meta/pinned
+        rm -f $CONDA/conda-meta/pinned
 
         if [[ "$AGENT_OS" == "Darwin" ]]; then
            conda install -y libarchive=3.6.2=h6d8d9f1_0 -n base -c conda-forge
