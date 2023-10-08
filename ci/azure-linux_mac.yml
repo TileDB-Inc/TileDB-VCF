@@ -143,29 +143,23 @@ steps:
       set -ex pipefail
 
       if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-        # Add conda to PATH
-        echo "##vso[task.prependpath]$CONDA/bin"
-
+        # Install micromamba
         if [[ "$AGENT_OS" == "Darwin" ]]; then
-          # On Hosted macOS, the agent user doesn't have ownership of Miniconda's installation directory/
-          # We need to take ownership if we want to update conda or install packages globally
-          sudo chown -R $USER $CONDA
-        fi
-
-        if [[ "$AGENT_OS" == "Darwin" ]]; then
-           conda install -y libarchive=3.6.2=h6d8d9f1_0 -n base -c conda-forge
+          brew install micromamba
+          export PATH=$HOME/.micromamba/bin:$PATH
         else
-           conda install -y libarchive -n base -c conda-forge
+          curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+          export PATH=$PWD/bin:$PATH
         fi
+        eval "$(micromamba shell hook --shell bash)"
+        micromamba --version
+        
+        # Create and activate the conda environment
+        pushd apis/python
+        micromamba create -f conda-env.yml -y
+        micromamba activate tiledbvcf-py
 
-        # Install mamba for faster environment creation
-        conda install -y mamba -n base -c conda-forge
-
-        pushd $BUILD_REPOSITORY_LOCALPATH/apis/python
-        $CONDA/bin/mamba env create --file conda-env.yml
-        # Note that 'conda init' doesn't seem to work directly.
-        source $CONDA/etc/profile.d/conda.sh
-        conda activate tiledbvcf-py
+        # Install and test the Python API
         python setup.py install --user
         python setup.py pytest
       fi
