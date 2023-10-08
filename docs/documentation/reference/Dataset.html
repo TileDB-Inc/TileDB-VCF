@@ -476,7 +476,7 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <section id="tiledbvcf.Dataset.attributes" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.attributes">attributes</h3>
-<p><code>Dataset.attributes(self, attr_type='all')</code></p>
+<p><code>Dataset.attributes(attr_type='all')</code></p>
 <p>Return a list of queryable attributes available in the VCF dataset.</p>
 <section id="parameters-1" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-1">Parameters</h4>
@@ -525,7 +525,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.continue_read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.continue_read">continue_read</h3>
-<p><code>Dataset.continue_read(self, release_buffers=True)</code></p>
+<p><code>Dataset.continue_read(release_buffers=True)</code></p>
 <p>Continue an incomplete read.</p>
 <section id="parameters-2" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-2">Parameters</h4>
@@ -574,7 +574,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.continue_read_arrow" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</h3>
-<p><code>Dataset.continue_read_arrow(self, release_buffers=True)</code></p>
+<p><code>Dataset.continue_read_arrow(release_buffers=True)</code></p>
 <p>Continue an incomplete read.</p>
 <section id="parameters-3" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-3">Parameters</h4>
@@ -623,7 +623,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.count" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.count">count</h3>
-<p><code>Dataset.count(self, samples=None, regions=None)</code></p>
+<p><code>Dataset.count(samples=None, regions=None)</code></p>
 <p>Count records in the dataset.</p>
 <section id="parameters-4" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-4">Parameters</h4>
@@ -678,7 +678,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.create_dataset" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.create_dataset">create_dataset</h3>
-<p><code>Dataset.create_dataset(self, extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, compress_sample_dim=True, compression_level=4)</code></p>
+<p><code>Dataset.create_dataset(extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, compress_sample_dim=True, compression_level=4)</code></p>
 <p>Create a new dataset.</p>
 <section id="parameters-5" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-5">Parameters</h4>
@@ -764,7 +764,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.export" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.export">export</h3>
-<p><code>Dataset.export(self, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')</code></p>
+<p><code>Dataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')</code></p>
 <p>Exports data to multiple VCF files or a combined VCF file.</p>
 <section id="parameters-6" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-6">Parameters</h4>
@@ -862,7 +862,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.ingest_samples" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.ingest_samples">ingest_samples</h3>
-<p><code>Dataset.ingest_samples(self, sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)</code></p>
+<p><code>Dataset.ingest_samples(sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)</code></p>
 <p>Ingest VCF files into the dataset.</p>
 <section id="parameters-7" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-7">Parameters</h4>
@@ -1014,7 +1014,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read">read</h3>
-<p><code>Dataset.read(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a Pandas DataFrame.</p>
 <p>For large datasets, a call to <code>read()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <p>You can also use the Python generator version, <code>read_iter()</code>.</p>
@@ -1107,7 +1107,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read_arrow" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_arrow">read_arrow</h3>
-<p><code>Dataset.read_arrow(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a PyArrow Table.</p>
 <p>For large queries, a call to <code>read_arrow()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <section id="parameters-9" class="level4">
@@ -1205,7 +1205,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read_completed" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_completed">read_completed</h3>
-<p><code>Dataset.read_completed(self)</code></p>
+<p><code>Dataset.read_completed()</code></p>
 <p>Returns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.</p>
 <section id="returns-6" class="level4">
 <h4 class="anchored" data-anchor-id="returns-6">Returns</h4>
@@ -1227,7 +1227,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read_iter" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_iter">read_iter</h3>
-<p><code>Dataset.read_iter(self, attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)</code></p>
+<p><code>Dataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)</code></p>
 <p>Iterator version of <code>read()</code>.</p>
 <section id="parameters-10" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-10">Parameters</h4>
@@ -1283,7 +1283,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.sample_count" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.sample_count">sample_count</h3>
-<p><code>Dataset.sample_count(self)</code></p>
+<p><code>Dataset.sample_count()</code></p>
 <p>Get the number of samples in the dataset.</p>
 <section id="returns-7" class="level4">
 <h4 class="anchored" data-anchor-id="returns-7">Returns</h4>
@@ -1305,7 +1305,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.samples" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.samples">samples</h3>
-<p><code>Dataset.samples(self)</code></p>
+<p><code>Dataset.samples()</code></p>
 <p>Get the list of samples in the dataset.</p>
 <section id="returns-8" class="level4">
 <h4 class="anchored" data-anchor-id="returns-8">Returns</h4>
@@ -1327,7 +1327,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.schema_version" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.schema_version">schema_version</h3>
-<p><code>Dataset.schema_version(self)</code></p>
+<p><code>Dataset.schema_version()</code></p>
 <p>Get the VCF schema version of the dataset.</p>
 <section id="returns-9" class="level4">
 <h4 class="anchored" data-anchor-id="returns-9">Returns</h4>
@@ -1349,7 +1349,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.tiledb_stats" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.tiledb_stats">tiledb_stats</h3>
-<p><code>Dataset.tiledb_stats(self)</code></p>
+<p><code>Dataset.tiledb_stats()</code></p>
 <p>Get TileDB stats as a string.</p>
 <section id="returns-10" class="level4">
 <h4 class="anchored" data-anchor-id="returns-10">Returns</h4>
@@ -1371,7 +1371,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.version" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.version">version</h3>
-<p><code>Dataset.version(self)</code></p>
+<p><code>Dataset.version()</code></p>
 <p>Return the TileDB-VCF version used to create the dataset.</p>
 <section id="returns-11" class="level4">
 <h4 class="anchored" data-anchor-id="returns-11">Returns</h4>
