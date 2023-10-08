@@ -948,6 +948,7 @@ void Reader::init_exporter() {
               new TSVExporter(params_.output_path, params_.tsv_fields));
           break;
         case ExportFormat::Delete:
+          params_.sort_real_start_pos = true;
           exporter_.reset(new DeleteExporter(ctx_, params_.uri));
           break;
         default:
