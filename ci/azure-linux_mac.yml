@@ -153,7 +153,7 @@ steps:
         fi
         eval "$(micromamba shell hook --shell bash)"
         micromamba --version
-        
+
         # Create and activate the conda environment
         pushd apis/python
         micromamba create -f conda-env.yml -y

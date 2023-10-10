@@ -3,7 +3,9 @@ name: Nightly build against nightly libtiledb
 # * Installs libtiledb and libtiledbvcf into ./install/
 # * Manually updates library path so that tiledbvcf-py can link to
 #   the shared objects in ./install/
-# * conda is only used to install Python dependencies
+# * The Python dependencies are handled differently per OS
+#   * linux: conda binaries
+#   * osx: PyPI wheels
 on:
   push:
     paths:
@@ -17,14 +19,13 @@ on:
     - cron: "0 3 * * *" # Every night at 3 AM UTC (10 PM EST; 11 PM EDT)
   workflow_dispatch:
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }}-libtiledb-${{ matrix.libtiledb_version }}
+  linux:
+    runs-on: ubuntu-latest
+    name: linux-libtiledb-${{ matrix.libtiledb_version }}
     strategy:
       fail-fast: false
       matrix:
         libtiledb_version: [release-2.17, dev]
-        os: [ubuntu-latest]
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v3
@@ -44,7 +45,7 @@ jobs:
       - name: Confirm linking
         run: |
           ldd install/lib/libtiledb.so
-          ldd install/lib/libtiledbvcf.so | grep tile
+          ldd install/lib/libtiledbvcf.so
       - name: Install bcftools (for tests)
         run: sudo apt install bcftools
       - name: Test libtiledbvcf
@@ -58,11 +59,57 @@ jobs:
         # need -l to activate conda env
         shell: bash -l {0}
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
+  osx:
+    runs-on: macos-12
+    name: osx-libtiledb-${{ matrix.libtiledb_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        libtiledb_version: [release-2.17, dev]
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
+    steps:
+      - name: Clone TileDB
+        uses: actions/checkout@v3
+        with:
+          repository: TileDB-Inc/TileDB
+          ref: ${{ matrix.libtiledb_version }}
+          path: TileDB
+      - name: Clone TileDB-VCF
+        uses: actions/checkout@v3
+        with:
+          path: TileDB-VCF
+          fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Build libtiledb
+        run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
+      - name: Setup to build htslib from source
+        run: brew install autoconf automake
+      - name: Build libtiledbvcf
+        run: bash TileDB-VCF/ci/nightly/build-libtiledbvcf.sh
+      - name: Confirm linking
+        run: |
+          otool -L install/lib/libtiledb.dylib
+          otool -L install/lib/libtiledbvcf.dylib
+      - name: Install bcftools (for tests)
+        run: brew install bcftools
+      - name: Test libtiledbvcf
+        run: bash TileDB-VCF/ci/nightly/test-libtiledbvcf.sh
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --prefer-binary \
+            -r TileDB-VCF/ci/nightly/requirements.txt \
+            -r TileDB-VCF/ci/nightly/requirements-test.txt
+      - name: Build (and test) tiledbvcf-py
+        run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   issue:
     permissions:
       issues: write
     runs-on: ubuntu-latest
-    needs: build
+    needs: [linux, osx]
     if: ( failure() || cancelled() ) && github.repository_owner == 'TileDB-Inc' && github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v3

@@ -1,0 +1,8 @@
+numpy
+pandas
+pyarrow==11
+pybind11
+setuptools
+setuptools_scm
+setuptools_scm_git_archive
+wheel
