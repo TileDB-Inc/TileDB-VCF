@@ -51,6 +51,19 @@ class AFMap {
    * @param ac Allele Count
    */
   void insert(uint32_t pos, const std::string& allele, int ac) {
+    // Should this insertion be tallied for contributing to transport (Arrow)
+    // buffer size?
+    bool should_tally = false;
+
+    // TODO: change this to use std::unordered_map::contains when adopting C++20
+    if (ac_map_.find(pos) == ac_map_.end()) {
+      should_tally = true;
+    } else {
+      // true if not a duplicate
+      should_tally =
+          ac_map_[pos].second.find(allele) == ac_map_[pos].second.end();
+    }
+
     // add ac to the an for this position
     ac_map_[pos].first += ac;
 
@@ -66,6 +79,20 @@ class AFMap {
           ac_map_[pos].second[allele],
           ac_map_[pos].first);
     }
+
+    if (should_tally) {
+      allele_aggregate_size_ += allele.length();
+      allele_cardinality_++;
+    }
+  }
+
+  /**
+   * @brief Accessor for buffer size metrics
+   *
+   * @return std::tuple<size_t, size_t> Allele Frequency
+   */
+  std::tuple<size_t, size_t> buffer_sizes() {
+    return std::make_tuple(allele_cardinality_, allele_aggregate_size_);
   }
 
   /**
@@ -149,11 +176,17 @@ class AFMap {
   }
 
  private:
-  // Allele Count map: pos -> (an, map: allele -> ac)
+  /** Allele Count map: pos -> (an, map: allele -> ac) */
   std::unordered_map<
       uint32_t,
       std::pair<int, std::unordered_map<std::string, int>>>
       ac_map_;
+
+  /** buffer size for transporting allele contents */
+  size_t allele_aggregate_size_ = 0;
+
+  /** number of rows for transporting allele contents */
+  size_t allele_cardinality_ = 0;
 };
 
 /**
