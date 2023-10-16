@@ -27,6 +27,7 @@
 #ifndef TILEDB_VCF_VARIANT_STATS_READER_H
 #define TILEDB_VCF_VARIANT_STATS_READER_H
 
+#include <cstdint>
 #include <future>
 #include <tiledb/tiledb>
 
@@ -175,6 +176,18 @@ class AFMap {
     ac_map_.clear();
   }
 
+  /**
+   * @brief Populate buffers
+   *
+   * @param pos buffer of int representing position
+   * @param allele variable buffer of char representing allele
+   * @param allele_offsets allele offsets
+   * @param ac buffer of int representing allele count
+   * @param af buffer of float representing internal allele frequency
+   */
+  void retrieve_variant_stats(
+      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+
  private:
   /** Allele Count map: pos -> (an, map: allele -> ac) */
   std::unordered_map<
@@ -222,6 +235,27 @@ class VariantStatsReader {
     // Wait for any previous async queries to complete
     wait();
     regions_.push_back(region);
+  }
+
+  /**
+   * @brief Populate buffers
+   *
+   * @param pos buffer of int representing position
+   * @param allele variable buffer of char representing allele
+   * @param allele_offsets allele offsets
+   * @param ac buffer of int representing allele count
+   * @param af buffer of float representing internal allele frequency
+   */
+  void retrieve_variant_stats(
+      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+
+  /**
+   * @brief Accessor for buffer size metrics when retrieving variant stats
+   *
+   * @return std::tuple<size_t, size_t> Allele Frequency
+   */
+  std::tuple<size_t, size_t> variant_stats_buffer_sizes() {
+    return af_map_.buffer_sizes();
   }
 
   /**

@@ -31,6 +31,31 @@
 
 namespace tiledb::vcf {
 
+inline void AFMap::retrieve_variant_stats(
+    uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac) {
+  size_t row = 0;
+  allele_offsets[0] = 0;
+  for (std::pair<uint32_t, std::pair<int, std::unordered_map<std::string, int>>>
+           position_to_allele : ac_map_) {
+    for (std::pair<std::string, int> allele_to_count :
+         position_to_allele.second.second) {
+      if (row > allele_cardinality_) {
+        throw std::runtime_error(
+            "[VariantStatsReader] export buffer size computed incorrectly");
+      }
+      pos[row] = position_to_allele.first;
+      ac[row] = allele_to_count.second;
+      std::memcpy(
+          allele + allele_offsets[row],
+          allele_to_count.first.c_str(),
+          allele_to_count.first.size());
+      allele_offsets[row + 1] =
+          allele_offsets[row] + allele_to_count.first.size();
+      row++;
+    }
+  }
+}
+
 VariantStatsReader::VariantStatsReader(
     std::shared_ptr<Context> ctx, const Group& group, bool async_query)
     : async_query_(async_query) {
@@ -61,6 +86,17 @@ VariantStatsReader::VariantStatsReader(
         "stats enabled."
         "version");
   }
+}
+
+void VariantStatsReader::retrieve_variant_stats(
+    uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac) {
+  // there is no thread-safe implementation of this yet
+  if (async_query_) {
+    throw std::runtime_error(
+        "[VariantStatsReader] can not retrieve variant stats when async quries "
+        "are enabled");
+  }
+  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac);
 }
 
 void VariantStatsReader::compute_af() {
