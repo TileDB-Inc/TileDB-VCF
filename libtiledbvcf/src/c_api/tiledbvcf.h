@@ -38,6 +38,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -924,6 +925,36 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_af_filter(
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_scan_all_samples(
     tiledb_vcf_reader_t* reader, bool scan_all_samples);
+
+/**
+ * Returns the cardinality and aggregate allele length of expanded stats rows
+ * @param num_rows return number of rows by reference
+ * @param alleles_size return aggregate allele buffer size by reference
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+    tiledb_vcf_reader_t* reader, size_t* num_rows, size_t* alleles_size);
+
+/**
+ * Reads the contents of the stats array for the region, in preparation for
+ * conversion of the map to a data frame
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_prepare_variant_stats(tiledb_vcf_reader_t* reader);
+
+/**
+ * Reads the expanded contents of the stats array into a set of buffers
+ * @param pos position buffer
+ * @param allele allele buffer
+ * @param allele_offsets allele offset buffer (n+1 cardinality)
+ * @param ac buffer of int representing allele count
+ * @param af buffer of float representing internal allele frequency
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_variant_stats(
+    tiledb_vcf_reader_t* reader,
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac);
 
 /**
  * Sets export output directory
