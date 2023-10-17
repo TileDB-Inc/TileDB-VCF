@@ -191,6 +191,17 @@ void Reader::init_af_filter() {
   }
 }
 
+void Reader::init_variant_stats_reader_for_export() {
+  if (!af_filter_ && !params_.af_filter.empty()) {
+    Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group, false);
+    af_filter_->set_condition(params_.af_filter);
+  } else if (params_.af_filter.empty()) {
+    throw std::runtime_error(
+        "initializing reader for stats without setting AF filter");
+  }
+}
+
 InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
@@ -577,6 +588,12 @@ void Reader::init_for_reads_v4() {
   }
 }
 
+void Reader::init_for_variant_stats() {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+  init_variant_stats_reader_for_export();
+  LOG_DEBUG("Initializing reader for stats export");
+}
+
 bool Reader::next_read_batch() {
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)
@@ -928,6 +945,26 @@ bool Reader::next_read_batch_v4() {
   }
 
   return true;
+}
+
+void Reader::prepare_variant_stats() {
+  init_for_variant_stats();
+  if (params_.regions.size() != 1) {
+    throw std::runtime_error(
+        "Error preparing variant stats: there should be exactly one region "
+        "specified");
+  }
+  af_filter_->add_region(params_.regions[0]);
+  af_filter_->compute_af();
+}
+
+void Reader::read_from_variant_stats(
+    uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac) {
+  af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac);
+}
+
+std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
+  return af_filter_->variant_stats_buffer_sizes();
 }
 
 void Reader::init_exporter() {

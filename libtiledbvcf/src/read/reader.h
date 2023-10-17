@@ -447,6 +447,28 @@ class Reader {
   void set_af_filter(const std::string& af_filter);
 
   /**
+   * Reads the contents of the stats array for the region, in preparation for
+   * conversion of the map to a data frame
+   */
+  void prepare_variant_stats();
+
+  /**
+   * Reads the expanded contents of the stats array into a set of buffers
+   * @param pos position buffer
+   * @param allele allele buffer
+   * @param allele_offsets allele offset buffer (n+1 cardinality)
+   * @param ac buffer of int representing allele count
+   * @param af buffer of float representing internal allele frequency
+   */
+  void read_from_variant_stats(
+      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+
+  /**
+   * Returns the cardinality and aggregate allele length of expanded stats rows
+   */
+  std::tuple<size_t, size_t> variant_stats_buffer_sizes();
+
+  /**
    * sets whether to scan all samples in the dataset when computing IAF
    * @param af_filter setting
    */
@@ -651,6 +673,9 @@ class Reader {
   /** Ensures that a VariantStatsReader be available if applicable. */
   void init_af_filter();
 
+  /** Set up stats reader just for exporting over Arrow */
+  void init_variant_stats_reader_for_export();
+
   /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();
 
@@ -675,6 +700,7 @@ class Reader {
   void init_for_reads_v2();
   void init_for_reads_v3();
   void init_for_reads_v4();
+  void init_for_variant_stats();
 
   /** Initializes the exporter before the first read. */
   void init_exporter();
