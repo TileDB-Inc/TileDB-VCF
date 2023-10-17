@@ -133,6 +133,9 @@ class Reader {
   /** Retrieve list of registered samples names */
   std::vector<std::string> get_sample_names();
 
+  /** Get Stats Results **/
+  py::object get_variant_stats_results();
+
   /** Set reader verbose output mode */
   void set_verbose(bool verbose);
 
