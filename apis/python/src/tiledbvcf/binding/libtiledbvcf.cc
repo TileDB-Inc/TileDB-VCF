@@ -53,6 +53,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_materialized_attributes", &Reader::get_materialized_attributes)
       .def("get_sample_count", &Reader::get_sample_count)
       .def("get_sample_names", &Reader::get_sample_names)
+      .def("get_variant_stats_results", &Reader::get_variant_stats_results)
       .def("set_buffer_percentage", &Reader::set_buffer_percentage)
       .def(
           "set_tiledb_tile_cache_percentage",

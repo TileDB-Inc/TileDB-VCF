@@ -275,6 +275,23 @@ class Dataset(object):
 
         return self.continue_read_arrow()
 
+    def read_variant_stats(
+        self, region: str = None, af_filter: str = ""
+    ) -> pd.DataFrame:
+        """
+        Read variant stats from the dataset into a Pandas DataFrame
+
+        Parameters
+        ----------
+        region
+            Genomic region to be queried.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+        self.reader.set_regions(region)
+        self.reader.set_af_filter(af_filter)
+        return self.reader.get_variant_stats_results()
+
     def read(
         self,
         attrs: List[str] = DEFAULT_ATTRS,
