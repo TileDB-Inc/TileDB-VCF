@@ -32,7 +32,11 @@
 namespace tiledb::vcf {
 
 inline void AFMap::retrieve_variant_stats(
-    uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac) {
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac,
+    float_t* afb) {
   size_t row = 0;
   allele_offsets[0] = 0;
   for (std::pair<uint32_t, std::pair<int, std::unordered_map<std::string, int>>>
@@ -45,6 +49,7 @@ inline void AFMap::retrieve_variant_stats(
       }
       pos[row] = position_to_allele.first;
       ac[row] = allele_to_count.second;
+      afb[row] = af(position_to_allele.first, allele_to_count.first);
       std::memcpy(
           allele + allele_offsets[row],
           allele_to_count.first.c_str(),
@@ -89,14 +94,18 @@ VariantStatsReader::VariantStatsReader(
 }
 
 void VariantStatsReader::retrieve_variant_stats(
-    uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac) {
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac,
+    float_t* af) {
   // there is no thread-safe implementation of this yet
   if (async_query_) {
     throw std::runtime_error(
         "[VariantStatsReader] can not retrieve variant stats when async quries "
         "are enabled");
   }
-  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac);
+  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac, af);
 }
 
 void VariantStatsReader::compute_af() {

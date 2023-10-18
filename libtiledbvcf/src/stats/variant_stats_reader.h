@@ -186,7 +186,11 @@ class AFMap {
    * @param af buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
-      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+      uint32_t* pos,
+      char* allele,
+      uint64_t* allele_offsets,
+      int* ac,
+      float_t* af);
 
  private:
   /** Allele Count map: pos -> (an, map: allele -> ac) */
@@ -247,7 +251,11 @@ class VariantStatsReader {
    * @param af buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
-      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+      uint32_t* pos,
+      char* allele,
+      uint64_t* allele_offsets,
+      int* ac,
+      float_t* af);
 
   /**
    * @brief Accessor for buffer size metrics when retrieving variant stats

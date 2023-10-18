@@ -461,7 +461,11 @@ class Reader {
    * @param af buffer of float representing internal allele frequency
    */
   void read_from_variant_stats(
-      uint32_t* pos, char* allele, uint64_t* allele_offsets, int* ac);
+      uint32_t* pos,
+      char* allele,
+      uint64_t* allele_offsets,
+      int* ac,
+      float_t* af);
 
   /**
    * Returns the cardinality and aggregate allele length of expanded stats rows
