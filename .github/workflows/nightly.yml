@@ -105,11 +105,57 @@ jobs:
             -r TileDB-VCF/ci/nightly/requirements-test.txt
       - name: Build (and test) tiledbvcf-py
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
+  windows:
+    runs-on: windows-latest
+    name: win-libtiledb-${{ matrix.libtiledb_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        libtiledb_version: [release-2.17, dev]
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - name: Clone TileDB
+        uses: actions/checkout@v3
+        with:
+          repository: TileDB-Inc/TileDB
+          ref: ${{ matrix.libtiledb_version }}
+          path: TileDB
+      - name: Clone TileDB-VCF
+        uses: actions/checkout@v3
+        with:
+          path: TileDB-VCF
+          fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Build libtiledb
+        run: cmd /C CALL TileDB-VCF/ci/nightly/build-libtiledb.bat
+      - name: Build libtiledbvcf
+        run: cmd /C CALL TileDB-VCF\ci\nightly\build-libtiledbvcf.bat
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Confirm linking
+        run: |
+          echo %GITHUB_WORKSPACE%
+          dumpbin /dependents %GITHUB_WORKSPACE%\install\bin\tiledbvcf.dll
+          dumpbin /dependents %GITHUB_WORKSPACE%\install\bin\tiledbvcf.exe
+          dumpbin /imports %GITHUB_WORKSPACE%\install\bin\tiledbvcf.dll | findstr /i dll
+          dumpbin /imports %GITHUB_WORKSPACE%\install\bin\tiledbvcf.dll
+      # - name: Test libtiledbvcf
+      #   run: cmd /C CALL TileDB-VCF\ci\nightly\test-libtiledbvcf.bat
+      - name: Setup conda env
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: TileDB-VCF/ci/nightly/environment.yaml
+          cache-environment: true
+          init-shell: cmd.exe
+      - name: Build (and test) tiledbvcf-py
+        # need custom shell directive to activate conda env
+        shell: cmd /C CALL {0}
+        run: cmd /C CALL TileDB-VCF\ci\nightly\build-tiledbvcf-py.bat
   issue:
     permissions:
       issues: write
     runs-on: ubuntu-latest
-    needs: [linux, osx]
+    needs: [linux, osx, windows]
     if: ( failure() || cancelled() ) && github.repository_owner == 'TileDB-Inc' && github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v3
