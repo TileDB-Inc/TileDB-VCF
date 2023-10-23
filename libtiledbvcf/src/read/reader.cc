@@ -1297,14 +1297,12 @@ bool Reader::process_query_results_v4() {
             num_samples);
 
         // If the allele is in GT, consider it in the pass computation
-        // TODO: when supporting greater than diploid organisms, expand the
-        // following boolean statement into a loop
         {
           bool matches_any_allele = false;
           for (unsigned int i = 0; i < gt.size(); i++) {
             matches_any_allele = matches_any_allele || allele_index == gt[i];
           }
-          if (!is_ref && matches_any_allele) {
+          if (matches_any_allele) {
             pass = pass || allele_passes;
           } else {
             LOG_TRACE("  ignore allele {} not in GT", allele_index);
