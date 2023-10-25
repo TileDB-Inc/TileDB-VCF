@@ -1285,6 +1285,7 @@ bool Reader::process_query_results_v4() {
 
       // If all GT are missing, then pass the record, otherwise check
       // if any of the alleles in GT pass the AF filter.
+      // Note: GT == -1 represents a missing value (from htslib).
       bool pass = true;
       for (unsigned int i = 0; i < gt.size(); i++) {
         pass = pass && gt[i] == -1;
