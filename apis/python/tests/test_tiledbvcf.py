@@ -1431,3 +1431,64 @@ def test_compression_level(tmp_path, level):
             for filter in attr.filters:
                 if "Zstd" in str(filter):
                     assert filter.level == level
+
+
+# Ok to skip is missing bcftools in Windows CI job
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
+)
+def test_gvcf_export(tmp_path):
+    # Compress the input VCFs
+    vcf_inputs = glob.glob(os.path.join(TESTS_INPUT_DIR, "gvcf-export", "*.vcf"))
+    for vcf_input in vcf_inputs:
+        vcf_output = os.path.join(tmp_path, os.path.basename(vcf_input)) + ".gz"
+        cmd = f"bcftools view --no-version -Oz -o {vcf_output} {vcf_input}"
+        subprocess.run(cmd, shell=True, check=True)
+
+    # Index the compressed VCFs
+    vcf_files = glob.glob(os.path.join(tmp_path, "*.gz"))
+    for vcf_file in vcf_files:
+        cmd = f"bcftools index {vcf_file}"
+        subprocess.run(cmd, shell=True, check=True)
+
+    # Ingest the VCFs
+    uri = os.path.join(tmp_path, "vcf.tdb")
+    ds = tiledbvcf.Dataset(uri=uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples(vcf_files)
+    ds = tiledbvcf.Dataset(uri=uri, mode="r")
+
+    # List of tests.
+    tests = [
+        {"region": "chr1:100-120", "samples": ["s0", "s1", "s2"]},
+        {"region": "chr1:110-120", "samples": ["s0", "s1"]},
+        {"region": "chr1:149-149", "samples": ["s0", "s1", "s3"]},
+        {"region": "chr1:150-150", "samples": ["s0", "s1", "s3", "s4"]},
+    ]
+
+    # No IAF filtering or reporting
+    for test in tests:
+        df = ds.read(regions=test["region"])
+        assert set(df["sample_name"].unique()) == set(test["samples"])
+
+    attrs = [
+        "sample_name",
+        "contig",
+        "pos_start",
+        "alleles",
+        "fmt_GT",
+        "info_TILEDB_IAF",
+    ]
+
+    # IAF reporting
+    for test in tests:
+        df = ds.read(attrs=attrs, regions=test["region"])
+        assert set(df["sample_name"].unique()) == set(test["samples"])
+
+    # IAF filtering and reporting
+    for test in tests:
+        df = ds.read(attrs=attrs, regions=test["region"], set_af_filter="<=1.0")
+        assert set(df["sample_name"].unique()) == set(test["samples"])
