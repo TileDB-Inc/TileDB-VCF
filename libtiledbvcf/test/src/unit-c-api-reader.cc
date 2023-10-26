@@ -422,7 +422,8 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
 
   SECTION("- Valid options") {
     const char* config =
-        "sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi";
+        "sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi, "
+        "vfs.azure.storage_sas_token=?sv=123456789==";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
   }

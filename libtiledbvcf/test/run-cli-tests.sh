@@ -499,6 +499,10 @@ $tilevcf utils vacuum commits -u ${uri} --log-level trace
 $tilevcf utils vacuum fragment_meta -u ${uri} --log-level trace
 $tilevcf utils vacuum fragments -u ${uri} --log-level trace
 
+# test tiledb-config parsing
+# -------------------------------------------------------------------
+$tilevcf create -u tmp --tiledb-config vfs.azure.storage_sas_token=?sv=123456789== || exit 1
+
 # Expected failures
 echo ""
 echo "** Expected failure error messages follow:"
