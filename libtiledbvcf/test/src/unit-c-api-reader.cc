@@ -92,7 +92,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_SAMPLE_NAME(r, nr)                     \
   std::vector<int32_t> sample_name_offsets((nr) + 1);   \
-  std::vector<char> sample_name((nr)*10);               \
+  std::vector<char> sample_name((nr) * 10);             \
   REQUIRE(                                              \
       tiledb_vcf_reader_set_buffer_values(              \
           (reader),                                     \
@@ -108,7 +108,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_CONTIG(r, nr)                                                \
   std::vector<int32_t> contig_offsets((nr) + 1);                              \
-  std::vector<char> contig((nr)*10);                                          \
+  std::vector<char> contig((nr) * 10);                                        \
   REQUIRE(                                                                    \
       tiledb_vcf_reader_set_buffer_values(                                    \
           (reader), "contig", sizeof(char) * contig.size(), contig.data()) == \
@@ -123,7 +123,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 #define SET_BUFF_ALLELES(r, nr)                          \
   std::vector<int32_t> alleles_offsets(2 * (nr) + 1);    \
   std::vector<int32_t> alleles_list_offsets((nr) + 1);   \
-  std::vector<char> alleles((nr)*20);                    \
+  std::vector<char> alleles((nr) * 20);                  \
   REQUIRE(                                               \
       tiledb_vcf_reader_set_buffer_values(               \
           (reader),                                      \
@@ -147,7 +147,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
   std::vector<int32_t> filters_offsets(2 * (nr) + 1);     \
   std::vector<int32_t> filters_list_offsets((nr) + 1);    \
   std::vector<uint8_t> filters_bitmap((nr) / 8 + 1);      \
-  std::vector<char> filters((nr)*20);                     \
+  std::vector<char> filters((nr) * 20);                   \
   REQUIRE(                                                \
       tiledb_vcf_reader_set_buffer_values(                \
           (reader),                                       \
@@ -175,7 +175,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_INFO(r, nr)                                            \
   std::vector<int32_t> info_offsets((nr) + 1);                          \
-  std::vector<char> info((nr)*100);                                     \
+  std::vector<char> info((nr) * 100);                                   \
   REQUIRE(                                                              \
       tiledb_vcf_reader_set_buffer_values(                              \
           (reader), "info", sizeof(char) * info.size(), info.data()) == \
@@ -189,7 +189,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_FORMAT(r, nr)                                             \
   std::vector<int32_t> format_offsets((nr) + 1);                           \
-  std::vector<char> format((nr)*100);                                      \
+  std::vector<char> format((nr) * 100);                                    \
   REQUIRE(                                                                 \
       tiledb_vcf_reader_set_buffer_values(                                 \
           (reader), "fmt", sizeof(char) * format.size(), format.data()) == \
@@ -203,7 +203,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_FMT_GT(r, nr)                                               \
   std::vector<int32_t> fmt_GT_offsets((nr) + 1);                             \
-  std::vector<int> fmt_GT((nr)*2);                                           \
+  std::vector<int> fmt_GT((nr) * 2);                                         \
   REQUIRE(                                                                   \
       tiledb_vcf_reader_set_buffer_values(                                   \
           (reader), "fmt_GT", sizeof(int) * fmt_GT.size(), fmt_GT.data()) == \
@@ -422,7 +422,8 @@ TEST_CASE("C API: Reader set config", "[capi][query]") {
 
   SECTION("- Valid options") {
     const char* config =
-        "sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi";
+        "sm.compute_concurrency_level=4, vfs.s3.proxy_host=abc.def.ghi, "
+        "vfs.azure.storage_sas_token=?sv=123456789==";
     REQUIRE(
         tiledb_vcf_reader_set_tiledb_config(reader, config) == TILEDB_VCF_OK);
   }
