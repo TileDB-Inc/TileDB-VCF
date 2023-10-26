@@ -58,11 +58,15 @@ docs:
 check-format:
 	@./ci/run-clang-format.sh . clang-format 0 \
 		`find libtiledbvcf/src -name "*.cc" -or -name "*.h"`
+	@./ci/run-clang-format.sh . clang-format 0 \
+		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
 
 .PHONY: format
 format:
 	 @./ci/run-clang-format.sh . clang-format 1 \
 		`find libtiledbvcf/src -name "*.cc" -or -name "*.h"`
+	 @./ci/run-clang-format.sh . clang-format 1 \
+		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
 
 # clean
 # -------------------------------------------------------------------
