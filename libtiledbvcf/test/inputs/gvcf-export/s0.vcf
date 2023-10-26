@@ -1,0 +1,7 @@
+##fileformat=VCFv4.4
+##FILTER=<ID=PASS,Description="All filters passed">
+##INFO=<ID=END,Number=1,Type=Integer,Description="End">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr1>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s0
+chr1	100	.	A	<NON_REF>	100.0	.	END=200	GT	./.

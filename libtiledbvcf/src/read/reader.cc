@@ -1283,8 +1283,13 @@ bool Reader::process_query_results_v4() {
 
       auto gt = results.buffers()->gt(i);
 
-      // Check if any of the alleles in GT pass the AF filter
-      bool pass = false;
+      // If all GT are missing, then pass the record, otherwise check
+      // if any of the alleles in GT pass the AF filter.
+      // Note: GT == -1 represents a missing value (from htslib).
+      bool pass = true;
+      for (unsigned int i = 0; i < gt.size(); i++) {
+        pass = pass && gt[i] == -1;
+      }
 
       read_state_.query_results.af_values.clear();
       int allele_index = 0;
