@@ -37,19 +37,37 @@ inline void AFMap::retrieve_variant_stats(
     uint64_t* allele_offsets,
     int* ac,
     float_t* afb) {
-  size_t row = 0;
-  allele_offsets[0] = 0;
-  for (std::pair<uint32_t, std::pair<int, std::unordered_map<std::string, int>>>
-           position_to_allele : ac_map_) {
-    for (std::pair<std::string, int> allele_to_count :
-         position_to_allele.second.second) {
-      if (row > allele_cardinality_) {
-        throw std::runtime_error(
-            "[VariantStatsReader] export buffer size computed incorrectly");
+  {
+    size_t row = 0;
+    for (std::pair<
+             uint32_t,
+             std::pair<int, std::unordered_map<std::string, int>>>
+             position_to_allele : ac_map_) {
+      for (size_t remaining_to_insert = position_to_allele.second.second.size();
+           remaining_to_insert > 0;
+           remaining_to_insert--) {
+        pos[row] = position_to_allele.first;
+        row++;
+        if (row > allele_cardinality_) {
+          throw std::runtime_error(
+              "[VariantStatsReader] export buffer size computed incorrectly: "
+              "too low");
+        }
       }
-      pos[row] = position_to_allele.first;
+    }
+    if (row < allele_cardinality_) {
+      throw std::runtime_error(
+          "[VariantStatsReader] export buffer size computed incorrectly: too "
+          "high");
+    }
+  }
+  allele_offsets[0] = 0;
+  for (size_t row = 0; row < allele_cardinality_;) {
+    std::pair<int, std::unordered_map<std::string, int>> an_to_allele =
+        ac_map_[pos[row]];
+    for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
       ac[row] = allele_to_count.second;
-      afb[row] = af(position_to_allele.first, allele_to_count.first);
+      afb[row] = af(pos[row], allele_to_count.first);
       std::memcpy(
           allele + allele_offsets[row],
           allele_to_count.first.c_str(),
