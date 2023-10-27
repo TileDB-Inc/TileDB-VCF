@@ -31,6 +31,20 @@
 
 namespace tiledb::vcf {
 
+inline int pos_comparator(const void* a, const void* b) {
+  uint32_t first = *reinterpret_cast<const uint32_t*>(a);
+  uint32_t second = *reinterpret_cast<const uint32_t*>(b);
+  if (first == second) {
+    return 0;
+  } else {
+    if (first > second) {
+      return 1;
+    } else {
+      return -1;
+    }
+  }
+}
+
 inline void AFMap::retrieve_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -61,6 +75,7 @@ inline void AFMap::retrieve_variant_stats(
           "high");
     }
   }
+  qsort(pos, allele_cardinality_, sizeof(uint32_t), pos_comparator);
   allele_offsets[0] = 0;
   for (size_t row = 0; row < allele_cardinality_;) {
     std::pair<int, std::unordered_map<std::string, int>> an_to_allele =
