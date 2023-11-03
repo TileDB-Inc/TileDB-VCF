@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'io.tiledb'
-version '0.26.2'
+version '0.26.3'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
