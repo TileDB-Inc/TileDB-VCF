@@ -192,14 +192,8 @@ void Reader::init_af_filter() {
 }
 
 void Reader::init_variant_stats_reader_for_export() {
-  if (!af_filter_ && !params_.af_filter.empty()) {
-    Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
-    af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group, false);
-    af_filter_->set_condition(params_.af_filter);
-  } else if (params_.af_filter.empty()) {
-    throw std::runtime_error(
-        "initializing reader for stats without setting AF filter");
-  }
+  Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+  af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group, false);
 }
 
 InMemoryExporter* Reader::set_in_memory_exporter() {
@@ -1241,6 +1235,10 @@ bool Reader::process_query_results_v4() {
   if (read_state_.regions.empty())
     throw std::runtime_error(
         "Error processing query results; empty regions list.");
+  if (af_filter_ && params_.af_filter.empty()) {
+    throw std::runtime_error(
+        "Error processing query results; inconsistent AF filter state.");
+  }
 
   const auto& results = read_state_.query_results;
   const uint64_t num_cells = results.num_cells();

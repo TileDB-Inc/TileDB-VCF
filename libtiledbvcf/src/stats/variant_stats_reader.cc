@@ -145,9 +145,8 @@ void VariantStatsReader::retrieve_variant_stats(
 }
 
 void VariantStatsReader::compute_af() {
-  // If condition is empty, nothing to do
   // If regions is empty, af_map_ is up to date so no more work to do
-  if (condition_.empty() || regions_.empty()) {
+  if (regions_.empty()) {
     return;
   }
 
@@ -220,6 +219,11 @@ std::pair<bool, float> VariantStatsReader::pass(
 }
 
 void VariantStatsReader::parse_condition_() {
+  if (condition_.empty()) {
+    condition_op_ = TILEDB_LE;
+    threshold_ = 1.0;
+    return;
+  }
   std::regex re("([<=>!]+)\\s*(\\S+)");
   std::smatch sm;
 

@@ -11,4 +11,4 @@ def read_allele_frequency(dataset_uri: str, region: str) -> pandas.DataFrame():
     import tiledbvcf
 
     ds = tiledbvcf.Dataset(uri=dataset_uri, mode="r")
-    return ds.read_variant_stats(region, "<=1.0").to_pandas()
+    return ds.read_variant_stats(region).to_pandas()
