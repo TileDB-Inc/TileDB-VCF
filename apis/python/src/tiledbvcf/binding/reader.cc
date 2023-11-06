@@ -623,9 +623,10 @@ py::object Reader::get_variant_stats_results() {
   std::shared_ptr<arrow::Field> allele_field =
       arrow::field("allele", arrow::large_utf8());
   std::shared_ptr<arrow::Field> ac_field = arrow::field("ac", arrow::int32());
+  std::shared_ptr<arrow::Field> an_field = arrow::field("an", arrow::int32());
   std::shared_ptr<arrow::Field> af_field = arrow::field("af", arrow::float32());
   std::vector<std::shared_ptr<arrow::Field>> fields = {
-      pos_field, allele_field, ac_field, af_field};
+      pos_field, allele_field, ac_field, an_field, af_field};
 
   size_t cardinality, alleles_size;
   auto reader = ptr.get();
@@ -641,10 +642,11 @@ py::object Reader::get_variant_stats_results() {
   auto maybe_allele_offset_buffer =
       arrow::AllocateBuffer((cardinality + 1) * sizeof(uint64_t));
   auto maybe_ac_buffer = arrow::AllocateBuffer(cardinality * sizeof(int32_t));
+  auto maybe_an_buffer = arrow::AllocateBuffer(cardinality * sizeof(int32_t));
   auto maybe_af_buffer = arrow::AllocateBuffer(cardinality * sizeof(float_t));
   if (!(maybe_pos_buffer.ok() && maybe_allele_buffer.ok() &&
         maybe_allele_offset_buffer.ok() && maybe_ac_buffer.ok() &&
-        maybe_af_buffer.ok())) {
+        maybe_an_buffer.ok() && maybe_af_buffer.ok())) {
     throw std::runtime_error(
         "TileDB-VCF-Py: buffer allocation failed for fetching stats");
   }
@@ -654,6 +656,7 @@ py::object Reader::get_variant_stats_results() {
   std::shared_ptr<arrow::Buffer> allele_offset_buffer =
       std::move(*maybe_allele_offset_buffer);
   std::shared_ptr<arrow::Buffer> ac_buffer = std::move(*maybe_ac_buffer);
+  std::shared_ptr<arrow::Buffer> an_buffer = std::move(*maybe_an_buffer);
   std::shared_ptr<arrow::Buffer> af_buffer = std::move(*maybe_af_buffer);
 
   check_error(
@@ -664,6 +667,7 @@ py::object Reader::get_variant_stats_results() {
           reinterpret_cast<char*>(allele_buffer->mutable_data()),
           reinterpret_cast<uint64_t*>(allele_offset_buffer->mutable_data()),
           reinterpret_cast<int*>(ac_buffer->mutable_data()),
+          reinterpret_cast<int*>(an_buffer->mutable_data()),
           reinterpret_cast<float_t*>(af_buffer->mutable_data())));
 
   std::shared_ptr<arrow::Array> pos_array =
@@ -673,10 +677,12 @@ py::object Reader::get_variant_stats_results() {
           cardinality, allele_offset_buffer, allele_buffer);
   std::shared_ptr<arrow::Array> ac_array =
       std::make_shared<arrow::Int32Array>(cardinality, ac_buffer);
+  std::shared_ptr<arrow::Array> an_array =
+      std::make_shared<arrow::Int32Array>(cardinality, an_buffer);
   std::shared_ptr<arrow::Array> af_array =
       std::make_shared<arrow::FloatArray>(cardinality, af_buffer);
   std::vector<std::shared_ptr<arrow::Array>> arrays = {
-      pos_array, allele_array, ac_array, af_array};
+      pos_array, allele_array, ac_array, an_array, af_array};
 
   std::shared_ptr<arrow::Schema> schema = arrow::schema(fields);
   auto table = arrow::Table::Make(schema, arrays, cardinality);

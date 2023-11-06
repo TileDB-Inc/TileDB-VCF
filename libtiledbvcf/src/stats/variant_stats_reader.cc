@@ -50,6 +50,7 @@ inline void AFMap::retrieve_variant_stats(
     char* allele,
     uint64_t* allele_offsets,
     int* ac,
+    int* an,
     float_t* afb) {
   {
     size_t row = 0;
@@ -82,6 +83,7 @@ inline void AFMap::retrieve_variant_stats(
         ac_map_[pos[row]];
     for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
       ac[row] = allele_to_count.second;
+      an[row] = an_to_allele.first;
       afb[row] = af(pos[row], allele_to_count.first);
       std::memcpy(
           allele + allele_offsets[row],
@@ -131,6 +133,7 @@ void VariantStatsReader::retrieve_variant_stats(
     char* allele,
     uint64_t* allele_offsets,
     int* ac,
+    int* an,
     float_t* af) {
   // there is no thread-safe implementation of this yet
   if (async_query_) {
@@ -138,7 +141,7 @@ void VariantStatsReader::retrieve_variant_stats(
         "[VariantStatsReader] can not retrieve variant stats when async quries "
         "are enabled");
   }
-  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac, af);
+  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
 }
 
 void VariantStatsReader::compute_af() {

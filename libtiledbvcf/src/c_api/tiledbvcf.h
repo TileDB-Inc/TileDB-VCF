@@ -947,6 +947,7 @@ tiledb_vcf_reader_prepare_variant_stats(tiledb_vcf_reader_t* reader);
  * @param allele allele buffer
  * @param allele_offsets allele offset buffer (n+1 cardinality)
  * @param ac buffer of int representing allele count
+ * @param an buffer of int representing allele number
  * @param af buffer of float representing internal allele frequency
  */
 TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_variant_stats(
@@ -955,6 +956,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_variant_stats(
     char* allele,
     uint64_t* allele_offsets,
     int* ac,
+    int* an,
     float* af);
 
 /**

@@ -183,6 +183,7 @@ class AFMap {
    * @param allele variable buffer of char representing allele
    * @param allele_offsets allele offsets
    * @param ac buffer of int representing allele count
+   * @param an buffer of int representing allele number
    * @param af buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
@@ -190,6 +191,7 @@ class AFMap {
       char* allele,
       uint64_t* allele_offsets,
       int* ac,
+      int* an,
       float_t* af);
 
  private:
@@ -248,6 +250,7 @@ class VariantStatsReader {
    * @param allele variable buffer of char representing allele
    * @param allele_offsets allele offsets
    * @param ac buffer of int representing allele count
+   * @param an buffer of int representing allele number
    * @param af buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
@@ -255,6 +258,7 @@ class VariantStatsReader {
       char* allele,
       uint64_t* allele_offsets,
       int* ac,
+      int* an,
       float_t* af);
 
   /**

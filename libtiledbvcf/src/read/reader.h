@@ -458,6 +458,7 @@ class Reader {
    * @param allele allele buffer
    * @param allele_offsets allele offset buffer (n+1 cardinality)
    * @param ac buffer of int representing allele count
+   * @param an buffer of int representing allele number
    * @param af buffer of float representing internal allele frequency
    */
   void read_from_variant_stats(
@@ -465,6 +466,7 @@ class Reader {
       char* allele,
       uint64_t* allele_offsets,
       int* ac,
+      int* an,
       float_t* af);
 
   /**

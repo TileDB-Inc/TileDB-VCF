@@ -963,8 +963,9 @@ void Reader::read_from_variant_stats(
     char* allele,
     uint64_t* allele_offsets,
     int* ac,
+    int* an,
     float_t* af) {
-  af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, af);
+  af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
 }
 
 std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {

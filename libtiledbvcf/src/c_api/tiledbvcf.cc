@@ -985,6 +985,7 @@ int32_t tiledb_vcf_reader_read_from_variant_stats(
     char* allele,
     uint64_t* allele_offsets,
     int* ac,
+    int* an,
     float_t* af) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || allele == nullptr ||
       allele_offsets == nullptr || ac == nullptr) {
@@ -994,7 +995,7 @@ int32_t tiledb_vcf_reader_read_from_variant_stats(
   if (SAVE_ERROR_CATCH(
           reader,
           reader->reader_->read_from_variant_stats(
-              pos, allele, allele_offsets, ac, af))) {
+              pos, allele, allele_offsets, ac, an, af))) {
     return TILEDB_VCF_ERR;
   }
 
