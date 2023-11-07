@@ -410,6 +410,19 @@ TEST_CASE("C API: Reader initialization", "[capi][reader]") {
   tiledb_vcf_reader_free(&reader);
 }
 
+TEST_CASE("C API: Reader get variant stats buffer sizes") {
+  std::string dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples_GT_DP_PL";
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+  size_t cardinality, alleles_size;
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+  const char* regions = "chr1:100-200,chr2:1-100";
+  REQUIRE(tiledb_vcf_reader_set_regions(reader, regions) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_prepare_variant_stats(reader) == TILEDB_VCF_OK);
+  REQUIRE(tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+      reader, &cardinality, &alleles_size) == TILEDB_VCF_OK);
+}
+
 TEST_CASE("C API: Reader set config", "[capi][query]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
