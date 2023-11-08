@@ -30,6 +30,27 @@
 namespace tiledb {
 namespace vcf {
 
+// Declare static variables
+std::set<std::string> InMemoryExporter::info_flags_;
+
+void InMemoryExporter::add_flag(const std::string& field) {
+  // Add info_ to field if it is missing
+  std::string info_field = field;
+  if (field.substr(0, 5) != "info_") {
+    info_field = "info_" + field;
+  }
+  info_flags_.insert(info_field);
+}
+
+bool InMemoryExporter::is_flag(const std::string& field) {
+  // Add info_ to field if it is missing
+  std::string info_field = field;
+  if (field.substr(0, 5) != "info_") {
+    info_field = "info_" + field;
+  }
+  return info_flags_.count(info_field) > 0;
+}
+
 void InMemoryExporter::set_buffer_values(
     const std::string& attribute, void* buff, int64_t buff_size) {
   if (buff == nullptr) {
@@ -644,6 +665,18 @@ void InMemoryExporter::attribute_datatype(
       break;
   }
 
+  if (*datatype == AttrDatatype::FLAG) {
+    // Add this attribute to the set of info flags.
+    add_flag(attribute);
+
+    // Set buffer attributes for flags and use INT32 for the datatype.
+    *var_len = false;
+    *nullable = false;
+    *list = false;
+    *datatype = AttrDatatype::INT32;
+    return;
+  }
+
   *var_len = !fixed_len_attr(attribute);
   *nullable = nullable_attr(attribute);
   *list = var_len_list_attr(attribute);
@@ -672,7 +705,7 @@ AttrDatatype InMemoryExporter::get_info_fmt_datatype(
                         dataset->fmt_field_type(field_name, hdr);
   switch (htslib_type) {
     case BCF_HT_FLAG:
-      return AttrDatatype::INT32;
+      return AttrDatatype::FLAG;
     case BCF_HT_STR:
       return AttrDatatype::CHAR;
     case BCF_HT_INT:
@@ -964,6 +997,10 @@ bool InMemoryExporter::copy_info_fmt_value(
     for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
     return copy_cell(dest, decoded, nelts * sizeof(int), nelts, hdr);
+  } else if (is_flag(field_name)) {
+    // If this is a flag, convert the src pointer to a true or false value.
+    int flag = src == nullptr ? 0 : 1;
+    return copy_cell(dest, &flag, sizeof(int), 1, hdr);
   } else {
     return copy_cell(dest, src, nbytes, nelts, hdr);
   }

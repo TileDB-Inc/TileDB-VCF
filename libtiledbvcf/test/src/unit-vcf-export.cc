@@ -380,8 +380,8 @@ TEST_CASE("TileDB-VCF: Test export", "[tiledbvcf][export]") {
     REQUIRE(nullable);
     reader.attribute_datatype("info_DS", &dtype, &var_len, &nullable, &list);
     REQUIRE(dtype == AttrDatatype::INT32);
-    REQUIRE(var_len);
-    REQUIRE(nullable);
+    REQUIRE(!var_len);
+    REQUIRE(!nullable);
   }
 
   if (vfs.is_dir(dataset_uri))
