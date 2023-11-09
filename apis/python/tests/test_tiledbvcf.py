@@ -1179,6 +1179,17 @@ def test_ingest_with_stats(tmp_path):
         ]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    df = ds.read_variant_stats("chr1:1-10000")
+    assert df.shape == (11, 5)
+    df = tiledbvcf.allele_frequency.read_allele_frequency(
+        os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
+    )
+    assert df.pos.is_monotonic_increasing
+    df["an_check"] = (df.ac / df.af).round(0).astype("int32")
+    assert df.an_check.equals(df.an)
+    df = ds.read_variant_stats("chr1:1-10000")
+    assert df.shape == (11, 5)
 
 
 # Ok to skip is missing bcftools in Windows CI job
