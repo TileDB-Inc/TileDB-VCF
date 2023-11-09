@@ -954,6 +954,54 @@ int32_t tiledb_vcf_reader_set_scan_all_samples(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+    tiledb_vcf_reader_t* reader, size_t* num_rows, size_t* alleles_size) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || num_rows == nullptr ||
+      alleles_size == nullptr)
+    return TILEDB_VCF_ERR;
+
+  std::tuple<size_t, size_t> sizes;
+  if (SAVE_ERROR_CATCH(
+          reader, sizes = reader->reader_->variant_stats_buffer_sizes()))
+    return TILEDB_VCF_ERR;
+
+  *num_rows = std::get<0>(sizes);
+  *alleles_size = std::get<1>(sizes);
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_prepare_variant_stats(tiledb_vcf_reader_t* reader) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->prepare_variant_stats()))
+    return TILEDB_VCF_ERR;
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_read_from_variant_stats(
+    tiledb_vcf_reader_t* reader,
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac,
+    int* an,
+    float_t* af) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || allele == nullptr ||
+      allele_offsets == nullptr || ac == nullptr) {
+    return TILEDB_VCF_ERR;
+  }
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->read_from_variant_stats(
+              pos, allele, allele_offsets, ac, an, af))) {
+    return TILEDB_VCF_ERR;
+  }
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*             BED FILE              */
 /* ********************************* */

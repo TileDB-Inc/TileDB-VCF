@@ -27,9 +27,13 @@
  */
 
 #include <arrow/python/pyarrow.h>
+#include <stdint.h>
+#include <sys/types.h>
 #include <tiledbvcf/arrow.h>
+#include <cmath>
 #include <stdexcept>
 
+#include "arrow/type_fwd.h"
 #include "reader.h"
 
 namespace py = pybind11;
@@ -611,6 +615,88 @@ std::vector<std::string> Reader::get_sample_names() {
   }
 
   return names;
+}
+
+py::object Reader::get_variant_stats_results() {
+  std::shared_ptr<arrow::Field> pos_field =
+      arrow::field("pos", arrow::uint32());
+  std::shared_ptr<arrow::Field> allele_field =
+      arrow::field("allele", arrow::large_utf8());
+  std::shared_ptr<arrow::Field> ac_field = arrow::field("ac", arrow::int32());
+  std::shared_ptr<arrow::Field> an_field = arrow::field("an", arrow::int32());
+  std::shared_ptr<arrow::Field> af_field = arrow::field("af", arrow::float32());
+  std::vector<std::shared_ptr<arrow::Field>> fields = {
+      pos_field, allele_field, ac_field, an_field, af_field};
+
+  size_t cardinality, alleles_size;
+  auto reader = ptr.get();
+
+  check_error(reader, tiledb_vcf_reader_prepare_variant_stats(reader));
+  check_error(
+      reader,
+      tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+          reader, &cardinality, &alleles_size));
+
+  auto maybe_pos_buffer = arrow::AllocateBuffer(cardinality * sizeof(uint32_t));
+  auto maybe_allele_buffer = arrow::AllocateBuffer(alleles_size);
+  auto maybe_allele_offset_buffer =
+      arrow::AllocateBuffer((cardinality + 1) * sizeof(uint64_t));
+  auto maybe_ac_buffer = arrow::AllocateBuffer(cardinality * sizeof(int32_t));
+  auto maybe_an_buffer = arrow::AllocateBuffer(cardinality * sizeof(int32_t));
+  auto maybe_af_buffer = arrow::AllocateBuffer(cardinality * sizeof(float_t));
+  if (!(maybe_pos_buffer.ok() && maybe_allele_buffer.ok() &&
+        maybe_allele_offset_buffer.ok() && maybe_ac_buffer.ok() &&
+        maybe_an_buffer.ok() && maybe_af_buffer.ok())) {
+    throw std::runtime_error(
+        "TileDB-VCF-Py: buffer allocation failed for fetching stats");
+  }
+  std::shared_ptr<arrow::Buffer> pos_buffer = std::move(*maybe_pos_buffer);
+  std::shared_ptr<arrow::Buffer> allele_buffer =
+      std::move(*maybe_allele_buffer);
+  std::shared_ptr<arrow::Buffer> allele_offset_buffer =
+      std::move(*maybe_allele_offset_buffer);
+  std::shared_ptr<arrow::Buffer> ac_buffer = std::move(*maybe_ac_buffer);
+  std::shared_ptr<arrow::Buffer> an_buffer = std::move(*maybe_an_buffer);
+  std::shared_ptr<arrow::Buffer> af_buffer = std::move(*maybe_af_buffer);
+
+  check_error(
+      reader,
+      tiledb_vcf_reader_read_from_variant_stats(
+          reader,
+          reinterpret_cast<uint32_t*>(pos_buffer->mutable_data()),
+          reinterpret_cast<char*>(allele_buffer->mutable_data()),
+          reinterpret_cast<uint64_t*>(allele_offset_buffer->mutable_data()),
+          reinterpret_cast<int*>(ac_buffer->mutable_data()),
+          reinterpret_cast<int*>(an_buffer->mutable_data()),
+          reinterpret_cast<float_t*>(af_buffer->mutable_data())));
+
+  std::shared_ptr<arrow::Array> pos_array =
+      std::make_shared<arrow::UInt32Array>(cardinality, pos_buffer);
+  std::shared_ptr<arrow::Array> allele_array =
+      std::make_shared<arrow::LargeStringArray>(
+          cardinality, allele_offset_buffer, allele_buffer);
+  std::shared_ptr<arrow::Array> ac_array =
+      std::make_shared<arrow::Int32Array>(cardinality, ac_buffer);
+  std::shared_ptr<arrow::Array> an_array =
+      std::make_shared<arrow::Int32Array>(cardinality, an_buffer);
+  std::shared_ptr<arrow::Array> af_array =
+      std::make_shared<arrow::FloatArray>(cardinality, af_buffer);
+  std::vector<std::shared_ptr<arrow::Array>> arrays = {
+      pos_array, allele_array, ac_array, an_array, af_array};
+
+  std::shared_ptr<arrow::Schema> schema = arrow::schema(fields);
+  auto table = arrow::Table::Make(schema, arrays, cardinality);
+  check_arrow_error(table->Validate());
+
+  PyObject* obj = arrow::py::wrap_table(table);
+  if (obj == nullptr) {
+    PyErr_PrintEx(1);
+    throw std::runtime_error(
+        "TileDB-VCF-Py: Error converting stats export table to Arrow; null "
+        "Python object.");
+  }
+
+  return py::reinterpret_steal<py::object>(obj);
 }
 
 py::dtype Reader::to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype) {

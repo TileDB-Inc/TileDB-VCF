@@ -31,6 +31,71 @@
 
 namespace tiledb::vcf {
 
+inline int pos_comparator(const void* a, const void* b) {
+  uint32_t first = *reinterpret_cast<const uint32_t*>(a);
+  uint32_t second = *reinterpret_cast<const uint32_t*>(b);
+  if (first == second) {
+    return 0;
+  } else {
+    if (first > second) {
+      return 1;
+    } else {
+      return -1;
+    }
+  }
+}
+
+inline void AFMap::retrieve_variant_stats(
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac,
+    int* an,
+    float_t* afb) {
+  {
+    size_t row = 0;
+    for (std::pair<
+             uint32_t,
+             std::pair<int, std::unordered_map<std::string, int>>>
+             position_to_allele : ac_map_) {
+      for (size_t remaining_to_insert = position_to_allele.second.second.size();
+           remaining_to_insert > 0;
+           remaining_to_insert--) {
+        pos[row] = position_to_allele.first;
+        row++;
+        if (row > allele_cardinality_) {
+          throw std::runtime_error(
+              "[VariantStatsReader] export buffer size computed incorrectly: "
+              "too low");
+        }
+      }
+    }
+    if (row < allele_cardinality_) {
+      throw std::runtime_error(
+          "[VariantStatsReader] export buffer size computed incorrectly: too "
+          "high");
+    }
+  }
+  qsort(pos, allele_cardinality_, sizeof(uint32_t), pos_comparator);
+  allele_offsets[0] = 0;
+  for (size_t row = 0; row < allele_cardinality_;) {
+    std::pair<int, std::unordered_map<std::string, int>> an_to_allele =
+        ac_map_[pos[row]];
+    for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
+      ac[row] = allele_to_count.second;
+      an[row] = an_to_allele.first;
+      afb[row] = af(pos[row], allele_to_count.first);
+      std::memcpy(
+          allele + allele_offsets[row],
+          allele_to_count.first.c_str(),
+          allele_to_count.first.size());
+      allele_offsets[row + 1] =
+          allele_offsets[row] + allele_to_count.first.size();
+      row++;
+    }
+  }
+}
+
 VariantStatsReader::VariantStatsReader(
     std::shared_ptr<Context> ctx, const Group& group, bool async_query)
     : async_query_(async_query) {
@@ -63,10 +128,25 @@ VariantStatsReader::VariantStatsReader(
   }
 }
 
+void VariantStatsReader::retrieve_variant_stats(
+    uint32_t* pos,
+    char* allele,
+    uint64_t* allele_offsets,
+    int* ac,
+    int* an,
+    float_t* af) {
+  // there is no thread-safe implementation of this yet
+  if (async_query_) {
+    throw std::runtime_error(
+        "[VariantStatsReader] can not retrieve variant stats when async quries "
+        "are enabled");
+  }
+  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
+}
+
 void VariantStatsReader::compute_af() {
-  // If condition is empty, nothing to do
   // If regions is empty, af_map_ is up to date so no more work to do
-  if (condition_.empty() || regions_.empty()) {
+  if (regions_.empty()) {
     return;
   }
 
@@ -139,6 +219,11 @@ std::pair<bool, float> VariantStatsReader::pass(
 }
 
 void VariantStatsReader::parse_condition_() {
+  if (condition_.empty()) {
+    condition_op_ = TILEDB_LE;
+    threshold_ = 1.0;
+    return;
+  }
   std::regex re("([<=>!]+)\\s*(\\S+)");
   std::smatch sm;
 
