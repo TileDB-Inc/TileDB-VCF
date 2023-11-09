@@ -464,7 +464,13 @@ void WriterWorkerV4::buffer_info_field(
   buff->append(&type, sizeof(int));
   buff->append(&num_vals, sizeof(int));
   if (val->dst) {
-    buff->append(val->dst, num_vals * utils::bcf_type_size(type));
+    if (type == BCF_HT_FLAG) {
+      // Write a dummy value for flags.
+      int flag = 1;
+      buff->append(&flag, num_vals * utils::bcf_type_size(type));
+    } else {
+      buff->append(val->dst, num_vals * utils::bcf_type_size(type));
+    }
   } else {
     // val->dst can be NULL if the only INFO value is a flag
     assert(num_vals == 1);

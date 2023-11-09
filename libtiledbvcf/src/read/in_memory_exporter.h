@@ -255,9 +255,22 @@ class InMemoryExporter : public Exporter {
   /** Reusable string buffer for temp results. */
   std::string str_buff_;
 
+  /**
+   * Set of info field names with type flag.
+   *
+   * NOTE: Only info fields are allowed to have type flag.
+   */
+  static std::set<std::string> info_flags_;
+
   /* ********************************* */
   /*           PRIVATE METHODS         */
   /* ********************************* */
+
+  /** Adds a field to the set of info flags. */
+  static void add_flag(const std::string& field);
+
+  /** Returns true if the given field is an info flag. */
+  static bool is_flag(const std::string& field);
 
   /**
    * Returns the ExportableAttribute corresponding to the given attribute name.

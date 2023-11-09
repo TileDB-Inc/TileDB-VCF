@@ -1503,3 +1503,24 @@ def test_gvcf_export(tmp_path):
     for test in tests:
         df = ds.read(attrs=attrs, regions=test["region"], set_af_filter="<=1.0")
         assert set(df["sample_name"].unique()) == set(test["samples"])
+
+
+def test_flag_export(tmp_path):
+    # Create the dataset
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.vcf.gz"]]
+    ds.create_dataset()
+    ds.ingest_samples(samples)
+
+    # Read info flags
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    df = ds.read(attrs=["pos_start", "info_DB", "info_DS"])
+    df = df.sort_values(by=["pos_start"])
+
+    # Check if flags match the expected values
+    expected_db = [1, 1, 1, 0, 0, 1]
+    assert df["info_DB"].tolist() == expected_db
+
+    expected_ds = [1, 1, 0, 0, 1, 1]
+    assert df["info_DS"].tolist() == expected_ds
