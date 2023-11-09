@@ -873,4 +873,36 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     Assert.assertEquals(rows.get(1).getString(0), "HG01762");
     Assert.assertEquals(rows.get(2).getString(0), "HG01762");
   }
+
+  @Test
+  public void testInfoFlagExport() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("small.tdb", "v4"))
+            .option("ranges", "1:10000-20000")
+            .option("tiledb.vfs.num_threads", 1)
+            .option("tiledb.vcf.log_level", "DEBUG")
+            .load();
+    Dataset<Row> df = dfRead.select("contig", "posStart", "info_DB", "info_DS");
+    df.show();
+
+    // Define expected values
+    List<Integer> expectedDB = Arrays.asList(1, 1, 1, 0, 0, 1);
+    List<Integer> expectedDS = Arrays.asList(1, 1, 0, 0, 1, 1);
+
+    // Get actual values
+    List<Row> rows = df.collectAsList();
+    List<Integer> actualDB = new ArrayList<>();
+    List<Integer> actualDS = new ArrayList<>();
+    for (Row row : rows) {
+      actualDB.add(row.getInt(2));
+      actualDS.add(row.getInt(3));
+    }
+
+    // Compare
+    Assert.assertEquals(expectedDB, actualDB);
+    Assert.assertEquals(expectedDS, actualDS);
+  }
 }

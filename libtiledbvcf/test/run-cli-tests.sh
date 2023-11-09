@@ -28,7 +28,8 @@ function clean_up {
            region-map.txt pfx.tsv \
            export_test G1.bcf \
            create_test \
-           combine-test
+           combine-test \
+           tmp
     rm -rf "$upload_dir"
 }
 
