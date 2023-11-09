@@ -876,14 +876,15 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   @Test
   public void testInfoFlagExport() {
-    Dataset<Row> dfRead = session()
-        .read()
-        .format("io.tiledb.vcf")
-        .option("uri", testSampleGroupURI("small.tdb", "v4"))
-        .option("ranges", "1:10000-20000")
-        .option("tiledb.vfs.num_threads", 1)
-        .option("tiledb.vcf.log_level", "DEBUG")
-        .load();
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("small.tdb", "v4"))
+            .option("ranges", "1:10000-20000")
+            .option("tiledb.vfs.num_threads", 1)
+            .option("tiledb.vcf.log_level", "DEBUG")
+            .load();
     Dataset<Row> df = dfRead.select("contig", "posStart", "info_DB", "info_DS");
     df.show();
 
@@ -903,5 +904,5 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     // Compare
     Assert.assertEquals(expectedDB, actualDB);
     Assert.assertEquals(expectedDS, actualDS);
-  }  
+  }
 }
