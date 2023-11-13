@@ -584,6 +584,25 @@ public class VCFReader implements AutoCloseable {
     return stats;
   }
 
+  public VCFReader prepareVariantStats() {
+    int rc = LibVCFNative.tiledb_vcf_reader_prepare_variant_stats(this.readerPtr);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error preparing variant stats: " + msg);
+    }
+    return this;
+  }
+
+  public long[] getVariantStatsBufferSizes() {
+    long[] results = new long[2];
+    int rc = LibVCFNative.tiledb_vcf_reader_get_variant_stats_buffer_sizes(this.readerPtr, results);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error getting variant stats buffer sizes: " + msg);
+    }
+    return results;
+  }
+
   public String version() {
     return LibVCFNative.tiledb_vcf_version();
   }

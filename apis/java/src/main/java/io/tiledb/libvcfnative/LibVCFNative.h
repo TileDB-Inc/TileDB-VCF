@@ -480,6 +480,41 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1re
     jlongArray,
     jlongArray);
 
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_get_variant_stats_buffer_sizes
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1variant_1stats_1buffer_1sizes(
+    JNIEnv*, jclass, jlong, jlongArray);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_prepare_variant_stats
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1prepare_1variant_1stats(
+    JNIEnv*, jclass, jlong);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_read_from_variant_stats
+ * Signature: (J[J[B[J[I[I[F)I
+ */
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1read_1from_1variant_1stats(
+    JNIEnv*,
+    jclass,
+    jlong,
+    jlongArray,
+    jbyteArray,
+    jlongArray,
+    jintArray,
+    jintArray,
+    jfloatArray);
+
 #ifdef __cplusplus
 }
 #endif

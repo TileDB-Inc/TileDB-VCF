@@ -171,4 +171,18 @@ public class LibVCFNative {
       byte[] region_contig,
       long[] region_start,
       long[] region_end);
+
+  public static final native int tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+      long readerPtr, long[] results);
+
+  public static final native int tiledb_vcf_reader_prepare_variant_stats(long readerPtr);
+
+  public static final native int tiledb_vcf_reader_read_from_variant_stats(
+      long readerPtr,
+      long[] pos,
+      byte[] allele,
+      long[] allele_offsets,
+      int[] ac,
+      int[] an,
+      float[] af);
 }
