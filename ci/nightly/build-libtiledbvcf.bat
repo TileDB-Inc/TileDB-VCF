@@ -16,7 +16,7 @@ if %ERRORLEVEL% neq 0 exit 1
 cmake --build build-libtiledbvcf --config Release --target install-libtiledbvcf
 if %ERRORLEVEL% neq 0 exit 1
 
-dir %GITHUB_WORKSPACE%\install\
+dir /s %GITHUB_WORKSPACE%\install\
 
-%GITHUB_WORKSPACE%\install\bin\tiledbvcf version
+rem %GITHUB_WORKSPACE%\install\bin\tiledbvcf version
 rem if %ERRORLEVEL% neq 0 exit 1

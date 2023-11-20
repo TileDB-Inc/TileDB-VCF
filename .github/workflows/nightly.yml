@@ -131,6 +131,13 @@ jobs:
         run: cmd /C CALL TileDB-VCF/ci/nightly/build-libtiledb.bat
       - name: Build libtiledbvcf
         run: cmd /C CALL TileDB-VCF\ci\nightly\build-libtiledbvcf.bat
+      - name: Upload installation directory as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: win-nightly-libtiledbvcf-libtiledb-${{ matrix.libtiledb_version }}
+          path: |
+            install/*
+          retention-days: 14
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Confirm linking
         run: |
