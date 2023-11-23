@@ -79,6 +79,11 @@ steps:
 
       make VERBOSE=TRUE -j4 || cat /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_tiledb-stamp/ep_tiledb-build-err.log
       make VERBOSE=TRUE -j4 -C libtiledbvcf tiledb_vcf_unit || cat /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_tiledb-stamp/ep_tiledb-build-err.log
+      pushd /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_tiledb-stamp
+      make VERBOSE=TRUE -j4
+      make VERBOSE=TRUE -j4 install-tiledb
+      popd
+
       # cmake catches the segfault and blocks the core dump
       # sudo make check
       ./libtiledbvcf/test/tiledb_vcf_unit
