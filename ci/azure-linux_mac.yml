@@ -82,9 +82,9 @@ steps:
       fi
       pushd /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_tiledb-build
       echo 'about to make core:'
-      make VERBOSE=TRUE -j4
+      CMAKE_VERBOSE_MAKEFILE=TRUE make VERBOSE=TRUE -j4
       echo 'about to make install-tiledb:'
-      make VERBOSE=TRUE -j4 install-tiledb
+      CMAKE_VERBOSE_MAKEFILE=TRUE make VERBOSE=TRUE -j4 install-tiledb
       popd
 
       # cmake catches the segfault and blocks the core dump
