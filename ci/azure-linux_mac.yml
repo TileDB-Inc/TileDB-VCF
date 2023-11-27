@@ -81,7 +81,9 @@ steps:
       then echo first attempt succeeded
       fi
       pushd /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_tiledb-build
+      echo 'about to make core:'
       make VERBOSE=TRUE -j4
+      echo 'about to make install-tiledb:'
       make VERBOSE=TRUE -j4 install-tiledb
       popd
 
