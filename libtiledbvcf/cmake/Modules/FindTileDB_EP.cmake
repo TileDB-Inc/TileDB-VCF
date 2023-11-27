@@ -88,7 +88,7 @@ else()
         ExternalProject_Add(ep_tiledb
           PREFIX "externals"
 	  GIT_REPOSITORY "https://github.com/TileDB-Inc/TileDB.git"
-	  GIT_TAG "2.18.0"
+	  GIT_TAG "2.18.1"
           CMAKE_ARGS
             -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
             -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
