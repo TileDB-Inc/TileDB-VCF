@@ -33,7 +33,7 @@ stages:
             DOWNLOAD_TILEDB_PREBUILT: OFF
             ARTIFACT_NAME: linux_tiledb_source_build
           macos:
-            imageName: 'macOS-11'
+            imageName: 'macOS-12'
             python.version: '3.7'
             CXX: clang++
             BUILD_PYTHON_API: ON
@@ -91,7 +91,7 @@ stages:
               BUILD_PYTHON_API: ON
               BUILD_SPARK_API: ON
             mac:
-              imageName: 'macOS-11'
+              imageName: 'macOS-12'
               python.version: '3.7'
               CXX: clang++
               BUILD_PYTHON_API: ON
