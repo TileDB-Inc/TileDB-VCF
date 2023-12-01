@@ -2,7 +2,7 @@ name: tiledbvcf-py
 channels:
   - conda-forge
 dependencies:
-  - python>=3.4
+  - python>=3.11
   - pybind11=2.3.0
   - pyarrow==3.0.0
   - fsspec<2023.3.0 # fix dask failures in pytest
