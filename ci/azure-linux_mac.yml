@@ -160,7 +160,7 @@ steps:
         micromamba activate tiledbvcf-py
 
         # Install and test the Python API
-        python setup.py install --user
+        pip install --use-pep517
         python setup.py pytest
       fi
 
