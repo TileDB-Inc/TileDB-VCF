@@ -11,6 +11,7 @@ dependencies:
   - setuptools
   - setuptools_scm
   - setuptools_scm_git_archive
+  - libarchive
   - pip:
     - pytest-runner==5.1
     - pytest==5.1.2
