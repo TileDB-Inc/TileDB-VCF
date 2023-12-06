@@ -62,3 +62,6 @@ docs/.quarto
 # Vim swapfiles
 .*.sw?
 .sw?
+
+# Python venv
+venv/

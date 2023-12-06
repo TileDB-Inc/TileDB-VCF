@@ -92,7 +92,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_SAMPLE_NAME(r, nr)                     \
   std::vector<int32_t> sample_name_offsets((nr) + 1);   \
-  std::vector<char> sample_name((nr)*10);               \
+  std::vector<char> sample_name((nr) * 10);             \
   REQUIRE(                                              \
       tiledb_vcf_reader_set_buffer_values(              \
           (reader),                                     \
@@ -108,7 +108,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_CONTIG(r, nr)                                                \
   std::vector<int32_t> contig_offsets((nr) + 1);                              \
-  std::vector<char> contig((nr)*10);                                          \
+  std::vector<char> contig((nr) * 10);                                        \
   REQUIRE(                                                                    \
       tiledb_vcf_reader_set_buffer_values(                                    \
           (reader), "contig", sizeof(char) * contig.size(), contig.data()) == \
@@ -123,7 +123,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 #define SET_BUFF_ALLELES(r, nr)                          \
   std::vector<int32_t> alleles_offsets(2 * (nr) + 1);    \
   std::vector<int32_t> alleles_list_offsets((nr) + 1);   \
-  std::vector<char> alleles((nr)*20);                    \
+  std::vector<char> alleles((nr) * 20);                  \
   REQUIRE(                                               \
       tiledb_vcf_reader_set_buffer_values(               \
           (reader),                                      \
@@ -147,7 +147,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
   std::vector<int32_t> filters_offsets(2 * (nr) + 1);     \
   std::vector<int32_t> filters_list_offsets((nr) + 1);    \
   std::vector<uint8_t> filters_bitmap((nr) / 8 + 1);      \
-  std::vector<char> filters((nr)*20);                     \
+  std::vector<char> filters((nr) * 20);                   \
   REQUIRE(                                                \
       tiledb_vcf_reader_set_buffer_values(                \
           (reader),                                       \
@@ -175,7 +175,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_INFO(r, nr)                                            \
   std::vector<int32_t> info_offsets((nr) + 1);                          \
-  std::vector<char> info((nr)*100);                                     \
+  std::vector<char> info((nr) * 100);                                   \
   REQUIRE(                                                              \
       tiledb_vcf_reader_set_buffer_values(                              \
           (reader), "info", sizeof(char) * info.size(), info.data()) == \
@@ -189,7 +189,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_FORMAT(r, nr)                                             \
   std::vector<int32_t> format_offsets((nr) + 1);                           \
-  std::vector<char> format((nr)*100);                                      \
+  std::vector<char> format((nr) * 100);                                    \
   REQUIRE(                                                                 \
       tiledb_vcf_reader_set_buffer_values(                                 \
           (reader), "fmt", sizeof(char) * format.size(), format.data()) == \
@@ -203,7 +203,7 @@ static std::string INPUT_ARRAYS_DIR_V2 =
 
 #define SET_BUFF_FMT_GT(r, nr)                                               \
   std::vector<int32_t> fmt_GT_offsets((nr) + 1);                             \
-  std::vector<int> fmt_GT((nr)*2);                                           \
+  std::vector<int> fmt_GT((nr) * 2);                                         \
   REQUIRE(                                                                   \
       tiledb_vcf_reader_set_buffer_values(                                   \
           (reader), "fmt_GT", sizeof(int) * fmt_GT.size(), fmt_GT.data()) == \
@@ -621,6 +621,30 @@ TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
   auto bed_uri = TILEDB_VCF_TEST_INPUT_DIR + std::string("/simple.bed");
   REQUIRE(
       tiledb_vcf_reader_set_bed_file(reader, bed_uri.c_str()) == TILEDB_VCF_OK);
+
+  tiledb_vcf_reader_free(&reader);
+}
+
+TEST_CASE("C API: Reader set BED array", "[capi][reader]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  std::string dataset_uri;
+  dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_array(reader, "file:///does/not/exist.bed") ==
+      TILEDB_VCF_ERR);
+
+  // This check is making sure we can set the bed URI without an error,
+  // it doesn't matter if the URI is a BED array. Since we don't have a BED
+  // array in the test data, we use the dataset URI.
+  auto bed_uri = dataset_uri;
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_array(reader, bed_uri.c_str()) ==
+      TILEDB_VCF_OK);
 
   tiledb_vcf_reader_free(&reader);
 }

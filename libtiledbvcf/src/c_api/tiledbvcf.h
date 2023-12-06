@@ -183,6 +183,16 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_set_bed_file(tiledb_vcf_reader_t* reader, const char* uri);
 
 /**
+ * Sets the URI of a BED array containing regions to be read.
+ *
+ * @param reader VCF reader object
+ * @param uri URI of BED array
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_set_bed_array(tiledb_vcf_reader_t* reader, const char* uri);
+
+/**
  * Given a CSV string of sample names, sets the samples to be read.
  *
  * If you specify both a CSV samples list and a samples file, samples from both

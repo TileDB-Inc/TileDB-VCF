@@ -48,6 +48,13 @@ def check_if_compatible(uri):
 
 
 @pytest.fixture
+def test_ds_v4():
+    return tiledbvcf.Dataset(
+        os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
+    )
+
+
+@pytest.fixture
 def test_ds():
     return tiledbvcf.Dataset(
         os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
@@ -1524,3 +1531,70 @@ def test_flag_export(tmp_path):
 
     expected_ds = [1, 1, 0, 0, 1, 1]
     assert df["info_DS"].tolist() == expected_ds
+
+
+def test_bed_array(tmp_path, test_ds_v4):
+    expected_df = pd.DataFrame(
+        {
+            "sample_name": pd.Series(
+                [
+                    "HG00280",
+                    "HG01762",
+                    "HG00280",
+                    "HG01762",
+                    "HG00280",
+                    "HG00280",
+                ]
+            ),
+            "pos_start": pd.Series(
+                [
+                    12141,
+                    12141,
+                    12546,
+                    12546,
+                    17319,
+                    17480,
+                ],
+                dtype=np.int32,
+            ),
+            "pos_end": pd.Series(
+                [
+                    12277,
+                    12277,
+                    12771,
+                    12771,
+                    17479,
+                    17486,
+                ],
+                dtype=np.int32,
+            ),
+        }
+    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+
+    # Create bed array
+    bed_array = os.path.join(tmp_path, "bed_array")
+    tiledb.from_pandas(
+        bed_array,
+        pd.DataFrame(
+            {
+                "chrom": ["1", "1"],
+                "chromStart": [12000, 17000],
+                "chromEnd": [13000, 18000],
+            }
+        ),
+        sparse=True,
+        index_col=["chrom", "chromStart"],
+    )
+
+    # Create the dataset
+    for use_arrow in [False, True]:
+        func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read
+
+        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_array=bed_array)
+        if use_arrow:
+            df = df.to_pandas()
+
+        _check_dfs(
+            expected_df,
+            df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
+        )

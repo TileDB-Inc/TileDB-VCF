@@ -228,6 +228,17 @@ int32_t tiledb_vcf_reader_set_bed_file(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_set_bed_array(
+    tiledb_vcf_reader_t* reader, const char* uri) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || uri == nullptr)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->set_bed_array(uri)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_set_samples(
     tiledb_vcf_reader_t* reader, const char* samples) {
   if (sanity_check(reader) == TILEDB_VCF_ERR || samples == nullptr)

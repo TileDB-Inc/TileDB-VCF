@@ -117,6 +117,18 @@ void Reader::set_bed_file(const std::string& uri) {
   params_.regions_file_uri = uri;
 }
 
+void Reader::set_bed_array(const std::string& uri) {
+  if (vfs_ == nullptr)
+    init_tiledb();
+
+  if (!vfs_->is_dir(uri)) {
+    throw std::runtime_error(
+        "Error setting BED array; '" + uri + "' does not exist.");
+  }
+  params_.bed_array_uri = uri;
+  LOG_DEBUG("BED array URI set to {}", uri);
+}
+
 void Reader::set_region_partition(
     uint64_t partition_idx, uint64_t num_partitions) {
   check_partitioning(partition_idx, num_partitions);
@@ -1897,6 +1909,39 @@ void Reader::prepare_regions_v4(
         "Parsed bed file into {:L} regions in {:.3f} seconds.",
         pre_partition_regions_list.size(),
         utils::chrono_duration(start_bed_file_parse)));
+  }
+
+  // Add BED array regions, if specified.
+  if (!params_.bed_array_uri.empty()) {
+    auto start_bed_array_parse = std::chrono::steady_clock::now();
+
+    // Setup the query
+    auto array_ =
+        std::make_shared<Array>(*ctx_, params_.bed_array_uri, TILEDB_READ);
+    ManagedQuery mq(array_, "bed_array", TILEDB_UNORDERED);
+    mq.select_columns({"chrom", "chromStart", "chromEnd"});
+
+    // Process the results
+    int line = 0;
+    while (!mq.is_complete()) {
+      mq.submit();
+      auto num_rows = mq.results()->num_rows();
+
+      for (unsigned int i = 0; i < num_rows; i++) {
+        auto chrom = std::string(mq.string_view("chrom", i));
+        auto chromStart = mq.data<int64_t>("chromStart")[i];
+        auto chromEnd = mq.data<int64_t>("chromEnd")[i];
+
+        pre_partition_regions_list.emplace_back(
+            chrom, chromStart, chromEnd, line++);
+      }
+    }
+
+    LOG_INFO(fmt::format(
+        std::locale(""),
+        "Parsed bed array into {:L} regions in {:.3f} seconds.",
+        pre_partition_regions_list.size(),
+        utils::chrono_duration(start_bed_array_parse)));
   }
 
   std::pair<uint32_t, uint32_t> region_non_empty_domain =
