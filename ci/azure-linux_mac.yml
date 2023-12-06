@@ -158,8 +158,9 @@ steps:
         pushd apis/python
         micromamba create -f conda-env.yml -y python=system
         micromamba activate tiledbvcf-py
-        pip debug --verbose
-        pip install -vvv tiledb
+        echo 'Python info:'
+        which python
+        python --version
 
         # Install and test the Python API
         python setup.py install --user
