@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        libtiledb_version: [release-2.17, dev]
+        libtiledb_version: [release-2.18, dev]
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v3
@@ -65,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        libtiledb_version: [release-2.17, dev]
+        libtiledb_version: [release-2.18, dev]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
