@@ -275,9 +275,9 @@ class Dataset(object):
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
-            
+
         if bed_array is not None:
-            self.reader.set_bed_array(bed_array)            
+            self.reader.set_bed_array(bed_array)
 
         return self.continue_read_arrow()
 
@@ -370,9 +370,9 @@ class Dataset(object):
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
-            
+
         if bed_array is not None:
-            self.reader.set_bed_array(bed_array)            
+            self.reader.set_bed_array(bed_array)
 
         return self.continue_read()
 
