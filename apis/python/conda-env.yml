@@ -14,4 +14,5 @@ dependencies:
   - pip:
     - pytest-runner==5.1
     - pytest==5.1.2
+    - tiledb
   - zipp<3.16
