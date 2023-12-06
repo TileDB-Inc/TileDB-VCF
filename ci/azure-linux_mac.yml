@@ -156,7 +156,7 @@ steps:
 
         # Create and activate the conda environment
         pushd apis/python
-        micromamba create -f conda-env.yml -y
+        micromamba create -f conda-env.yml -y python=system
         micromamba activate tiledbvcf-py
         pip debug --verbose
         pip install -vvv tiledb
