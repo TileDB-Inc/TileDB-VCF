@@ -1579,7 +1579,7 @@ def test_bed_array(tmp_path, test_ds_v4):
             {
                 "chrom": ["1", "1"],
                 "chromStart": [12000, 17000],
-                "chromEnd": [13000, 18000],
+                "chromEnd": [13000, 17479],
             }
         ),
         sparse=True,
