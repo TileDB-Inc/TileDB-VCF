@@ -18,7 +18,7 @@ stages:
         matrix:
           linux:
             imageName: 'ubuntu-22.04'
-            python.version: '3.x'
+            python.version: '3.9'
             CXX: g++
             BUILD_PYTHON_API: ON
             BUILD_SPARK_API: ON
@@ -26,7 +26,7 @@ stages:
             ARTIFACT_NAME: linux
           linux_tiledb_source_build:
             imageName: 'ubuntu-22.04'
-            python.version: '3.x'
+            python.version: '3.9'
             CXX: g++
             BUILD_PYTHON_API: OFF
             BUILD_SPARK_API: OFF
@@ -34,7 +34,7 @@ stages:
             ARTIFACT_NAME: linux_tiledb_source_build
           macos:
             imageName: 'macOS-12'
-            python.version: '3.7'
+            python.version: '3.9'
             CXX: clang++
             BUILD_PYTHON_API: ON
             BUILD_SPARK_API: ON
