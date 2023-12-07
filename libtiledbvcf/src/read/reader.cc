@@ -1929,9 +1929,12 @@ void Reader::prepare_regions_v4(
 
       for (unsigned int i = 0; i < num_rows; i++) {
         auto chrom = std::string(mq.string_view("chrom", i));
-        auto chromStart = mq.data<int64_t>("chromStart")[i];
-        auto chromEnd = mq.data<int64_t>("chromEnd")[i];
+        auto chromStart = mq.data<uint64_t>("chromStart")[i];
+        auto chromEnd = mq.data<uint64_t>("chromEnd")[i];
 
+        // Each region in the BED array is 0-indexed and inclusive
+        // [0-start, end] which is the same format as the Region struct, so no
+        // modification is required.
         pre_partition_regions_list.emplace_back(
             chrom, chromStart, chromEnd, line++);
       }
