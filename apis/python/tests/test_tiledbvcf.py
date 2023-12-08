@@ -1586,6 +1586,12 @@ def test_bed_array(tmp_path, test_ds_v4):
         index_col=["chrom", "chromStart"],
     )
 
+    # Add aliases to the array metadata
+    with tiledb.Array(bed_array, "w") as A:
+        A.meta["alias chrom"] = "chrom"
+        A.meta["alias start"] = "chromStart"
+        A.meta["alias end"] = "chromEnd"
+
     # Create the dataset
     for use_arrow in [False, True]:
         func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read

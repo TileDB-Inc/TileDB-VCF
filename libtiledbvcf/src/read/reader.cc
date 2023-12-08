@@ -1915,30 +1915,12 @@ void Reader::prepare_regions_v4(
   if (!params_.bed_array_uri.empty()) {
     auto start_bed_array_parse = std::chrono::steady_clock::now();
 
-    // Setup the query
+    // Open the BED array
     auto array_ =
         std::make_shared<Array>(*ctx_, params_.bed_array_uri, TILEDB_READ);
-    ManagedQuery mq(array_, "bed_array", TILEDB_UNORDERED);
-    mq.select_columns({"chrom", "chromStart", "chromEnd"});
 
-    // Process the results
-    int line = 0;
-    while (!mq.is_complete()) {
-      mq.submit();
-      auto num_rows = mq.results()->num_rows();
-
-      for (unsigned int i = 0; i < num_rows; i++) {
-        auto chrom = std::string(mq.string_view("chrom", i));
-        auto chromStart = mq.data<uint64_t>("chromStart")[i];
-        auto chromEnd = mq.data<uint64_t>("chromEnd")[i];
-
-        // Each region in the BED array is 0-indexed and inclusive
-        // [0-start, end] which is the same format as the Region struct, so no
-        // modification is required.
-        pre_partition_regions_list.emplace_back(
-            chrom, chromStart, chromEnd, line++);
-      }
-    }
+    // Load the regions from the BED array
+    Region::read_bed_array(array_, pre_partition_regions_list);
 
     LOG_INFO(fmt::format(
         std::locale(""),
