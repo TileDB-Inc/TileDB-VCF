@@ -142,7 +142,7 @@ void Region::read_bed_array(
     std::shared_ptr<Array> bed_array, std::list<Region>& result) {
   // Define the metadata keys for the BED array which contain the aliases
   // for the column names
-  static const std::string CHROM = "alias chrom";
+  static const std::string CONTIG = "alias contig";
   static const std::string START = "alias start";
   static const std::string END = "alias end";
 
@@ -150,7 +150,7 @@ void Region::read_bed_array(
   std::map<std::string, std::string> column_alias;
   std::vector<std::string> column_names;
 
-  for (const auto& key : {CHROM, START, END}) {
+  for (const auto& key : {CONTIG, START, END}) {
     const void* value = nullptr;
     tiledb_datatype_t value_type;
     uint32_t value_num = 0;
@@ -177,7 +177,7 @@ void Region::read_bed_array(
     auto num_rows = mq.results()->num_rows();
 
     for (unsigned int i = 0; i < num_rows; i++) {
-      auto chrom = std::string(mq.string_view(column_alias[CHROM], i));
+      auto chrom = std::string(mq.string_view(column_alias[CONTIG], i));
       auto chromStart = mq.data<uint64_t>(column_alias[START])[i];
       auto chromEnd = mq.data<uint64_t>(column_alias[END])[i];
 

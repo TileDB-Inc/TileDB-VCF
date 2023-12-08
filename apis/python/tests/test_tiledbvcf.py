@@ -1588,7 +1588,7 @@ def test_bed_array(tmp_path, test_ds_v4):
 
     # Add aliases to the array metadata
     with tiledb.Array(bed_array, "w") as A:
-        A.meta["alias chrom"] = "chrom"
+        A.meta["alias contig"] = "chrom"
         A.meta["alias start"] = "chromStart"
         A.meta["alias end"] = "chromEnd"
 
