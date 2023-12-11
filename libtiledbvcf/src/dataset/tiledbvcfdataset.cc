@@ -1030,8 +1030,8 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
     std::unordered_map<std::string, size_t>* lookup_map,
-    const bool all_samples,
-    const bool first_sample) const {
+    bool all_samples,
+    bool first_sample) const {
   LOG_DEBUG(
       "[fetch_vcf_headers_v4] start all_samples={} first_sample={} "
       "(VmRSS = {})",
@@ -1083,6 +1083,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
     if (!non_empty_domain.first.empty()) {
       mq->select_point("sample", non_empty_domain.first);
+    } else if (non_empty_domain.second.empty()) {
+      // If the lower and upper bounds of the non-empty domain are empty, then
+      // the array is empty or the array contains an annotation VCF with an
+      // empty sample name. In either case, we will read the VCF headers for
+      // "all" samples to avoid an infinite loop looking for the first sample.
+      first_sample = false;
     }
   }
 
