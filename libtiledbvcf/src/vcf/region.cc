@@ -30,6 +30,7 @@
 #include <regex>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
+#include "stats/managed_query.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/region.h"
@@ -135,6 +136,57 @@ Region Region::parse_region(const std::string& region_str) {
 
   result.region_str = region_str;
   return result;
+}
+
+void Region::read_bed_array(
+    std::shared_ptr<Array> bed_array, std::list<Region>& result) {
+  // Define the metadata keys for the BED array which contain the aliases
+  // for the column names
+  static const std::string CONTIG = "alias contig";
+  static const std::string START = "alias start";
+  static const std::string END = "alias end";
+
+  // Read the column name aliases from the array metadata
+  std::map<std::string, std::string> column_alias;
+  std::vector<std::string> column_names;
+
+  for (const auto& key : {CONTIG, START, END}) {
+    const void* value = nullptr;
+    tiledb_datatype_t value_type;
+    uint32_t value_num = 0;
+    bed_array->get_metadata(key, &value_type, &value_num, &value);
+    if (value != nullptr) {
+      column_alias[key] =
+          std::string(static_cast<const char*>(value), value_num);
+      column_names.push_back(column_alias[key]);
+    } else {
+      LOG_ERROR("BED array metadata key '{}' not found", key);
+      throw std::runtime_error(
+          "BED array metadata key '" + key + "' not found");
+    }
+  }
+
+  // Set up the query
+  ManagedQuery mq(bed_array, "bed_array", TILEDB_UNORDERED);
+  mq.select_columns(column_names);
+
+  // Run the query and add regions to the result list
+  int line = 0;
+  while (!mq.is_complete()) {
+    mq.submit();
+    auto num_rows = mq.results()->num_rows();
+
+    for (unsigned int i = 0; i < num_rows; i++) {
+      auto chrom = std::string(mq.string_view(column_alias[CONTIG], i));
+      auto chromStart = mq.data<uint64_t>(column_alias[START])[i];
+      auto chromEnd = mq.data<uint64_t>(column_alias[END])[i];
+
+      // Each region in the BED array is 0-indexed and inclusive
+      // [0-start, end] which is the same format as the Region struct, so no
+      // modification is required.
+      result.emplace_back(chrom, chromStart, chromEnd, line++);
+    }
+  }
 }
 
 void Region::parse_bed_file_htslib(

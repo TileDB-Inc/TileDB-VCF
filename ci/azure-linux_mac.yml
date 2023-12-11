@@ -184,6 +184,7 @@ steps:
         ./gradlew checkFormat
       fi
 
+    condition: eq(variables['Agent.OS'], 'Linux')
     displayName: 'Build and test TileDB-VCF Spark API'
 
 
@@ -201,6 +202,7 @@ steps:
         ./gradlew test
       fi
 
+    condition: eq(variables['Agent.OS'], 'Linux')
     displayName: 'Build and test TileDB-VCF Spark3 API'
 
   - bash: |

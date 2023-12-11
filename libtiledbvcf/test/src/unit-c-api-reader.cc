@@ -625,6 +625,30 @@ TEST_CASE("C API: Reader set BED file", "[capi][reader]") {
   tiledb_vcf_reader_free(&reader);
 }
 
+TEST_CASE("C API: Reader set BED array", "[capi][reader]") {
+  tiledb_vcf_reader_t* reader = nullptr;
+  REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);
+
+  std::string dataset_uri;
+  dataset_uri = INPUT_ARRAYS_DIR_V4 + "/ingested_2samples";
+
+  REQUIRE(tiledb_vcf_reader_init(reader, dataset_uri.c_str()) == TILEDB_VCF_OK);
+
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_array(reader, "file:///does/not/exist.bed") ==
+      TILEDB_VCF_ERR);
+
+  // This check is making sure we can set the bed URI without an error,
+  // it doesn't matter if the URI is a BED array. Since we don't have a BED
+  // array in the test data, we use the dataset URI.
+  auto bed_uri = dataset_uri;
+  REQUIRE(
+      tiledb_vcf_reader_set_bed_array(reader, bed_uri.c_str()) ==
+      TILEDB_VCF_OK);
+
+  tiledb_vcf_reader_free(&reader);
+}
+
 TEST_CASE("C API: Reader set buffers", "[capi][reader]") {
   tiledb_vcf_reader_t* reader = nullptr;
   REQUIRE(tiledb_vcf_reader_alloc(&reader) == TILEDB_VCF_OK);

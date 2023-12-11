@@ -27,10 +27,10 @@
 #ifndef TILEDB_VCF_REGION_H
 #define TILEDB_VCF_REGION_H
 
-#include <tiledb/vfs.h>
 #include <list>
 #include <map>
 #include <string>
+#include <tiledb/tiledb>
 #include "vcf_utils.h"
 
 namespace tiledb {
@@ -113,6 +113,12 @@ struct Region {
    * Commas are stripped.
    */
   static Region parse_region(const std::string& region_str);
+
+  /**
+   * Read regions from a TileDB BED array
+   */
+  static void read_bed_array(
+      std::shared_ptr<Array> bed_array, std::list<Region>& result);
 
   /**
    * Parses a BED file using htslib.

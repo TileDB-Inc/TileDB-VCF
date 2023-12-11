@@ -87,6 +87,7 @@ struct ExportParams {
   std::string log_file;
   std::string samples_file_uri;
   std::string regions_file_uri;
+  std::string bed_array_uri;
   std::vector<std::string> sample_names;
   std::vector<std::string> regions;
   std::string output_dir;
@@ -207,6 +208,9 @@ class Reader {
 
   /** Sets the BED file URI parameter. */
   void set_bed_file(const std::string& uri);
+
+  /** Sets the BED array URI parameter. */
+  void set_bed_array(const std::string& uri);
 
   /** Sets the region partitioning. */
   void set_region_partition(uint64_t partition_idx, uint64_t num_partitions);
