@@ -977,11 +977,7 @@ int main(int argc, char** argv) {
     exit(0);
   });
 
-  try {
-    CLI11_PARSE(app, argc, argv);
-  } catch (const std::exception& e) {
-    LOG_FATAL("Exception: {}", e.what());
-  }
+  CLI11_PARSE(app, argc, argv);
 
   return 0;
 }
