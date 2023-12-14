@@ -27,7 +27,7 @@ jobs:
     - name: "Deploy to gh-pages"
       uses: peaceiris/actions-gh-pages@v3
       # Change to the name of your repo's primary branch name:
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.repository_owner == 'TileDB-Inc'
       with:
         # This is GitHub Actions magic; no secrets for us to manage; and this works first-time
         # without any extra configs other than visiting Settings -> Pages in your GitHub repo.
