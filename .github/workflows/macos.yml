@@ -1,0 +1,195 @@
+name: macOS
+on:
+  push:
+    paths:
+      - '.github/workflows/macos.yml'
+      - 'apis/**'
+      - 'libtiledbvcf/**'
+  pull_request:
+    paths:
+      - '.github/workflows/macos.yml'
+      - 'apis/**'
+      - 'libtiledbvcf/**'
+  workflow_dispatch:
+env:
+  MACOSX_DEPLOYMENT_TARGET: "11"
+jobs:
+  libtiledbvcf:
+    # Stuck on macos-11 because of the htslib dependency. The htslib
+    # configuration step fails on macos-12 and macos-13
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure libtiledbvcf
+        run: |
+          cmake -S libtiledbvcf -B $(pwd)/libtiledbvcf/build \
+            -D CMAKE_BUILD_TYPE=Debug \
+            -D CMAKE_INSTALL_PREFIX=$(pwd)/dist \
+            -D OVERRIDE_INSTALL_PREFIX=OFF \
+            -D DOWNLOAD_TILEDB_PREBUILT=ON
+      - name: Build libtiledbvcf
+        run: cmake --build $(pwd)/libtiledbvcf/build -j 2 --config Debug
+      - name: Upload coredump as artifact if build failed
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coredump
+          path: libtiledbvcf/build/core
+          retention-days: 14
+          if-no-files-found: error
+      - name: Install libtiledbvcf
+        run: cmake --build $(pwd)/libtiledbvcf/build --config Debug --target install-libtiledbvcf
+      - name: Upload libtiledbvcf as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libtiledbvcf
+          path: dist/*
+          retention-days: 14
+          if-no-files-found: error
+      - name: Confirm linking
+        run: otool -L dist/lib/libtiledbvcf.dylib
+      - name: libtiledbvcf version
+        run: ./dist/bin/tiledbvcf version
+      - name: Install bcftools
+        run: brew install bcftools
+      - name: Unit tests
+        run: |
+          make -j 2 -C libtiledbvcf/build/libtiledbvcf tiledb_vcf_unit
+          ./libtiledbvcf/build/libtiledbvcf/test/tiledb_vcf_unit
+      - name: CLI tests (require bcftools)
+        run: |
+          # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
+          libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
+  python:
+    runs-on: macos-11
+    needs: libtiledbvcf
+    env:
+      DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: libtiledbvcf
+          path: dist
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install --prefer-binary \
+          dask \
+          distributed \
+          'fsspec<2023.3.0' \
+          pandas \
+          pyarrow==10.0.1 \
+          pyarrow-hotfix \
+          pybind11 \
+          pytest \
+          setuptools \
+          setuptools_scm \
+          setuptools_scm_git_archive \
+          wheel
+      - name: Build tiledbvcf-py
+        env:
+          LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+        run: |
+          echo $DYLD_LIBRARY_PATH
+          cd apis/python
+          python -m pip install .
+      - name: Confirm linking
+        run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
+  java:
+    runs-on: macos-11
+    needs: libtiledbvcf
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: libtiledbvcf
+          path: dist
+      - name: Check format
+        run: cd apis/java && ./gradlew checkFormat
+      - name: Assemble
+        run: cd apis/java && ./gradlew assemble
+      - name: Test
+        run: cd apis/java && ./gradlew test
+  spark:
+    runs-on: macos-11
+    needs: libtiledbvcf
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: libtiledbvcf
+          path: dist
+      - name: Assemble
+        run: cd apis/spark && ./gradlew assemble
+      - name: Jar
+        run: cd apis/spark && ./gradlew jar
+      - name: Test
+        run: cd apis/spark && ./gradlew test
+      - name: Check format
+        run: cd apis/spark && ./gradlew checkFormat
+  spark3:
+    runs-on: macos-11
+    needs: libtiledbvcf
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: libtiledbvcf
+          path: dist
+      - name: Assemble
+        run: cd apis/spark3 && ./gradlew assemble
+      - name: Jar
+        run: cd apis/spark3 && ./gradlew jar
+      - name: Test
+        run: cd apis/spark3 && ./gradlew test
+      - name: Check format
+        run: cd apis/spark3 && ./gradlew checkFormat
+  python-standalone:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install --prefer-binary \
+          dask \
+          distributed \
+          'fsspec<2023.3.0' \
+          pandas \
+          pyarrow==10.0.1 \
+          pyarrow-hotfix \
+          pybind11 \
+          pytest \
+          setuptools \
+          setuptools_scm \
+          setuptools_scm_git_archive \
+          wheel
+      - name: Build tiledbvcf-py
+        run: cd apis/python && python -m pip install .
+      - name: Confirm linking
+        run: |
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledb.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libhts.*.dylib
+      - name: Version
+        run: python -c "import tiledbvcf; print(tiledbvcf.version)"
+      - name: Install bcftools (for tests)
+        run: brew install bcftools
+      - name: Install tiledb-py
+        run: pip install tiledb
+      - name: Test tiledbvcf-py
+        run: cd apis/python && pytest
