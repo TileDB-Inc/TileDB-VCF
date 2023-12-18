@@ -39,8 +39,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
 option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
 option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
-option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." OFF)
-option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls downloading prebuilt artifacts or building from source" ON)
+option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." ON)
+option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls downloading prebuilt artifacts or building from source" OFF)
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
@@ -52,10 +52,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
-# Release builds by default.
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELEASE)
-endif()
+# Debug build by default
+set(CMAKE_BUILD_TYPE DEBUG)
 
 # Root directory default installation prefix
 if (OVERRIDE_INSTALL_PREFIX)
