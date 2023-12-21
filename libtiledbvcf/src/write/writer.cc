@@ -1057,7 +1057,10 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           // Flush stats arrays without finalizing the query.
           worker->flush_ingestion_tasks();
         } else {
-          LOG_DEBUG("No records found for {}", worker->region().seq_name);
+          LOG_DEBUG(
+              "Worker {}: no records found for {}",
+              i + 1,
+              worker->region().seq_name);
         }
         records_ingested += worker->records_buffered();
 
@@ -1096,7 +1099,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
 
-      if (finished) {
+      // When an ingestion worker is finished, clear its query buffers
+      // only if the query buffers are not empty.
+      if (finished && worker->records_buffered() > 0) {
         worker->buffers().clear_query_buffers(
             query_.get(), dataset_->metadata().version);
       }
