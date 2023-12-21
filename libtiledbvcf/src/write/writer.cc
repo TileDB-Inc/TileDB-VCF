@@ -774,9 +774,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   if (params.resume_sample_partial_ingestion &&
       !existing_sample_contig_fragments.empty()) {
     const std::string first_sample_name =
-        VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri)[0];
+        VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri).at(0);
     const std::string last_sample_name =
-        VCFUtils::get_sample_name_from_vcf(samples.back().sample_uri)[0];
+        VCFUtils::get_sample_name_from_vcf(samples.back().sample_uri).at(0);
 
     LOG_INFO("Resume: checking for regions to skip");
     LOG_DEBUG("Resume: regions before resume check = {}", regions_v4.size());
@@ -787,7 +787,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       bool skip = false;
 
       LOG_DEBUG(
-          "Resume: Checking sample_range=({}, {}) contig={}",
+          "Resume: Checking sample_range=('{}', '{}') contig={}",
           first_sample_name,
           last_sample_name,
           contig);
@@ -803,7 +803,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
             {first_sample_name, last_sample_name});
 
         LOG_DEBUG(
-            "Resume:   found fragments with sample_range=({}, {})",
+            "Resume:   found fragments with sample_range=('{}', '{}')",
             first_sample_name,
             last_sample_name);
         // Loop over contigs for the sample range
