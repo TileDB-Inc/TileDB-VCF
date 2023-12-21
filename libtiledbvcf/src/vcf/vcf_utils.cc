@@ -59,7 +59,13 @@ bcf_hdr_t* VCFUtils::hdr_read_header(const std::string& path) {
 std::vector<std::string> VCFUtils::get_sample_name_from_vcf(
     const std::string& path) {
   SafeBCFHdr hdr(hdr_read_header(path), bcf_hdr_destroy);
-  return hdr_get_samples(hdr.get());
+  auto samples = hdr_get_samples(hdr.get());
+  // If there are no samples, add an empty string to the list
+  // to indicate this is a sampleless VCF.
+  if (samples.empty()) {
+    samples.push_back("");
+  }
+  return samples;
 }
 
 std::vector<std::string> VCFUtils::hdr_get_samples(bcf_hdr_t* hdr) {
