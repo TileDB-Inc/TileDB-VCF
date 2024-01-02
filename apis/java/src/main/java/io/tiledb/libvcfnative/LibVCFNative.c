@@ -6,6 +6,32 @@
 #include "LibVCFNative.h"
 #include "tiledbvcf/tiledbvcf.h"
 
+static int set_out_params_size_t(
+    JNIEnv* env, size_t value1, size_t value2, jlongArray valuesOut) {
+  jlong* c_values = (*env)->GetLongArrayElements(env, valuesOut, NULL);
+  if (c_values == NULL) {
+    return -1;
+  }
+
+  // Check that an array of length 2 was passed.
+  if ((*env)->GetArrayLength(env, valuesOut) != 2) {
+    (*env)->ReleaseLongArrayElements(env, valuesOut, c_values, 0);
+    return -1;
+  }
+
+  // Set the values in the result array.
+  c_values[0] = (jlong)value1;
+  c_values[1] = (jlong)value2;
+
+  // Set the modified array back to the Java array.
+  (*env)->SetLongArrayRegion(env, valuesOut, 0, 2, c_values);
+
+  // Release the array elements.
+  (*env)->ReleaseLongArrayElements(env, valuesOut, c_values, 0);
+
+  return TILEDB_VCF_OK;
+}
+
 static int set_out_param_int32(JNIEnv* env, int32_t value, jintArray valueOut) {
   jint* c_value = (*env)->GetIntArrayElements(env, valueOut, NULL);
   if (c_value == NULL) {
@@ -1080,6 +1106,43 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1bed_1file_1get_1contig_1re
     if (rc != 0)
       return rc;
   }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1get_1variant_1stats_1buffer_1sizes(
+    JNIEnv* env, jclass self, jlong readerPtr, jlongArray resultsOut) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  size_t num_rows;
+  size_t allele_size;
+  int32_t rc = tiledb_vcf_reader_get_variant_stats_buffer_sizes(
+      reader, &num_rows, &allele_size);
+  if (rc == TILEDB_VCF_OK) {
+    return set_out_params_size_t(
+        env, (size_t)num_rows, (size_t)allele_size, resultsOut);
+  }
+
+  return rc;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1prepare_1variant_1stats(
+    JNIEnv* env, jclass self, jlong readerPtr) {
+  (void)self;
+
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int32_t rc = tiledb_vcf_reader_prepare_variant_stats(reader);
 
   return rc;
 }

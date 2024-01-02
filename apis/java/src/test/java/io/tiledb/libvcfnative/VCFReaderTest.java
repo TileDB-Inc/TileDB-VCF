@@ -378,6 +378,20 @@ public class VCFReaderTest {
     Assert.assertNotNull(reader.stats());
   }
 
+  @Test
+  public void testVariantStatsPrepare() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    reader.prepareVariantStats();
+  }
+
+  @Test
+  public void testVariantStatsBufferSizes() throws IOException {
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    reader.prepareVariantStats();
+    long[] a = reader.getVariantStatsBufferSizes();
+    System.out.println(a[0] + " ---->>>>>>>> " + a[1]);
+  }
+
   /**
    * * Checks that the reader attribute details are initialized in constructor
    *
