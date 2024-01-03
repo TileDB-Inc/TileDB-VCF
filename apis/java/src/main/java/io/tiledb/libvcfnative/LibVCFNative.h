@@ -54,6 +54,15 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1bed_1file(
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
+ * Method:    tiledb_vcf_reader_set_bed_array
+ * Signature: (JLjava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1bed_1array(
+    JNIEnv*, jclass, jlong, jstring);
+
+/*
+ * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_samples
  * Signature: (JLjava/lang/String;)I
  */

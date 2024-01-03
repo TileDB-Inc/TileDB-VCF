@@ -155,6 +155,26 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1bed_1file(
 }
 
 JNIEXPORT jint JNICALL
+Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1bed_1array(
+    JNIEnv* env, jclass self, jlong readerPtr, jstring uri) {
+  (void)self;
+  tiledb_vcf_reader_t* reader = (tiledb_vcf_reader_t*)readerPtr;
+  if (reader == 0) {
+    return TILEDB_VCF_ERR;
+  }
+
+  const char* c_uri = (*env)->GetStringUTFChars(env, uri, 0);
+  if (c_uri == NULL) {
+    return TILEDB_VCF_ERR;
+  }
+
+  int rc = tiledb_vcf_reader_set_bed_array(reader, c_uri);
+  (*env)->ReleaseStringUTFChars(env, uri, c_uri);
+  return rc;
+}
+
+
+JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1samples(
     JNIEnv* env, jclass self, jlong readerPtr, jstring samples) {
   (void)self;
