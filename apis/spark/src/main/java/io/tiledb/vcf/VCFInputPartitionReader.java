@@ -304,6 +304,12 @@ public class VCFInputPartitionReader implements InputPartitionReader<ColumnarBat
       if (bedURI.isPresent()) {
         vcfReader.setBedFile(bedURI.get().toString());
       }
+
+      // Set BED array
+      Optional<URI> bedArrayURI = options.getBedArrayURI();
+      if (bedArrayURI.isPresent()) {
+        vcfReader.setBedArray(bedArrayURI.get().toString());
+      }
     } else {
       if (rangePartitionInfo.getRegions().isEmpty()) {
         throw new RuntimeException(
