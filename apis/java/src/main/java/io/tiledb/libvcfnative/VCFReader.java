@@ -286,6 +286,15 @@ public class VCFReader implements AutoCloseable {
     return this;
   }
 
+  public VCFReader setBedArray(String uri) {
+    int rc = LibVCFNative.tiledb_vcf_reader_set_bed_array(readerPtr, uri);
+    if (rc != 0) {
+      String msg = getLastErrorMessage();
+      throw new RuntimeException("Error setting query bed array '" + uri + "': " + msg);
+    }
+    return this;
+  }
+
   public VCFReader setSortRegions(boolean sortRegions) {
     int rc = LibVCFNative.tiledb_vcf_reader_set_sort_regions(readerPtr, sortRegions);
     if (rc != 0) {

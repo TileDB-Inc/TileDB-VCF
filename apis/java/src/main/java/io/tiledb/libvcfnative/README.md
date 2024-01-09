@@ -1,20 +1,18 @@
 The LibVCFNative bindings are produced with `javah`.
 
-To build the binding you must first compile the java file to a class file:
-
+To build the binding you must first compile the java file to a header file by using the ```io.commons``` external library
 ```
-cd api/spark/src/main/java/io/tiledb/libvcfnative
-javac LibVCFNative.java
+javac -cp .:commons-io-2.14.0.jar *.java -h .;
 ```
 
-Next you can use `javah` to rebuild the LibVCFNative header:
+Next, format the header and replace the old
 ```
-# Navigate back to top level spark src directory
-cd ../../../
-javah -v -cp $PWD -o io/tiledb/libvcfnative/LibVCFNative.h io.tiledb.libvcfnative.LibVCFNative
+clang-format -i io_tiledb_libvcfnative_LibVCFNative.h;
+mv io_tiledb_libvcfnative_LibVCFNative.h LibVCFNative.h;
 ```
 
-It is safe to delete the class file now:
+Finally, remove all ```.class``` files 
+
 ```
-rm io/tiledb/libvcfnative/LibVCFNative.class
+rm *.class;
 ```
