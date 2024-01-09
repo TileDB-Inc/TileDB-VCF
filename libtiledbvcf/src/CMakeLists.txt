@@ -62,6 +62,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/managed_query.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats_reader.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/arrow_adapter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/buffer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc

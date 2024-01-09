@@ -76,7 +76,7 @@ class ColumnBuffer {
    * @param name Column name
    * @param type TileDB datatype
    * @param num_cells Number of cells
-   * @param data View of data
+   * @param num_bytes Number of bytes to allocate
    * @param is_var Column type is variable length
    * @param is_nullable Column can contain null values
    */
@@ -84,7 +84,7 @@ class ColumnBuffer {
       std::string_view name,
       tiledb_datatype_t type,
       size_t num_cells,
-      size_t data,
+      size_t num_bytes = 0,
       bool is_var = false,
       bool is_nullable = false);
 

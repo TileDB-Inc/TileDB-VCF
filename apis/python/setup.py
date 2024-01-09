@@ -210,7 +210,13 @@ def get_ext_modules():
         Extension(
             "tiledbvcf.libtiledbvcf",
             src_files,
-            include_dirs=[get_pybind_include(), get_pybind_include(user=True)],
+            include_dirs=[
+                get_pybind_include(),
+                get_pybind_include(user=True),
+                "../../libtiledbvcf/src",
+                "../../libtiledbvcf/external",
+                "../../libtiledbvcf/build/externals/install/include",
+            ],
             libraries=["tiledbvcf"],
             library_dirs=[],
             language="c++",
@@ -224,7 +230,7 @@ class BuildExtCmd(build_ext):
 
     def build_extensions(self):
         if sys.platform != "win32":
-            opts = ["-std=c++17", "-g"]
+            opts = ["-std=c++17", "-g", "-Wno-deprecated-declarations"]
             if TILEDBVCF_DEBUG_BUILD:
                 opts.extend(["-O0"])
             else:

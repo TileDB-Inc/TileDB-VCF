@@ -91,6 +91,21 @@ class ArrayBuffers {
   }
 
   /**
+   * @brief Add a column buffer to the ArrayBuffers, maintaining the insertion
+   * order.
+   *
+   * @param buffer Column buffer
+   */
+  void emplace(std::shared_ptr<ColumnBuffer> buffer) {
+    auto name = std::string(buffer->name());
+    if (contains(name)) {
+      LOG_FATAL(fmt::format("[ArrayBuffers] column '{}' already exists", name));
+    }
+    names_.push_back(name);
+    buffers_.emplace(name, buffer);
+  }
+
+  /**
    * @brief Returns the ordered vector of names.
    *
    * @return const std::vector<std::string>& Vector of names

@@ -92,6 +92,12 @@ ColumnBuffer::ColumnBuffer(
     , num_cells_(num_cells)
     , is_var_(is_var)
     , is_nullable_(is_nullable) {
+  // If the number of bytes is not set, compute based on the number of cells.
+  // Note, this is only used for fixed length column types.
+  if (num_bytes == 0) {
+    num_bytes = num_cells_ * type_size_;
+  }
+
   LOG_DEBUG(fmt::format(
       "[ColumnBuffer] {} {} bytes is_var={} is_nullable={}",
       name,
