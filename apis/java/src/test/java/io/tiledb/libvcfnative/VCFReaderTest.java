@@ -344,7 +344,6 @@ public class VCFReaderTest {
     results += reader.getNumRecords();
 
     while (reader.getStatus().equals(VCFReader.Status.INCOMPLETE)) reader.submit();
-    System.out.println(results + " <results");
 
     Assert.assertEquals(results, BED_FILE_EXPECTED_RECORDS);
   }
@@ -366,7 +365,6 @@ public class VCFReaderTest {
     results += reader.getNumRecords();
 
     while (reader.getStatus().equals(VCFReader.Status.INCOMPLETE)) reader.submit();
-    System.out.println(results + " <<results");
 
     Assert.assertEquals(results, BED_FILE_EXPECTED_RECORDS);
   }

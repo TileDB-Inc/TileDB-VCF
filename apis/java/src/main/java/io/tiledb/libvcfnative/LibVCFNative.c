@@ -173,7 +173,6 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1bed_1array(
   return rc;
 }
 
-
 JNIEXPORT jint JNICALL
 Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1samples(
     JNIEnv* env, jclass self, jlong readerPtr, jstring samples) {
