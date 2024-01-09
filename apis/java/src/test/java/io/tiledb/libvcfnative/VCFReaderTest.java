@@ -23,7 +23,7 @@ public class VCFReaderTest {
    * @return The resulting URI
    */
   private String constructUri(String fileName) {
-    Path path = Paths.get("src", "test", "resources", "arrays", "v3", fileName);
+    Path path = Paths.get("src", "test", "resources", "arrays", "v4", fileName);
     return path.toAbsolutePath().toString();
   }
 
