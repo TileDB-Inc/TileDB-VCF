@@ -25,13 +25,18 @@ import scala.collection.mutable.WrappedArray;
 public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   private String testSampleGroupURI(String sampleGroupName) {
-    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v3", sampleGroupName);
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v4", sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
   private String testSampleGroupURI(String sampleGroupName, String version) {
     Path arraysPath = Paths.get("src", "test", "resources", "arrays", version, sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
+  }
+
+  private String testSimpleBEDArray() {
+    Path arrayPath = Paths.get("src", "test", "resources", "arrays", "bed_array");
+    return "file://".concat(arrayPath.toAbsolutePath().toString());
   }
 
   private String testSimpleBEDFile() {
@@ -516,6 +521,20 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("uri", testSampleGroupURI("ingested_2samples"))
             .option("samplefile", testSampleFile())
             .option("bedfile", testSimpleBEDFile())
+            .load();
+    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    Assert.assertEquals(10, rows.size());
+  }
+
+  @Test
+  public void testBedArray() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samplefile", testSampleFile())
+            .option("bed_array", testSimpleBEDArray())
             .load();
     List<Row> rows = dfRead.select("sampleName").collectAsList();
     Assert.assertEquals(10, rows.size());
