@@ -1,6 +1,9 @@
 name: Build Python client for Windows
 on:
   push:
+    branches:
+      - main
+      - 'release-*'
     paths:
       - '.github/workflows/windows.yml'
       - 'apis/python/**'

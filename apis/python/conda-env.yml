@@ -2,16 +2,15 @@ name: tiledbvcf-py
 channels:
   - conda-forge
 dependencies:
-  - python>=3.4
-  - pybind11=2.3.0
-  - pyarrow==3.0.0
-  - fsspec<2023.3.0 # fix dask failures in pytest
-  - dask>=0.19.0
+  - python<3.12 # based on available tiledb-py wheels
+  - pybind11
+  - pyarrow>=14.0.2 # for pyarrow security fix
+  - fsspec
+  - dask
   - pip
   - setuptools
   - setuptools_scm
   - setuptools_scm_git_archive
   - pip:
-    - pytest-runner==5.1
-    - pytest==5.1.2
-  - zipp<3.16
+    - pytest
+    - pytest-runner
