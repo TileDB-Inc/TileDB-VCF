@@ -138,8 +138,6 @@ def get_cmake_overrides():
     val = "Debug" if TILEDBVCF_DEBUG_BUILD else "Release"
     conf.append("-DCMAKE_BUILD_TYPE={}".format(val))
 
-    conf.append("-DENABLE_ARROW_EXPORT=ON")
-
     return conf
 
 
