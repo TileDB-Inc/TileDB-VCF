@@ -26,14 +26,11 @@
  * THE SOFTWARE.
  */
 
-#include <arrow/api.h>
-#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <tiledbvcf/tiledbvcf.h>
 
-#include <map>
-#include <set>
+#include "vcf_arrow.h"
 
 namespace py = pybind11;
 
@@ -188,37 +185,8 @@ class Reader {
   void set_debug_print_tiledb_query_ranges(const bool& tiledb_query_ranges);
 
  private:
-  /** Buffer struct to hold attribute data read from the dataset. */
-  struct BufferInfo {
-    /** Name of attribute. */
-    std::string attr_name;
-    /** TileDB-VCF datatype. */
-    tiledb_vcf_attr_datatype_t datatype;
-    /** Offsets buffer, for var-len attributes. */
-    std::shared_ptr<arrow::Buffer> offsets;
-    /** List offsets buffer, for list var-len attributes. */
-    std::shared_ptr<arrow::Buffer> list_offsets;
-    /** Data buffer. */
-    std::shared_ptr<arrow::Buffer> data;
-    /** Null-value bitmap, for nullable attributes. */
-    std::shared_ptr<arrow::Buffer> bitmap;
-    /** Array array wrapping array buffers. */
-    std::shared_ptr<arrow::Array> array;
-    /** Arrow datatype. */
-    std::shared_ptr<arrow::DataType> arrow_datatype;
-    /** Arrow array datatype (can be list or list of list). */
-    std::shared_ptr<arrow::DataType> arrow_array_datatype;
-  };
-
   /** Helper function to free a C reader instance */
   static void deleter(tiledb_vcf_reader_t* r);
-
-  /** Convert the given datatype to a numpy dtype */
-  static py::dtype to_numpy_dtype(tiledb_vcf_attr_datatype_t datatype);
-
-  /** Convert the given datatype to a arrow datatype */
-  static std::shared_ptr<arrow::DataType> to_arrow_datatype(
-      tiledb_vcf_attr_datatype_t datatype);
 
   /** The underlying C reader object. */
   std::unique_ptr<tiledb_vcf_reader_t, decltype(&deleter)> ptr;
@@ -230,7 +198,7 @@ class Reader {
   std::vector<std::string> attributes_;
 
   /** List of attribute buffers. */
-  std::vector<BufferInfo> buffers_;
+  std::vector<std::shared_ptr<BufferInfo>> buffers_;
 
   /** Allocate buffers for the read. */
   void alloc_buffers(const bool release_buffs = true);
@@ -240,58 +208,5 @@ class Reader {
 
   /** Releases references on allocated buffers and clears the buffers list. */
   void release_buffers();
-
-  /** Build arrow array from bufferInfo. */
-  std::shared_ptr<arrow::Array> build_arrow_array_from_buffer(
-      BufferInfo& buffer,
-      const uint64_t& count,
-      const uint64_t& num_offsets,
-      const uint64_t& num_data_elements);
-
-  template <typename T>
-  std::shared_ptr<arrow::Array> build_arrow_array(
-      const BufferInfo& buffer,
-      const uint64_t count,
-      const uint64_t& num_offsets,
-      const uint64_t& num_data_elements) {
-    std::shared_ptr<arrow::Array> array;
-    std::shared_ptr<arrow::Array> data_array;
-    bool var_len = buffer.offsets != nullptr;
-    bool list = buffer.list_offsets != nullptr;
-
-    if (list) {
-      if (var_len) {
-        auto real_data_array =
-            std::make_shared<T>(num_data_elements, buffer.data);
-        data_array = std::make_shared<arrow::ListArray>(
-            arrow::list(buffer.arrow_datatype),
-            num_offsets - 1,
-            buffer.offsets,
-            real_data_array);
-      } else {
-        data_array = std::make_shared<T>(num_data_elements, buffer.data);
-      }
-      array = std::make_shared<arrow::ListArray>(
-          arrow::list(arrow::list(buffer.arrow_datatype)),
-          count,
-          buffer.list_offsets,
-          data_array,
-          buffer.bitmap);
-    } else if (var_len) {
-      data_array = std::make_shared<T>(num_data_elements, buffer.data);
-      array = std::make_shared<arrow::ListArray>(
-          arrow::list(buffer.arrow_datatype),
-          count,
-          buffer.offsets,
-          data_array,
-          buffer.bitmap);
-    } else {
-      // fixed length
-      array =
-          std::make_shared<T>(num_data_elements, buffer.data, buffer.bitmap);
-    }
-
-    return array;
-  }
 };
 }  // namespace tiledbvcfpy

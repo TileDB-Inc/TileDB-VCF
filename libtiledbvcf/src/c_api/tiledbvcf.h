@@ -964,7 +964,7 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_variant_stats(
     tiledb_vcf_reader_t* reader,
     uint32_t* pos,
     char* allele,
-    uint64_t* allele_offsets,
+    int32_t* allele_offsets,
     int* ac,
     int* an,
     float* af);

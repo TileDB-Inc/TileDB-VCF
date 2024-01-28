@@ -911,10 +911,11 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
+@pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
-    ds = tiledbvcf.Dataset(uri, mode="r", verbose=True)
+    ds = tiledbvcf.Dataset(uri)
     df = ds.read(
         attrs=[
             "sample_name",
@@ -1059,7 +1060,7 @@ def test_ingest_disable_merging(tmp_path):
 
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging_separate")
-    ds2 = tiledbvcf.Dataset(uri, mode="w", verbose=True)
+    ds2 = tiledbvcf.Dataset(uri, mode="w", verbose=False)
     samples = [
         os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
     ]
@@ -1067,9 +1068,8 @@ def test_ingest_disable_merging(tmp_path):
     ds2.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
 
     # Open it back in read mode and check some queries
-    ds2 = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=True)
+    ds2 = tiledbvcf.Dataset(uri, cfg=cfg, mode="r", verbose=False)
     df2 = ds2.read(attrs=attrs)
-    print(df.equals(df2))
     assert df.equals(df2)
 
     assert ds.count() == 246
@@ -1141,7 +1141,7 @@ def test_ingest_with_stats(tmp_path):
         os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
     )
     raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
-    print(f"raw inputs: {raw_inputs}")
+    # print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
         subprocess.run(
             "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
@@ -1149,14 +1149,14 @@ def test_ingest_with_stats(tmp_path):
             check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
-    print(f"bgzipped inputs: {bgzipped_inputs}")
+    # print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
         assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats_test"))
-    tiledbvcf.config_logging("trace")
+    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
     ds.ingest_samples(bgzipped_inputs)
@@ -1214,7 +1214,7 @@ def test_ingest_polyploid(tmp_path):
         os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
     )
     raw_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.vcf"))
-    print(f"raw inputs: {raw_inputs}")
+    # print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
         subprocess.run(
             "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
@@ -1222,7 +1222,7 @@ def test_ingest_polyploid(tmp_path):
             check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.gz"))
-    print(f"bgzipped inputs: {bgzipped_inputs}")
+    # print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
         assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
     if "polyploid" in tmp_path_contents:
@@ -1231,7 +1231,7 @@ def test_ingest_polyploid(tmp_path):
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "polyploid_test" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "polyploid_test"))
-    tiledbvcf.config_logging("trace")
+    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
     ds.ingest_samples(bgzipped_inputs)
@@ -1242,7 +1242,7 @@ def test_ingest_polyploid(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.8",
     )
-    print(data_frame)
+    # print(data_frame)
 
 
 def test_ingest_mode_separate(tmp_path):

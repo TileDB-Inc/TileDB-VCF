@@ -192,12 +192,6 @@ set(TILEDB_VCF_PUBLIC_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf_enum.h
 )
 
-if (ENABLE_ARROW_EXPORT)
-  list(APPEND TILEDB_VCF_PUBLIC_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/c_api/arrow.h
-  )
-endif()
-
 ############################################################
 # CLI executable target
 ############################################################

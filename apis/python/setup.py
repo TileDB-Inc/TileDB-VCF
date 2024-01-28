@@ -138,8 +138,6 @@ def get_cmake_overrides():
     val = "Debug" if TILEDBVCF_DEBUG_BUILD else "Release"
     conf.append("-DCMAKE_BUILD_TYPE={}".format(val))
 
-    conf.append("-DENABLE_ARROW_EXPORT=ON")
-
     return conf
 
 
@@ -204,7 +202,7 @@ def find_or_build_libtiledbvcf(setuptools_cmd):
 
 def get_ext_modules():
     p = PathConfig()
-    src_files = ["libtiledbvcf.cc", "reader.cc", "writer.cc"]
+    src_files = ["libtiledbvcf.cc", "reader.cc", "writer.cc", "vcf_arrow.cc"]
     src_files = [os.path.join(p.pkg_src, "binding", f) for f in src_files]
     ext_modules = [
         Extension(
