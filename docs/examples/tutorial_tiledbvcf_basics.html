@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.450">
+<meta name="generator" content="quarto-1.4.549">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -22,7 +22,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -57,7 +57,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -82,7 +82,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -91,13 +97,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
   }
 }</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 <script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
 
@@ -109,9 +116,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a href="../index.html" class="navbar-brand navbar-brand-logo">
     <img src="../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo">
     </a>
@@ -123,42 +130,42 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="https://tiledb.com" rel="" target="">
- <span class="menu-text">Home page</span></a>
+    <a class="nav-link" href="https://tiledb.com"> 
+<span class="menu-text">Home page</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="https://cloud.tiledb.com/auth/login" rel="" target="">
- <span class="menu-text">Login</span></a>
+    <a class="nav-link" href="https://cloud.tiledb.com/auth/login"> 
+<span class="menu-text">Login</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="https://tiledb.com/contact" rel="" target="">
- <span class="menu-text">Contact us</span></a>
+    <a class="nav-link" href="https://tiledb.com/contact"> 
+<span class="menu-text">Contact us</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="https://github.com/TileDB-Inc/TileDB-VCF" rel="" target="">
- <span class="menu-text">Repo</span></a>
+    <a class="nav-link" href="https://github.com/TileDB-Inc/TileDB-VCF"> 
+<span class="menu-text">Repo</span></a>
   </li>  
 </ul>
-            <div class="quarto-navbar-tools ms-auto">
-</div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">Examples</a></li><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">TileDB-VCF Tutorial</a></li></ol></nav>
-      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-      </a>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">Examples</a></li><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">TileDB-VCF Tutorial</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
     </div>
   </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -339,14 +346,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">1. Setup</a>
+  <li><a href="#tiledb-vcf-tutorial" id="toc-tiledb-vcf-tutorial" class="nav-link active" data-scroll-target="#tiledb-vcf-tutorial">TileDB-VCF Tutorial</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">1. Setup</a>
   <ul class="collapse">
   <li><a href="#packages" id="toc-packages" class="nav-link" data-scroll-target="#packages">Packages</a></li>
   </ul></li>
@@ -374,12 +382,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#run-multiple-batches-of-queries-in-parallel" id="toc-run-multiple-batches-of-queries-in-parallel" class="nav-link" data-scroll-target="#run-multiple-batches-of-queries-in-parallel">Run Multiple Batches of Queries in Parallel</a></li>
   </ul></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.dev/TileDB-Inc/TileDB-VCF/blob/main/examples/tutorial_tiledbvcf_basics.ipynb" class="toc-action">Edit this page</a></p><p><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.dev/TileDB-Inc/TileDB-VCF/blob/main/examples/tutorial_tiledbvcf_basics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">Examples</a></li><li class="breadcrumb-item"><a href="../examples/tutorial_tiledbvcf_basics.html">TileDB-VCF Tutorial</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">TileDB-VCF Tutorial</h1>
 </div>
@@ -394,8 +402,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </div>
   
 
+
 </header>
 
+
+<section id="tiledb-vcf-tutorial" class="level1">
+<h1>TileDB-VCF Tutorial</h1>
 <p><strong>This notebook will cover how to:</strong></p>
 <ul>
 <li>ingest S3 hosted VCF files directly into TileDB-VCF</li>
@@ -403,11 +415,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>query variant data and export results to single and group VCFs</li>
 <li>perform distributed queries via TileDB Cloud</li>
 </ul>
+</section>
 <section id="setup" class="level1">
 <h1>1. Setup</h1>
 <section id="packages" class="level2">
 <h2 class="anchored" data-anchor-id="packages">Packages</h2>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.312947Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.312851Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.665116Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.664661Z&quot;}" data-tags="[]" data-execution_count="1">
+<div id="cell-1" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.312947Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.312851Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.665116Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.664661Z&quot;}" data-tags="[]" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb.cloud</span>
@@ -428,7 +441,7 @@ tiledb-cloud v0.10.0
 </div>
 </div>
 <p>Setup TileDB’s virtual file system.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.686189Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.685946Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.690996Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.690452Z&quot;}" data-execution_count="2">
+<div id="cell-3" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.686189Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.685946Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.690996Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.690452Z&quot;}" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>vfs <span class="op">=</span> tiledb.VFS(config<span class="op">=</span>tiledb.Config())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -436,11 +449,11 @@ tiledb-cloud v0.10.0
 <section id="storing-vcf-data-with-tiledb" class="level1">
 <h1>2. Storing VCF Data with TileDB</h1>
 <p>Specify a location for the new array.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.692742Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.692492Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.695369Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.694776Z&quot;}" data-execution_count="3">
+<div id="cell-5" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.692742Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.692492Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.695369Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.694776Z&quot;}" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>array_uri <span class="op">=</span> <span class="st">"/tmp/demo-arraylocal"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Have we run this notebook before? If so, delete the existing array to start fresh.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.697252Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.697079Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.699725Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.699415Z&quot;}" data-execution_count="4">
+<div id="cell-7" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.697252Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.697079Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.699725Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.699415Z&quot;}" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (vfs.is_dir(array_uri)):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Deleting existing array '</span><span class="sc">{</span>array_uri<span class="sc">}</span><span class="ss">'"</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    vfs.remove_dir(array_uri)</span>
@@ -453,11 +466,11 @@ Done.</code></pre>
 <section id="example-vcf-files" class="level2">
 <h2 class="anchored" data-anchor-id="example-vcf-files">Example VCF Files</h2>
 <p>TileDB-VCF inherits TileDB’s native support for working with remote object stores, so we can ingest samples directly from remote services like AWS S3, Google Cloud, and Azure. Here, we’ll use single sample BCF files with chromosome 1 data for phase 3 samples from the 1KG project stored in a publicly readable S3 bucket.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.701166Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.701018Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.703111Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.702605Z&quot;}" data-execution_count="5">
+<div id="cell-9" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.701166Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.701018Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.703111Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.702605Z&quot;}" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>vcf_bucket <span class="op">=</span> <span class="st">"s3://tiledb-inc-demo-data/examples/notebooks/vcfs/1kgp3-chr1"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>For demonstration purposes we’ll ingest individual batches of samples one at a time. To do this, we’ll create a list of S3 URIs pointing to 5 sample BCF files.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.705157Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.704801Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.709657Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.709232Z&quot;}" data-tags="[]" data-execution_count="6">
+<div id="cell-11" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.705157Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.704801Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.709657Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.709232Z&quot;}" data-tags="[]" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>batch1_samples <span class="op">=</span> [<span class="st">"HG00096.bcf"</span>, <span class="st">"HG00097.bcf"</span>, <span class="st">"HG00099.bcf"</span>, <span class="st">"HG00100.bcf"</span>, <span class="st">"HG00101.bcf"</span>]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>batch1_uris <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>vcf_bucket<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>s<span class="sc">}</span><span class="ss">"</span> <span class="cf">for</span> s <span class="kw">in</span> batch1_samples]</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>batch1_uris</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -476,7 +489,7 @@ Done.</code></pre>
 <section id="create-a-new-dataset" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-new-dataset">Create a New Dataset</h2>
 <p>Before we can ingest VCF data into TileDB we must first create our new dataset. First, we’ll create a TileDB-VCF <code>Dataset</code> instance that opens a connection to our desired <code>array_uri</code> in write mode.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.711408Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.711258Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.716619Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.716224Z&quot;}" data-execution_count="7">
+<div id="cell-13" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.711408Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.711258Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:16.716619Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:16.716224Z&quot;}" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri<span class="op">=</span>array_uri, mode<span class="op">=</span><span class="st">"w"</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>ds</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
@@ -485,7 +498,7 @@ Done.</code></pre>
 </div>
 <p>Next, we’ll create the empty TileDB-VCF dataset.</p>
 <p><em>Note: We can optionally pass a VCF file to the <code>vcf_attrs</code> argument to automatically materialize all of the <code>INFO</code> and <code>FORMAT</code> fields as separate attributes in the array (rather than htslib-encoded blobs), which can improve query performance.</em></p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.718301Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.718168Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:17.164382Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:17.163991Z&quot;}" data-execution_count="8">
+<div id="cell-15" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:16.718301Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:16.718168Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:17.164382Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:17.163991Z&quot;}" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds.create_dataset(vcf_attrs<span class="op">=</span>batch1_uris[<span class="dv">0</span>], enable_allele_count<span class="op">=</span><span class="va">True</span>, enable_variant_stats<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># verify the array exists</span></span>
@@ -504,7 +517,7 @@ Done.</code></pre>
 <section id="ingest-initial-batch-of-5-vcf-files" class="level2">
 <h2 class="anchored" data-anchor-id="ingest-initial-batch-of-5-vcf-files">Ingest Initial Batch of 5 VCF Files</h2>
 <p>With the empty TileDB-VCF dataset created we can now ingest our first batch of samples.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:17.165824Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:17.165684Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:01.995468Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:01.994747Z&quot;}" data-execution_count="9">
+<div id="cell-18" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:17.165824Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:17.165684Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:01.995468Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:01.994747Z&quot;}" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ds.ingest_samples(sample_uris <span class="op">=</span> batch1_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -514,7 +527,7 @@ Wall time: 44.8 s</code></pre>
 </div>
 <p>This should take approximately 30s when ingesting from S3. Note most of this time is spent streaming the data, ingesting local copies of these files takes about 12s.</p>
 <p>We can verify the samples were ingested by listing the sample IDs contained within the new array:</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:01.997254Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:01.997146Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:02.007558Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:02.007183Z&quot;}" data-execution_count="10">
+<div id="cell-20" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:01.997254Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:01.997146Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:02.007558Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:02.007183Z&quot;}" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(array_uri, mode <span class="op">=</span> <span class="st">"r"</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>ds.samples()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
@@ -525,7 +538,7 @@ Wall time: 44.8 s</code></pre>
 <section id="ingest-a-second-batch-of-5-vcf-files" class="level2">
 <h2 class="anchored" data-anchor-id="ingest-a-second-batch-of-5-vcf-files">Ingest a Second Batch of 5 VCF Files</h2>
 <p>Update the existing TileDB-VCF dataset with a second batch of samples.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:02.009062Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:02.008924Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:02.011689Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:02.011350Z&quot;}" data-execution_count="11">
+<div id="cell-22" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:02.009062Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:02.008924Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:02.011689Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:02.011350Z&quot;}" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>batch2_samples <span class="op">=</span> [<span class="st">"HG00102.bcf"</span>, <span class="st">"HG00103.bcf"</span>, <span class="st">"HG00105.bcf"</span>, <span class="st">"HG00106.bcf"</span>, <span class="st">"HG00107.bcf"</span>]</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>batch2_uris <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>vcf_bucket<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>s<span class="sc">}</span><span class="ss">"</span> <span class="cf">for</span> s <span class="kw">in</span> batch2_samples]</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>batch2_uris</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -538,7 +551,7 @@ Wall time: 44.8 s</code></pre>
 </div>
 </div>
 <p>The process is identical: we need to reopen the <code>Dataset</code> in write mode and then pass another list of VCF URIs to <code>ingest_samples()</code>.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:02.013019Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:02.012897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.939419Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.938843Z&quot;}" data-execution_count="12">
+<div id="cell-24" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:02.013019Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:02.012897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.939419Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.938843Z&quot;}" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time </span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri<span class="op">=</span>array_uri, mode<span class="op">=</span><span class="st">"w"</span>) <span class="co">#Incremental update to the array, previous data is not touched </span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>ds.ingest_samples(sample_uris <span class="op">=</span> batch2_uris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -547,7 +560,7 @@ Wall time: 44.8 s</code></pre>
 Wall time: 46.9 s</code></pre>
 </div>
 </div>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.941136Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.941010Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.957878Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.957488Z&quot;}" data-execution_count="13">
+<div id="cell-25" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.941136Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.941010Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.957878Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.957488Z&quot;}" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(array_uri, mode <span class="op">=</span> <span class="st">"r"</span>) <span class="co">#Open array in read mode, and print out the samples we just ingested to verify</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ds.samples()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
@@ -569,7 +582,7 @@ Wall time: 46.9 s</code></pre>
 <section id="basic-tiledb-vcf-query" class="level1">
 <h1>3. Basic TileDB-VCF Query</h1>
 <p>Open the array in <em>read</em> mode, and display attributes</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.959570Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.959332Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.962092Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.961660Z&quot;}" data-execution_count="14">
+<div id="cell-28" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.959570Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.959332Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:48.962092Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:48.961660Z&quot;}" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>regions <span class="op">=</span> [<span class="st">"1:11106535-11262551"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -578,7 +591,7 @@ Wall time: 9.54 µs</code></pre>
 </div>
 </div>
 <p>Query for all variants located within <em>MTOR1</em> for a particular sample and return the results as a <code>Pandas.Dataframe</code>, which each row is a variant indexed by the chromosome, chromosome position, and sample.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.963475Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.963384Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.031655Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.031267Z&quot;}" data-execution_count="15">
+<div id="cell-30" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:48.963475Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:48.963384Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.031655Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.031267Z&quot;}" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    regions <span class="op">=</span> regions,</span>
@@ -705,7 +718,7 @@ Wall time: 61.2 ms</code></pre>
 <section id="exporting-to-gvcf" class="level1">
 <h1>4. Exporting to (g)VCF</h1>
 <p>Here we’re running the same query for an individual sample but exporting the results to a new VCF file.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.033697Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.033561Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.149819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.149258Z&quot;}" data-tags="[]" data-execution_count="16">
+<div id="cell-32" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.033697Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.033561Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.149819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.149258Z&quot;}" data-tags="[]" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ds.export(</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    regions <span class="op">=</span> [<span class="st">'1:10177-24924'</span>],</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    samples <span class="op">=</span> [<span class="st">'HG00101'</span>],</span>
@@ -714,7 +727,7 @@ Wall time: 61.2 ms</code></pre>
 <span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We can <code>bcftools</code> to examine the newly generated VCF.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.152169Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.152058Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.334436Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.333680Z&quot;}" data-tags="[]" data-execution_count="17">
+<div id="cell-34" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.152169Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.152058Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.334436Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.333680Z&quot;}" data-tags="[]" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>bcftools view <span class="op">--</span>no<span class="op">-</span>header <span class="op">/</span>tmp<span class="op">/</span>HG00101.vcf <span class="op">|</span> head <span class="op">-</span><span class="dv">10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>1   10352   rs555500075 T   TA  100 PASS    END=10352;DP=88915;AN=2;VT=INDEL;AC=1;AA=|||unknown(NO_COVERAGE)    GT  1|0
@@ -730,7 +743,7 @@ Wall time: 61.2 ms</code></pre>
 </div>
 </div>
 <p>Now let’s modify the query to again include multiple samples and then export the results as a multi-sample VCF file.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.336293Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.336183Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.449409Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.448895Z&quot;}" data-tags="[]" data-execution_count="18">
+<div id="cell-36" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.336293Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.336183Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.449409Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.448895Z&quot;}" data-tags="[]" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>ds.export(</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    regions <span class="op">=</span> [<span class="st">'1:10177-24924'</span>],</span>
@@ -745,7 +758,7 @@ Wall time: 110 ms</code></pre>
 </div>
 </div>
 <p>Again, we can use <code>bcftools</code> to examine it.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.451472Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.451312Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.635610Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.634767Z&quot;}" data-tags="[]" data-execution_count="19">
+<div id="cell-38" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.451472Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.451312Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.635610Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.634767Z&quot;}" data-tags="[]" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>bcftools view <span class="op">--</span>no<span class="op">-</span>header <span class="op">/</span>tmp<span class="op">/</span>combined.vcf <span class="op">|</span> head <span class="op">-</span><span class="dv">10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>1   10177   rs367896724 A   AC  100 PASS    AC=4;VT=INDEL;AN=8;DP=412608;AA=|||unknown(NO_COVERAGE);END=10177   GT  1|0 0|1 0|1 1|0 ./.
@@ -768,11 +781,11 @@ Wall time: 110 ms</code></pre>
 <section id="query-sample-partition-1" class="level3">
 <h3 class="anchored" data-anchor-id="query-sample-partition-1">Query Sample Partition 1</h3>
 <p>Open the array in <em>read</em> mode with the <code>sample_partition</code> parameter set to query the 1st of 2 sample partitions.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.637568Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.637455Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.658706Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.658320Z&quot;}" data-execution_count="20">
+<div id="cell-42" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.637568Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.637455Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.658706Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.658320Z&quot;}" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> tiledbvcf.ReadConfig(sample_partition<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">2</span>))</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(array_uri, mode<span class="op">=</span><span class="st">"r"</span>, cfg<span class="op">=</span>cfg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.660324Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.660185Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.735550Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.735257Z&quot;}" data-tags="[]" data-execution_count="21">
+<div id="cell-43" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.660324Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.660185Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.735550Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.735257Z&quot;}" data-tags="[]" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(</span>
@@ -912,11 +925,11 @@ Wall time: 67.1 ms</code></pre>
 <section id="query-sample-partition-2" class="level3">
 <h3 class="anchored" data-anchor-id="query-sample-partition-2">Query Sample Partition 2</h3>
 <p>Re-open the array with the <code>sample_partition</code> parameter set to query the 2nd sample partition (i.e., samples 6–10).</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.737248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.737106Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.754567Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.754167Z&quot;}" data-execution_count="22">
+<div id="cell-45" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.737248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.737106Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.754567Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.754167Z&quot;}" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> tiledbvcf.ReadConfig(sample_partition<span class="op">=</span>(<span class="dv">1</span>, <span class="dv">2</span>)) <span class="co">#This will return the second sub-set of the samples </span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(array_uri, mode<span class="op">=</span><span class="st">"r"</span>, cfg<span class="op">=</span>cfg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.756106Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.756008Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.831486Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.831054Z&quot;}" data-tags="[]" data-execution_count="23">
+<div id="cell-46" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.756106Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.756008Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.831486Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.831054Z&quot;}" data-tags="[]" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(</span>
@@ -1059,14 +1072,14 @@ Wall time: 67.7 ms</code></pre>
 <section id="setup-1" class="level2">
 <h2 class="anchored" data-anchor-id="setup-1">Setup</h2>
 <p>Import the <code>Delayed</code> module from <code>tiledb.cloud</code>. This is allows us to convert a normal python function into one that can be <em>Delayed</em> and serverlessly executed.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.833111Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.833007Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.835111Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.834664Z&quot;}" data-execution_count="24">
+<div id="cell-48" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.833111Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.833007Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.835111Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.834664Z&quot;}" data-execution_count="24">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tiledb.cloud.compute <span class="im">import</span> Delayed</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="run-a-basic-query-serverlessly" class="level2">
 <h2 class="anchored" data-anchor-id="run-a-basic-query-serverlessly">Run a Basic Query Serverlessly</h2>
 <p>Create UDF that wraps <code>tiledbvcf.read()</code>.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.836859Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.836722Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.839031Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.838779Z&quot;}" data-execution_count="25">
+<div id="cell-51" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.836859Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.836722Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.839031Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.838779Z&quot;}" data-execution_count="25">
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> vcf_query(uri, attrs, regions, samples<span class="op">=</span><span class="va">None</span>, sample_partition<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">1</span>)):</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> tiledbvcf</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> pyarrow</span>
@@ -1080,7 +1093,7 @@ Wall time: 67.7 ms</code></pre>
 <span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pyarrow.concat_tables(results, promote<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Create a delayed <em>instance</em> of this UDF and specify the parameters we want to run it with.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.840716Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.840598Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.844374Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.844124Z&quot;}" data-execution_count="26">
+<div id="cell-53" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.840716Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.840598Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:49.844374Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:49.844124Z&quot;}" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>array_uri <span class="op">=</span> <span class="st">"tiledb://TileDB-Inc/vcf-1kg-nygc"</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>query_attrs <span class="op">=</span> [<span class="st">"sample_name"</span>, <span class="st">"contig"</span>, <span class="st">"pos_start"</span>, <span class="st">"pos_end"</span>, <span class="st">"fmt_GT"</span>]</span>
@@ -1097,7 +1110,7 @@ Wall time: 67.7 ms</code></pre>
 <span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>        samples<span class="op">=</span>query_samples[:<span class="dv">10</span>],</span>
 <span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.845847Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.845715Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:50.358624Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:50.358091Z&quot;}" data-execution_count="27">
+<div id="cell-54" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:49.845847Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:49.845715Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:50.358624Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:50.358091Z&quot;}" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>delayed_read.visualize()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="27">
 <script type="application/vnd.jupyter.widget-view+json">
@@ -1106,7 +1119,7 @@ Wall time: 67.7 ms</code></pre>
 </div>
 </div>
 <p>Call <code>compute()</code> to serverlessly execute the function.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:50.360420Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:50.360094Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.579713Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.578916Z&quot;}" data-execution_count="28">
+<div id="cell-56" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:50.360420Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:50.360094Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.579713Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.578916Z&quot;}" data-execution_count="28">
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>res1 <span class="op">=</span> delayed_read.compute()</span>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>res1.to_pandas()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1230,14 +1243,14 @@ Wall time: 8.21 s</code></pre>
 <section id="run-multiple-batches-of-queries-in-parallel" class="level2">
 <h2 class="anchored" data-anchor-id="run-multiple-batches-of-queries-in-parallel">Run Multiple Batches of Queries in Parallel</h2>
 <p>Add another UDF to combine the outputs into a single result.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.581675Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.581468Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.584099Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.583523Z&quot;}" data-execution_count="29">
+<div id="cell-60" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.581675Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.581468Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.584099Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.583523Z&quot;}" data-execution_count="29">
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> combine_results(dfs): <span class="co">#Taking resluts and combining them into one table</span></span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> pyarrow <span class="im">as</span> pa</span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> pa.concat_tables([x <span class="cf">for</span> x <span class="kw">in</span> dfs <span class="cf">if</span> x <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>])</span>
 <span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Assemble and visualize the task graph.</p>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.585580Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.585457Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.703771Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.703153Z&quot;}" data-tags="[]" data-execution_count="30">
+<div id="cell-62" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.585580Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.585457Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:38:58.703771Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:38:58.703153Z&quot;}" data-tags="[]" data-execution_count="30">
 <div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>nparts <span class="op">=</span> <span class="dv">10</span></span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>delayed_results <span class="op">=</span> []</span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1263,7 +1276,7 @@ Wall time: 8.21 s</code></pre>
 </script>
 </div>
 </div>
-<div class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.705418Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.705319Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:07.999223Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:07.998635Z&quot;}" data-execution_count="31">
+<div id="cell-63" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:38:58.705418Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:38:58.705319Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:07.999223Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:07.998635Z&quot;}" data-execution_count="31">
 <div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>res2 <span class="op">=</span> delayed_results.compute()</span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>res2.to_pandas()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1471,10 +1484,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -1484,8 +1496,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -1498,6 +1519,125 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -1541,6 +1681,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -1566,6 +1707,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1627,12 +1794,12 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../documentation/index.html" class="pagination-link">
+      <a href="../documentation/index.html" class="pagination-link  aria-label=" tiledb-vcf"="">
         <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">TileDB-VCF</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../examples/tutorial_tiledbvcf_allele_frequencies.html" class="pagination-link">
+      <a href="../examples/tutorial_tiledbvcf_allele_frequencies.html" class="pagination-link" aria-label="TileDB-VCF Allele Frequencies">
         <span class="nav-page-text">TileDB-VCF Allele Frequencies</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
@@ -1641,4 +1808,5 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-</body></html>
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/TileDB-Inc/TileDB-VCF/blob/main/examples/tutorial_tiledbvcf_basics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/TileDB-Inc/TileDB-VCF/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
