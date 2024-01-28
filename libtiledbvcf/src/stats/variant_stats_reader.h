@@ -189,7 +189,7 @@ class AFMap {
   void retrieve_variant_stats(
       uint32_t* pos,
       char* allele,
-      uint64_t* allele_offsets,
+      int32_t* allele_offsets,
       int* ac,
       int* an,
       float_t* af);
@@ -256,7 +256,7 @@ class VariantStatsReader {
   void retrieve_variant_stats(
       uint32_t* pos,
       char* allele,
-      uint64_t* allele_offsets,
+      int32_t* allele_offsets,
       int* ac,
       int* an,
       float_t* af);

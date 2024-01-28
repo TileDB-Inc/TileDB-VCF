@@ -48,7 +48,7 @@ inline int pos_comparator(const void* a, const void* b) {
 inline void AFMap::retrieve_variant_stats(
     uint32_t* pos,
     char* allele,
-    uint64_t* allele_offsets,
+    int32_t* allele_offsets,
     int* ac,
     int* an,
     float_t* afb) {
@@ -131,7 +131,7 @@ VariantStatsReader::VariantStatsReader(
 void VariantStatsReader::retrieve_variant_stats(
     uint32_t* pos,
     char* allele,
-    uint64_t* allele_offsets,
+    int32_t* allele_offsets,
     int* ac,
     int* an,
     float_t* af) {

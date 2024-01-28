@@ -23,6 +23,7 @@ install: clean
 # -------------------------------------------------------------------
 .PHONY: update
 update:
+	rm -rf apis/python/build
 	cd libtiledbvcf/build && make -j && make install-libtiledbvcf
 	cd apis/python && python setup.py develop
 
@@ -72,12 +73,12 @@ format:
 # -------------------------------------------------------------------
 .PHONY: clean
 clean:
-	@rm -rf libtiledbvcf/build dist
+	@rm -rf libtiledbvcf/build dist apis/python/build
 
 .PHONY: cleaner
 cleaner:
 	@printf "*** dry-run mode: remove -n to actually remove files\n"
-	git clean -ffdx -e .vscode -n
+	git clean -ffdx -e .vscode -e venv -n
 
 # help
 # -------------------------------------------------------------------
