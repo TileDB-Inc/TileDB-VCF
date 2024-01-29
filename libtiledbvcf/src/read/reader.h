@@ -468,7 +468,7 @@ class Reader {
   void read_from_variant_stats(
       uint32_t* pos,
       char* allele,
-      uint64_t* allele_offsets,
+      int32_t* allele_offsets,
       int* ac,
       int* an,
       float_t* af);

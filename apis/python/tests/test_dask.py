@@ -28,7 +28,8 @@ def _check_dfs(expected, actual):
             for i in range(0, len(s1)):
                 assert np.array_equal(s1.iloc[i], s2.iloc[i])
         else:
-            assert s1.equals(s2)
+            assert s1[s1 != s2].size == 0
+            assert s2[s1 != s2].size == 0
 
     for k in expected:
         assert_series(expected[k], actual[k])

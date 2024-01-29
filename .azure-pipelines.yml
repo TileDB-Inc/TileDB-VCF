@@ -24,14 +24,6 @@ stages:
             BUILD_SPARK_API: ON
             DOWNLOAD_TILEDB_PREBUILT: ON
             ARTIFACT_NAME: linux
-          linux_tiledb_source_build:
-            imageName: 'ubuntu-22.04'
-            python.version: '3.x'
-            CXX: g++
-            BUILD_PYTHON_API: OFF
-            BUILD_SPARK_API: OFF
-            DOWNLOAD_TILEDB_PREBUILT: OFF
-            ARTIFACT_NAME: linux_tiledb_source_build
       pool:
         vmImage: $(imageName)
       steps:
