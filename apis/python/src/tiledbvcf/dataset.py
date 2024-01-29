@@ -101,7 +101,7 @@ class Dataset(object):
     def __init__(
         self,
         uri: str,
-        mode: bool = "r",
+        mode: str = "r",
         cfg: ReadConfig = None,
         stats: bool = False,
         verbose: bool = False,
