@@ -1,6 +1,6 @@
 numpy
 pandas
-pyarrow==11
+pyarrow==14.0.1
 pybind11
 setuptools
 setuptools_scm
