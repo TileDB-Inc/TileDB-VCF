@@ -297,8 +297,8 @@ void Reader::alloc_buffers(const bool release_buffs) {
 
     // Allocate the buffers
     size_t count = alloc_size_bytes / type_size(datatype);
-    buffers_.emplace_back(
-        BufferInfo::create(attr, datatype, count, var_len, nullable, list));
+    buffers_.emplace_back(BufferInfo::create(
+        attr, datatype, count, var_len ? count : 0, nullable, list));
   }
 }
 
@@ -516,7 +516,7 @@ py::object Reader::get_variant_stats_results() {
 
   auto pos = BufferInfo::create("pos", TILEDB_VCF_INT32, num_rows);
   auto allele =
-      BufferInfo::create("alleles", TILEDB_VCF_CHAR, alleles_size, true);
+      BufferInfo::create("alleles", TILEDB_VCF_CHAR, num_rows, alleles_size);
   auto ac = BufferInfo::create("ac", TILEDB_VCF_INT32, num_rows);
   auto an = BufferInfo::create("an", TILEDB_VCF_INT32, num_rows);
   auto af = BufferInfo::create("af", TILEDB_VCF_FLOAT32, num_rows);
@@ -539,6 +539,51 @@ py::object Reader::get_variant_stats_results() {
   build_arrow_array_from_buffer(af, num_rows, 0, num_rows);
 
   std::vector<std::shared_ptr<BufferInfo>> buffers = {pos, allele, ac, an, af};
+  return buffers_to_table(buffers);
+}
+
+py::object Reader::get_allele_count_results() {
+  auto reader = ptr.get();
+
+  size_t num_rows, refs_size, alts_size, filters_size, gts_size;
+  check_error(reader, tiledb_vcf_reader_prepare_allele_count(reader));
+  check_error(
+      reader,
+      tiledb_vcf_reader_get_allele_count_buffer_sizes(
+          reader, &num_rows, &refs_size, &alts_size, &filters_size, &gts_size));
+
+  auto pos = BufferInfo::create("pos", TILEDB_VCF_INT32, num_rows);
+  auto ref = BufferInfo::create("ref", TILEDB_VCF_CHAR, num_rows, refs_size);
+  auto alt = BufferInfo::create("alt", TILEDB_VCF_CHAR, num_rows, alts_size);
+  auto filter =
+      BufferInfo::create("filter", TILEDB_VCF_CHAR, num_rows, filters_size);
+  auto gt = BufferInfo::create("gt", TILEDB_VCF_CHAR, num_rows, gts_size);
+  auto count = BufferInfo::create("count", TILEDB_VCF_INT32, num_rows);
+
+  check_error(
+      reader,
+      tiledb_vcf_reader_read_from_allele_count(
+          reader,
+          reinterpret_cast<uint32_t*>(pos->data().data()),
+          reinterpret_cast<char*>(ref->data().data()),
+          reinterpret_cast<uint32_t*>(ref->offsets().data()),
+          reinterpret_cast<char*>(alt->data().data()),
+          reinterpret_cast<uint32_t*>(alt->offsets().data()),
+          reinterpret_cast<char*>(filter->data().data()),
+          reinterpret_cast<uint32_t*>(filter->offsets().data()),
+          reinterpret_cast<char*>(gt->data().data()),
+          reinterpret_cast<uint32_t*>(gt->offsets().data()),
+          reinterpret_cast<int32_t*>(count->data().data())));
+
+  build_arrow_array_from_buffer(pos, num_rows, 0, num_rows);
+  build_arrow_array_from_buffer(ref, num_rows, 0, num_rows);
+  build_arrow_array_from_buffer(alt, num_rows, 0, num_rows);
+  build_arrow_array_from_buffer(filter, num_rows, 0, num_rows);
+  build_arrow_array_from_buffer(gt, num_rows, 0, num_rows);
+  build_arrow_array_from_buffer(count, num_rows, 0, num_rows);
+
+  std::vector<std::shared_ptr<BufferInfo>> buffers = {
+      pos, ref, alt, filter, gt, count};
   return buffers_to_table(buffers);
 }
 

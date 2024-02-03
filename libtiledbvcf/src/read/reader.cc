@@ -45,6 +45,67 @@
 namespace tiledb {
 namespace vcf {
 
+AlleleCountKey::AlleleCountKey(
+    uint32_t pos,
+    std::string ref,
+    std::string alt,
+    std::string filter,
+    std::string gt)
+    : pos(pos)
+    , ref(ref)
+    , alt(alt)
+    , filter(filter)
+    , gt(gt) {
+}
+
+AlleleCountKey::AlleleCountKey(AlleleCountKey&& toMove) {
+  pos = toMove.pos;
+  ref = std::move(toMove.ref);
+  alt = std::move(toMove.alt);
+  filter = std::move(toMove.filter);
+  gt = std::move(toMove.gt);
+}
+
+AlleleCountKey::AlleleCountKey(const AlleleCountKey& toCopy) {
+  pos = toCopy.pos;
+  ref = toCopy.ref;
+  alt = toCopy.alt;
+  filter = toCopy.filter;
+  gt = toCopy.gt;
+}
+
+bool AlleleCountKey::operator<(const tiledb::vcf::AlleleCountKey& b) const {
+  if (pos != b.pos) {
+    return pos < b.pos;
+  } else {
+    if (ref != b.ref) {
+      return ref < b.ref;
+    } else {
+      if (alt != b.alt) {
+        return alt < b.alt;
+      } else {
+        if (filter != b.filter) {
+          return filter < b.filter;
+        } else {
+          if (gt != b.gt) {
+            return gt < b.gt;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool AlleleCountKey::operator>(const AlleleCountKey& b) const {
+  return !(*this < b) && !(*this == b);
+}
+
+bool AlleleCountKey::operator==(const AlleleCountKey& b) const {
+  return pos == b.pos && ref == b.ref && alt == b.alt && filter == b.filter &&
+         gt == b.gt;
+}
+
 Reader::Reader() {
 }
 
@@ -206,6 +267,10 @@ void Reader::init_af_filter() {
 void Reader::init_variant_stats_reader_for_export() {
   Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
   af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group, false);
+}
+
+void Reader::init_allele_count_reader_for_export() {
+  Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
 }
 
 InMemoryExporter* Reader::set_in_memory_exporter() {
@@ -600,6 +665,9 @@ void Reader::init_for_variant_stats() {
   LOG_DEBUG("Initializing reader for stats export");
 }
 
+void Reader::init_for_allele_count() {
+}
+
 bool Reader::next_read_batch() {
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)
@@ -959,6 +1027,58 @@ void Reader::prepare_variant_stats() {
   af_filter_->compute_af();
 }
 
+void Reader::prepare_allele_count() {
+  init_for_allele_count();
+  if (params_.regions.size() != 1) {
+    throw std::runtime_error(
+        "Error preparing allele count: there should be exactly one region "
+        "specified");
+  }
+
+  // TODO: this probably should be moved into the AlleleCount class
+  Region region = params_.regions[0];
+
+  // TODO: this probably should be moved into the AlleleCount class
+  // TODO: get a query that's actually a member of a persistent object
+  Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+  std::shared_ptr<Array> array = std::make_shared<Array>(
+      *ctx_, get_uri(group, "allele_count"), TILEDB_READ);
+
+  // TODO: fix this ALLELE_COUNT_ARRAY so it links against the static singleton
+  // defined in allele_count.h
+  const std::string ALLELE_COUNT_ARRAY = "allele_count";
+
+  // TODO: fix this COLUMN_NAME so it links against the static singleton defined
+  // in allele_count.h
+  std::vector<std::string> COLUMN_NAME = {
+      "pos", "ref", "alt", "filter", "gt", "count"};
+  // TODO: likewise with this enum
+  enum Columns { POS, REF, ALT, FILTER, GT, COUNT };
+
+  ManagedQuery mq(array, ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
+  mq.select_columns(COLUMN_NAME);
+  mq.select_point<std::string>("contig", region.seq_name);
+  mq.select_ranges<uint32_t>("pos", {{region.min, region.max}});
+  // TODO: use regions set in reader to assign subarray
+
+  while (!mq.is_complete()) {
+    mq.submit();
+    size_t num_rows = mq.results()->num_rows();
+
+    for (size_t i = 0; i < num_rows; i++) {
+      uint32_t pos = mq.data<uint32_t>("pos")[i];
+      std::string ref = std::string(mq.string_view("ref", i));
+      std::string alt = std::string(mq.string_view("alt", i));
+      std::string filter = std::string(mq.string_view("filter", i));
+      std::string gt = std::string(mq.string_view("gt", i));
+      // TODO: add function to generate key by concatenating pos, ref, alt,
+      // filter, gt
+      AlleleCountKey key(pos, ref, alt, filter, gt);
+      AlleleCountGroupBy[key] += mq.data<uint32_t>("count")[i];
+    }
+  }
+}
+
 void Reader::read_from_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -969,8 +1089,67 @@ void Reader::read_from_variant_stats(
   af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
 }
 
+// TODO: move this utils and unite with implementation in variant_stats
+std::string Reader::get_uri(const Group& group, std::string array_name) {
+  try {
+    auto member = group.member(array_name);
+    return member.uri();
+  } catch (const tiledb::TileDBError& ex) {
+    return "";
+  }
+}
+
+void Reader::read_from_allele_count(
+    uint32_t* pos,
+    char* ref,
+    uint32_t* ref_offsets,
+    char* alt,
+    uint32_t* alt_offsets,
+    char* filter,
+    uint32_t* filter_offsets,
+    char* gt,
+    uint32_t* gt_offsets,
+    int32_t* count) {
+  ref_offsets[0] = 0;
+  alt_offsets[0] = 0;
+  filter_offsets[0] = 0;
+  gt_offsets[0] = 0;
+  size_t i = 0;
+  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
+    pos[i] = ac.first.pos;
+    std::strncpy(
+        ref + ref_offsets[i], ac.first.ref.data(), ac.first.ref.size());
+    ref_offsets[i + 1] = ref_offsets[i] + ac.first.ref.size();
+    std::strncpy(
+        alt + alt_offsets[i], ac.first.alt.data(), ac.first.alt.size());
+    alt_offsets[i + 1] = alt_offsets[i] + ac.first.alt.size();
+    std::strncpy(
+        filter + filter_offsets[i],
+        ac.first.filter.data(),
+        ac.first.filter.size());
+    filter_offsets[i + 1] = filter_offsets[i] + ac.first.filter.size();
+    std::strncpy(gt + gt_offsets[i], ac.first.gt.data(), ac.first.gt.size());
+    gt_offsets[i + 1] = gt_offsets[i] + ac.first.gt.size();
+    count[i] = ac.second;
+    i++;
+  }
+  // TODO: assign buffer size from Python
+}
+
 std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
   return af_filter_->variant_stats_buffer_sizes();
+}
+
+std::tuple<size_t, size_t, size_t, size_t, size_t>
+Reader::allele_count_buffer_sizes() {
+  size_t ref = 0, alt = 0, filter = 0, gt = 0;
+  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
+    ref += ac.first.ref.size();
+    alt += ac.first.alt.size();
+    filter += ac.first.filter.size();
+    gt += ac.first.gt.size();
+  }
+  return {AlleleCountGroupBy.size(), ref, alt, filter, gt};
 }
 
 void Reader::init_exporter() {

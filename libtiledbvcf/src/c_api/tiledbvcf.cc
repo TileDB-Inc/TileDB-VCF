@@ -982,10 +982,44 @@ int32_t tiledb_vcf_reader_get_variant_stats_buffer_sizes(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_reader_get_allele_count_buffer_sizes(
+    tiledb_vcf_reader_t* reader,
+    size_t* num_rows,
+    size_t* refs_size,
+    size_t* alts_size,
+    size_t* filters_size,
+    size_t* gts_size) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || num_rows == nullptr ||
+      refs_size == nullptr || alts_size == nullptr || filters_size == nullptr ||
+      gts_size == nullptr)
+    return TILEDB_VCF_ERR;
+
+  std::tuple<size_t, size_t, size_t, size_t, size_t> sizes;
+  if (SAVE_ERROR_CATCH(
+          reader, sizes = reader->reader_->allele_count_buffer_sizes()))
+    return TILEDB_VCF_ERR;
+
+  *num_rows = std::get<0>(sizes);
+  *refs_size = std::get<1>(sizes);
+  *alts_size = std::get<2>(sizes);
+  *filters_size = std::get<3>(sizes);
+  *gts_size = std::get<4>(sizes);
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_reader_prepare_variant_stats(tiledb_vcf_reader_t* reader) {
   if (sanity_check(reader) == TILEDB_VCF_ERR)
     return TILEDB_VCF_ERR;
   if (SAVE_ERROR_CATCH(reader, reader->reader_->prepare_variant_stats()))
+    return TILEDB_VCF_ERR;
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_prepare_allele_count(tiledb_vcf_reader_t* reader) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+  if (SAVE_ERROR_CATCH(reader, reader->reader_->prepare_allele_count()))
     return TILEDB_VCF_ERR;
   return TILEDB_VCF_OK;
 }
@@ -1007,6 +1041,45 @@ int32_t tiledb_vcf_reader_read_from_variant_stats(
           reader,
           reader->reader_->read_from_variant_stats(
               pos, allele, allele_offsets, ac, an, af))) {
+    return TILEDB_VCF_ERR;
+  }
+
+  return TILEDB_VCF_OK;
+}
+
+int32_t tiledb_vcf_reader_read_from_allele_count(
+    tiledb_vcf_reader_t* reader,
+    uint32_t* pos,
+    char* ref,
+    uint32_t* ref_offsets,
+    char* alt,
+    uint32_t* alt_offsets,
+    char* filter,
+    uint32_t* filter_offsets,
+    char* gt,
+    uint32_t* gt_offsets,
+    int32_t* count) {
+  if (sanity_check(reader) == TILEDB_VCF_ERR || pos == nullptr ||
+      ref == nullptr || ref_offsets == nullptr || alt == nullptr ||
+      alt_offsets == nullptr || filter == nullptr ||
+      filter_offsets == nullptr || gt == nullptr || gt_offsets == nullptr ||
+      count == nullptr) {
+    return TILEDB_VCF_ERR;
+  }
+
+  if (SAVE_ERROR_CATCH(
+          reader,
+          reader->reader_->read_from_allele_count(
+              pos,
+              ref,
+              ref_offsets,
+              alt,
+              alt_offsets,
+              filter,
+              filter_offsets,
+              gt,
+              gt_offsets,
+              count))) {
     return TILEDB_VCF_ERR;
   }
 
