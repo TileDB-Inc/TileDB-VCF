@@ -551,7 +551,8 @@ py::object Reader::get_allele_count_results() {
       reader,
       tiledb_vcf_reader_get_allele_count_buffer_sizes(
           reader, &num_rows, &refs_size, &alts_size, &filters_size, &gts_size));
-
+  if(num_rows > 0)
+    {
   auto pos = BufferInfo::create("pos", TILEDB_VCF_INT32, num_rows);
   auto ref = BufferInfo::create("ref", TILEDB_VCF_CHAR, num_rows, refs_size);
   auto alt = BufferInfo::create("alt", TILEDB_VCF_CHAR, num_rows, alts_size);
@@ -585,6 +586,8 @@ py::object Reader::get_allele_count_results() {
   std::vector<std::shared_ptr<BufferInfo>> buffers = {
       pos, ref, alt, filter, gt, count};
   return buffers_to_table(buffers);
+    }
+  return py::cast<py::none>Py_None;
 }
 
 void Reader::deleter(tiledb_vcf_reader_t* r) {

@@ -1030,46 +1030,8 @@ void Reader::prepare_variant_stats() {
   af_filter_->compute_af();
 }
 
-  void AlleleCountReader::prepare_allele_count(Region region) {
-
-  // TODO: fix this ALLELE_COUNT_ARRAY so it links against the static singleton
-  // defined in allele_count.h
-  const std::string ALLELE_COUNT_ARRAY = "allele_count";
-
-  // TODO: fix this COLUMN_NAME so it links against the static singleton defined
-  // in allele_count.h
-  std::vector<std::string> COLUMN_NAME = {
-      "pos", "ref", "alt", "filter", "gt", "count"};
-  // TODO: likewise with this enum
-  enum Columns { POS, REF, ALT, FILTER, GT, COUNT };
-
-  ManagedQuery mq(array_, ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
-  mq.select_columns(COLUMN_NAME);
-  mq.select_point<std::string>("contig", region.seq_name);
-  mq.select_ranges<uint32_t>("pos", {{region.min, region.max}});
-  // TODO: use regions set in reader to assign subarray
-
-  while (!mq.is_complete()) {
-    mq.submit();
-    size_t num_rows = mq.results()->num_rows();
-
-    for (size_t i = 0; i < num_rows; i++) {
-      uint32_t pos = mq.data<uint32_t>("pos")[i];
-      std::string ref = std::string(mq.string_view("ref", i));
-      std::string alt = std::string(mq.string_view("alt", i));
-      std::string filter = std::string(mq.string_view("filter", i));
-      std::string gt = std::string(mq.string_view("gt", i));
-      // TODO: add function to generate key by concatenating pos, ref, alt,
-      // filter, gt
-      AlleleCountKey key(pos, ref, alt, filter, gt);
-      AlleleCountGroupBy[key] += mq.data<uint32_t>("count")[i];
-    }
-  }
-}
-
-void Reader::prepare_allele_count()
-  {
-      init_for_allele_count();
+void Reader::prepare_allele_count() {
+  init_for_allele_count();
   if (params_.regions.size() != 1) {
     throw std::runtime_error(
         "Error preparing allele count: there should be exactly one region "
@@ -1089,58 +1051,6 @@ void Reader::read_from_variant_stats(
   af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
 }
 
-// TODO: move this utils and unite with implementation in variant_stats
-std::string AlleleCountReader::get_uri(const Group& group, std::string array_name) {
-  try {
-    auto member = group.member(array_name);
-    return member.uri();
-  } catch (const tiledb::TileDBError& ex) {
-    return "";
-  }
-}
-
-  AlleleCountReader::AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group)
-  {
-    auto uri = AlleleCountReader::get_uri(group, "allele_count");
-    array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
-  }
-
-  void AlleleCountReader::read_from_allele_count(
-    uint32_t* pos,
-    char* ref,
-    uint32_t* ref_offsets,
-    char* alt,
-    uint32_t* alt_offsets,
-    char* filter,
-    uint32_t* filter_offsets,
-    char* gt,
-    uint32_t* gt_offsets,
-    int32_t* count) {
-  ref_offsets[0] = 0;
-  alt_offsets[0] = 0;
-  filter_offsets[0] = 0;
-  gt_offsets[0] = 0;
-  size_t i = 0;
-  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
-    pos[i] = ac.first.pos;
-    std::strncpy(
-        ref + ref_offsets[i], ac.first.ref.data(), ac.first.ref.size());
-    ref_offsets[i + 1] = ref_offsets[i] + ac.first.ref.size();
-    std::strncpy(
-        alt + alt_offsets[i], ac.first.alt.data(), ac.first.alt.size());
-    alt_offsets[i + 1] = alt_offsets[i] + ac.first.alt.size();
-    std::strncpy(
-        filter + filter_offsets[i],
-        ac.first.filter.data(),
-        ac.first.filter.size());
-    filter_offsets[i + 1] = filter_offsets[i] + ac.first.filter.size();
-    std::strncpy(gt + gt_offsets[i], ac.first.gt.data(), ac.first.gt.size());
-    gt_offsets[i + 1] = gt_offsets[i] + ac.first.gt.size();
-    count[i] = ac.second;
-    i++;
-  }
-}
-
 void Reader::read_from_allele_count(
     uint32_t* pos,
     char* ref,
@@ -1152,7 +1062,17 @@ void Reader::read_from_allele_count(
     char* gt,
     uint32_t* gt_offsets,
     int32_t* count) {
-  ac_reader_->read_from_allele_count(pos, ref, ref_offsets, alt, alt_offsets, filter, filter_offsets, gt, gt_offsets, count);
+  ac_reader_->read_from_allele_count(
+      pos,
+      ref,
+      ref_offsets,
+      alt,
+      alt_offsets,
+      filter,
+      filter_offsets,
+      gt,
+      gt_offsets,
+      count);
 }
 
 std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
@@ -1162,18 +1082,6 @@ std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
 std::tuple<size_t, size_t, size_t, size_t, size_t>
 Reader::allele_count_buffer_sizes() {
   return ac_reader_->allele_count_buffer_sizes();
-}
-
-std::tuple<size_t, size_t, size_t, size_t, size_t>
-AlleleCountReader::allele_count_buffer_sizes() {
-  size_t ref = 0, alt = 0, filter = 0, gt = 0;
-  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
-    ref += ac.first.ref.size();
-    alt += ac.first.alt.size();
-    filter += ac.first.filter.size();
-    gt += ac.first.gt.size();
-  }
-  return {AlleleCountGroupBy.size(), ref, alt, filter, gt};
 }
 
 void Reader::init_exporter() {
