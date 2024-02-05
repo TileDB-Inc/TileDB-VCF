@@ -271,6 +271,7 @@ void Reader::init_variant_stats_reader_for_export() {
 
 void Reader::init_allele_count_reader_for_export() {
   Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+  ac_reader_ = std::make_unique<AlleleCountReader>(ctx_, group);
 }
 
 InMemoryExporter* Reader::set_in_memory_exporter() {
@@ -666,6 +667,8 @@ void Reader::init_for_variant_stats() {
 }
 
 void Reader::init_for_allele_count() {
+  init_allele_count_reader_for_export();
+  LOG_DEBUG("Initializing reader for allele count export");
 }
 
 bool Reader::next_read_batch() {
@@ -1027,22 +1030,7 @@ void Reader::prepare_variant_stats() {
   af_filter_->compute_af();
 }
 
-void Reader::prepare_allele_count() {
-  init_for_allele_count();
-  if (params_.regions.size() != 1) {
-    throw std::runtime_error(
-        "Error preparing allele count: there should be exactly one region "
-        "specified");
-  }
-
-  // TODO: this probably should be moved into the AlleleCount class
-  Region region = params_.regions[0];
-
-  // TODO: this probably should be moved into the AlleleCount class
-  // TODO: get a query that's actually a member of a persistent object
-  Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
-  std::shared_ptr<Array> array = std::make_shared<Array>(
-      *ctx_, get_uri(group, "allele_count"), TILEDB_READ);
+  void AlleleCountReader::prepare_allele_count(Region region) {
 
   // TODO: fix this ALLELE_COUNT_ARRAY so it links against the static singleton
   // defined in allele_count.h
@@ -1055,7 +1043,7 @@ void Reader::prepare_allele_count() {
   // TODO: likewise with this enum
   enum Columns { POS, REF, ALT, FILTER, GT, COUNT };
 
-  ManagedQuery mq(array, ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
+  ManagedQuery mq(array_, ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
   mq.select_columns(COLUMN_NAME);
   mq.select_point<std::string>("contig", region.seq_name);
   mq.select_ranges<uint32_t>("pos", {{region.min, region.max}});
@@ -1079,6 +1067,18 @@ void Reader::prepare_allele_count() {
   }
 }
 
+void Reader::prepare_allele_count()
+  {
+      init_for_allele_count();
+  if (params_.regions.size() != 1) {
+    throw std::runtime_error(
+        "Error preparing allele count: there should be exactly one region "
+        "specified");
+  }
+
+  ac_reader_->prepare_allele_count(params_.regions[0]);
+}
+
 void Reader::read_from_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -1090,7 +1090,7 @@ void Reader::read_from_variant_stats(
 }
 
 // TODO: move this utils and unite with implementation in variant_stats
-std::string Reader::get_uri(const Group& group, std::string array_name) {
+std::string AlleleCountReader::get_uri(const Group& group, std::string array_name) {
   try {
     auto member = group.member(array_name);
     return member.uri();
@@ -1099,7 +1099,13 @@ std::string Reader::get_uri(const Group& group, std::string array_name) {
   }
 }
 
-void Reader::read_from_allele_count(
+  AlleleCountReader::AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group)
+  {
+    auto uri = AlleleCountReader::get_uri(group, "allele_count");
+    array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
+  }
+
+  void AlleleCountReader::read_from_allele_count(
     uint32_t* pos,
     char* ref,
     uint32_t* ref_offsets,
@@ -1133,7 +1139,20 @@ void Reader::read_from_allele_count(
     count[i] = ac.second;
     i++;
   }
-  // TODO: assign buffer size from Python
+}
+
+void Reader::read_from_allele_count(
+    uint32_t* pos,
+    char* ref,
+    uint32_t* ref_offsets,
+    char* alt,
+    uint32_t* alt_offsets,
+    char* filter,
+    uint32_t* filter_offsets,
+    char* gt,
+    uint32_t* gt_offsets,
+    int32_t* count) {
+  ac_reader_->read_from_allele_count(pos, ref, ref_offsets, alt, alt_offsets, filter, filter_offsets, gt, gt_offsets, count);
 }
 
 std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
@@ -1142,6 +1161,11 @@ std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
 
 std::tuple<size_t, size_t, size_t, size_t, size_t>
 Reader::allele_count_buffer_sizes() {
+  return ac_reader_->allele_count_buffer_sizes();
+}
+
+std::tuple<size_t, size_t, size_t, size_t, size_t>
+AlleleCountReader::allele_count_buffer_sizes() {
   size_t ref = 0, alt = 0, filter = 0, gt = 0;
   for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
     ref += ac.first.ref.size();

@@ -87,6 +87,68 @@ class AlleleCountKey {
   bool operator==(const AlleleCountKey& b) const;
 };
 
+class AlleleCountReader
+{
+public:
+    /**
+   * Reads the contents of the allele count array for the region
+   */
+  void prepare_allele_count(Region region);
+
+    /**
+   * Reads the grouped contents of the allele_count array into a set of buffers
+   * @param contig_offsets contig offset buffer (n+1 cardinality)
+   * @param pos position buffer
+   * @param ref ref buffer
+   * @param ref_offsets ref offset buffer (n+1 cardinality)
+   * @param alt alt buffer
+   * @param alt_offsets alt offset buffer (n+1 cardinality)
+   * @param filter filter buffer
+   * @param filter_offsets filter offset buffer (n+1 cardinality)
+   * @param af buffer of float representing internal allele frequency
+   */
+  void read_from_allele_count(
+      uint32_t* pos,
+      char* ref,
+      uint32_t* ref_offsets,
+      char* alt,
+      uint32_t* alt_offsets,
+      char* filter,
+      uint32_t* filter_offsets,
+      char* gt,
+      uint32_t* gt_offsets,
+      int32_t* count);
+
+    /**
+   * Returns the cardinality and aggregate allele length of expanded stats rows
+   */
+  std::tuple<size_t, size_t, size_t, size_t, size_t>
+  allele_count_buffer_sizes();
+
+  // TODO: move this utils and unite with implementation in variant_stats
+  /**
+   * @brief Get the URI from TileDB-VCF dataset group
+   *
+   * @param group TileDB-VCF dataset group
+   * @param array_name name of array to be opened
+   * @return std::string Array URI
+   */
+  static std::string get_uri(const Group& group, std::string array_name);
+
+  AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group);
+
+private:
+  std::map<AlleleCountKey, int32_t> AlleleCountGroupBy;
+  std::shared_ptr<Array> array_;
+
+};
+
+  /**
+   * Returns the cardinality and aggregate allele length of expanded stats rows
+   */
+  std::tuple<size_t, size_t, size_t, size_t, size_t>
+  allele_count_buffer_sizes();
+  
 /* ********************************* */
 /*       AUXILIARY DATATYPES         */
 /* ********************************* */
@@ -516,7 +578,7 @@ class Reader {
       float_t* af);
 
   /**
-   * Reads the expanded contents of the allele_count array into a set of buffers
+   * Reads the grouped contents of the allele_count array into a set of buffers
    * @param contig_offsets contig offset buffer (n+1 cardinality)
    * @param pos position buffer
    * @param ref ref buffer
@@ -603,19 +665,6 @@ class Reader {
   /* ********************************* */
   /*           PRIVATE DATATYPES       */
   /* ********************************* */
-
-  // TODO: move this utils and unite with implementation in variant_stats
-  /**
-   * @brief Get the URI from TileDB-VCF dataset group
-   *
-   * @param group TileDB-VCF dataset group
-   * @param array_name name of array to be opened
-   * @return std::string Array URI
-   */
-  static std::string get_uri(const Group& group, std::string array_name);
-
-  // TODO: move this to AlleleCount
-  std::map<AlleleCountKey, int32_t> AlleleCountGroupBy;
 
   /** Helper struct containing a column range being queried. */
   struct QueryRegion {
@@ -760,6 +809,8 @@ class Reader {
 
   /** Variant stats filter */
   std::unique_ptr<VariantStatsReader> af_filter_;
+
+  std::unique_ptr<AlleleCountReader> ac_reader_;
 
   /* ********************************* */
   /*           PRIVATE METHODS         */
