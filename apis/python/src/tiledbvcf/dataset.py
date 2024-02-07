@@ -298,6 +298,23 @@ class Dataset(object):
         self.reader.set_regions(region)
         return self.reader.get_variant_stats_results()
 
+    def read_allele_count(
+        self,
+        region: str = None,
+    ) -> pd.DataFrame:
+        """
+        Read allele count from the dataset into a Pandas DataFrame
+
+        Parameters
+        ----------
+        region
+            Genomic region to be queried.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+        self.reader.set_regions(region)
+        return self.reader.get_allele_count_results()
+
     def read(
         self,
         attrs: List[str] = DEFAULT_ATTRS,

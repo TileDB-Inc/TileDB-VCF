@@ -208,6 +208,11 @@ void Reader::init_variant_stats_reader_for_export() {
   af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group, false);
 }
 
+void Reader::init_allele_count_reader_for_export() {
+  Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
+  ac_reader_ = std::make_unique<AlleleCountReader>(ctx_, group);
+}
+
 InMemoryExporter* Reader::set_in_memory_exporter() {
   // On the first call to set_buffer(), swap out any existing exporter with an
   // InMemoryExporter.
@@ -600,6 +605,11 @@ void Reader::init_for_variant_stats() {
   LOG_DEBUG("Initializing reader for stats export");
 }
 
+void Reader::init_for_allele_count() {
+  init_allele_count_reader_for_export();
+  LOG_DEBUG("Initializing reader for allele count export");
+}
+
 bool Reader::next_read_batch() {
   if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3)
@@ -959,6 +969,17 @@ void Reader::prepare_variant_stats() {
   af_filter_->compute_af();
 }
 
+void Reader::prepare_allele_count() {
+  init_for_allele_count();
+  if (params_.regions.size() != 1) {
+    throw std::runtime_error(
+        "Error preparing allele count: there should be exactly one region "
+        "specified");
+  }
+
+  ac_reader_->prepare_allele_count(params_.regions[0]);
+}
+
 void Reader::read_from_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -969,8 +990,37 @@ void Reader::read_from_variant_stats(
   af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
 }
 
+void Reader::read_from_allele_count(
+    uint32_t* pos,
+    char* ref,
+    uint32_t* ref_offsets,
+    char* alt,
+    uint32_t* alt_offsets,
+    char* filter,
+    uint32_t* filter_offsets,
+    char* gt,
+    uint32_t* gt_offsets,
+    int32_t* count) {
+  ac_reader_->read_from_allele_count(
+      pos,
+      ref,
+      ref_offsets,
+      alt,
+      alt_offsets,
+      filter,
+      filter_offsets,
+      gt,
+      gt_offsets,
+      count);
+}
+
 std::tuple<size_t, size_t> Reader::variant_stats_buffer_sizes() {
   return af_filter_->variant_stats_buffer_sizes();
+}
+
+std::tuple<size_t, size_t, size_t, size_t, size_t>
+Reader::allele_count_buffer_sizes() {
+  return ac_reader_->allele_count_buffer_sizes();
 }
 
 void Reader::init_exporter() {

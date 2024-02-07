@@ -106,11 +106,11 @@ class BufferInfo {
       std::string name,
       tiledb_vcf_attr_datatype_t datatype,
       int num_rows,
-      bool is_var_len = false,
+      int num_elements = 0,
       bool is_nullable = false,
       bool is_list = false) {
     return std::make_shared<BufferInfo>(
-        name, datatype, num_rows, is_var_len, is_nullable, is_list);
+        name, datatype, num_rows, num_elements, is_nullable, is_list);
   }
 
   /**
@@ -119,15 +119,16 @@ class BufferInfo {
    * @param name Attribute name
    * @param datatype Attribute datatype
    * @param num_rows Number of rows to allocate
-   * @param is_var_len Attribute is variable length
+   * @param num_elements aggregate number of elements in variable-length array;
+   * set to 0 for fixed length
    * @param is_nullable Attribute is nullable
    * @param is_list Attribute is a list
    */
   BufferInfo(
       std::string_view name,
       tiledb_vcf_attr_datatype_t datatype,
-      int num_rows,
-      bool is_var_len = false,
+      uint32_t num_rows,
+      uint32_t num_elements = 0,
       bool is_nullable = false,
       bool is_list = false)
       : name_(name)
@@ -135,9 +136,11 @@ class BufferInfo {
       , arrow_datatype_(to_arrow_datatype(datatype))
       , type_size_(type_size(datatype)) {
     // Allocate buffers
-    data_.reserve(num_rows * type_size_);
-    if (is_var_len) {
+    if (num_elements) {  // variable length
+      data_.reserve(num_elements * type_size_);
       offsets_.reserve(num_rows + 1);
+    } else {
+      data_.reserve(num_rows * type_size_);
     }
     if (is_nullable) {
       bitmap_.reserve(num_rows);

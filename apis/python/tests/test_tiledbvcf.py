@@ -1158,7 +1158,7 @@ def test_ingest_with_stats(tmp_path):
         shutil.rmtree(os.path.join(tmp_path, "stats_test"))
     # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    ds.create_dataset(enable_variant_stats=True)
+    ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
     ds.ingest_samples(bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
@@ -1197,6 +1197,11 @@ def test_ingest_with_stats(tmp_path):
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
     assert df.shape == (11, 5)
+    df = ds.read_allele_count("chr1:1-10000")
+    assert df.shape == (7, 6)
+    df = df.to_pandas()
+    assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
+    assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
 
 
 # Ok to skip is missing bcftools in Windows CI job
