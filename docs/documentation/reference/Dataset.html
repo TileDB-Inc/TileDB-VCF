@@ -326,6 +326,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#tiledbvcf.Dataset.export" id="toc-tiledbvcf.Dataset.export" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.export">export</a></li>
   <li><a href="#tiledbvcf.Dataset.ingest_samples" id="toc-tiledbvcf.Dataset.ingest_samples" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.ingest_samples">ingest_samples</a></li>
   <li><a href="#tiledbvcf.Dataset.read" id="toc-tiledbvcf.Dataset.read" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read">read</a></li>
+  <li><a href="#tiledbvcf.Dataset.read_allele_count" id="toc-tiledbvcf.Dataset.read_allele_count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_allele_count">read_allele_count</a></li>
   <li><a href="#tiledbvcf.Dataset.read_arrow" id="toc-tiledbvcf.Dataset.read_arrow" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_arrow">read_arrow</a></li>
   <li><a href="#tiledbvcf.Dataset.read_completed" id="toc-tiledbvcf.Dataset.read_completed" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_completed">read_completed</a></li>
   <li><a href="#tiledbvcf.Dataset.read_iter" id="toc-tiledbvcf.Dataset.read_iter" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_iter">read_iter</a></li>
@@ -450,38 +451,42 @@ ul.task-list li input[type="checkbox"] {
 <td>Read data from the dataset into a Pandas DataFrame.</td>
 </tr>
 <tr class="odd">
+<td><a href="#tiledbvcf.Dataset.read_allele_count">read_allele_count</a></td>
+<td>Read allele count from the dataset into a Pandas DataFrame</td>
+</tr>
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_arrow">read_arrow</a></td>
 <td>Read data from the dataset into a PyArrow Table.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_completed">read_completed</a></td>
 <td>Returns true if the previous read operation was complete.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_iter">read_iter</a></td>
 <td>Iterator version of <code>read()</code>.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_variant_stats">read_variant_stats</a></td>
 <td>Read variant stats from the dataset into a Pandas DataFrame</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.sample_count">sample_count</a></td>
 <td>Get the number of samples in the dataset.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.samples">samples</a></td>
 <td>Get the list of samples in the dataset.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.schema_version">schema_version</a></td>
 <td>Get the VCF schema version of the dataset.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.tiledb_stats">tiledb_stats</a></td>
 <td>Get TileDB stats as a string.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.version">version</a></td>
 <td>Return the TileDB-VCF version used to create the dataset.</td>
 </tr>
@@ -1130,13 +1135,39 @@ ul.task-list li input[type="checkbox"] {
 </table>
 </section>
 </section>
+<section id="tiledbvcf.Dataset.read_allele_count" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_allele_count">read_allele_count</h3>
+<p><code>Dataset.read_allele_count(region=None)</code></p>
+<p>Read allele count from the dataset into a Pandas DataFrame</p>
+<section id="parameters-9" class="level4">
+<h4 class="anchored" data-anchor-id="parameters-9">Parameters</h4>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>region</code></td>
+<td>str</td>
+<td>Genomic region to be queried.</td>
+<td><code>None</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
 <section id="tiledbvcf.Dataset.read_arrow" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_arrow">read_arrow</h3>
 <p><code>Dataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, bed_array=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a PyArrow Table.</p>
 <p>For large queries, a call to <code>read_arrow()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
-<section id="parameters-9" class="level4">
-<h4 class="anchored" data-anchor-id="parameters-9">Parameters</h4>
+<section id="parameters-10" class="level4">
+<h4 class="anchored" data-anchor-id="parameters-10">Parameters</h4>
 <table class="table">
 <colgroup>
 <col style="width: 16%">
@@ -1260,8 +1291,8 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_iter">read_iter</h3>
 <p><code>Dataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)</code></p>
 <p>Iterator version of <code>read()</code>.</p>
-<section id="parameters-10" class="level4">
-<h4 class="anchored" data-anchor-id="parameters-10">Parameters</h4>
+<section id="parameters-11" class="level4">
+<h4 class="anchored" data-anchor-id="parameters-11">Parameters</h4>
 <table class="table">
 <colgroup>
 <col style="width: 13%">
@@ -1316,8 +1347,8 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_variant_stats">read_variant_stats</h3>
 <p><code>Dataset.read_variant_stats(region=None)</code></p>
 <p>Read variant stats from the dataset into a Pandas DataFrame</p>
-<section id="parameters-11" class="level4">
-<h4 class="anchored" data-anchor-id="parameters-11">Parameters</h4>
+<section id="parameters-12" class="level4">
+<h4 class="anchored" data-anchor-id="parameters-12">Parameters</h4>
 <table class="table">
 <thead>
 <tr class="header">
