@@ -45,10 +45,16 @@
 #include "read/exporter.h"
 #include "read/in_memory_exporter.h"
 #include "read/read_query_results.h"
+#include "stats/allele_count.h"
 #include "stats/variant_stats_reader.h"
 
 namespace tiledb {
 namespace vcf {
+
+/**
+ * Returns the cardinality and aggregate allele length of expanded stats rows
+ */
+std::tuple<size_t, size_t, size_t, size_t, size_t> allele_count_buffer_sizes();
 
 /* ********************************* */
 /*       AUXILIARY DATATYPES         */
@@ -457,6 +463,11 @@ class Reader {
   void prepare_variant_stats();
 
   /**
+   * Reads the contents of the allele count array for the region
+   */
+  void prepare_allele_count();
+
+  /**
    * Reads the expanded contents of the stats array into a set of buffers
    * @param pos position buffer
    * @param allele allele buffer
@@ -474,9 +485,39 @@ class Reader {
       float_t* af);
 
   /**
+   * Reads the grouped contents of the allele_count array into a set of buffers
+   * @param contig_offsets contig offset buffer (n+1 cardinality)
+   * @param pos position buffer
+   * @param ref ref buffer
+   * @param ref_offsets ref offset buffer (n+1 cardinality)
+   * @param alt alt buffer
+   * @param alt_offsets alt offset buffer (n+1 cardinality)
+   * @param filter filter buffer
+   * @param filter_offsets filter offset buffer (n+1 cardinality)
+   * @param af buffer of float representing internal allele frequency
+   */
+  void read_from_allele_count(
+      uint32_t* pos,
+      char* ref,
+      uint32_t* ref_offsets,
+      char* alt,
+      uint32_t* alt_offsets,
+      char* filter,
+      uint32_t* filter_offsets,
+      char* gt,
+      uint32_t* gt_offsets,
+      int32_t* count);
+
+  /**
    * Returns the cardinality and aggregate allele length of expanded stats rows
    */
   std::tuple<size_t, size_t> variant_stats_buffer_sizes();
+
+  /**
+   * Returns the cardinality and aggregate allele length of expanded stats rows
+   */
+  std::tuple<size_t, size_t, size_t, size_t, size_t>
+  allele_count_buffer_sizes();
 
   /**
    * sets whether to scan all samples in the dataset when computing IAF
@@ -676,6 +717,8 @@ class Reader {
   /** Variant stats filter */
   std::unique_ptr<VariantStatsReader> af_filter_;
 
+  std::unique_ptr<AlleleCountReader> ac_reader_;
+
   /* ********************************* */
   /*           PRIVATE METHODS         */
   /* ********************************* */
@@ -685,6 +728,9 @@ class Reader {
 
   /** Set up stats reader just for exporting over Arrow */
   void init_variant_stats_reader_for_export();
+
+  /** Set up stats reader just for exporting over Arrow */
+  void init_allele_count_reader_for_export();
 
   /** Swaps any existing exporter with an InMemoryExporter, and returns it. */
   InMemoryExporter* set_in_memory_exporter();
@@ -711,6 +757,7 @@ class Reader {
   void init_for_reads_v3();
   void init_for_reads_v4();
   void init_for_variant_stats();
+  void init_for_allele_count();
 
   /** Initializes the exporter before the first read. */
   void init_exporter();
