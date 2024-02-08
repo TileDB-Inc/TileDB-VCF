@@ -37,6 +37,8 @@
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>  // for the new group api
 
+#include "vcf/region.h"
+
 namespace tiledb::vcf {
 
 /**
@@ -303,6 +305,101 @@ class AlleleCount {
    *
    */
   void update_results();
+};
+
+/**
+ * The AlleleCountKey class stores records from the allele_count array for use
+ * as keys in a key-value pair.
+ *
+ */
+class AlleleCountKey {
+ public:
+  /** position */
+  uint32_t pos;
+  /** reference **/
+  std::string ref;
+  /** alternate **/
+  std::string alt;
+  /** filter **/
+  std::string filter;
+  /** genotype **/
+  std::string gt;
+
+  AlleleCountKey(
+      uint32_t pos,
+      std::string ref,
+      std::string alt,
+      std::string filter,
+      std::string gt);
+
+  AlleleCountKey(AlleleCountKey&& toMove);
+
+  AlleleCountKey(const AlleleCountKey& toCopy);
+
+  bool operator<(const AlleleCountKey& b) const;
+
+  bool operator>(const AlleleCountKey& b) const;
+
+  bool operator==(const AlleleCountKey& b) const;
+};
+
+/*
+  The AlleleCountReader class contains all the core functionality necessary to
+  read and aggregate the contents of the allele_count array.
+
+*/
+class AlleleCountReader {
+ public:
+  /**
+   * Reads the contents of the allele count array for the region
+   */
+  void prepare_allele_count(Region region);
+
+  /**
+   * Reads the grouped contents of the allele_count array into a set of buffers
+   * @param contig_offsets contig offset buffer (n+1 cardinality)
+   * @param pos position buffer
+   * @param ref ref buffer
+   * @param ref_offsets ref offset buffer (n+1 cardinality)
+   * @param alt alt buffer
+   * @param alt_offsets alt offset buffer (n+1 cardinality)
+   * @param filter filter buffer
+   * @param filter_offsets filter offset buffer (n+1 cardinality)
+   * @param af buffer of float representing internal allele frequency
+   */
+  void read_from_allele_count(
+      uint32_t* pos,
+      char* ref,
+      uint32_t* ref_offsets,
+      char* alt,
+      uint32_t* alt_offsets,
+      char* filter,
+      uint32_t* filter_offsets,
+      char* gt,
+      uint32_t* gt_offsets,
+      int32_t* count);
+
+  /**
+   * Returns the cardinality and aggregate allele length of expanded stats rows
+   */
+  std::tuple<size_t, size_t, size_t, size_t, size_t>
+  allele_count_buffer_sizes();
+
+  // TODO: move this utils and unite with implementation in variant_stats
+  /**
+   * @brief Get the URI from TileDB-VCF dataset group
+   *
+   * @param group TileDB-VCF dataset group
+   * @param array_name name of array to be opened
+   * @return std::string Array URI
+   */
+  static std::string get_uri(const Group& group, std::string array_name);
+
+  AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group);
+
+ private:
+  std::map<AlleleCountKey, int32_t> AlleleCountGroupBy;
+  std::shared_ptr<Array> array_;
 };
 
 }  // namespace tiledb::vcf

@@ -945,11 +945,31 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_variant_stats_buffer_sizes(
     tiledb_vcf_reader_t* reader, size_t* num_rows, size_t* alleles_size);
 
 /**
+ * Returns the cardinality and aggregate allele length of allele count rows
+ * @param num_rows return number of rows by reference
+ * @param alleles_size return aggregate allele buffer size by reference
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_get_allele_count_buffer_sizes(
+    tiledb_vcf_reader_t* reader,
+    size_t* num_rows,
+    size_t* refs_size,
+    size_t* alts_size,
+    size_t* filters_size,
+    size_t* gts_size);
+
+/**
  * Reads the contents of the stats array for the region, in preparation for
  * conversion of the map to a data frame
  */
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_reader_prepare_variant_stats(tiledb_vcf_reader_t* reader);
+
+/**
+ * Reads the contents of the allele count array for the region, in preparation
+ * for conversion of the map to a data frame
+ */
+TILEDBVCF_EXPORT int32_t
+tiledb_vcf_reader_prepare_allele_count(tiledb_vcf_reader_t* reader);
 
 /**
  * Reads the expanded contents of the stats array into a set of buffers
@@ -968,6 +988,32 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_variant_stats(
     int* ac,
     int* an,
     float* af);
+
+/**
+ * Reads the grouped contents of the allele count array into a set of buffers
+ * @param contig contig buffer
+ * @param contig_offsets contig offset buffer (n+1 cardinality)
+ * @param pos position buffer
+ * @param ref ref buffer
+ * @param ref_offsets ref offset buffer (n+1 cardinality)
+ * @param alt alt buffer
+ * @param alt_offsets alt offset buffer (n+1 cardinality)
+ * @param filter filter buffer
+ * @param filter_offsets filter offset buffer (n+1 cardinality)
+ * @param af buffer of float representing internal allele frequency
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_read_from_allele_count(
+    tiledb_vcf_reader_t* reader,
+    uint32_t* pos,
+    char* ref,
+    uint32_t* ref_offsets,
+    char* alt,
+    uint32_t* alt_offsets,
+    char* filter,
+    uint32_t* filter_offsets,
+    char* gt,
+    uint32_t* gt_offsets,
+    int32_t* count);
 
 /**
  * Sets export output directory

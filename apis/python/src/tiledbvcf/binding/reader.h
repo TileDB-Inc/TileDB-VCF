@@ -136,6 +136,9 @@ class Reader {
   /** Get Stats Results **/
   py::object get_variant_stats_results();
 
+  /** Get Allele Count Results **/
+  py::object get_allele_count_results();
+
   /** Set reader verbose output mode */
   void set_verbose(bool verbose);
 
