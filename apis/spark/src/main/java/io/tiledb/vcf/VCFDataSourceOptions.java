@@ -76,6 +76,14 @@ public class VCFDataSourceOptions implements Serializable {
     return Optional.empty();
   }
 
+  /** @return Optional uri of BED array */
+  public Optional<URI> getBedArrayURI() {
+    if (options.containsKey("bed_array")) {
+      return Optional.of(URI.create(options.get("bed_array")));
+    }
+    return Optional.empty();
+  }
+
   /** @return Optional uri of SampleFile file */
   public Optional<URI> getSampleURI() {
     if (options.containsKey("samplefile")) {
