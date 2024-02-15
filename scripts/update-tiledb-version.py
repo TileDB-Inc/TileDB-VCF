@@ -28,7 +28,7 @@ def get_version_hash(version):
 
     m = re.search(rf"\s(\S+)\s+refs/tags/{version}\s", output)
     if m:
-        return m.group(1)[0:8]
+        return m.group(1)[0:7]
 
     print(output)
     print(f"Error: version {version} not found.")
