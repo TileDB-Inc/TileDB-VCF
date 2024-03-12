@@ -47,3 +47,4 @@ jobs:
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Test
         run: pytest apis\python\tests
+
