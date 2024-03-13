@@ -1,4 +1,6 @@
 import dask
+
+dask.config.set({"dataframe.query-planning": False})
 import dask.dataframe
 
 import pyarrow as pa

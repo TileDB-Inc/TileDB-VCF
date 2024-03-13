@@ -10,6 +10,8 @@ You can use the `tiledbvcf` package's Dask integration to partition read operati
 import tiledbvcf
 import dask
 
+dask.config.set({'dataframe.query-planning': False})
+
 ds = tiledbvcf.Dataset('my-large-dataset', mode='r')
 dask_df = ds.read_dask(attrs=['sample_name', 'pos_start', 'pos_end'],
                        bed_file='very-large-bedfile.bed',
