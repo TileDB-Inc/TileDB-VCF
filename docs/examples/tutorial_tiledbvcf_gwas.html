@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.550">
+<meta name="generator" content="quarto-1.4.551">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -353,8 +353,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#gwas-with-the-1000-genomes-tiledb-vcf-dataset" id="toc-gwas-with-the-1000-genomes-tiledb-vcf-dataset" class="nav-link active" data-scroll-target="#gwas-with-the-1000-genomes-tiledb-vcf-dataset">GWAS with the 1000 Genomes TileDB-VCF Dataset</a></li>
-  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a>
   <ul class="collapse">
   <li><a href="#packages" id="toc-packages" class="nav-link" data-scroll-target="#packages">Packages</a></li>
   <li><a href="#variables" id="toc-variables" class="nav-link" data-scroll-target="#variables">Variables</a></li>
@@ -398,16 +397,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="gwas-with-the-1000-genomes-tiledb-vcf-dataset" class="level1">
-<h1>GWAS with the 1000 Genomes TileDB-VCF Dataset</h1>
 <p>In this notebook we’ll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB Cloud’s serverless computation platform.</p>
 <p>To get started we’ll load a few required packages and define several variables that we’ll refer to throughout the notebook.</p>
-</section>
 <section id="setup" class="level1">
 <h1>Setup</h1>
 <section id="packages" class="level2">
 <h2 class="anchored" data-anchor-id="packages">Packages</h2>
-<div id="cell-3" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:28.812417Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:28.812322Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.409835Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.409326Z&quot;}" data-execution_count="1">
+<div id="cell-4" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:28.812417Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:28.812322Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.409835Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.409326Z&quot;}" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb.cloud</span>
@@ -430,7 +426,7 @@ tileDB-cloud v0.10.0</code></pre>
 </section>
 <section id="variables" class="level2">
 <h2 class="anchored" data-anchor-id="variables">Variables</h2>
-<div id="cell-5" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.428217Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.428027Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.430739Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.430127Z&quot;}" data-execution_count="2">
+<div id="cell-6" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.428217Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.428027Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.430739Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.430127Z&quot;}" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># variables</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>genome <span class="op">=</span> <span class="st">"hg19"</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>array_uri <span class="op">=</span> <span class="st">"tiledb://TileDB-Inc/vcf-1kg-phase3"</span></span>
@@ -445,7 +441,7 @@ tileDB-cloud v0.10.0</code></pre>
 <span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"fmt_GT"</span></span>
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-6" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.432310Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.432211Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.542380Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.541744Z&quot;}" data-tags="[]" data-execution_count="3">
+<div id="cell-7" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.432310Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.432211Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:29.542380Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:29.541744Z&quot;}" data-tags="[]" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>tiledbvcf stat <span class="op">--</span>uri tiledb:<span class="op">//</span>TileDB<span class="op">-</span>Inc<span class="op">/</span>vcf<span class="op">-</span><span class="dv">1</span><span class="er">kg</span><span class="op">-</span>phase3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>/bin/bash: line 1: tiledbvcf: command not found</code></pre>
@@ -456,7 +452,7 @@ tileDB-cloud v0.10.0</code></pre>
 <section id="sample-phenotypes" class="level1">
 <h1>Sample Phenotypes</h1>
 <p>Because no phenotypic data was collected for the 1KG dataset, we’ll create a dummy trait indicating whether or not a sample identified as female.</p>
-<div id="cell-8" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.544148Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.544043Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:31.766814Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:31.766320Z&quot;}" data-execution_count="4">
+<div id="cell-9" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:29.544148Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:29.544043Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:31.766814Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:31.766320Z&quot;}" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tiledb.<span class="bu">open</span>(sample_array) <span class="im">as</span> A:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    df_samples <span class="op">=</span> A.df[:]</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    </span>
@@ -579,7 +575,7 @@ tileDB-cloud v0.10.0</code></pre>
 <section id="binned-genomic-regions" class="level1">
 <h1>Binned Genomic Regions</h1>
 <p>To get started we’ll use the <a href="https://cloud.tiledb.com/udfs/details/aaronwolen/genome_windows"><code>genome_windows</code></a> UDF to divide a genome into windows (i.e., bins) and return a list of regions in the <code>chr:start-end</code> format that <code>tiledbvcf</code> expects.</p>
-<div id="cell-11" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:31.768487Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:31.768384Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:34.972169Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:34.971340Z&quot;}" data-execution_count="5">
+<div id="cell-12" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:31.768487Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:31.768384Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:34.972169Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:34.971340Z&quot;}" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bed_regions <span class="op">=</span> tiledb.cloud.udf.<span class="bu">exec</span>(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    func <span class="op">=</span> <span class="st">"aaronwolen/genome_windows"</span>, </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    genome <span class="op">=</span> <span class="st">"hg19"</span>, </span>
@@ -588,7 +584,7 @@ tileDB-cloud v0.10.0</code></pre>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>For now we’ll filter this list to include only regions from chromosome 20.</p>
-<div id="cell-13" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:34.974559Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:34.974430Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:34.978901Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:34.978633Z&quot;}" data-execution_count="6">
+<div id="cell-14" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:34.974559Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:34.974430Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:34.978901Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:34.978633Z&quot;}" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>bed_regions <span class="op">=</span> [r <span class="cf">for</span> r <span class="kw">in</span> bed_regions <span class="cf">if</span> r.startswith(<span class="st">"20:"</span>)]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">len</span>(bed_regions)<span class="sc">}</span><span class="ss"> total regions"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>bed_regions[:<span class="dv">5</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -613,7 +609,7 @@ tileDB-cloud v0.10.0</code></pre>
 <li>queries a specified window from the genome</li>
 <li>filters the sites based on the defined criteria</li>
 </ul>
-<div id="cell-15" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:34.980432Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:34.980344Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:44.470164Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:44.469694Z&quot;}" data-execution_count="7">
+<div id="cell-16" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:34.980432Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:34.980344Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:44.470164Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:44.469694Z&quot;}" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> tiledb.cloud.udf.<span class="bu">exec</span>(</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    func <span class="op">=</span> <span class="st">"aaronwolen/vcf_snp_query"</span>,</span>
@@ -747,7 +743,7 @@ Wall time: 9.48 s</code></pre>
 <li>calculates allele count and minor allele frequencies</li>
 <li>optinally filters for variants using the <code>maf</code> threshold</li>
 </ul>
-<div id="cell-17" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:44.471983Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:44.471882Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:52.171601Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:52.171197Z&quot;}" data-execution_count="8">
+<div id="cell-18" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:44.471983Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:44.471882Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:33:52.171601Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:33:52.171197Z&quot;}" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>res2 <span class="op">=</span> tiledb.cloud.udf.<span class="bu">exec</span>(</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    func <span class="op">=</span> <span class="st">"aaronwolen/filter_variants"</span>, </span>
@@ -875,7 +871,7 @@ Wall time: 7.69 s</code></pre>
 <section id="calc_gwas" class="level2">
 <h2 class="anchored" data-anchor-id="calc_gwas">3. <code>calc_gwas()</code></h2>
 <p>Reshapes the Dataframe of variants into a variant by sample matrix and performs a chi-squared analysis on site for the included trait</p>
-<div id="cell-19" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:52.173145Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:52.173043Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:01.843205Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:01.842902Z&quot;}" data-execution_count="9">
+<div id="cell-20" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:33:52.173145Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:33:52.173043Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:01.843205Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:01.842902Z&quot;}" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>res3 <span class="op">=</span> tiledb.cloud.udf.<span class="bu">exec</span>(</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    func <span class="op">=</span> <span class="st">"aaronwolen/calc_gwas"</span>,</span>
@@ -995,7 +991,7 @@ Wall time: 9.66 s</code></pre>
 <ul>
 <li>creates a single dataframe containing individual results from each partition</li>
 </ul>
-<div id="cell-21" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:01.844781Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:01.844672Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:01.846937Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:01.846680Z&quot;}" data-execution_count="10">
+<div id="cell-22" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:01.844781Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:01.844672Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:01.846937Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:01.846680Z&quot;}" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> combine_results(dfs):</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Combine GWAS Results</span></span>
@@ -1012,7 +1008,7 @@ Wall time: 9.66 s</code></pre>
 <section id="construct-udf-based-task-graph" class="level1">
 <h1>Construct UDF-based Task Graph</h1>
 <p>To run the complete pipeline serverlessly we need to create Delayed versions of these functions with the appropriate parameters. For <code>query_region()</code> we need to create one delayed instance for each of the genomic regions to be queried in parallel.</p>
-<div id="cell-23" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:01.848604Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:01.848460Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:02.255171Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:02.254773Z&quot;}" data-execution_count="11">
+<div id="cell-24" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:01.848604Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:01.848460Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:34:02.255171Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:34:02.254773Z&quot;}" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>nregions <span class="op">=</span> <span class="bu">len</span>(bed_regions[:<span class="dv">100</span>])</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>nparts <span class="op">=</span> nregions <span class="op">//</span> <span class="dv">5</span></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Analyzing </span><span class="sc">{</span>nregions<span class="sc">}</span><span class="ss"> regions across </span><span class="sc">{</span>nparts<span class="sc">}</span><span class="ss"> partitions"</span>)</span>
@@ -1059,7 +1055,7 @@ Wall time: 9.66 s</code></pre>
 </div>
 </div>
 <p>Finally, we can execute our distributed GWAS and collect the results.</p>
-<div id="cell-25" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:02.256963Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:02.256835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.239635Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.239088Z&quot;}" data-execution_count="12">
+<div id="cell-26" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:34:02.256963Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:34:02.256835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.239635Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.239088Z&quot;}" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> delayed_results.compute(name<span class="op">=</span><span class="st">"GWAS Tutorial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1068,7 +1064,7 @@ CPU times: user 18.4 s, sys: 11.7 s, total: 30.1 s
 Wall time: 3min 11s</code></pre>
 </div>
 </div>
-<div id="cell-26" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:14.241325Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:14.241221Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.248410Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.248118Z&quot;}" data-execution_count="13">
+<div id="cell-27" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:14.241325Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:14.241221Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.248410Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.248118Z&quot;}" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>results.to_pandas()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <div>
@@ -1172,7 +1168,7 @@ Wall time: 3min 11s</code></pre>
 </div>
 </div>
 <p>And no association test would be complete without a manhattan plot:</p>
-<div id="cell-28" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:14.250005Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:14.249871Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.429239Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.428834Z&quot;}" data-execution_count="14">
+<div id="cell-29" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:37:14.250005Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:37:14.249871Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:37:14.429239Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:37:14.428834Z&quot;}" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> results.to_pandas()</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"log_pvalue"</span>] <span class="op">=</span> <span class="op">-</span>np.log10(results.pvalue)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1284,6 +1280,24 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/tiledb-inc\.github\.io\/TileDB-VCF\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -1318,7 +1332,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
