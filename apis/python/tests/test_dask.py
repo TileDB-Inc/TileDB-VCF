@@ -5,6 +5,8 @@ import pytest
 import tiledbvcf
 
 import dask
+
+dask.config.set({"dataframe.query-planning": False})
 import dask.distributed
 
 # Directory containing this file
