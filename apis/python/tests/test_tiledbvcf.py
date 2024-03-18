@@ -1609,3 +1609,189 @@ def test_bed_array(tmp_path, test_ds_v4):
             expected_df,
             df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
         )
+
+
+def test_info_end(tmp_path):
+    """
+    This test checks that the info_END attribute is handled correctly, even when the
+    VCF header incorrectly defines the END attribute as a string.
+
+    The test also checks that info_END contains the original values from the VCF,
+    including the missing values.
+    """
+
+    expected_end = pd.DataFrame(
+        {
+            "pos_end": pd.Series(
+                [
+                    12277,
+                    12771,
+                    13374,
+                    13395,
+                    13413,
+                    13451,
+                    13519,
+                    13544,
+                    13689,
+                    17479,
+                    17486,
+                    30553,
+                    35224,
+                    35531,
+                    35786,
+                    69096,
+                    69103,
+                    69104,
+                    69109,
+                    69110,
+                    69111,
+                    69112,
+                    69114,
+                    69115,
+                    69122,
+                    69123,
+                    69128,
+                    69129,
+                    69130,
+                    69192,
+                    69195,
+                    69196,
+                    69215,
+                    69222,
+                    69227,
+                    69228,
+                    69261,
+                    69262,
+                    69269,
+                    69270,
+                    69346,
+                    69349,
+                    69352,
+                    69353,
+                    69370,
+                    69510,
+                    69511,
+                    69760,
+                    69761,
+                    69770,
+                    69834,
+                    69835,
+                    69838,
+                    69861,
+                    69863,
+                    69866,
+                    69896,
+                    69897,
+                    69912,
+                    69938,
+                    69939,
+                    69941,
+                    69946,
+                    69947,
+                    69948,
+                    69949,
+                    69953,
+                    70012,
+                    866511,
+                    1289369,
+                ],
+                dtype=np.int32,
+            ),
+            # Expected values are strings because the small3.vcf.gz defines END as a string
+            "info_END": pd.Series(
+                [
+                    "12277",
+                    "12771",
+                    "13374",
+                    "13395",
+                    "13413",
+                    "13451",
+                    "13519",
+                    "13544",
+                    "13689",
+                    "17479",
+                    "17486",
+                    "30553",
+                    "35224",
+                    "35531",
+                    "35786",
+                    "69096",
+                    "69103",
+                    "69104",
+                    "69109",
+                    "69110",
+                    "69111",
+                    "69112",
+                    "69114",
+                    "69115",
+                    "69122",
+                    "69123",
+                    "69128",
+                    "69129",
+                    "69130",
+                    "69192",
+                    "69195",
+                    "69196",
+                    "69215",
+                    "69222",
+                    "69227",
+                    "69228",
+                    "69261",
+                    "69262",
+                    "69269",
+                    None,
+                    "69346",
+                    "69349",
+                    "69352",
+                    "69353",
+                    "69370",
+                    "69510",
+                    None,
+                    "69760",
+                    None,
+                    "69770",
+                    "69834",
+                    "69835",
+                    "69838",
+                    "69861",
+                    "69863",
+                    "69866",
+                    "69896",
+                    None,
+                    "69912",
+                    "69938",
+                    "69939",
+                    "69941",
+                    "69946",
+                    "69947",
+                    "69948",
+                    "69949",
+                    "69953",
+                    "70012",
+                    None,
+                    None,
+                ],
+                dtype=object,
+            ),
+        }
+    )
+
+    # Ingest the data
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small3.vcf.gz"]]
+    ds.create_dataset()
+    ds.ingest_samples(samples)
+
+    # Read the data
+    ds = tiledbvcf.Dataset(uri)
+    df = ds.read(attrs=["sample_name", "pos_start", "pos_end", "info_END"])
+
+    # Sort the results because VCF uses an unordered reader
+    df.sort_values(ignore_index=True, by=["sample_name", "pos_start"], inplace=True)
+
+    # Drop the columns that are not used for comparison
+    df.drop(columns=["sample_name", "pos_start"], inplace=True)
+
+    # Check the results
+    _check_dfs(df, expected_end)

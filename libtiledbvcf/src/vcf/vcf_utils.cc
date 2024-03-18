@@ -31,20 +31,33 @@ namespace vcf {
 
 uint32_t VCFUtils::get_end_pos(
     bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val) {
-  val->ndst = HtslibValueMem::convert_ndst_for_type(
-      val->ndst, BCF_HT_INT, &val->type_for_ndst);
-  int rc =
-      bcf_get_info_values(hdr, rec, "END", &val->dst, &val->ndst, BCF_HT_INT);
-  if (rc > 0) {
-    assert(val->dst);
-    assert(val->ndst >= 1);
-    uint32_t copy = ((uint32_t*)val->dst)[0];
-    assert(copy > 0);
-    copy -= 1;
-    return copy;
+  // Set the default value of END, in case it is not present in the VCF
+  uint32_t end = rec->pos + rec->rlen - 1;
+
+  int* dst = nullptr;
+  int ndst = 0;
+
+  // Check if END is present as an integer
+  int ret = bcf_get_info_int32(hdr, rec, "END", &dst, &ndst);
+  if (ret >= 0) {
+    end = *dst - 1;
   } else {
-    return (uint32_t)rec->pos + rec->rlen - 1;
+    // Check if END is present as a string
+    ret = bcf_get_info_string(hdr, rec, "END", &dst, &ndst);
+    if (ret >= 0) {
+      std::string end_str = reinterpret_cast<char*>(dst);
+      try {
+        end = std::stoi(end_str) - 1;
+      } catch (std::invalid_argument const& e) {
+        throw std::runtime_error(
+            "Error parsing END field as an integer: " + end_str);
+      }
+    }
   }
+
+  hts_free(dst);
+
+  return end;
 }
 
 bcf_hdr_t* VCFUtils::hdr_read_header(const std::string& path) {

@@ -341,13 +341,6 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
     int info_id = info->key;
     const char* key = bcf_hdr_int2id(hdr, BCF_DT_ID, info_id);
 
-    // No need to store END.
-    if (strcmp("END", key) == 0) {
-      infos_extracted[i] = true;
-      n_info_as_attr++;
-      continue;
-    }
-
     Buffer* buff;
     if (buffers_.extra_attr(std::string("info_") + key, &buff)) {
       // No need to store the string key, as it's an extracted attribute.
