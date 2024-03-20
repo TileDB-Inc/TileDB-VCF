@@ -58,13 +58,17 @@ jobs:
         run: sudo apt install bcftools
       - name: Test libtiledbvcf
         run: bash TileDB-VCF/ci/nightly/test-libtiledbvcf.sh
-      - name: Setup conda env
-        uses: mamba-org/setup-micromamba@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          environment-file: TileDB-VCF/ci/nightly/environment.yaml
-          cache-environment: true
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --prefer-binary \
+            -r TileDB-VCF/ci/nightly/requirements.txt \
+            -r TileDB-VCF/ci/nightly/requirements-test.txt
+          pip list
       - name: Build tiledb-py from source
-        shell: bash -l {0}
         run: |
           cd TileDB-Py/
           python setup.py develop --tiledb=../install/
@@ -72,8 +76,6 @@ jobs:
           python -c "import tiledb; print(tiledb.libtiledb.version())"
           python -c "import tiledb; print(tiledb.version())"
       - name: Build (and test) tiledbvcf-py
-        # need -l to activate conda env
-        shell: bash -l {0}
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   osx:
     runs-on: macos-12
@@ -128,6 +130,7 @@ jobs:
           python -m pip install --prefer-binary \
             -r TileDB-VCF/ci/nightly/requirements.txt \
             -r TileDB-VCF/ci/nightly/requirements-test.txt
+          pip list
       - name: Build tiledb-py from source
         run: |
           cd TileDB-Py/
