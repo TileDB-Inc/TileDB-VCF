@@ -21,18 +21,26 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
-    name: linux-libtiledb-${{ matrix.libtiledb_version }}
+    name: linux-libtiledb-${{ matrix.branches.libtiledb }}
     strategy:
       fail-fast: false
       matrix:
-        libtiledb_version: [release-2.20, dev]
+        branches:
+          - {libtiledb: release-2.20, tiledb-py: release-0.26.1}
+          - {libtiledb: dev, tiledb-py: dev}
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v3
         with:
           repository: TileDB-Inc/TileDB
-          ref: ${{ matrix.libtiledb_version }}
+          ref: ${{ matrix.branches.libtiledb }}
           path: TileDB
+      - name: Clone TileDB-Py
+        uses: actions/checkout@v4
+        with:
+          repository: TileDB-Inc/TileDB-Py
+          ref: ${{ matrix.branches.tiledb-py }}
+          path: TileDB-Py
       - name: Clone TileDB-VCF
         uses: actions/checkout@v3
         with:
@@ -55,17 +63,27 @@ jobs:
         with:
           environment-file: TileDB-VCF/ci/nightly/environment.yaml
           cache-environment: true
+      - name: Build tiledb-py from source
+        shell: bash -l {0}
+        run: |
+          cd TileDB-Py/
+          python setup.py develop --tiledb=../install/
+          python -c "import tiledb; print('successful import')"
+          python -c "import tiledb; print(tiledb.libtiledb.version())"
+          python -c "import tiledb; print(tiledb.version())"
       - name: Build (and test) tiledbvcf-py
         # need -l to activate conda env
         shell: bash -l {0}
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   osx:
     runs-on: macos-12
-    name: osx-libtiledb-${{ matrix.libtiledb_version }}
+    name: osx-libtiledb-${{ matrix.branches.libtiledb }}
     strategy:
       fail-fast: false
       matrix:
-        libtiledb_version: [release-2.20, dev]
+        branches:
+          - {libtiledb: release-2.20, tiledb-py: release-0.26.1}
+          - {libtiledb: dev, tiledb-py: dev}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
@@ -73,8 +91,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: TileDB-Inc/TileDB
-          ref: ${{ matrix.libtiledb_version }}
+          ref: ${{ matrix.branches.libtiledb }}
           path: TileDB
+      - name: Clone TileDB-Py
+        uses: actions/checkout@v4
+        with:
+          repository: TileDB-Inc/TileDB-Py
+          ref: ${{ matrix.branches.tiledb-py }}
+          path: TileDB-Py
+          fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Clone TileDB-VCF
         uses: actions/checkout@v3
         with:
@@ -103,6 +128,13 @@ jobs:
           python -m pip install --prefer-binary \
             -r TileDB-VCF/ci/nightly/requirements.txt \
             -r TileDB-VCF/ci/nightly/requirements-test.txt
+      - name: Build tiledb-py from source
+        run: |
+          cd TileDB-Py/
+          python setup.py develop --tiledb=../install/
+          python -c "import tiledb; print('successful import')"
+          python -c "import tiledb; print(tiledb.libtiledb.version())"
+          python -c "import tiledb; print(tiledb.version())"
       - name: Build (and test) tiledbvcf-py
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   issue:

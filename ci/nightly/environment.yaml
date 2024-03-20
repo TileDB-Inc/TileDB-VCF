@@ -16,4 +16,3 @@ dependencies:
   # test
   - dask
   - pytest
-  - tiledb-py
