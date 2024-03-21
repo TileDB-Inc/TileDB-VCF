@@ -1,6 +1,7 @@
 numpy
 pandas
 pyarrow==11
+pyarrow-hotfix
 pybind11
 setuptools
 setuptools_scm
