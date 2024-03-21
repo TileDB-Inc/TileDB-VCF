@@ -32,14 +32,12 @@
  * documentation in `logger.h` for the full story.
  */
 
-#pragma once
 #ifndef TILEDB_LOGGER_PUBLIC_H
 #define TILEDB_LOGGER_PUBLIC_H
 
 #include "utils/logger.h"
 
-namespace tiledb {
-namespace vcf {
+namespace tiledb::vcf {
 
 /** Set log level for global logger and optionally set a logfile. */
 void LOG_CONFIG(const std::string& level, const std::string& logfile = "");
@@ -111,7 +109,6 @@ void LOG_FATAL(const char* fmt, const Arg1& arg1, const Args&... args) {
 /** Convert TileDB timestamp (in ms) to human readable timestamp. */
 std::string asc_timestamp(uint64_t timestamp_ms);
 
-}  // namespace vcf
-}  // namespace tiledb
+}  // namespace tiledb::vcf
 
 #endif  // TILEDB_LOGGER_PUBLIC_H

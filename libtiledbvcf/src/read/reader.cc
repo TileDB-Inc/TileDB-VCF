@@ -27,6 +27,7 @@
 #include <future>
 #include <iomanip>
 #include <random>
+#include <span>
 #include <thread>
 #include <vector>
 
@@ -38,7 +39,6 @@
 #include "read/read_query_results.h"
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
-#include "span/span.hpp"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -1308,14 +1308,14 @@ bool Reader::process_query_results_v4() {
   // real_start_pos when we see a record with a different real_start_pos.
   std::vector<size_t> sorted_indexes;
   if (params_.sort_real_start_pos) {
-    nonstd::span<uint32_t> real_start_pos(
+    std::span<uint32_t> real_start_pos(
         results.buffers()->real_start_pos().data<uint32_t>(), num_cells);
 
     auto sample_names = results.buffers()->sample_name().data();
 
-    sorted_indexes = utils::sort_indexes_pvcf<
-        nonstd::span<uint32_t>,
-        std::vector<std::string_view>>(real_start_pos, sample_names);
+    sorted_indexes = utils::
+        sort_indexes_pvcf<std::span<uint32_t>, std::vector<std::string_view>>(
+            real_start_pos, sample_names);
   }
 
   const uint32_t anchor_gap = dataset_->metadata().anchor_gap;

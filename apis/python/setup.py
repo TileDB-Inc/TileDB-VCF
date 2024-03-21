@@ -222,14 +222,15 @@ class BuildExtCmd(build_ext):
 
     def build_extensions(self):
         if sys.platform != "win32":
-            opts = ["-std=c++17", "-g"]
+            opts = ["-std=c++20", "-g"]
             if TILEDBVCF_DEBUG_BUILD:
                 opts.extend(["-O0"])
             else:
                 opts.extend(["-O2"])
         else:  # windows
-            # Note: newer versions of msvc cl may not recognize -std:c++17
-            opts = ["-std:c++17", "-Zi"]
+            # Note: msvc cl may not recognize -std:c++20
+            # opts = ["/std:c++latest", "-Zi"]
+            opts = ["-std:c++20", "-Zi"]
             if TILEDBVCF_DEBUG_BUILD:
                 opts.extend(["-Od"])
             else:
