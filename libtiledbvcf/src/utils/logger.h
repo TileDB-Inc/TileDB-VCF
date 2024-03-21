@@ -47,14 +47,12 @@
  * creating an additional external dependency.
  */
 
-#pragma once
 #ifndef TILEDB_LOGGER_H
 #define TILEDB_LOGGER_H
 
 #include <spdlog/spdlog.h>
 
-namespace tiledb {
-namespace vcf {
+namespace tiledb::vcf {
 
 /** Definition of class Logger. */
 class Logger {
@@ -90,7 +88,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void trace(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->trace(fmt, arg1, args...);
+    logger_->trace(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /**
@@ -110,7 +108,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void debug(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->debug(fmt, arg1, args...);
+    logger_->debug(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /**
@@ -130,7 +128,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void info(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->info(fmt, arg1, args...);
+    logger_->info(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /**
@@ -150,7 +148,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void warn(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->warn(fmt, arg1, args...);
+    logger_->warn(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /**
@@ -169,7 +167,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void error(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->error(fmt, arg1, args...);
+    logger_->error(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /**
@@ -189,7 +187,7 @@ class Logger {
    */
   template <typename Arg1, typename... Args>
   void critical(const char* fmt, const Arg1& arg1, const Args&... args) {
-    logger_->critical(fmt, arg1, args...);
+    logger_->critical(fmt::format(fmt::runtime(fmt), arg1, args...).c_str());
   }
 
   /** Verbosity level. */
@@ -238,9 +236,7 @@ class Logger {
 
 /** Global logger function. */
 Logger& global_logger();
-
-}  // namespace vcf
-}  // namespace tiledb
+}  // namespace tiledb::vcf
 
 /** Convert TileDB timestamp (in ms) to human readable timestamp. */
 std::string asc_timestamp(uint64_t timestamp_ms);
