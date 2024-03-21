@@ -24,7 +24,7 @@ install: clean
 .PHONY: update
 update:
 	rm -rf apis/python/build
-	cd libtiledbvcf/build && make -j && make install-libtiledbvcf
+	cd libtiledbvcf/build && make -j && make -j install-libtiledbvcf
 	cd apis/python && python setup.py develop
 
 # test

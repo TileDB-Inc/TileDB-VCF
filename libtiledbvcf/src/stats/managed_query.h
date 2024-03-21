@@ -119,7 +119,7 @@ class ManagedQuery {
    * @param points Vector of dimension points
    */
   template <typename T>
-  void select_points(const std::string& dim, const nonstd::span<T> points) {
+  void select_points(const std::string& dim, const std::span<T> points) {
     for (auto& point : points) {
       subarray_->add_range(dim, point, point);
       subarray_range_set_ = true;
@@ -197,10 +197,10 @@ class ManagedQuery {
    *
    * @tparam T Data type
    * @param name Column name
-   * @return nonstd::span<T> Data view
+   * @return std::span<T> Data view
    */
   template <typename T>
-  nonstd::span<T> data(const std::string& name) {
+  std::span<T> data(const std::string& name) {
     check_column_name(name);
     return buffers_->at(name)->data<T>();
   }
