@@ -13,11 +13,11 @@ build ?= Release
 
 .PHONY: install
 install: clean
-	mkdir -p libtiledbvcf/build && \
+	@mkdir -p libtiledbvcf/build && \
 		cd libtiledbvcf/build && \
 		cmake .. -DCMAKE_BUILD_TYPE=${build} && \
 		make -j && make install-libtiledbvcf
-	cd apis/python && python setup.py develop
+	@pip install -e apis/python
 
 # incremental compile and update python install
 # -------------------------------------------------------------------
@@ -69,6 +69,25 @@ format:
 	 @./ci/run-clang-format.sh . clang-format 1 \
 		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
 
+# venv
+# -------------------------------------------------------------------
+.PHONY: venv
+venv:
+		@if [ ! -d venv ]; then \
+			python -m venv venv; \
+			venv/bin/pip install -r apis/python/requirements-dev.txt; \
+		fi
+		@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"
+
+# docker
+# -------------------------------------------------------------------
+.PHONY: docker
+docker:
+	docker build -t tiledbvcf-cli:dev -f docker/Dockerfile-cli .
+	docker run --rm -t tiledbvcf-cli:dev version
+	docker build -t tiledbvcf-py:dev -f docker/Dockerfile-py .
+	docker run --rm -t tiledbvcf-py:dev -c "import tiledbvcf; print(tiledbvcf.version)"	
+
 # clean
 # -------------------------------------------------------------------
 .PHONY: clean
@@ -91,8 +110,10 @@ Rules:
   test                Run tests
   notebooks           Execute notebooks and update cell outputs
   docs                Render the documentation
+  docker			  Build and test docker images
   check-format        Run C++ format check
   format              Run C++ format
+  venv                Create a virtual environment
   clean               Remove build artifacts
 
 Options:

@@ -1,0 +1,4 @@
+dask[distributed]
+pandas
+pyarrow
+pyarrow_hotfix

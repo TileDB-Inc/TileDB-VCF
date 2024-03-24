@@ -30,21 +30,22 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
 
-# avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir \
-    pandas \
-    pyarrow \
-    pyarrow-hotfix \
-    setuptools_scm \
-    tiledb
-
 # Build TileDB-VCF
 WORKDIR /tmp
 COPY . TileDB-VCF
 
+WORKDIR /tmp/TileDB-VCF
+
+RUN mkdir -p libtiledbvcf/build && \
+    cd libtiledbvcf/build && \
+    cmake .. && \
+    make -j && make install-libtiledbvcf
+
+# Install Python API
 WORKDIR /tmp/TileDB-VCF/apis/python
 
-RUN python setup.py install
+# avoid --home to prevent issues with singularity
+RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir .
 
 RUN rm -r /tmp/TileDB-VCF
 

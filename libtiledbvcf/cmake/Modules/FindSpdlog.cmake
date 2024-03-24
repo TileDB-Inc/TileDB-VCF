@@ -54,14 +54,6 @@ set(SPDLOG_FOUND ${spdlog_FOUND})
 
 if (NOT SPDLOG_FOUND)
   if(SUPERBUILD)
-    if (WIN32)
-      find_package(Git REQUIRED)
-      # current directory needs to be where base git file is, hence <>/.., as CMAKE_SOURCE_DIR is below the .git location.
-      set(CONDITIONAL_PATCH cd ${CMAKE_SOURCE_DIR}/.. && ${GIT_EXECUTABLE} apply --ignore-whitespace -p1 --unsafe-paths --verbose --directory=${EP_SOURCE_DIR}/ep_spdlog < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
-    else()
-      set(CONDITIONAL_PATCH patch -N -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/spdlog.patch)
-    endif()
-
     # if building ep_tiledb, make spdlog depend on ep_tiledb, so tiledb finds its required version of spdlog
     if (TARGET ep_tiledb)
       SET(SPDLOG_DEPENDS ep_tiledb)
@@ -74,10 +66,8 @@ if (NOT SPDLOG_FOUND)
       PREFIX "externals"
       # Set download name to avoid collisions with only the version number in the filename
       DOWNLOAD_NAME ep_spdlog.zip
-      URL "https://github.com/gabime/spdlog/archive/v1.11.0.zip"
-      URL_HASH SHA1=4075d3da589d2000cffbd53ea8d31715a64ff8c6
-      PATCH_COMMAND
-        ${CONDITIONAL_PATCH}
+      URL "https://github.com/gabime/spdlog/archive/v1.12.0.zip"
+      URL_HASH SHA1=2ea8a77a4a39dc296757620754bc41ad475ca77b
       CMAKE_ARGS
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
@@ -88,7 +78,7 @@ if (NOT SPDLOG_FOUND)
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DSPDLOG_BUILD_SHARED=OFF
-        -DSPDLOG_BUILD_EXAMPLE=ON #OFF
+        -DSPDLOG_BUILD_EXAMPLE=OFF
       LOG_DOWNLOAD TRUE
       LOG_CONFIGURE TRUE
       LOG_BUILD TRUE
@@ -123,10 +113,4 @@ elseif(TARGET spdlog::spdlog)
       target_link_libraries(spdlog::spdlog INTERFACE fmt::fmt)
     endif()
   endif()
-endif()
-
-# If we built a static EP, install it if required.
-if (TILEDB_SPDLOG_EP_BUILT AND TARGET spdlog::spdlog)
-  include(TileDBCommon)
-  install_target_libs(spdlog::spdlog)
 endif()
