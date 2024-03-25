@@ -154,7 +154,8 @@ void VariantStats::finalize_query() {
     return;
   }
 
-  LOG_DEBUG("VariantStats: Finalize query with {} records", contig_records_);
+  LOG_DEBUG(
+      "VariantStats: Finalize query with {} records", contig_records_.load());
   if (contig_records_ > 0) {
     if (utils::query_buffers_set(query_.get())) {
       LOG_FATAL("Cannot submit_and_finalize query with buffers set.");

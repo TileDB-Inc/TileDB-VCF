@@ -29,7 +29,7 @@
 # CMake setup
 ############################################################
 
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.5)
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -39,15 +39,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
 option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
 option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
+option(FORCE_EXTERNAL_SPDLOG "Forces a local build of spdlog instead of searching system paths." ON)
 option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." OFF)
 option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls downloading prebuilt artifacts or building from source" ON)
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
 
-# Set C++17 as required standard for all C++ targets (required to use the TileDB
-# C++ API).
-set(CMAKE_CXX_STANDARD 17)
+# Set C++20 as required standard for all C++ targets.
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
 
@@ -94,7 +94,6 @@ if(WIN32 AND NOT MSYS)
   elseif (BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
     set(CMAKE_BUILD_TYPE "Release")
   endif()
-  message(WARNING "Building without deprecation warnings")
   # /wd4996 - no deprecated
   add_compile_options(/wd4996)
 else()
@@ -106,7 +105,6 @@ else()
   if (TILEDB_WERROR)
     add_compile_options(-Werror)
   endif()
-  message(WARNING "Building without deprecation warnings")
   add_compile_options(-Wno-deprecated-declarations)
 endif()
 add_definitions(-D_FILE_OFFSET_BITS=64)

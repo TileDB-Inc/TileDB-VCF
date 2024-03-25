@@ -35,10 +35,10 @@
 
 #include <stdexcept>  // for windows: error C2039: 'runtime_error': is not a member of 'std'
 
+#include <span>
 #include <tiledb/tiledb>
 
 #include "column_buffer.h"
-#include "span/span.hpp"
 #include "utils/logger_public.h"
 
 namespace tiledb::vcf {

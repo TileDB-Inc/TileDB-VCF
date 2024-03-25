@@ -33,9 +33,9 @@
 #ifndef COLUMN_BUFFER_H
 #define COLUMN_BUFFER_H
 
+#include <span>
 #include <tiledb/tiledb>
 
-#include "span/span.hpp"
 #include "utils/logger_public.h"
 
 namespace tiledb::vcf {
@@ -123,11 +123,11 @@ class ColumnBuffer {
    * @brief Return a view of the ColumnBuffer data.
    *
    * @tparam T Data type
-   * @return nonstd::span<T> data view
+   * @return std::span<T> data view
    */
   template <typename T>
-  nonstd::span<T> data() {
-    return nonstd::span<T>((T*)data_.data(), num_cells_);
+  std::span<T> data() {
+    return std::span<T>((T*)data_.data(), num_cells_);
   }
 
   /**
@@ -148,28 +148,28 @@ class ColumnBuffer {
   /**
    * @brief Return a view of the ColumnBuffer offsets.
    *
-   * @return nonstd::span<uint64_t> offsets view
+   * @return std::span<uint64_t> offsets view
    */
-  nonstd::span<uint64_t> offsets() {
+  std::span<uint64_t> offsets() {
     if (!is_var_) {
       throw std::runtime_error(
           "[ColumnBuffer] Offsets buffer not defined for " + name_);
     }
 
-    return nonstd::span<uint64_t>(offsets_.data(), num_cells_);
+    return std::span<uint64_t>(offsets_.data(), num_cells_);
   }
 
   /**
    * @brief Return a view of the validity buffer.
    *
-   * @return nonstd::span<uint8_t> validity view
+   * @return std::span<uint8_t> validity view
    */
-  nonstd::span<uint8_t> validity() {
+  std::span<uint8_t> validity() {
     if (!is_nullable_) {
       throw std::runtime_error(
           "[ColumnBuffer] Validity buffer not defined for " + name_);
     }
-    return nonstd::span<uint8_t>(validity_.data(), num_cells_);
+    return std::span<uint8_t>(validity_.data(), num_cells_);
   }
 
   /**

@@ -39,7 +39,7 @@ include(TileDBCommon)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${EP_INSTALL_PREFIX}")
 
 # First try the CMake find module.
-if (TILEDB_SPDLOG_EP_BUILT)
+if (TILEDB_SPDLOG_EP_BUILT OR FORCE_EXTERNAL_SPDLOG)
   # If we built it from the source always force no default path
   SET(SPDLOG_NO_DEFAULT_PATH NO_DEFAULT_PATH)
 else()
