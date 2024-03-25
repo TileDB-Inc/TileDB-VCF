@@ -688,7 +688,13 @@ class Dataset(object):
             self.writer.set_compression_level(compression_level)
 
         # This call throws an exception if the dataset already exists.
-        self.writer.create_dataset()
+        try:
+            self.writer.create_dataset()
+        except RuntimeError:
+            raise RuntimeError(
+                "There was an attempt to create a dataset that failed. This "
+                "may be because the dataset already exists."
+            )
 
     def ingest_samples(
         self,
