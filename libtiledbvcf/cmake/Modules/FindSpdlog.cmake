@@ -96,10 +96,6 @@ endif()
 
 if (spdlog_FOUND AND NOT TARGET spdlog::spdlog)
   add_library(spdlog::spdlog INTERFACE IMPORTED)
-  find_package(fmt QUIET)
-  if (${fmt_FOUND})
-    target_link_libraries(spdlog::spdlog INTERFACE fmt::fmt)
-  endif()
   set_target_properties(spdlog::spdlog PROPERTIES
           INTERFACE_INCLUDE_DIRECTORIES "${SPDLOG_INCLUDE_DIR}"
           )

@@ -149,7 +149,6 @@ if(!WIN32)
     PUBLIC
       HTSlib::HTSlib
       TileDB::tiledb_shared
-     spdlog::spdlog
   )
 else()
   target_link_libraries(tiledbvcf
@@ -213,7 +212,6 @@ if(!WIN32)
       CLI11::CLI11
       HTSlib::HTSlib
       TileDB::tiledb_shared
-     spdlog::spdlog
   )
 else()
   target_link_libraries(tiledbvcf-bin
