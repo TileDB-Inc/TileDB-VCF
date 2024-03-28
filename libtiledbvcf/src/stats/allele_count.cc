@@ -46,7 +46,7 @@ std::string AlleleCount::get_uri(const Group& group) {
 
 void AlleleCount::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
-  LOG_DEBUG("AlleleCount: Create array");
+  LOG_DEBUG("[AlleleCount] Create array");
 
   // Create filter lists
   FilterList rle_coord_filters(ctx);
@@ -133,13 +133,13 @@ void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
   auto uri = get_uri(group);
 
   if (uri.empty()) {
-    LOG_DEBUG("AlleleCount: Ingestion task disabled");
+    LOG_DEBUG("[AlleleCount] Ingestion task disabled");
     enabled_ = false;
     return;
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("AlleleCount: Open array '{}'", uri);
+  LOG_DEBUG("[AlleleCount] Open array '{}'", uri);
 
   // Open array
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
@@ -157,7 +157,7 @@ void AlleleCount::finalize_query() {
   }
 
   LOG_DEBUG(
-      "AlleleCount: Finalize query with {} records", contig_records_.load());
+      "[AlleleCount] Finalize query with {} records", contig_records_.load());
   if (contig_records_ > 0) {
     if (utils::query_buffers_set(query_.get())) {
       LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
@@ -181,7 +181,7 @@ void AlleleCount::finalize_query() {
       samples.pop_back();
     }
     LOG_DEBUG(
-        "AlleleCount: fragment_num = {} uri = {} samples = {}",
+        "[AlleleCount] fragment_num = {} uri = {} samples = {}",
         frag_num,
         uri,
         samples);
@@ -201,7 +201,7 @@ void AlleleCount::close() {
   }
 
   std::lock_guard<std::mutex> lock(query_lock_);
-  LOG_DEBUG("AlleleCount: Close array");
+  LOG_DEBUG("[AlleleCount] Close array");
 
   if (query_ != nullptr) {
     query_ = nullptr;
@@ -298,12 +298,12 @@ void AlleleCount::flush(bool finalize) {
   int buffered_records = count_buffer_.size();
 
   if (contig_offsets_.data() == nullptr) {
-    LOG_DEBUG("AlleleCount: flush called with no records written");
+    LOG_DEBUG("[AlleleCount] flush called with no records written");
     return;
   }
 
   if (buffered_records == 0 && !finalize) {
-    LOG_DEBUG("AlleleCount: flush called with 0 records");
+    LOG_DEBUG("[AlleleCount] flush called with 0 records");
     return;
   }
 
@@ -312,7 +312,7 @@ void AlleleCount::flush(bool finalize) {
 
   if (buffered_records) {
     LOG_DEBUG(
-        "AlleleCount: flushing {} records from {}:{}-{}",
+        "[AlleleCount] flushing {} records from {}:{}-{}",
         buffered_records,
         contig_offsets_.size() > 1 ?
             contig_buffer_.substr(0, contig_offsets_[1]) :
@@ -335,7 +335,7 @@ void AlleleCount::flush(bool finalize) {
 
     auto st = query_->submit();
     if (st == Query::Status::FAILED) {
-      LOG_FATAL("AlleleCount: error submitting TileDB write query");
+      LOG_FATAL("[AlleleCount] error submitting TileDB write query");
     }
 
     // Insert sample names from this query into the set of fragment sample names
@@ -390,10 +390,13 @@ void AlleleCount::process(
   // Check if locus has changed
   if (contig != contig_ || pos != pos_) {
     if (contig != contig_) {
-      LOG_DEBUG("AlleleCount: new contig = {}", contig);
+      LOG_DEBUG("[AlleleCount] new contig = {}", contig);
     } else if (pos < pos_) {
       LOG_ERROR(
-          "AlleleCount: contig {} pos out of order {} < {}", contig, pos, pos_);
+          "[AlleleCount] contig {} pos out of order {} < {}",
+          contig,
+          pos,
+          pos_);
     }
     update_results();
     contig_ = contig;
@@ -417,7 +420,7 @@ void AlleleCount::process(
   // Skip if GT value is not a valid allele
   if (gt0 >= n_allele || gt1 >= n_allele) {
     LOG_WARN(
-        "AlleleCount: skipping invalid GT value: sample={} locus={}:{} "
+        "[AlleleCount] skipping invalid GT value: sample={} locus={}:{} "
         "gt={}/{} n_allele={}",
         sample_name,
         contig,

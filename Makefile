@@ -31,7 +31,7 @@ update:
 # -------------------------------------------------------------------
 .PHONY: test
 test:
-	cd libtiledbvcf/build && make check
+	cd libtiledbvcf/build && make -j check
 	cd libtiledbvcf/test && ./run-cli-tests.sh ../build/ ./inputs/
 	cd apis/java && ./gradlew assemble test
 	cd apis/spark && ./gradlew assemble test

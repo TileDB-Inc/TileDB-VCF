@@ -39,6 +39,7 @@
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "stats/allele_count.h"
+#include "stats/sample_stats.h"
 #include "stats/variant_stats.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
@@ -146,6 +147,9 @@ class WriterWorkerV4 : public WriterWorker {
 
   // Variant stats ingestion task object
   VariantStats vs_;
+
+  // Sample stats ingestion task object
+  SampleStats ss_;
 
   /**
    * Inserts a record (non-anchor) into the heap if it fits

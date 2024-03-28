@@ -1,5 +1,6 @@
 .vscode*
 *.swp
+dev/*
 dist/*
 libtiledbvcf/cmake-build-*/*
 libtiledbvcf/build/*

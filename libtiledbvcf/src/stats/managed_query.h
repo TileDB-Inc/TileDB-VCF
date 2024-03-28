@@ -149,10 +149,58 @@ class ManagedQuery {
   }
 
   /**
-   * @brief Submit the query.
+   * @brief Set query result order (layout).
+   *
+   * @param layout A tiledb_layout_t constant
+   */
+  void set_layout(tiledb_layout_t layout) {
+    query_->set_layout(layout);
+  }
+
+  /**
+   * @brief Set column data for write query.
+   *
+   * @param column_name Column name
+   * @param column_buffer Column buffer
+   */
+  void set_column_data(
+      std::string column_name, std::shared_ptr<ColumnBuffer> column_buffer) {
+    if (array_->schema().array_type() == TILEDB_SPARSE ||
+        schema_->has_attribute(column_name)) {
+      // Add data buffer
+      auto data = column_buffer->data<std::byte>();
+      query_->set_data_buffer(
+          column_name, (void*)data.data(), data.size_bytes());
+
+      // Add offsets buffer, if variable length
+      if (column_buffer->is_var()) {
+        auto offsets = column_buffer->offsets();
+        query_->set_offsets_buffer(column_name, offsets.data(), offsets.size());
+      }
+
+      // Add validity buffer, if nullable
+      if (column_buffer->is_nullable()) {
+        query_->set_validity_buffer(
+            column_name,
+            column_buffer->validity().data(),
+            column_buffer->validity().size());
+      }
+    }
+  }
+
+  /**
+   * @brief Submit the read query.
    *
    */
   void submit();
+
+  /**
+   * @brief Submit the write query.
+   *
+   */
+  void submit_write() {
+    query_->submit();
+  }
 
   /**
    * @brief Return the query status.
@@ -243,6 +291,14 @@ class ManagedQuery {
    */
   std::shared_ptr<ArraySchema> schema() {
     return schema_;
+  }
+
+  /**
+   * @brief Finalize the query.
+   *
+   */
+  void finalize() {
+    query_->finalize();
   }
 
  private:

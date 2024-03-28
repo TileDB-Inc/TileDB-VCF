@@ -57,9 +57,11 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/read/read_query_results.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/read/tsv_exporter.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/array_buffers.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/allele_count.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/column_buffer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/managed_query.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/stats/sample_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/stats/variant_stats_reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/bitmap.cc

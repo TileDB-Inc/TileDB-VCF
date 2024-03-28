@@ -49,6 +49,7 @@ Writer::~Writer() {
   utils::free_htslib_tiledb_context();
   AlleleCount::close();
   VariantStats::close();
+  SampleStats::close();
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {
@@ -135,6 +136,7 @@ void Writer::init(const IngestionParams& params) {
   Group group(*ctx_, params.uri, TILEDB_READ);
   AlleleCount::init(ctx_, group);
   VariantStats::init(ctx_, group);
+  SampleStats::init(ctx_, group);
 }
 
 void Writer::set_tiledb_config(const std::string& config_str) {
@@ -475,6 +477,7 @@ void Writer::ingest_samples() {
 
   AlleleCount::close();
   VariantStats::close();
+  SampleStats::close();
   array_->close();
 
   // Clean up

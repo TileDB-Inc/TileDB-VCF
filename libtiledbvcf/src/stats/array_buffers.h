@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2024 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,19 +30,14 @@
  *   This declares the array buffers API
  */
 
-#ifndef ARRAY_BUFFERS_H
-#define ARRAY_BUFFERS_H
+#ifndef TILEDB_ARRAY_BUFFERS_H
+#define TILEDB_ARRAY_BUFFERS_H
 
-#include <stdexcept>  // for windows: error C2039: 'runtime_error': is not a member of 'std'
-
-#include <span>
 #include <tiledb/tiledb>
 
 #include "column_buffer.h"
-#include "utils/logger_public.h"
 
 namespace tiledb::vcf {
-
 using namespace tiledb;
 
 class ArrayBuffers {
@@ -58,10 +53,15 @@ class ArrayBuffers {
    * @param name Column name
    * @return std::shared_ptr<ColumnBuffer> Column buffer
    */
-  std::shared_ptr<ColumnBuffer> at(const std::string& name) {
-    if (!contains(name)) {
-      LOG_FATAL(fmt::format("[ArrayBuffers] column '{}' does not exist", name));
-    }
+  std::shared_ptr<ColumnBuffer> at(const std::string& name);
+
+  /**
+   * @brief Return the buffer with the given name.
+   *
+   * @param name Column name
+   * @return std::shared_ptr<ColumnBuffer> Column buffer
+   */
+  std::shared_ptr<ColumnBuffer> operator[](const std::string& name) {
     return buffers_[name];
   }
 
@@ -82,13 +82,7 @@ class ArrayBuffers {
    * @param name Column name
    * @param buffer Column buffer
    */
-  void emplace(const std::string& name, std::shared_ptr<ColumnBuffer> buffer) {
-    if (contains(name)) {
-      LOG_FATAL(fmt::format("[ArrayBuffers] column '{}' already exists", name));
-    }
-    names_.push_back(name);
-    buffers_.emplace(name, buffer);
-  }
+  void emplace(const std::string& name, std::shared_ptr<ColumnBuffer> buffer);
 
   /**
    * @brief Returns the ordered vector of names.
@@ -118,4 +112,4 @@ class ArrayBuffers {
 
 }  // namespace tiledb::vcf
 
-#endif
+#endif  // TILEDB_ARRAY_BUFFERS_H
