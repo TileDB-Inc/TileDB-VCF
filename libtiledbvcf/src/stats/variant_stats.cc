@@ -50,6 +50,7 @@ void VariantStats::create(
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
+  FilterList sample_filters(ctx);
   FilterList str_filters(ctx);
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
@@ -57,6 +58,8 @@ void VariantStats::create(
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
+      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+  sample_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY})
       .add_filter({ctx, TILEDB_FILTER_ZSTD});
   str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
   offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
@@ -68,6 +71,7 @@ void VariantStats::create(
   if (checksum) {
     // rle_coord_filters.add_filter({ctx, checksum});
     int_coord_filters.add_filter({ctx, checksum});
+    sample_filters.add_filter({ctx, checksum});
     str_filters.add_filter({ctx, checksum});
     offset_filters.add_filter({ctx, checksum});
     int_attr_filters.add_filter({ctx, checksum});
@@ -92,7 +96,11 @@ void VariantStats::create(
       ctx, COLUMN_STR[POS], {{pos_min, pos_max}}, pos_extent);
   pos.set_filter_list(int_coord_filters);  // d1
 
-  domain.add_dimensions(contig, pos);
+  auto sample = Dimension::create(
+      ctx, COLUMN_STR[SAMPLE], TILEDB_STRING_ASCII, nullptr, nullptr);
+  sample.set_filter_list(sample_filters);  // d2
+
+  domain.add_dimensions(contig, pos, sample);
   schema.set_domain(domain);
 
   auto allele =
@@ -321,6 +329,8 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
 
@@ -341,6 +351,8 @@ void VariantStats::flush(bool finalize) {
     contig_buffer_.clear();
     contig_offsets_.clear();
     pos_buffer_.clear();
+    sample_buffer_.clear();
+    sample_offsets_.clear();
     allele_buffer_.clear();
     allele_offsets_.clear();
     for (int i = 0; i < LAST_; i++) {
@@ -354,6 +366,8 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
     for (int i = 0; i < LAST_; i++) {
@@ -374,19 +388,21 @@ void VariantStats::process(
   }
 
   // Check if locus has changed
-  if (contig != contig_ || pos != pos_) {
+  if (contig != contig_ || pos != pos_ || sample_name != sample_) {
     if (contig != contig_) {
       LOG_DEBUG("[VariantStats] new contig = {}", contig);
     } else if (pos < pos_) {
       LOG_ERROR(
-          "[VariantStats] contig {} pos out of order {} < {}",
+          "[VariantStats] contig {} pos out of order {} < {} for sample {}",
           contig,
           pos,
-          pos_);
+          pos_,
+          sample_name);
     }
     update_results();
     contig_ = contig;
     pos_ = pos;
+    sample_ = sample_name;
   }
 
   // Read GT data from record
@@ -503,6 +519,8 @@ void VariantStats::update_results() {
       contig_offsets_.push_back(contig_buffer_.size());
       contig_buffer_ += contig_;
       pos_buffer_.push_back(pos_);
+      sample_offsets_.push_back(sample_buffer_.size());
+      sample_buffer_ += sample_;
       allele_offsets_.push_back(allele_buffer_.size());
       allele_buffer_ += allele;
       for (int i = 0; i < LAST_; i++) {

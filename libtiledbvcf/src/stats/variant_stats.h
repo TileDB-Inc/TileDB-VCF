@@ -209,9 +209,9 @@ class VariantStats {
   inline static const int VARIANT_STATS_VERSION = 2;
 
   // Array columns
-  enum ColumnNames { CONTIG, POS, ALLELE };
+  enum ColumnNames { CONTIG, POS, SAMPLE, ALLELE };
   inline static const std::vector<std::string> COLUMN_STR = {
-      "contig", "pos", "allele"};
+      "contig", "pos", "sample", "allele"};
 
   // Array attributes
   enum Attr { AC = 0, N_HOM, LAST_ };
@@ -254,6 +254,9 @@ class VariantStats {
   // Contig of the current locus
   std::string contig_;
 
+  // current sample
+  std::string sample_;
+
   // Position of the current locus
   uint32_t pos_;
 
@@ -265,6 +268,12 @@ class VariantStats {
 
   // Buffer for positions
   std::vector<uint32_t> pos_buffer_;
+
+  // Buffer for samples
+  std::string sample_buffer_;
+
+  // Buffer for contig offsets
+  std::vector<uint64_t> sample_offsets_;
 
   // Buffer for alleles
   std::string allele_buffer_;
