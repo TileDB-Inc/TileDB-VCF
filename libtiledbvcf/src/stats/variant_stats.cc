@@ -27,6 +27,8 @@
 #include "variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
+#include "vcf/htslib_value.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb::vcf {
 
@@ -387,6 +389,8 @@ void VariantStats::process(
     return;
   }
 
+  HtslibValueMem val;
+  int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
   if (contig != contig_ || pos != pos_ || sample_name != sample_) {
     if (contig != contig_) {
@@ -402,6 +406,7 @@ void VariantStats::process(
     update_results();
     contig_ = contig;
     pos_ = pos;
+    end_pos_ = end_pos;
     sample_ = sample_name;
   }
 
@@ -487,8 +492,10 @@ void VariantStats::process(
 
       if (gt[i] == 0) {
         values_["ref"][AC] += count_delta_;
+        values_["ref"][END_POS] = end_pos_;
       } else {
         values_[alt][AC] += count_delta_;
+        values_[alt][END_POS] = end_pos_;
       }
 
       // Update homozygote count
