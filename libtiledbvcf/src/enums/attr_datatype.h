@@ -30,6 +30,7 @@
 #ifndef TILEDB_VCF_ATTR_DATATYPE_H
 #define TILEDB_VCF_ATTR_DATATYPE_H
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 

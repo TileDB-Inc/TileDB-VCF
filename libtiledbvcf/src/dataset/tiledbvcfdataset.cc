@@ -512,8 +512,19 @@ void TileDBVCFDataset::open(
   if (prefetch_data_array_fragment_info)
     preload_data_array_fragment_info();
 
-  data_array_ = open_data_array(TILEDB_READ);
-  vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  if (cfg_.contains("parallel_opening") && cfg_.get("parallel_opening") == "true") {
+      auto data_array_async = std::async(
+              std::launch::async,
+              [this]() { data_array_ = open_data_array(TILEDB_READ); });
+      auto vcf_header_array_async = std::async(
+              std::launch::async,
+              [this]() { vcf_header_array_ = open_vcf_array(TILEDB_READ); });
+      vcf_header_array_async.wait();
+      data_array_async.wait();
+  } else {
+      data_array_ = open_data_array(TILEDB_READ);
+      vcf_header_array_ = open_vcf_array(TILEDB_READ);
+  }
   read_metadata();
 
   // We support V2, V3 and V4 (current) formats.
