@@ -214,9 +214,9 @@ class VariantStats {
       "contig", "pos", "sample", "allele"};
 
   // Array attributes
-  enum Attr { AC = 0, N_HOM, END_POS, LAST_ };
+  enum Attr { AC = 0, AN, N_HOM, END_POS, LAST_ };
   inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "n_hom", "end_pos"};
+      "ac", "an", "n_hom", "end_pos"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;

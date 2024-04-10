@@ -456,7 +456,7 @@ void VariantStats::process(
       return;
     }
   } else {
-    return;  // ngt <= 0
+    return;  // ngt < 0
   }
 
   // Add sample name to the set of sample names in this query
@@ -492,9 +492,11 @@ void VariantStats::process(
 
       if (gt[i] == 0) {
         values_["ref"][AC] += count_delta_;
+        values_["ref"][AN] = ngt * count_delta_;
         values_["ref"][END_POS] = end_pos_;
       } else {
         values_[alt][AC] += count_delta_;
+        values_[alt][AN] = ngt * count_delta_;
         values_[alt][END_POS] = end_pos_;
       }
 
