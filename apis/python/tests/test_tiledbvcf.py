@@ -998,7 +998,7 @@ def test_ingestion_tasks(tmp_path):
         return
 
     # query allele_count array with TileDB
-    ac_uri = os.path.join(tmp_path, "dataset", "allele_count")
+    ac_uri = tiledb.Group(uri)["allele_count"].uri
 
     check_if_compatible(ac_uri)
 
@@ -1012,7 +1012,7 @@ def test_ingestion_tasks(tmp_path):
     assert df["count"].array == 1
 
     # query variant_stats array with TileDB
-    vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
+    vs_uri = tiledb.Group(uri)["variant_stats"].uri
 
     contig = "1"
     region = slice(12140)
@@ -1022,6 +1022,48 @@ def test_ingestion_tasks(tmp_path):
     assert df["pos"].array == 12140
     assert df["allele"].array == "C"
     assert df["ac"].array == 4
+
+    # Test raw sample_stats
+
+    expected_df = pd.DataFrame(
+        {
+            "sample": ["HG00280", "HG01762"],
+            "contig": ["1", "1"],
+            "dp_sum": [879, 64],
+            "dp_sum2": [56375, 4096],
+            "dp_count": [68, 3],
+            "dp_min": [0, 0],
+            "dp_max": [180, 64],
+            "gq_sum": [1489, 99],
+            "gq_sum2": [79129, 9801],
+            "gq_count": [68, 3],
+            "gq_min": [0, 0],
+            "gq_max": [99, 99],
+            "n_records": [70, 3],
+            "n_called": [70, 3],
+            "n_not_called": [0, 0],
+            "n_hom_ref": [64, 3],
+            "n_het": [3, 0],
+            "n_singleton": [4, 0],
+            "n_snp": [5, 0],
+            "n_indel": [2, 0],
+            "n_ins": [1, 0],
+            "n_del": [1, 0],
+            "n_ti": [4, 0],
+            "n_tv": [1, 0],
+            "n_overlap": [0, 0],
+            "n_multi": [5, 0],
+        }
+    ).astype("uint64", errors="ignore")
+
+    ss_uri = tiledb.Group(uri)["sample_stats"].uri
+    with tiledb.open(ss_uri) as A:
+        df = A.df[:]
+
+    # Convert to uint64 for comparison to expected_df
+    df = df.astype("uint64", errors="ignore")
+
+    assert df.equals(expected_df)
 
 
 def test_incremental_ingest(tmp_path):
