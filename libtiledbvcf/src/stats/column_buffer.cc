@@ -89,10 +89,10 @@ ColumnBuffer::ColumnBuffer(
     : name_(name)
     , type_(type)
     , type_size_(tiledb::impl::type_size(type))
-    , num_cells_(num_cells)
+    , num_cells_(0)
     , is_var_(is_var)
     , is_nullable_(is_nullable) {
-  LOG_DEBUG(fmt::format(
+  LOG_TRACE(fmt::format(
       "[ColumnBuffer] {} {} bytes is_var={} is_nullable={}",
       name,
       num_bytes,
@@ -118,10 +118,10 @@ void ColumnBuffer::attach(Query& query) {
   query.set_data_buffer(
       name_, (void*)data_.data(), data_.capacity() / type_size_);
   if (is_var_) {
-    query.set_offsets_buffer(name_, offsets_.data(), num_cells_);
+    query.set_offsets_buffer(name_, offsets_.data(), offsets_.capacity() - 1);
   }
   if (is_nullable_) {
-    query.set_validity_buffer(name_, validity_.data(), num_cells_);
+    query.set_validity_buffer(name_, validity_.data(), validity_.capacity());
   }
 }
 
@@ -135,6 +135,7 @@ size_t ColumnBuffer::update_size(const Query& query) {
       offsets_.reserve(num_offsets + 1);
     }
     offsets_[num_offsets] = num_elements;
+    num_elements_ = num_elements;
   } else {
     num_cells_ = num_elements;
   }
@@ -155,6 +156,12 @@ std::vector<std::string> ColumnBuffer::strings() {
 std::string_view ColumnBuffer::string_view(uint64_t index) {
   auto start = offsets_[index];
   auto len = offsets_[index + 1] - start;
+
+  // For the last cell, the length is the remaining bytes in the buffer.
+  if (index == num_cells_ - 1) {
+    len = num_elements_ - start;
+  }
+
   return std::string_view((char*)(data_.data() + start), len);
 }
 

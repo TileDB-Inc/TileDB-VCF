@@ -35,6 +35,7 @@
 #include "read/export_format.h"
 #include "read/reader.h"
 #include "stats/allele_count.h"
+#include "stats/sample_stats.h"
 #include "stats/variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
@@ -260,6 +261,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (params.enable_variant_stats) {
     VariantStats::create(ctx, params.uri, params.checksum);
   }
+
+  SampleStats::create(ctx, params.uri, params.checksum);
 
   write_metadata_v4(ctx, params.uri, metadata);
 

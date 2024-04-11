@@ -259,6 +259,7 @@ bool WriterWorkerV4::resume() {
 
 void WriterWorkerV4::flush_ingestion_tasks(bool finalize) {
   ac_.flush(finalize);
+  ss_.flush(finalize);
   vs_.flush(finalize);
 }
 
@@ -304,6 +305,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   // Ingestion tasks process only NodeType::Record
   if (node.type == RecordHeapV4::NodeType::Record) {
     ac_.process(hdr, sample_name, contig, pos, r);
+    ss_.process(hdr, sample_name, contig, pos, r);
     vs_.process(hdr, sample_name, contig, pos, r);
   }
 

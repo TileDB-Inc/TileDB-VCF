@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2024 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ using namespace tiledb;
  *
  */
 class ColumnBuffer {
-  inline static const size_t DEFAULT_ALLOC_BYTES = 1 << 27;  // 128 MiB
+  inline static const size_t DEFAULT_ALLOC_BYTES = 128 << 20;  // 128 MiB
   inline static const std::string CONFIG_KEY_INIT_BYTES =
       "vcf.init_buffer_bytes";
 
@@ -127,6 +127,9 @@ class ColumnBuffer {
    */
   template <typename T>
   std::span<T> data() {
+    if (is_var_) {
+      return std::span<T>((T*)data_.data(), num_elements_);
+    }
     return std::span<T>((T*)data_.data(), num_cells_);
   }
 
@@ -204,6 +207,258 @@ class ColumnBuffer {
     return is_nullable_;
   }
 
+  /**
+   * @brief Push data into the buffer.
+   *
+   * This template handles non-variable length data types.
+   *
+   * @tparam T data type
+   * @param value data to add to the buffer
+   * @return size_t size of the buffer in bytes
+   */
+  template <typename T>
+  size_t push_back(T value) {
+    if (sizeof(T) != type_size_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Data type size mismatch for " + name_);
+    }
+
+    // Allocate more memory if needed
+    while (data_.capacity() < (num_cells_ + 1) * type_size_) {
+      // Update the data buffer size
+      data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
+      LOG_TRACE(
+          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
+    }
+
+    // Resize the buffer and copy data into it.
+    // Resize is required because memcpy-ing data into the buffer does not
+    // update the size, which is required when reserving more memory.
+    data_.resize(data_.size() + type_size_);
+    memcpy(data_.data() + num_cells_ * type_size_, &value, type_size_);
+    num_cells_++;
+
+    size_t bytes = num_cells_ * type_size_;
+
+    if (is_nullable_) {
+      validity_.push_back(1);
+      bytes += validity_.size() * sizeof(uint8_t);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * @brief Push string data into the buffer.
+   *
+   * @param value data to add to the buffer
+   * @return size_t size of the buffer in bytes
+   */
+  size_t push_back(const std::string& value) {
+    if (!is_var_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Variable length data not supported for " + name_);
+    }
+
+    // Allocate more memory if needed
+    while (data_.capacity() < num_elements_ + value.size()) {
+      data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
+      LOG_TRACE(
+          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
+    }
+
+    // Resize the buffer and copy data into it.
+    // Resize is required because memcpy-ing data into the buffer does not
+    // update the size, which is required when reserving more memory.
+    data_.resize(data_.size() + value.size());
+    memcpy(data_.data() + num_elements_, value.data(), value.size());
+    num_cells_++;
+
+    // The offset is the number of bytes in the data buffer.
+    offsets_.push_back(num_elements_);
+    num_elements_ += value.size();
+
+    size_t bytes = num_elements_ + offsets_.size() * sizeof(uint64_t);
+
+    if (is_nullable_) {
+      validity_.push_back(1);
+      bytes += validity_.size() * sizeof(uint8_t);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * @brief Push string data into the buffer.
+   *
+   * @param value data to add to the buffer
+   * @return size_t size of the buffer in bytes
+   */
+  size_t push_back(std::string_view value) {
+    if (!is_var_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Variable length data not supported for " + name_);
+    }
+
+    // Allocate more memory if needed
+    while (data_.capacity() < num_elements_ + value.size()) {
+      data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
+      LOG_TRACE(
+          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
+    }
+
+    // Resize the buffer and copy data into it.
+    // Resize is required because memcpy-ing data into the buffer does not
+    // update the size, which is required when reserving more memory.
+    data_.resize(data_.size() + value.size());
+    memcpy(data_.data() + num_elements_, value.data(), value.size());
+    num_cells_++;
+
+    // The offset is the number of bytes in the data buffer.
+    offsets_.push_back(num_elements_);
+    num_elements_ += value.size();
+
+    size_t bytes = num_elements_ + offsets_.size() * sizeof(uint64_t);
+
+    if (is_nullable_) {
+      validity_.push_back(1);
+      bytes += validity_.size() * sizeof(uint8_t);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * @brief Push variable length data into the buffer.
+   *
+   * @tparam T data type
+   * @param value data to add to the buffer
+   * @return size_t size of the buffer in bytes
+   */
+  template <typename T>
+  size_t push_back(const std::span<T> value) {
+    if (!is_var_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Variable length data not supported for " + name_);
+    }
+
+    // Allocate more memory if needed
+    while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
+      data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
+      LOG_TRACE(
+          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
+    }
+
+    // Resize the buffer and copy data into it.
+    // Resize is required because memcpy-ing data into the buffer does not
+    // update the size, which is required when reserving more memory.
+    data_.resize(data_.size() + value.size() * type_size_);
+    memcpy(
+        data_.data() + num_elements_ * type_size_,
+        value.data(),
+        value.size() * type_size_);
+    num_cells_++;
+
+    // The offset is the number of elements in the data buffer.
+    offsets_.push_back(num_elements_ * type_size_);
+    num_elements_ += value.size();
+
+    size_t bytes =
+        num_elements_ * type_size_ + offsets_.size() * sizeof(uint64_t);
+    if (is_nullable_) {
+      validity_.push_back(1);
+      bytes += validity_.size() * sizeof(uint8_t);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * @brief Push variable length data into the buffer.
+   *
+   * @tparam T data type
+   * @param value data to add to the buffer
+   * @return size_t size of the buffer in bytes
+   */
+  template <typename T>
+  size_t push_back(const std::vector<T>& value) {
+    if (!is_var_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Variable length data not supported for " + name_);
+    }
+
+    // Allocate more memory if needed
+    while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
+      data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
+      LOG_TRACE(
+          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
+    }
+
+    // Resize the buffer and copy data into it.
+    // Resize is required because memcpy-ing data into the buffer does not
+    // update the size, which is required when reserving more memory.
+    data_.resize(data_.size() + value.size() * type_size_);
+    memcpy(
+        data_.data() + num_elements_ * type_size_,
+        value.data(),
+        value.size() * type_size_);
+    num_cells_++;
+
+    // The offset is the number of elements in the data buffer.
+    offsets_.push_back(num_elements_ * type_size_);
+    num_elements_ += value.size();
+
+    size_t bytes =
+        num_elements_ * type_size_ + offsets_.size() * sizeof(uint64_t);
+    if (is_nullable_) {
+      validity_.push_back(1);
+      bytes += validity_.size() * sizeof(uint8_t);
+    }
+
+    return bytes;
+  }
+
+  /**
+   * @brief Push a null cell into the buffer.
+   *
+   * @return size_t size of the buffer in bytes
+   */
+  size_t push_null() {
+    if (!is_nullable_) {
+      throw std::runtime_error(
+          "[ColumnBuffer] Nullable data not supported for " + name_);
+    }
+
+    if (is_var_) {
+      if (offsets_.size() == 0) {
+        offsets_.push_back(0);
+      } else {
+        offsets_.push_back(num_elements_ * type_size_);
+      }
+    }
+
+    num_cells_++;
+    validity_.push_back(0);
+
+    size_t bytes = num_cells_ * type_size_ +
+                   offsets_.size() * sizeof(uint64_t) +
+                   validity_.size() * sizeof(uint8_t);
+
+    return bytes;
+  }
+
+  /**
+   * @brief Clear the buffer.
+   *
+   */
+  void clear() {
+    num_cells_ = 0;
+    num_elements_ = 0;
+    data_.clear();
+    offsets_.clear();
+    validity_.clear();
+  }
+
  private:
   //===================================================================
   //= private static
@@ -240,7 +495,10 @@ class ColumnBuffer {
   uint64_t type_size_;
 
   // Number of cells.
-  uint64_t num_cells_;
+  uint64_t num_cells_ = 0;
+
+  // Number of elements for variable length data.
+  uint64_t num_elements_ = 0;
 
   // If true, the data type is variable length
   bool is_var_;
