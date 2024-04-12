@@ -165,8 +165,8 @@ steps:
         pip install tiledb
 
         # Install and test the Python API
-        python setup.py install --user
-        python setup.py pytest
+        pip install . --user
+        pytest
       fi
 
     displayName: 'Build and test TileDB-VCF Python API'

@@ -2,7 +2,7 @@
 
 cd apis\python
 
-python setup.py install ^
+pip install . ^
   --single-version-externally-managed ^
   --record record.txt ^
   --libtiledbvcf="%CONDA_PREFIX%\Library"
