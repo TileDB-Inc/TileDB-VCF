@@ -44,7 +44,8 @@ if(NOT TILEDBVCF_LIB)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build")
 
     execute_process(
-        COMMAND bash -c "${CMAKE_COMMAND} .. && ninja && ninja install-libtiledbvcf"
+        # Force Unix Makefiles to avoid issues with Ninja and htslib, which uses a custom build system
+        COMMAND bash -c "${CMAKE_COMMAND} -G 'Unix Makefiles' .. && make -j && make -j install-libtiledbvcf"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build"
     )
 
@@ -65,17 +66,7 @@ pybind11_add_module(
     src/tiledbvcf/binding/vcf_arrow.cc
 )
 
-target_compile_features(
-    ${VCF_TARGET_NAME}
-    PRIVATE
-    cxx_std_20
-)
-
-target_compile_options(
-    ${VCF_TARGET_NAME}
-    PRIVATE
-    -Wno-deprecated-declarations
-)
+target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
