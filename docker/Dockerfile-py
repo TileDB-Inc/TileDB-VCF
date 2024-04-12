@@ -39,7 +39,7 @@ WORKDIR /tmp/TileDB-VCF
 RUN mkdir -p libtiledbvcf/build && \
     cd libtiledbvcf/build && \
     cmake .. && \
-    make -j && make install-libtiledbvcf
+    make -j2 && make install-libtiledbvcf
 
 # Install Python API
 WORKDIR /tmp/TileDB-VCF/apis/python

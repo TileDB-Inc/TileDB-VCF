@@ -17,15 +17,14 @@ install: clean
 		cd libtiledbvcf/build && \
 		cmake .. -DCMAKE_BUILD_TYPE=${build} && \
 		make -j && make install-libtiledbvcf
-	pip install apis/python
+	pip install -v apis/python
 
 # incremental compile and update python install
 # -------------------------------------------------------------------
 .PHONY: update
 update:
-	rm -rf apis/python/build
 	cd libtiledbvcf/build && make -j && make -j install-libtiledbvcf
-	pip install apis/python
+	pip install -v apis/python
 
 # test
 # -------------------------------------------------------------------

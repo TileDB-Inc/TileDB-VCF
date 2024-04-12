@@ -38,6 +38,23 @@ find_library(
     PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib"
 )
 
+if(NOT TILEDBVCF_LIB)
+    message(STATUS "Building libtiledbvcf from source")
+
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build")
+
+    execute_process(
+        COMMAND bash -c "${CMAKE_COMMAND} .. && ninja && ninja install-libtiledbvcf"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build"
+    )
+
+    find_library(
+        TILEDBVCF_LIB
+        NAMES tiledbvcf
+        PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib"
+    )
+endif()
+
 set(VCF_TARGET_NAME libtiledbvcf)
 
 pybind11_add_module(

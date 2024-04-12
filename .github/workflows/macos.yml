@@ -90,18 +90,14 @@ jobs:
           pyarrow==10.0.1 \
           pyarrow-hotfix \
           pybind11 \
-          pytest \
-          setuptools \
-          setuptools_scm \
-          setuptools_scm_git_archive \
-          wheel
+          pytest
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
-          python -m pip install .
+          python -m pip install -v .
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
   java:
@@ -175,13 +171,9 @@ jobs:
           pyarrow==10.0.1 \
           pyarrow-hotfix \
           pybind11 \
-          pytest \
-          setuptools \
-          setuptools_scm \
-          setuptools_scm_git_archive \
-          wheel
+          pytest
       - name: Build tiledbvcf-py
-        run: cd apis/python && python -m pip install .
+        run: cd apis/python && python -m pip install -v .
       - name: Confirm linking
         run: |
           otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
