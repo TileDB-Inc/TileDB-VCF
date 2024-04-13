@@ -121,7 +121,7 @@ install(
 )
 
 # Install the command line tool
-file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/*")
+file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 install(
     PROGRAMS ${TILEDBVCF_PROGRAMS}
     DESTINATION ${SKBUILD_SCRIPTS_DIR}
