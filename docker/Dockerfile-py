@@ -17,6 +17,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libcurl4-openssl-dev \
     xz-utils \
     liblzma-dev \
+    ninja-build \
     make \
     automake \
     autoconf \
@@ -30,22 +31,20 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
 
+# avoid --home to prevent issues with singularity
+RUN pip install --no-cache-dir \
+    pandas \
+    pyarrow \
+    pyarrow-hotfix \
+    tiledb
+
 # Build TileDB-VCF
 WORKDIR /tmp
 COPY . TileDB-VCF
 
-WORKDIR /tmp/TileDB-VCF
-
-RUN mkdir -p libtiledbvcf/build && \
-    cd libtiledbvcf/build && \
-    cmake .. && \
-    make -j2 && make install-libtiledbvcf
-
-# Install Python API
 WORKDIR /tmp/TileDB-VCF/apis/python
 
-# avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir .
+RUN pip install -v .
 
 RUN rm -r /tmp/TileDB-VCF
 

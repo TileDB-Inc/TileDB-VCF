@@ -13,7 +13,7 @@ build ?= Release
 
 .PHONY: install
 install: clean
-	@mkdir -p libtiledbvcf/build && \
+	mkdir -p libtiledbvcf/build && \
 		cd libtiledbvcf/build && \
 		cmake .. -DCMAKE_BUILD_TYPE=${build} && \
 		make -j && make install-libtiledbvcf

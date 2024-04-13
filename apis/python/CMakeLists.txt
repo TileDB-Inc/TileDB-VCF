@@ -32,6 +32,8 @@ project(
 
 find_package(pybind11 REQUIRED)
 
+# Search for libtilebdvcf in the default install directory and in the directory
+# specified by the LIBTILEDBVCF_DIR environment variable.
 set(LIBTILEDBVCF_SEARCH_PATHS 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib" 
     "$ENV{LIBTILEDBVCF_DIR}"
@@ -39,6 +41,7 @@ set(LIBTILEDBVCF_SEARCH_PATHS
 
 message(STATUS "Searching for libtiledbvcf in ${LIBTILEDBVCF_SEARCH_PATHS}")
 
+# TODO: Use find_package() instead of find_library() to find libtiledbvcf.
 find_library(
     TILEDBVCF_LIB
     NAMES tiledbvcf
@@ -51,8 +54,6 @@ if(NOT TILEDBVCF_LIB)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build")
 
     execute_process(
-        # Force Unix Makefiles to avoid issues with Ninja and htslib, which uses a custom build system
-        # COMMAND bash -c "${CMAKE_COMMAND} -G 'Unix Makefiles' .. && make -j && make -j install-libtiledbvcf"
         COMMAND bash -c "\
             ${CMAKE_COMMAND} .. && \
             ${CMAKE_COMMAND} --build . && \
@@ -64,7 +65,7 @@ if(NOT TILEDBVCF_LIB)
         TILEDBVCF_LIB
         NAMES tiledbvcf
         PATHS ${LIBTILEDBVCF_SEARCH_PATHS}
-        )
+    )
 endif()
 
 if(NOT TILEDBVCF_LIB)
@@ -88,7 +89,7 @@ target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
     ${pybind11_INCLUDE_DIR}
-    "$ENV{LIBTILEDBVCF_DIR}/../include/"
+    "$ENV{LIBTILEDBVCF_DIR}/include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build/externals/install/include"
 )
