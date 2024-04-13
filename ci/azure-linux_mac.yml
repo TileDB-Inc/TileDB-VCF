@@ -165,8 +165,8 @@ steps:
         pip install tiledb
 
         # Install and test the Python API
+        trap 'cat /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_htslib-stamp/ep_htslib-build-*.log' EXIT
         pip install . --user
-        cat /home/vsts/work/1/s/libtiledbvcf/build/externals/src/ep_htslib-stamp/ep_htslib-build-*.log
         pytest
       fi
 

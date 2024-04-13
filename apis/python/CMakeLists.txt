@@ -88,6 +88,7 @@ target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
     ${pybind11_INCLUDE_DIR}
+    "$ENV{LIBTILEDBVCF_DIR}/../include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build/externals/install/include"
 )
