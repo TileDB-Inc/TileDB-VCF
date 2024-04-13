@@ -74,7 +74,7 @@ else()
     message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
     get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
-    message(STATUS "libtiledbvcf include dir: ${TILEDBVCF_INCLUDE_DIR}")
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
 endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
@@ -121,7 +121,8 @@ install(
 )
 
 # Install the command line tool
+file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/*")
 install(
-    PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/bin/tiledbvcf"
+    PROGRAMS ${TILEDBVCF_PROGRAMS}
     DESTINATION ${SKBUILD_SCRIPTS_DIR}
 )
