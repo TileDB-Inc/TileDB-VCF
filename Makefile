@@ -72,11 +72,11 @@ format:
 # -------------------------------------------------------------------
 .PHONY: venv
 venv:
-		@if [ ! -d venv ]; then \
-			python -m venv venv; \
-			venv/bin/pip install --upgrade pip -r apis/python/requirements-dev.txt; \
-		fi
-		@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"
+	@if [ ! -d venv ]; then \
+		python -m venv venv; \
+		venv/bin/pip install --upgrade pip -r apis/python/requirements-dev.txt; \
+	fi
+	@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"
 
 # docker
 # -------------------------------------------------------------------

@@ -131,9 +131,9 @@ if (NOT HTSLIB_FOUND)
           COMMAND
             ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}
         BUILD_COMMAND
-          $(MAKE)
+          make
         INSTALL_COMMAND
-          $(MAKE) install
+          make install
         PATCH_COMMAND
         BUILD_IN_SOURCE TRUE
         LOG_DOWNLOAD TRUE
