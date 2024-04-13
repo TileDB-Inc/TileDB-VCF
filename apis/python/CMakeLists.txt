@@ -72,6 +72,9 @@ if(NOT TILEDBVCF_LIB)
     message(FATAL_ERROR "Could not find libtiledbvcf")
 else()
     message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
+    get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
+    message(STATUS "libtiledbvcf include dir: ${TILEDBVCF_INCLUDE_DIR}")
 endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
@@ -89,9 +92,7 @@ target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
     ${pybind11_INCLUDE_DIR}
-    "$ENV{LIBTILEDBVCF_DIR}/include/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/include/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build/externals/install/include"
+    ${TILEDBVCF_INCLUDE_DIR}
 )
 
 target_link_libraries(
