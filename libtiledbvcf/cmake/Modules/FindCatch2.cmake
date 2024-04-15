@@ -34,7 +34,6 @@
 include(TileDBCommon)
 
 # Search the path set during the superbuild for the EP.
-message(STATUS "searching for catch in ${EP_SOURCE_DIR}")
 set(CATCH_PATHS ${EP_SOURCE_DIR}/ep_catch/single_include)
 
 if (NOT TILEDB_FORCE_ALL_DEPS OR TILEDB_CATCH_EP_BUILT)

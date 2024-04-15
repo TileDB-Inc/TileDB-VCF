@@ -93,7 +93,7 @@ jobs:
           pytest
       - name: Build tiledbvcf-py
         env:
-          LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+          LIBTILEDBVCF_DIR: "${{ github.workspace }}/dist"
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
