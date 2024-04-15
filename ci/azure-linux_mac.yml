@@ -1,4 +1,11 @@
 steps:
+  # Set the python version so we find a tiledb-py wheel
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+      addToPath: true
+    displayName: 'Set Python Version'
+
   - script: python -m pip install --upgrade black pylint
     displayName: 'Install black (formatter) and pylint (linter)'
 
@@ -143,7 +150,7 @@ steps:
       set -ex pipefail
 
       if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-        pip install apis/python[test] --user
+        pip install apis/python[test] -v --user
         pytest
       fi
 
