@@ -1,7 +1,0 @@
-black
-dask[distributed]
-pandas
-pyarrow
-pyarrow_hotfix
-pytest
-tiledb

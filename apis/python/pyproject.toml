@@ -41,6 +41,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
+dependencies = ["pandas", "pyarrow", "pyarrow-hotfix"]
+
+[project.optional-dependencies]
+test = ["dask[distributed]", "pytest", "tiledb"]
+dev = ["black"]
+
 [project.urls]
 homepage = "https://tiledb.com"
 repository = "https://github.com/TileDB-Inc/TileDB-VCF"
@@ -53,7 +59,6 @@ build-backend = "scikit_build_core.build"
 build-dir = "build/{wheel_tag}"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = ["src/tiledbvcf/version.py"]
-sdist.cmake = true
 wheel.expand-macos-universal-tags = true
 wheel.license-files = []
 # NOTE: editable inplace not working yet

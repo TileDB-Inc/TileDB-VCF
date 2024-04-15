@@ -17,10 +17,10 @@ then
   echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
 fi
 
-export LIBTILEDBVCF_DIR=$GITHUB_WORKSPACE/install/
+export LIBTILEDBVCF_PATH=$GITHUB_WORKSPACE/install/
 
 cd TileDB-VCF/apis/python
-python -m pip install .
+python -m pip install .[test]
 python -c "import tiledbvcf; print(tiledbvcf.version)"
 
 pytest

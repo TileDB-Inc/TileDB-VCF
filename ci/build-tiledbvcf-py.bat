@@ -2,7 +2,7 @@
 
 cd apis\python
 
-set LIBTILEDBVCF_DIR="%CONDA_PREFIX%\Library"
+set LIBTILEDBVCF_PATH="%CONDA_PREFIX%\Library"
 
-pip install -v . 
+pip install -v .[test]
 if %ERRORLEVEL% neq 0 exit 1

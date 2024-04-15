@@ -17,14 +17,14 @@ install: clean
 		cd libtiledbvcf/build && \
 		cmake .. -DCMAKE_BUILD_TYPE=${build} && \
 		make -j && make install-libtiledbvcf
-	pip install -v apis/python
+	pip install -v apis/python[test,dev]
 
 # incremental compile and update python install
 # -------------------------------------------------------------------
 .PHONY: update
 update:
 	cd libtiledbvcf/build && make -j && make -j install-libtiledbvcf
-	pip install -v apis/python
+	pip install -v apis/python[test,dev]
 
 # test
 # -------------------------------------------------------------------
@@ -74,7 +74,7 @@ format:
 venv:
 	@if [ ! -d venv ]; then \
 		python -m venv venv; \
-		venv/bin/pip install --upgrade pip -r apis/python/requirements-dev.txt; \
+		venv/bin/pip install --upgrade pip; \
 	fi
 	@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"
 

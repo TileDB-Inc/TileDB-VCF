@@ -33,10 +33,10 @@ project(
 find_package(pybind11 REQUIRED)
 
 # Search for libtilebdvcf in the default install directory and in the directory
-# specified by the LIBTILEDBVCF_DIR environment variable.
+# specified by the LIBTILEDBVCF_PATH environment variable.
 set(LIBTILEDBVCF_SEARCH_PATHS 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib" 
-    "$ENV{LIBTILEDBVCF_DIR}"
+    "$ENV{LIBTILEDBVCF_PATH}"
 )
 
 message(STATUS "Searching for libtiledbvcf in ${LIBTILEDBVCF_SEARCH_PATHS}")
@@ -75,6 +75,8 @@ else()
     get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
+    file(GLOB TILEDBVCF_SHARED_LIBS "${TILEDBVCF_LIB_DIR}/*")
+    file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
@@ -91,7 +93,6 @@ target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
-    ${pybind11_INCLUDE_DIR}
     ${TILEDBVCF_INCLUDE_DIR}
 )
 
@@ -114,14 +115,12 @@ install(
 )
 
 # Install required shared libraries
-file(GLOB SHARED_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib*/*")
 install(
-    FILES ${SHARED_LIBS}
+    FILES ${TILEDBVCF_SHARED_LIBS}
     DESTINATION ${SKBUILD_PROJECT_NAME}
 )
 
 # Install the command line tool
-file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 install(
     PROGRAMS ${TILEDBVCF_PROGRAMS}
     DESTINATION ${SKBUILD_SCRIPTS_DIR}

@@ -31,12 +31,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
 
+# Install any packages we want in the container that are not
+# dependencies for TileDB-VCF.
 # avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir \
-    pandas \
-    pyarrow \
-    pyarrow-hotfix \
-    tiledb
+RUN pip install --no-cache-dir tiledb
 
 # Build TileDB-VCF
 WORKDIR /tmp
