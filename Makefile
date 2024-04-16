@@ -17,15 +17,14 @@ install: clean
 		cd libtiledbvcf/build && \
 		cmake .. -DCMAKE_BUILD_TYPE=${build} && \
 		make -j && make install-libtiledbvcf
-	cd apis/python && python setup.py develop
+	pip install -v apis/python[test,dev]
 
 # incremental compile and update python install
 # -------------------------------------------------------------------
 .PHONY: update
 update:
-	rm -rf apis/python/build
 	cd libtiledbvcf/build && make -j && make -j install-libtiledbvcf
-	cd apis/python && python setup.py develop
+	pip install -v apis/python[test,dev]
 
 # test
 # -------------------------------------------------------------------
@@ -69,6 +68,32 @@ format:
 	 @./ci/run-clang-format.sh . clang-format 1 \
 		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
 
+# venv
+# -------------------------------------------------------------------
+.PHONY: venv
+venv:
+	@if [ ! -d venv ]; then \
+		python -m venv venv; \
+		venv/bin/pip install --upgrade pip; \
+	fi
+	@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"
+
+# docker
+# -------------------------------------------------------------------
+.PHONY: docker
+docker:
+	docker build -t tiledbvcf-cli:dev -f docker/Dockerfile-cli . && \
+	docker run --rm -t tiledbvcf-cli:dev version && \
+	docker build -t tiledbvcf-py:dev -f docker/Dockerfile-py . && \
+	docker run --rm -t tiledbvcf-py:dev -c "import tiledbvcf; print(tiledbvcf.version)"
+
+# wheel
+# -------------------------------------------------------------------
+.PHONY: wheel
+wheel: clean
+	docker run --rm -v `pwd`:/io quay.io/pypa/manylinux_2_28_x86_64 /io/apis/python/build-wheels.sh
+	sudo chown -R ${USER}:$(id -gn) .
+
 # clean
 # -------------------------------------------------------------------
 .PHONY: clean
@@ -78,7 +103,7 @@ clean:
 .PHONY: cleaner
 cleaner:
 	@printf "*** dry-run mode: remove -n to actually remove files\n"
-	git clean -ffdx -e .vscode -e venv -n
+	git clean -ffdx -e .vscode -e dev -e venv -n
 
 # help
 # -------------------------------------------------------------------
@@ -91,8 +116,11 @@ Rules:
   test                Run tests
   notebooks           Execute notebooks and update cell outputs
   docs                Render the documentation
+  docker              Build and test docker images
   check-format        Run C++ format check
   format              Run C++ format
+  venv                Create a virtual environment
+  wheel               Build python wheel
   clean               Remove build artifacts
 
 Options:

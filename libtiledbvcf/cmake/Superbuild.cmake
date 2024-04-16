@@ -71,7 +71,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindHTSlib.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindSpdlog.cmake)
 #... before tiledb sets up only half of them...
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindTileDB_EP.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch_EP.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/FindCatch2.cmake)
 
 ############################################################
 # 'make format' target

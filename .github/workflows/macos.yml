@@ -83,25 +83,14 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: python -m pip install --prefer-binary \
-          dask \
-          distributed \
-          'fsspec<2023.3.0' \
-          pandas \
-          pyarrow==10.0.1 \
-          pyarrow-hotfix \
-          pybind11 \
-          pytest \
-          setuptools \
-          setuptools_scm \
-          setuptools_scm_git_archive \
-          wheel
+          pyarrow==10.0.1
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
-          python -m pip install .
+          python -m pip install -v .[test]
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
   java:
@@ -168,20 +157,9 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: python -m pip install --prefer-binary \
-          dask \
-          distributed \
-          'fsspec<2023.3.0' \
-          pandas \
-          pyarrow==10.0.1 \
-          pyarrow-hotfix \
-          pybind11 \
-          pytest \
-          setuptools \
-          setuptools_scm \
-          setuptools_scm_git_archive \
-          wheel
+          pyarrow==10.0.1
       - name: Build tiledbvcf-py
-        run: cd apis/python && python -m pip install .
+        run: cd apis/python && python -m pip install -v .[test]
       - name: Confirm linking
         run: |
           otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
@@ -192,7 +170,5 @@ jobs:
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Install bcftools (for tests)
         run: brew install bcftools
-      - name: Install tiledb-py
-        run: pip install tiledb
       - name: Test tiledbvcf-py
         run: cd apis/python && pytest

@@ -1,3 +1,11 @@
+.ninja_deps
+.ninja_log
+CMakeCache.txt
+CMakeFiles/
+CMakeInit.txt
+build.ninja
+build/
+cmake_install.cmake
+src/tiledbvcf/libhts.so.*
 src/tiledbvcf/version.py
-src/tiledbvcf/libhts.so.1.8
-src/tiledbvcf/libhts.so.1.*
+wheels/

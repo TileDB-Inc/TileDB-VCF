@@ -17,6 +17,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libcurl4-openssl-dev \
     xz-utils \
     liblzma-dev \
+    ninja-build \
     make \
     automake \
     autoconf \
@@ -30,13 +31,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && apt-get purge -y \
     && rm -rf /var/lib/apt/lists*
 
+# Install any packages we want in the container that are not
+# dependencies for TileDB-VCF.
 # avoid --home to prevent issues with singularity
-RUN pip install --no-cache-dir \
-    pandas \
-    pyarrow \
-    pyarrow-hotfix \
-    setuptools_scm \
-    tiledb
+RUN pip install --no-cache-dir tiledb
 
 # Build TileDB-VCF
 WORKDIR /tmp
@@ -44,7 +42,7 @@ COPY . TileDB-VCF
 
 WORKDIR /tmp/TileDB-VCF/apis/python
 
-RUN python setup.py install
+RUN pip install -v .
 
 RUN rm -r /tmp/TileDB-VCF
 

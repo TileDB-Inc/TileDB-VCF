@@ -6,6 +6,8 @@
 ##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##contig=<ID=chr1>
+##contig=<ID=chr2>
+##contig=<ID=chrX>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	first
 chr1	1	.	T	C,<NON_REF>	829.77	.	ExcessHet=3.0103	GT	0/1
 chr1	2	.	G	GTTTA,T,<NON_REF>	1042.73	.	ExcessHet=4.8532	GT	0/1

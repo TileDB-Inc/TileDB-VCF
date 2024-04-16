@@ -1,4 +1,11 @@
 steps:
+  # Set the python version so we find a tiledb-py wheel
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+      addToPath: true
+    displayName: 'Set Python Version'
+
   - script: python -m pip install --upgrade black pylint
     displayName: 'Install black (formatter) and pylint (linter)'
 
@@ -143,30 +150,8 @@ steps:
       set -ex pipefail
 
       if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
-        # Install micromamba
-        if [[ "$AGENT_OS" == "Darwin" ]]; then
-          brew install micromamba
-          export PATH=$HOME/.micromamba/bin:$PATH
-        else
-          curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-          export PATH=$PWD/bin:$PATH
-        fi
-        eval "$(micromamba shell hook --shell bash)"
-        micromamba --version
-
-        # Create and activate the conda environment
-        pushd apis/python
-        micromamba create -f conda-env.yml -y
-        micromamba activate tiledbvcf-py
-
-        # Install tiledb-py (uncomment to debug)
-        # pip debug --verbose
-        # pip install -vvv tiledb
-        pip install tiledb
-
-        # Install and test the Python API
-        python setup.py install --user
-        python setup.py pytest
+        pip install apis/python[test] -v --user
+        pytest
       fi
 
     displayName: 'Build and test TileDB-VCF Python API'

@@ -118,6 +118,7 @@ if (NOT HTSLIB_FOUND)
       #   - see https://github.com/samtools/htslib/commit/680c0b8ef0ff133d3b572abc80fe66fc2ea965f0
       #   - and https://github.com/samtools/htslib/pull/1198/commits/6821fc8ed88706e9282b561e74dfa45dac4d74c8
       find_program(AUTORECONF NAMES autoreconf REQUIRED)
+      find_program(MAKE NAMES make gmake REQUIRED)
 
       ExternalProject_Add(ep_htslib
         PREFIX "externals"
@@ -131,9 +132,11 @@ if (NOT HTSLIB_FOUND)
           COMMAND
             ./configure --prefix=${EP_INSTALL_PREFIX} LDFLAGS=${EXTRA_LDFLAGS} CFLAGS=${CFLAGS}
         BUILD_COMMAND
-          $(MAKE)
+          # Add -j to avoid the following error in some docker builds:
+          #   make[3]: *** read jobs pipe: Bad file descriptor.  Stop.
+          ${MAKE} -j4
         INSTALL_COMMAND
-          $(MAKE) install
+          ${MAKE} -j4 install
         PATCH_COMMAND
         BUILD_IN_SOURCE TRUE
         LOG_DOWNLOAD TRUE

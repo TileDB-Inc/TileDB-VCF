@@ -1,0 +1,131 @@
+#
+# The MIT License
+#
+# Copyright (c) 2024 TileDB, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+
+cmake_minimum_required(VERSION 3.21)
+
+project(
+    ${SKBUILD_PROJECT_NAME}
+    VERSION ${SKBUILD_PROJECT_VERSION}
+    LANGUAGES CXX
+)
+
+find_package(pybind11 REQUIRED)
+
+# Search for libtilebdvcf in the default install directory and in the directory
+# specified by the LIBTILEDBVCF_PATH environment variable.
+set(LIBTILEDBVCF_SEARCH_PATHS 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib" 
+    "$ENV{LIBTILEDBVCF_PATH}"
+)
+
+message(STATUS "Searching for libtiledbvcf in ${LIBTILEDBVCF_SEARCH_PATHS}")
+
+# TODO: Use find_package() instead of find_library() to find libtiledbvcf.
+find_library(
+    TILEDBVCF_LIB
+    NAMES tiledbvcf
+    PATHS ${LIBTILEDBVCF_SEARCH_PATHS}
+)
+
+if(NOT TILEDBVCF_LIB)
+    message(STATUS "Building libtiledbvcf from source")
+
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build")
+
+    execute_process(
+        COMMAND bash -c "\
+            ${CMAKE_COMMAND} .. && \
+            ${CMAKE_COMMAND} --build . && \
+            ${CMAKE_COMMAND} --build . --target install-libtiledbvcf"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build"
+    )
+
+    find_library(
+        TILEDBVCF_LIB
+        NAMES tiledbvcf
+        PATHS ${LIBTILEDBVCF_SEARCH_PATHS}
+    )
+endif()
+
+if(NOT TILEDBVCF_LIB)
+    message(FATAL_ERROR "Could not find libtiledbvcf")
+else()
+    message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
+    get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
+    if(WIN32)
+        file(GLOB TILEDBVCF_SHARED_LIBS "${TILEDBVCF_LIB_DIR}/*.lib")
+    else()
+        file(GLOB TILEDBVCF_SHARED_LIBS "${TILEDBVCF_LIB_DIR}/*")
+    endif()
+    file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
+endif()
+
+set(VCF_TARGET_NAME libtiledbvcf)
+
+pybind11_add_module(
+    ${VCF_TARGET_NAME}
+    src/tiledbvcf/binding/libtiledbvcf.cc
+    src/tiledbvcf/binding/reader.cc
+    src/tiledbvcf/binding/writer.cc
+    src/tiledbvcf/binding/vcf_arrow.cc
+)
+
+target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
+
+target_include_directories(
+    ${VCF_TARGET_NAME} PRIVATE
+    ${TILEDBVCF_INCLUDE_DIR}
+)
+
+target_link_libraries(
+    ${VCF_TARGET_NAME} PRIVATE
+    ${TILEDBVCF_LIB}
+)
+
+# Search for shared libraries in the same directory as the target
+if (APPLE)
+    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path")
+else()
+    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN")
+endif()
+
+# Install the extension module
+install(
+    TARGETS ${VCF_TARGET_NAME}
+    DESTINATION ${SKBUILD_PROJECT_NAME}
+)
+
+# Install required shared libraries
+install(
+    FILES ${TILEDBVCF_SHARED_LIBS}
+    DESTINATION ${SKBUILD_PROJECT_NAME}
+)
+
+# Install the command line tool
+install(
+    PROGRAMS ${TILEDBVCF_PROGRAMS}
+    DESTINATION ${SKBUILD_SCRIPTS_DIR}
+)

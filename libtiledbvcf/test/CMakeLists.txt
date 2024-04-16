@@ -27,7 +27,7 @@
 
 find_package(HTSlib REQUIRED)
 find_package(TileDB_EP REQUIRED)
-find_package(Catch_EP REQUIRED)
+find_package(Catch2 REQUIRED)
 
 ############################################################
 # Unit test executable

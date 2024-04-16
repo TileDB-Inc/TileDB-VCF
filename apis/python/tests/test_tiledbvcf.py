@@ -1210,9 +1210,9 @@ def test_ingest_with_stats(tmp_path):
         set_af_filter="<0.2",
     )
     assert data_frame.shape == (1, 8)
-    assert (
-        data_frame[data_frame["sample_name"] == "second"]["qual"] == 343.730011
-    ).bool()
+    assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
+        343.73
+    )
     assert (
         data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
