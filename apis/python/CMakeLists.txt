@@ -76,10 +76,19 @@ else()
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
     if(WIN32)
-        file(GLOB TILEDBVCF_SHARED_LIBS "${TILEDBVCF_LIB_DIR}/*.lib")
+        file(GLOB TILEDBVCF_LIB_CONTENTS "${TILEDBVCF_LIB_DIR}/*.lib")
     else()
-        file(GLOB TILEDBVCF_SHARED_LIBS "${TILEDBVCF_LIB_DIR}/*")
+        file(GLOB TILEDBVCF_LIB_CONTENTS "${TILEDBVCF_LIB_DIR}/*")
     endif()
+
+    # Capture list of shared libraries
+    set(TILEDBVCF_SHARED_LIBS "")
+    foreach(ITEM ${TILEDBVCF_LIB_CONTENTS})
+        if(NOT IS_DIRECTORY ${ITEM})
+            list(APPEND TILEDBVCF_SHARED_LIBS ${ITEM})
+        endif()
+    endforeach()
+
     file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 endif()
 
