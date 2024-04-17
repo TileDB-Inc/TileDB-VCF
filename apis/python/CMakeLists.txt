@@ -75,17 +75,27 @@ else()
     get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
-    if(WIN32)
-        file(GLOB TILEDBVCF_LIB_CONTENTS "${TILEDBVCF_LIB_DIR}/*.lib")
+
+    # Find required shared libs for the current platform
+    if (APPLE)
+        set(TILEDBVCF_SHARED_LIB_NAMES
+            "libtiledb.dylib" "libtiledbvcf.dylib" "libhts.*dylib"
+        )
+    elseif(WIN32)
+        set(TILEDBVCF_SHARED_LIB_NAMES
+            "tiledb.lib" "tiledbvcf.lib" "hts-3.lib"
+        )
     else()
-        file(GLOB TILEDBVCF_LIB_CONTENTS "${TILEDBVCF_LIB_DIR}/*")
+        set(TILEDBVCF_SHARED_LIB_NAMES
+            "libtiledb.so*" "libtiledbvcf.so" "libhts.so*"
+        )
     endif()
 
-    # Capture list of shared libraries
     set(TILEDBVCF_SHARED_LIBS "")
-    foreach(ITEM ${TILEDBVCF_LIB_CONTENTS})
-        if(NOT IS_DIRECTORY ${ITEM})
-            list(APPEND TILEDBVCF_SHARED_LIBS ${ITEM})
+    foreach(ITEM ${TILEDBVCF_SHARED_LIB_NAMES})
+        file(GLOB LIB_FILE "${TILEDBVCF_LIB_DIR}/${ITEM}")
+        if(LIB_FILE)
+            list(APPEND TILEDBVCF_SHARED_LIBS "${LIB_FILE}")
         endif()
     endforeach()
 
