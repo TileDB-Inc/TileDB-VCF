@@ -206,7 +206,7 @@ class VariantStats {
   inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
 
   // Array version
-  inline static const int VARIANT_STATS_VERSION = 2;
+  inline static const int VARIANT_STATS_VERSION = 3;
 
   // Array columns
   enum ColumnNames { CONTIG, POS, SAMPLE, ALLELE };
@@ -214,9 +214,9 @@ class VariantStats {
       "contig", "pos", "sample", "allele"};
 
   // Array attributes
-  enum Attr { AC = 0, AN, N_HOM, END_POS, LAST_ };
+  enum Attr { AC = 0, AN, N_HOM, CUM_MAX, END_POS, LAST_ };
   inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "an", "n_hom", "end_pos"};
+      "ac", "an", "n_hom", "cum_max", "end_pos"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -242,6 +242,9 @@ class VariantStats {
   //===================================================================
   //= private non-static
   //===================================================================
+
+  // maximum allele length ecountered
+  int32_t max_length_ = 0;
 
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;

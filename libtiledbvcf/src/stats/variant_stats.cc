@@ -57,6 +57,13 @@ void VariantStats::create(
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
 
+  const std::vector<FilterList> attr_filterlists = {
+      int_attr_filters,
+      int_attr_filters,
+      int_attr_filters,
+      rle_coord_filters,
+      int_attr_filters};
+
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
@@ -111,7 +118,8 @@ void VariantStats::create(
 
   // Create attributes
   for (int i = 0; i < LAST_; i++) {
-    auto attr = Attribute::create<int32_t>(ctx, ATTR_STR[i], int_attr_filters);
+    auto attr =
+        Attribute::create<int32_t>(ctx, ATTR_STR[i], attr_filterlists.at(i));
     schema.add_attributes(attr);
   }
 
@@ -484,16 +492,35 @@ void VariantStats::process(
     }
   }
 
+  bool is_nr_block;
+  {
+    bool one_alt = rec->n_allele == 2;
+    // if no first alt, or if wrong number of alts, this will be blank:
+    // no need to check whether this be a ref block, because this bool will be
+    // used inside an if statement
+    auto alt = one_alt ? alt_string(ref, rec->d.allele[1]) : "";
+    is_nr_block = (alt == "<NON_REF>");
+  }
+
   bool already_added_homozygous = false;
   for (int i = 0; i < ngt; i++) {
+    int length = end_pos - pos + 1;
+    if ((length = end_pos - pos + 1) > max_length_)
+      max_length_ = length;
     // If not missing, update allele count for GT[i]
     if (!gt_missing[i]) {
       auto alt = alt_string(ref, rec->d.allele[gt[i]]);
 
       if (gt[i] == 0) {
-        values_["ref"][AC] += count_delta_;
-        values_["ref"][AN] = ngt * count_delta_;
-        values_["ref"][END_POS] = end_pos_;
+        std::string ref_key = "ref";
+        if (is_nr_block) {
+          // ref block
+          ref_key = "nr";
+          values_["nr"][CUM_MAX] = max_length_;
+        }
+        values_[ref_key][AC] += count_delta_;
+        values_[ref_key][AN] = ngt * count_delta_;
+        values_[ref_key][END_POS] = end_pos_;
       } else {
         values_[alt][AC] += count_delta_;
         values_[alt][AN] = ngt * count_delta_;
