@@ -94,8 +94,8 @@ if (NOT HTSLIB_FOUND)
       
       ExternalProject_Add(ep_htslib
         PREFIX "externals"
-        URL https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.15.1-1/m2w64-htslib-1.15.1-1.tar.gz
-        URL_HASH SHA1=4cf66317109812f50b1e2431462a97b55211ddb3
+        URL https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.19-0/m2w64-htslib-1.19-0.tar.gz
+        URL_HASH SHA1=2ae724f8247f0de21a040451fdbbfb10d31ec8d6
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
