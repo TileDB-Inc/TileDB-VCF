@@ -214,9 +214,9 @@ class VariantStats {
       "contig", "pos", "sample", "allele"};
 
   // Array attributes
-  enum Attr { AC = 0, AN, N_HOM, CUM_MAX, END_POS, LAST_ };
+  enum Attr { AC = 0, AN, N_HOM, MAX_LENGTH, END, LAST_ };
   inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "an", "n_hom", "cum_max", "end_pos"};
+      "ac", "an", "n_hom", "max_length", "end"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -265,7 +265,7 @@ class VariantStats {
   uint32_t pos_;
 
   // End Position of the current locus
-  uint32_t end_pos_;
+  uint32_t end_;
 
   // Buffer for contigs
   std::string contig_buffer_;

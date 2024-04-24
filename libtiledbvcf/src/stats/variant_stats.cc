@@ -414,7 +414,7 @@ void VariantStats::process(
     update_results();
     contig_ = contig;
     pos_ = pos;
-    end_pos_ = end_pos;
+    end_ = end_pos;
     sample_ = sample_name;
   }
 
@@ -522,13 +522,13 @@ void VariantStats::process(
       if (gt[i] == 0) {
         values_[ref_key][AC] += count_delta_;
         values_[ref_key][AN] = ngt * count_delta_;
-        values_[ref_key][END_POS] = end_pos_;
-        values_[ref_key][CUM_MAX] = max_length_;
+        values_[ref_key][END] = end_;
+        values_[ref_key][MAX_LENGTH] = max_length_;
       } else {
         values_[alt][AC] += count_delta_;
         values_[alt][AN] = ngt * count_delta_;
-        values_[alt][END_POS] = end_pos_;
-        values_[alt][CUM_MAX] = max_length_;
+        values_[alt][END] = end_;
+        values_[alt][MAX_LENGTH] = max_length_;
       }
 
       // Update homozygote count
