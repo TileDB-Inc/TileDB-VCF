@@ -640,8 +640,8 @@ TEST_CASE("C API: Reader set BED array", "[capi][reader]") {
 
   // This check is making sure we can set the bed URI without an error,
   // it doesn't matter if the URI is a BED array. Since we don't have a BED
-  // array in the test data, we use the dataset URI.
-  auto bed_uri = dataset_uri;
+  // array in the test data, we use the data array.
+  auto bed_uri = dataset_uri + "/data";
   REQUIRE(
       tiledb_vcf_reader_set_bed_array(reader, bed_uri.c_str()) ==
       TILEDB_VCF_OK);
