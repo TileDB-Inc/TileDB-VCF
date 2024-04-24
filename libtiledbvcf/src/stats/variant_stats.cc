@@ -495,11 +495,12 @@ void VariantStats::process(
   bool is_nr_block;
   {
     bool one_alt = rec->n_allele == 2;
+    bool is_ref = bcf_gt_allele(dst_[0]) == 0;
     // if no first alt, or if wrong number of alts, this will be blank:
     // no need to check whether this be a ref block, because this bool will be
     // used inside an if statement
     auto alt = one_alt ? std::string(rec->d.allele[1]) : "";
-    is_nr_block = (alt == "<NON_REF>");
+    is_nr_block = is_ref && (alt == "<NON_REF>");
   }
 
   int length = end_pos - pos + 1;
@@ -512,13 +513,13 @@ void VariantStats::process(
     // If not missing, update allele count for GT[i]
     if (!gt_missing[i]) {
       auto alt = alt_string(ref, rec->d.allele[gt[i]]);
+      std::string ref_key = "ref";
+      if (is_nr_block) {
+        // ref block
+        ref_key = "nr";
+      }
 
       if (gt[i] == 0) {
-        std::string ref_key = "ref";
-        if (is_nr_block) {
-          // ref block
-          ref_key = "nr";
-        }
         values_[ref_key][AC] += count_delta_;
         values_[ref_key][AN] = ngt * count_delta_;
         values_[ref_key][END_POS] = end_pos_;
@@ -533,7 +534,7 @@ void VariantStats::process(
       // Update homozygote count
       if (homozygous && !already_added_homozygous) {
         if (gt[i] == 0) {
-          values_["ref"][N_HOM] += count_delta_;
+          values_[ref_key][N_HOM] += count_delta_;
         } else {
           values_[alt][N_HOM] += count_delta_;
         }
