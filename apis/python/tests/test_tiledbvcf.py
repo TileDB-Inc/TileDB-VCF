@@ -1203,7 +1203,7 @@ def test_ingest_with_stats(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert data_frame.shape == (2, 8)
+    assert data_frame.shape == (3, 8)
     assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
         343.73
     )
@@ -1233,6 +1233,8 @@ def test_ingest_with_stats(tmp_path):
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
     assert df.shape == (12, 5)
+    df = df.to_pandas()
+    assert sum(sum((df[df["alleles"] == "nr"] == (9, "nr", 4, 4, 1.0)).values)) == 5
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()
