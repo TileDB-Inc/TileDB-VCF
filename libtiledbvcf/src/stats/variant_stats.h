@@ -244,7 +244,7 @@ class VariantStats {
   //===================================================================
 
   // maximum allele length ecountered
-  int32_t max_length_ = 0;
+  static int32_t max_length_;
 
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;

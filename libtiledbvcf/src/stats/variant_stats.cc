@@ -32,6 +32,7 @@
 
 namespace tiledb::vcf {
 
+int32_t VariantStats::max_length_ = 0;
 //===================================================================
 //= public static functions
 //===================================================================
@@ -212,9 +213,24 @@ void VariantStats::finalize_query() {
 }
 
 void VariantStats::close() {
+  // Prepare to read metadata
   if (!enabled_) {
     return;
   }
+
+  Array fetch_max(*ctx_, array_->uri(), TILEDB_READ);
+  const void* alt_max = 0;
+  tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
+  uint32_t alt_max_num = 0;
+  fetch_max.get_metadata(
+      "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
+  if (alt_max)
+    if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
+      if (max_length_ < *((int32_t*)alt_max)) {
+        max_length_ = *((int32_t*)alt_max);
+      }
+    }
+  array_->put_metadata("max_length", TILEDB_INT32, 1, &max_length_);
 
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("[VariantStats] Close array");
