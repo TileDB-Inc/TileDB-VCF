@@ -66,10 +66,7 @@ void SampleStats::create(
   Filter compression(ctx, TILEDB_FILTER_ZSTD);
   compression.set_option(TILEDB_COMPRESSION_LEVEL, compression_level);
 
-  int_fl.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
-      .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter(compression)
-      .add_filter(checksum);
+  int_fl.add_filter(compression).add_filter(checksum);
   float_fl.add_filter(compression).add_filter(checksum);
   ascii_fl.add_filter(compression).add_filter(checksum);
   dict_fl.add_filter({ctx, TILEDB_FILTER_DICTIONARY})
@@ -175,27 +172,31 @@ void SampleStats::process(
   }
 
   if (bcf_get_format_int32(hdr, rec, "DP", &dst_, &ndst_) > 0) {
-    auto dp = static_cast<uint64_t>(dst_[0]);
-    stats_[sample]["dp_sum"] += dp;
-    stats_[sample]["dp_sum2"] += dp * dp;
-    stats_[sample]["dp_count"] += 1;
-    if (!stats_[sample].contains("dp_min")) {
-      stats_[sample]["dp_min"] = std::numeric_limits<uint64_t>::max();
+    if (dst_[0] != bcf_int32_missing) {
+      auto dp = static_cast<uint64_t>(dst_[0]);
+      stats_[sample]["dp_sum"] += dp;
+      stats_[sample]["dp_sum2"] += dp * dp;
+      stats_[sample]["dp_count"] += 1;
+      if (!stats_[sample].contains("dp_min")) {
+        stats_[sample]["dp_min"] = std::numeric_limits<uint64_t>::max();
+      }
+      stats_[sample]["dp_min"] = std::min(stats_[sample]["dp_min"], dp);
+      stats_[sample]["dp_max"] = std::max(stats_[sample]["dp_max"], dp);
     }
-    stats_[sample]["dp_min"] = std::min(stats_[sample]["dp_min"], dp);
-    stats_[sample]["dp_max"] = std::max(stats_[sample]["dp_max"], dp);
   }
 
   if (bcf_get_format_int32(hdr, rec, "GQ", &dst_, &ndst_) > 0) {
-    auto gq = static_cast<uint64_t>(dst_[0]);
-    stats_[sample]["gq_sum"] += gq;
-    stats_[sample]["gq_sum2"] += gq * gq;
-    stats_[sample]["gq_count"] += 1;
-    if (!stats_[sample].contains("gq_min")) {
-      stats_[sample]["gq_min"] = std::numeric_limits<uint64_t>::max();
+    if (dst_[0] != bcf_int32_missing) {
+      auto gq = static_cast<uint64_t>(dst_[0]);
+      stats_[sample]["gq_sum"] += gq;
+      stats_[sample]["gq_sum2"] += gq * gq;
+      stats_[sample]["gq_count"] += 1;
+      if (!stats_[sample].contains("gq_min")) {
+        stats_[sample]["gq_min"] = std::numeric_limits<uint64_t>::max();
+      }
+      stats_[sample]["gq_min"] = std::min(stats_[sample]["gq_min"], gq);
+      stats_[sample]["gq_max"] = std::max(stats_[sample]["gq_max"], gq);
     }
-    stats_[sample]["gq_min"] = std::min(stats_[sample]["gq_min"], gq);
-    stats_[sample]["gq_max"] = std::max(stats_[sample]["gq_max"], gq);
   }
 
   auto is_transition = [](char a, char b) {
