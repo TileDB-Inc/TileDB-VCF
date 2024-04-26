@@ -118,12 +118,14 @@ void Reader::set_bed_file(const std::string& uri) {
 }
 
 void Reader::set_bed_array(const std::string& uri) {
-  if (vfs_ == nullptr)
+  if (vfs_ == nullptr) {
     init_tiledb();
+  }
 
-  if (!vfs_->is_dir(uri)) {
+  auto obj = Object::object(*ctx_, uri);
+  if (obj.type() != Object::Type::Array) {
     throw std::runtime_error(
-        "Error setting BED array; '" + uri + "' does not exist.");
+        "Error setting BED array: '" + uri + "' is not a TileDB Array");
   }
   params_.bed_array_uri = uri;
   LOG_DEBUG("BED array URI set to {}", uri);
@@ -1966,11 +1968,11 @@ void Reader::prepare_regions_v4(
     auto start_bed_array_parse = std::chrono::steady_clock::now();
 
     // Open the BED array
-    auto array_ =
+    auto array =
         std::make_shared<Array>(*ctx_, params_.bed_array_uri, TILEDB_READ);
 
     // Load the regions from the BED array
-    Region::read_bed_array(array_, pre_partition_regions_list);
+    Region::read_bed_array(array, pre_partition_regions_list);
 
     LOG_INFO(fmt::format(
         std::locale(""),
