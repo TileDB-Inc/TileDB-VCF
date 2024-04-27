@@ -83,11 +83,11 @@ class SampleStats {
       bool delete_mode = false);
 
   /**
-   * @brief Delete samples from the array.
+   * @brief Delete sample from the array.
    *
-   * @param sample Set of sample names
+   * @param sample Sample name 
    */
-  static void delete_samples(const std::set<std::string>& samples);
+  static void delete_sample(const std::string& sample);
 
   /**
    * @brief Close the sample stats array.

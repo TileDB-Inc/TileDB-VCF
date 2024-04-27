@@ -924,9 +924,13 @@ void TileDBVCFDataset::delete_samples(
 
   // Check if a stats array exists
   Group group(*ctx_, root_uri_, TILEDB_READ);
-  bool stats_array_exists = AlleleCount::exists(group) ||
-                            VariantStats::exists(group) ||
-                            SampleStats::exists(group);
+  bool stats_array_exists =
+      AlleleCount::exists(group) || VariantStats::exists(group);
+
+  // Open the sample stats array in delete mode, if it exists
+  if (SampleStats::exists(group)) {
+    SampleStats::init(ctx_, group, true);
+  }
 
   // Delete samples one at a time
   for (const auto& sample : sample_names) {
@@ -951,13 +955,15 @@ void TileDBVCFDataset::delete_samples(
       reader.read();
     }
 
-    // Delete samples from the vcf_header and data arrays
+    // Delete samples from the vcf_header, data, and sample_stats arrays
     delete_sample(*vcf_array, sample);
     delete_sample(*data_array, sample);
+    SampleStats::delete_sample(sample);
   }
 
   vcf_array->close();
   data_array->close();
+  SampleStats::close();
 }
 
 const TileDBVCFDataset::Metadata& TileDBVCFDataset::metadata() const {

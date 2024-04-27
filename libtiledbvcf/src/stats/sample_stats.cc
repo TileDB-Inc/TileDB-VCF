@@ -363,26 +363,23 @@ void SampleStats::flush(bool finalize) {
   stats_.clear();
 }
 
-void SampleStats::delete_samples(const std::set<std::string>& samples) {
-  if (!enabled_ || samples.empty()) {
+void SampleStats::delete_sample(const std::string& sample) {
+  if (!enabled_ || sample.empty()) {
     return;
   }
 
-  LOG_DEBUG("[SampleStats] Delete samples {}", fmt::join(samples, ", "));
+  LOG_DEBUG("[SampleStats] Delete samples {}", sample);
 
   if (array_ == nullptr) {
     LOG_FATAL("[SampleStats] Array not initialized for deletion");
   }
 
-  // void set_condition(const QueryCondition& qc) {
-  for (const auto& sample : samples) {
-    auto ctx = array_->schema().context();
-    Query delete_query(ctx, *array_, TILEDB_DELETE);
-    QueryCondition qc(ctx);
-    qc.init("sample", sample, TILEDB_EQ);
-    delete_query.set_condition(qc);
-    delete_query.submit();
-  }
+  auto ctx = array_->schema().context();
+  Query delete_query(ctx, *array_, TILEDB_DELETE);
+  QueryCondition qc(ctx);
+  qc.init("sample", sample, TILEDB_EQ);
+  delete_query.set_condition(qc);
+  delete_query.submit();
 }
 
 void SampleStats::close() {

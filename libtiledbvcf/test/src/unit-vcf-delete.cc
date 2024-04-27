@@ -45,24 +45,28 @@ using namespace tiledb::vcf;
 
 static const std::string input_dir = TILEDB_VCF_TEST_INPUT_DIR;
 
+template <typename T>
 auto sum(
-    const Context& ctx,
-    const std::string& uri,
-    const std::string& column,
-    const std::string& name = "unnamed") {
+    const Context& ctx, const std::string& uri, const std::string& column) {
+  // Open the array and create a query
   auto array = std::shared_ptr<Array>(new Array(ctx, uri, TILEDB_READ));
-  ManagedQuery mq(array, name);
-  mq.submit();
-  auto results = mq.results();
+  Query query(ctx, *array);
 
-  uint64_t total_count = 0;
-  for (const auto& count : results->at(column)->data<int>()) {
-    total_count += count;
-  }
+  // Add aggregate for sum on the default channel.
+  QueryChannel default_channel = QueryExperimental::get_default_channel(query);
+  ChannelOperation operation =
+      QueryExperimental::create_unary_aggregate<SumOperator>(query, column);
+  default_channel.apply_aggregate("Sum", operation);
 
-  LOG_DEBUG("result rows = {}", results->num_rows());
-  LOG_DEBUG("total count = {}", total_count);
-  return total_count;
+  // Set layout and buffer.
+  std::vector<T> sum(1);
+  query.set_layout(TILEDB_UNORDERED).set_data_buffer("Sum", sum);
+
+  // Submit the query and close the array.
+  query.submit();
+  array->close();
+
+  return sum[0];
 }
 
 TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
@@ -114,20 +118,20 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
   // Check allele counts
   if (enable_ac) {
     std::string array_uri = dataset_uri + "/allele_count";
-    REQUIRE(sum(ctx, array_uri, "count", "ac") == 246);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "count") == 246);
   }
 
   // Check variant stats
   if (enable_vs) {
     std::string array_uri = dataset_uri + "/variant_stats";
-    REQUIRE(sum(ctx, array_uri, "ac", "vs") == 492);
-    REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 163);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "ac") == 492);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "n_hom") == 163);
   }
 
   // Check sample stats
   if (enable_ss) {
     std::string array_uri = dataset_uri + "/sample_stats";
-    REQUIRE(sum(ctx, array_uri, "n_records") == 132);
+    REQUIRE(sum<uint64_t>(ctx, array_uri, "n_records") == 246);
   }
 
   // Delete
@@ -148,20 +152,20 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
   // Check allele counts
   if (enable_ac) {
     std::string array_uri = dataset_uri + "/allele_count";
-    REQUIRE(sum(ctx, array_uri, "count", "ac") == 0);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "count") == 0);
   }
 
   // Check variant stats
   if (enable_vs) {
     std::string array_uri = dataset_uri + "/variant_stats";
-    REQUIRE(sum(ctx, array_uri, "ac", "vs") == 0);
-    REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 0);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "ac") == 0);
+    REQUIRE(sum<int64_t>(ctx, array_uri, "n_hom") == 0);
   }
 
   // Check sample stats
   if (enable_ss) {
     std::string array_uri = dataset_uri + "/sample_stats";
-    REQUIRE(sum(ctx, array_uri, "n_records") == 0);
+    REQUIRE(sum<uint64_t>(ctx, array_uri, "n_records") == 0);
   }
 
   if (vfs.is_dir(dataset_uri)) {
