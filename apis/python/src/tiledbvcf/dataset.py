@@ -620,6 +620,7 @@ class Dataset(object):
         allow_duplicates: bool = True,
         enable_allele_count: bool = True,
         enable_variant_stats: bool = True,
+        enable_sample_stats: bool = True,
         compress_sample_dim: bool = True,
         compression_level: int = 4,
     ):
@@ -644,6 +645,8 @@ class Dataset(object):
             Enable the allele count ingestion task.
         enable_variant_stats
             Enable the variant stats ingestion task.
+        enable_sample_stats
+            Enable the sample stats ingestion task.
         compress_sample_dim
             Enable compression on the sample dimension.
         compression_level
@@ -680,6 +683,9 @@ class Dataset(object):
 
         if enable_variant_stats is not None:
             self.writer.set_enable_variant_stats(enable_variant_stats)
+
+        if enable_sample_stats is not None:
+            self.writer.set_enable_sample_stats(enable_sample_stats)
 
         if compress_sample_dim is not None:
             self.writer.set_compress_sample_dim(compress_sample_dim)
