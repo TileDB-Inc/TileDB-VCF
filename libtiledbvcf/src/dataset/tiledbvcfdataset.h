@@ -65,6 +65,7 @@ struct CreationParams {
   std::string vcf_uri;
   bool enable_allele_count = true;
   bool enable_variant_stats = true;
+  bool enable_sample_stats = true;
   bool compress_sample_dim = true;
   int compression_level = 4;
 };
