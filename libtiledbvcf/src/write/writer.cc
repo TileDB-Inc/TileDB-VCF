@@ -1466,6 +1466,10 @@ void Writer::set_enable_variant_stats(bool enable) {
   creation_params_.enable_variant_stats = enable;
 }
 
+void Writer::set_enable_sample_stats(bool enable) {
+  creation_params_.enable_sample_stats = enable;
+}
+
 void Writer::set_compress_sample_dim(bool enable) {
   creation_params_.compress_sample_dim = enable;
 }

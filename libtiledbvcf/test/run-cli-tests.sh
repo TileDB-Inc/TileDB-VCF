@@ -449,12 +449,20 @@ diff <(bcftools annotate -x INFO/END bcftools.vcf | bcftools view -H) <(bcftools
 bcftools view -H tiledb.vcf
 cd -
 
-# ingestion task enable
+# ingestion task enable/disable
 # -------------------------------------------------------------------
 rm -rf task.tdb
-$tilevcf create -u task.tdb --enable-allele-count --enable-variant-stats --log-level debug || exit 1
+$tilevcf create -u task.tdb --enable-allele-count --enable-variant-stats --enable-sample-stats --log-level debug || exit 1
 test -e task.tdb/allele_count || exit 1
 test -e task.tdb/variant_stats || exit 1
+test -e task.tdb/sample_stats || exit 1
+
+rm -rf task.tdb
+$tilevcf create -u task.tdb --disable-allele-count --disable-variant-stats --disable-sample-stats --log-level debug || exit 1
+test ! -e task.tdb/allele_count || exit 1
+test ! -e task.tdb/variant_stats || exit 1
+test ! -e task.tdb/sample_stats || exit 1
+
 
 # test ingesting with stats enabled, and querying with IAF
 # also test ingesting stats where one allele is missing (chr2 in first.vcf)
