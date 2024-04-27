@@ -85,7 +85,7 @@ class SampleStats {
   /**
    * @brief Delete sample from the array.
    *
-   * @param sample Sample name 
+   * @param sample Sample name
    */
   static void delete_sample(const std::string& sample);
 
