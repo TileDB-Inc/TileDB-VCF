@@ -455,6 +455,10 @@ void add_create(CLI::App& app) {
       "--enable-variant-stats,!--disable-variant-stats",
       args->enable_variant_stats,
       "Enable/disable variant stats array creation. Enabled by default.");
+  cmd->add_flag(
+      "--enable-sample-stats,!--disable-sample-stats",
+      args->enable_sample_stats,
+      "Enable/disable sample stats array creation. Enabled by default.");
 
   cmd->option_defaults()->group("TileDB options");
   cmd->add_option(

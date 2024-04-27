@@ -70,6 +70,7 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
 
   auto enable_ac = GENERATE(false, true);
   auto enable_vs = GENERATE(false, true);
+  auto enable_ss = GENERATE(false, true);
 
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
@@ -89,6 +90,7 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
     create_args.allow_duplicates = false;
     create_args.enable_allele_count = enable_ac;
     create_args.enable_variant_stats = enable_vs;
+    create_args.enable_sample_stats = enable_ss;
     TileDBVCFDataset::create(create_args);
   }
 
@@ -122,6 +124,12 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
     REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 163);
   }
 
+  // Check sample stats
+  if (enable_ss) {
+    std::string array_uri = dataset_uri + "/sample_stats";
+    REQUIRE(sum(ctx, array_uri, "n_records") == 132);
+  }
+
   // Delete
   {
     Config cfg;
@@ -148,6 +156,12 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
     std::string array_uri = dataset_uri + "/variant_stats";
     REQUIRE(sum(ctx, array_uri, "ac", "vs") == 0);
     REQUIRE(sum(ctx, array_uri, "n_hom", "vs") == 0);
+  }
+
+  // Check sample stats
+  if (enable_ss) {
+    std::string array_uri = dataset_uri + "/sample_stats";
+    REQUIRE(sum(ctx, array_uri, "n_records") == 0);
   }
 
   if (vfs.is_dir(dataset_uri)) {

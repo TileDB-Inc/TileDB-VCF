@@ -59,6 +59,9 @@ bool DeleteExporter::export_record(
   vs_.process(
       hdr, sample.sample_name, query_region.seq_name, rec->pos, rec.get());
 
+  // Save the sample names to be deleted later
+  deleted_samples_.insert(sample.sample_name);
+
   // Return true to indicate no overflow
   return true;
 }

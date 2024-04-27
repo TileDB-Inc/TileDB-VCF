@@ -93,13 +93,12 @@ void SampleStats::create(
   schema.set_domain(domain);
 
   // Create attributes
-  auto add_attribute = [&schema](
-                           const std::string& name,
+  auto add_attribute = [&](const std::string& name,
                            tiledb_datatype_t type,
                            FilterList& filter_list,
                            bool is_var = false,
                            bool is_nullable = false) {
-    auto attr = Attribute::create(schema.context(), name, type);
+    auto attr = Attribute::create(ctx, name, type);
     attr.set_cell_val_num(is_var ? TILEDB_VAR_NUM : 1);
     attr.set_nullable(is_nullable);
     attr.set_filter_list(filter_list);
@@ -145,7 +144,13 @@ void SampleStats::create(
   root_group.add_member(array_uri, relative, SAMPLE_STATS_ARRAY);
 }
 
-void SampleStats::init(std::shared_ptr<Context> ctx, const Group& group) {
+bool SampleStats::exists(const Group& group) {
+  auto uri = get_uri_(group);
+  return !uri.empty();
+}
+
+void SampleStats::init(
+    std::shared_ptr<Context> ctx, const Group& group, bool delete_mode) {
   auto uri = get_uri_(group);
 
   if (uri.empty()) {
@@ -157,7 +162,8 @@ void SampleStats::init(std::shared_ptr<Context> ctx, const Group& group) {
   LOG_DEBUG("[SampleStats] Open array '{}'", uri);
 
   // Open array
-  array_ = std::make_shared<Array>(*ctx, uri, TILEDB_WRITE);
+  auto mode = delete_mode ? TILEDB_DELETE : TILEDB_WRITE;
+  array_ = std::make_shared<Array>(*ctx, uri, mode);
   enabled_ = true;
 }
 
@@ -355,6 +361,28 @@ void SampleStats::flush(bool finalize) {
 
   // Clear the stats
   stats_.clear();
+}
+
+void SampleStats::delete_samples(const std::set<std::string>& samples) {
+  if (!enabled_ || samples.empty()) {
+    return;
+  }
+
+  LOG_DEBUG("[SampleStats] Delete samples {}", fmt::join(samples, ", "));
+
+  if (array_ == nullptr) {
+    LOG_FATAL("[SampleStats] Array not initialized for deletion");
+  }
+
+  // void set_condition(const QueryCondition& qc) {
+  for (const auto& sample : samples) {
+    auto ctx = array_->schema().context();
+    Query delete_query(ctx, *array_, TILEDB_DELETE);
+    QueryCondition qc(ctx);
+    qc.init("sample", sample, TILEDB_EQ);
+    delete_query.set_condition(qc);
+    delete_query.submit();
+  }
 }
 
 void SampleStats::close() {

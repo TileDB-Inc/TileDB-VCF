@@ -261,8 +261,9 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   if (params.enable_variant_stats) {
     VariantStats::create(ctx, params.uri, params.checksum);
   }
-
-  SampleStats::create(ctx, params.uri, params.checksum);
+  if (params.enable_sample_stats) {
+    SampleStats::create(ctx, params.uri, params.checksum);
+  }
 
   write_metadata_v4(ctx, params.uri, metadata);
 
@@ -923,8 +924,9 @@ void TileDBVCFDataset::delete_samples(
 
   // Check if a stats array exists
   Group group(*ctx_, root_uri_, TILEDB_READ);
-  bool stats_array_exists =
-      AlleleCount::exists(group) || VariantStats::exists(group);
+  bool stats_array_exists = AlleleCount::exists(group) ||
+                            VariantStats::exists(group) ||
+                            SampleStats::exists(group);
 
   // Delete samples one at a time
   for (const auto& sample : sample_names) {

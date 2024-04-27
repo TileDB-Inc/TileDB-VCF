@@ -959,30 +959,23 @@ def test_disable_ingestion_tasks(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
-    ds.create_dataset(enable_allele_count=False, enable_variant_stats=False)
+    ds.create_dataset(
+        enable_allele_count=False, enable_variant_stats=False, enable_sample_stats=False
+    )
     ds.ingest_samples(samples)
 
     # TODO: remove this workaround when sc-19721 is resolved
     if platform.system() != "Linux":
         return
 
-    # query allele_count array with TileDB
+    # Validate that stats arrays were not created
     ac_uri = os.path.join(tmp_path, "dataset", "allele_count")
-
-    contig = "1"
-    region = slice(69896)
-    with pytest.raises(Exception):
-        with tiledb.open(ac_uri) as A:
-            df = A.query(attrs=["alt", "count"], dims=["pos"]).df[contig, region]
-
-    # query variant_stats array with TileDB
     vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
+    ss_uri = os.path.join(tmp_path, "dataset", "sample_stats")
 
-    contig = "1"
-    region = slice(12140)
-    with pytest.raises(Exception):
-        with tiledb.open(vs_uri) as A:
-            df = A.query(attrs=["allele", "ac"], dims=["pos"]).df[contig, region]
+    assert not os.path.exists(ac_uri)
+    assert not os.path.exists(vs_uri)
+    assert not os.path.exists(ss_uri)
 
 
 def test_ingestion_tasks(tmp_path):

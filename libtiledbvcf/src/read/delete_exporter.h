@@ -29,6 +29,7 @@
 
 #include "read/exporter.h"
 #include "stats/allele_count.h"
+#include "stats/sample_stats.h"
 #include "stats/variant_stats.h"
 #include "utils/logger_public.h"
 
@@ -50,6 +51,9 @@ class DeleteExporter : public Exporter {
     Group group(*ctx, root_uri, TILEDB_READ);
     ac_.init(ctx, group);
     vs_.init(ctx, group);
+
+    // Open the sample stats array in delete mode
+    ss_.init(ctx, group, true);
   }
 
   ~DeleteExporter() = default;
@@ -91,6 +95,8 @@ class DeleteExporter : public Exporter {
     ac_.close();
     vs_.flush(true);
     vs_.close();
+    ss_.delete_samples(deleted_samples_);
+    ss_.close();
   }
 
  private:
@@ -100,8 +106,14 @@ class DeleteExporter : public Exporter {
   // Variant stats ingestion task object
   VariantStats vs_;
 
+  // Sample stats ingestion task object
+  SampleStats ss_;
+
   // Contig of last record exported
   std::string contig_ = "";
+
+  // Set of samples to delete
+  std::set<std::string> deleted_samples_;
 };
 
 }  // namespace tiledb::vcf

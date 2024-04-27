@@ -62,13 +62,32 @@ class SampleStats {
       Context& ctx, const std::string& root_uri, int compression_level = 9);
 
   /**
+   * @brief Check if the array exists.
+   *
+   * @param group TileDB-VCF dataset group
+   * @return true If the array exists
+   */
+  static bool exists(const Group& group);
+
+  /**
    * @brief Initialize the sample stats array. Disable the sample stats
    * processing if the array does not exist.
    *
    * @param ctx TileDB context
    * @param group TileDB-VCF group
+   * @param delete_mode Open the array in delete mode
    */
-  static void init(std::shared_ptr<Context> ctx, const Group& group);
+  static void init(
+      std::shared_ptr<Context> ctx,
+      const Group& group,
+      bool delete_mode = false);
+
+  /**
+   * @brief Delete samples from the array.
+   *
+   * @param sample Set of sample names
+   */
+  static void delete_samples(const std::set<std::string>& samples);
 
   /**
    * @brief Close the sample stats array.

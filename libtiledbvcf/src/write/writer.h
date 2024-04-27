@@ -368,6 +368,11 @@ class Writer {
   */
   void set_enable_variant_stats(bool enable);
 
+  /**
+    Enable the sample stats ingestion task
+  */
+  void set_enable_sample_stats(bool enable);
+
   /** Enable sample dimension compression. */
   void set_compress_sample_dim(bool enable);
 
