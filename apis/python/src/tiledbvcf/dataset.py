@@ -210,7 +210,6 @@ class Dataset(object):
         regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
-        bed_array: str = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
@@ -236,8 +235,6 @@ class Dataset(object):
             URI of file containing sample names to be read, one per line.
         bed_file
             URI of a BED file of genomic regions to be read.
-        bed_array
-            URI of a BED array of genomic regions to be read.
         skip_check_samples
             Skip checking if the samples in `samples_file` exist in the dataset.
         set_af_filter
@@ -275,9 +272,6 @@ class Dataset(object):
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
-
-        if bed_array is not None:
-            self.reader.set_bed_array(bed_array)
 
         return self.continue_read_arrow()
 
@@ -322,7 +316,6 @@ class Dataset(object):
         regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
-        bed_array: str = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
@@ -350,8 +343,6 @@ class Dataset(object):
             URI of file containing sample names to be read, one per line.
         bed_file
             URI of a BED file of genomic regions to be read.
-        bed_array
-            URI of a BED array of genomic regions to be read.
         skip_check_samples
             Skip checking if the samples in `samples_file` exist in the dataset.
         set_af_filter
@@ -388,9 +379,6 @@ class Dataset(object):
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
 
-        if bed_array is not None:
-            self.reader.set_bed_array(bed_array)
-
         return self.continue_read()
 
     def export(
@@ -399,7 +387,6 @@ class Dataset(object):
         regions: (str, List[str]) = None,
         samples_file: str = None,
         bed_file: str = None,
-        bed_array: str = None,
         skip_check_samples: bool = False,
         enable_progress_estimation: bool = False,
         merge: bool = False,
@@ -420,8 +407,6 @@ class Dataset(object):
             URI of file containing sample names to be read, one per line.
         bed_file
             URI of a BED file of genomic regions to be read.
-        bed_array
-            URI of a BED array of genomic regions to be read.
         skip_check_samples
             Skip checking if the samples in `samples_file` exist in the dataset.
         set_af_filter
@@ -466,9 +451,6 @@ class Dataset(object):
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
-
-        if bed_array is not None:
-            self.reader.set_bed_array(bed_array)
 
         self.reader.read()
         if not self.read_completed():

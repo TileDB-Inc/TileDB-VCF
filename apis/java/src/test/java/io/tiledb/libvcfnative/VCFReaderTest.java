@@ -73,7 +73,7 @@ public class VCFReaderTest {
    * @throws IOException
    */
   private VCFReader getVFCReader(
-      Optional<String[]> inputSamples, Optional<String> bedFile, Optional<String> bedArray)
+      Optional<String[]> inputSamples, Optional<String> bedFile)
       throws IOException {
     String samples[] = inputSamples.orElse(getSamples());
 
@@ -82,8 +82,6 @@ public class VCFReaderTest {
             constructUri("ingested_2samples"), samples, Optional.empty(), Optional.empty());
 
     if (bedFile.isPresent()) reader.setBedFile(bedFile.get());
-
-    if (bedArray.isPresent()) reader.setBedArray(bedArray.get());
 
     return reader;
   }
@@ -95,7 +93,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testReadCompletes() throws IOException {
-    VCFReader reader = getVFCReader(Optional.empty(), Optional.empty(), Optional.empty());
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.empty());
 
     int results = 0;
 
@@ -114,7 +112,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testReaderValues() throws IOException {
-    VCFReader reader = getVFCReader(Optional.empty(), Optional.empty(), Optional.empty());
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.empty());
 
     reader.setRanges("1:12100-13360,1:13500-17350".split(","));
 
@@ -287,7 +285,7 @@ public class VCFReaderTest {
     int[] partitionsToCheck = {1, 2, 5, 10, 50, 100};
 
     for (int numPartitions : partitionsToCheck) {
-      VCFReader reader = getVFCReader(Optional.empty(), Optional.empty(), Optional.empty());
+      VCFReader reader = getVFCReader(Optional.empty(), Optional.empty());
 
       int results = 0;
 
@@ -315,7 +313,7 @@ public class VCFReaderTest {
   public void testSingleSample() throws IOException {
     VCFReader reader =
         getVFCReader(
-            Optional.of(new String[] {getSamples()[0]}), Optional.empty(), Optional.empty());
+            Optional.of(new String[] {getSamples()[0]}), Optional.empty());
 
     int results = 0;
 
@@ -335,7 +333,7 @@ public class VCFReaderTest {
   @Test
   public void testBEDFile() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()), Optional.empty());
+        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     int results = 0;
 
@@ -356,7 +354,7 @@ public class VCFReaderTest {
   @Test
   public void testBEDArray() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.empty(), Optional.of(constructBEDArrayURI()));
+        getVFCReader(Optional.empty(), Optional.of(constructBEDArrayURI()));
 
     int results = 0;
 
@@ -377,7 +375,7 @@ public class VCFReaderTest {
   @Test
   public void testSetSingleBuffer() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()), Optional.empty());
+        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
     ByteBuffer data = ByteBuffer.allocateDirect(1024);
     reader.setBuffer("sample_name", data);
 
@@ -395,7 +393,7 @@ public class VCFReaderTest {
   @Test
   public void testSetStatsEnabled() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()), Optional.empty());
+        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     reader.setStatsEnabled(true);
   }
@@ -403,7 +401,7 @@ public class VCFReaderTest {
   @Test
   public void testGetStatsEnabled() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()), Optional.empty());
+        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     Assert.assertFalse(reader.getStatsEnabled());
     reader.setStatsEnabled(true);
@@ -415,7 +413,7 @@ public class VCFReaderTest {
   @Test
   public void testStats() throws IOException {
     VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()), Optional.empty());
+        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
     reader.setStatsEnabled(true);
     Assert.assertNotNull(reader.stats());
   }
@@ -429,7 +427,7 @@ public class VCFReaderTest {
   public void testAttributes() throws IOException {
     VCFReader reader =
         getVFCReader(
-            Optional.of(new String[] {getSamples()[0]}), Optional.empty(), Optional.empty());
+            Optional.of(new String[] {getSamples()[0]}), Optional.empty());
 
     Assert.assertTrue(reader.attributes.size() > 0);
     Assert.assertTrue(reader.fmtAttributes.size() > 0);

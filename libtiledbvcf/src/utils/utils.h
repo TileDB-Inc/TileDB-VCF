@@ -513,6 +513,13 @@ bool contains(std::vector<T>& vec, T& item) {
  */
 bool query_buffers_set(tiledb::Query* query);
 
+/**
+ * @brief Return a random temporary file name
+ *
+ * @return std::string full path to temporary file
+ */
+std::string temp_filename(const std::string& extension = "");
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb
