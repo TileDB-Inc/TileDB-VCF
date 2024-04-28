@@ -30,8 +30,10 @@
 #include <unistd.h>
 #endif
 #include <cerrno>
+#include <filesystem>
 #include <fstream>
 #include <mutex>
+#include <random>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/logger_public.h"
@@ -628,6 +630,15 @@ bool query_buffers_set(tiledb::Query* query) {
     }
   }
   return false;
+}
+
+std::string temp_filename(const std::string& extension) {
+  std::random_device rd;
+  std::stringstream filename;
+  filename << "vcf_tmp_" << rd() << extension;
+  std::filesystem::path path =
+      std::filesystem::temp_directory_path() / filename.str();
+  return path.string();
 }
 
 }  // namespace utils

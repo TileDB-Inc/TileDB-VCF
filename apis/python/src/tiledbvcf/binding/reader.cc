@@ -108,11 +108,6 @@ void Reader::set_bed_file(const std::string& uri) {
   check_error(reader, tiledb_vcf_reader_set_bed_file(reader, uri.c_str()));
 }
 
-void Reader::set_bed_array(const std::string& uri) {
-  auto reader = ptr.get();
-  check_error(reader, tiledb_vcf_reader_set_bed_array(reader, uri.c_str()));
-}
-
 void Reader::set_region_partition(int32_t partition, int32_t num_partitions) {
   auto reader = ptr.get();
   check_error(
