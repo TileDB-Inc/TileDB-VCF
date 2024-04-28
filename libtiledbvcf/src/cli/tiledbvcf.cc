@@ -758,11 +758,6 @@ void add_export(CLI::App& app) {
          args->regions_file_uri,
          "File containing regions (BED format)")
       ->excludes("--regions");
-  cmd->add_option(
-         "-A,--bed-array",
-         args->bed_array_uri,
-         "URI of TileDB BED array containing regions to export")
-      ->excludes("--regions");
   cmd->add_flag(
       "--sorted",
       args->sort_regions,

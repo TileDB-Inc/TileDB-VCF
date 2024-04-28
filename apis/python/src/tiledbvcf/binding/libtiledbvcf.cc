@@ -24,7 +24,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_samples_file", &Reader::set_samples_file)
       .def("set_regions", &Reader::set_regions)
       .def("set_bed_file", &Reader::set_bed_file)
-      .def("set_bed_array", &Reader::set_bed_array)
       .def("set_sort_regions", &Reader::set_sort_regions)
       .def("set_region_partition", &Reader::set_region_partition)
       .def("set_sample_partition", &Reader::set_sample_partition)

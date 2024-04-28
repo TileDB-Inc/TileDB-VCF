@@ -67,9 +67,6 @@ class Reader {
   /** Sets a URI of a BED file containing regions to include in the read. */
   void set_bed_file(const std::string& uri);
 
-  /** Sets a URI of a BED array containing regions to include in the read. */
-  void set_bed_array(const std::string& uri);
-
   /** Sets the region partition of this reader. */
   void set_region_partition(int32_t partition, int32_t num_partitions);
 
