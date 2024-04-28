@@ -38,8 +38,6 @@ public class LibVCFNative {
 
   public static final native int tiledb_vcf_reader_set_bed_file(long readerPtr, String uri);
 
-  public static final native int tiledb_vcf_reader_set_bed_array(long readerPtr, String uri);
-
   public static final native int tiledb_vcf_reader_set_samples(long readerPtr, String samplesCSV);
 
   public static final native int tiledb_vcf_reader_set_regions(long readerPtr, String regionsCSV);

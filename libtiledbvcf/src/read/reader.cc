@@ -29,6 +29,7 @@
 #include <random>
 #include <span>
 #include <thread>
+#include <tiledb/tiledb>
 #include <vector>
 
 #include "dataset/attribute_buffer_set.h"
@@ -108,27 +109,7 @@ void Reader::set_samples_file(const std::string& uri) {
 }
 
 void Reader::set_bed_file(const std::string& uri) {
-  if (vfs_ == nullptr)
-    init_tiledb();
-
-  if (!vfs_->is_file(uri))
-    throw std::runtime_error(
-        "Error setting BED file; '" + uri + "' does not exist.");
   params_.regions_file_uri = uri;
-}
-
-void Reader::set_bed_array(const std::string& uri) {
-  if (vfs_ == nullptr) {
-    init_tiledb();
-  }
-
-  auto obj = Object::object(*ctx_, uri);
-  if (obj.type() != Object::Type::Array) {
-    throw std::runtime_error(
-        "Error setting BED array: '" + uri + "' is not a TileDB Array");
-  }
-  params_.bed_array_uri = uri;
-  LOG_DEBUG("BED array URI set to {}", uri);
 }
 
 void Reader::set_region_partition(
@@ -1954,31 +1935,48 @@ void Reader::prepare_regions_v4(
   // Add BED file regions, if specified.
   if (!params_.regions_file_uri.empty()) {
     auto start_bed_file_parse = std::chrono::steady_clock::now();
-    Region::parse_bed_file_htslib(
-        params_.regions_file_uri, &pre_partition_regions_list);
+
+    // If the URI points to an array, it is either a BED file or a BED array
+    if (Object::object(*ctx_, params_.regions_file_uri).type() ==
+        Object::Type::Array) {
+      auto array =
+          std::make_shared<Array>(*ctx_, params_.regions_file_uri, TILEDB_READ);
+
+      // Export a temporary copy of the BED file
+      auto temp_bed_file = utils::temp_filename(".bed");
+      auto status = tiledb_filestore_uri_export(
+          ctx_->ptr().get(),
+          temp_bed_file.c_str(),
+          params_.regions_file_uri.c_str());
+
+      if (status == TILEDB_OK) {
+        // Parse the BED file
+        LOG_DEBUG(
+            "[Reader] Parsing filestore BED file '{}'",
+            params_.regions_file_uri);
+        Region::parse_bed_file_htslib(
+            temp_bed_file, &pre_partition_regions_list);
+
+        // Remove the temporary BED file
+        // std::remove(temp_bed_file.c_str());
+      } else {
+        // Parse the BED array
+        LOG_DEBUG("[Reader] Parsing BED array '{}'", params_.regions_file_uri);
+        Region::read_bed_array(array, pre_partition_regions_list);
+      }
+
+    } else {
+      // The URI is not an array, treat it as a BED file
+      LOG_DEBUG("[Reader] Parsing BED file '{}'", params_.regions_file_uri);
+      Region::parse_bed_file_htslib(
+          params_.regions_file_uri, &pre_partition_regions_list);
+    }
+
     LOG_INFO(fmt::format(
         std::locale(""),
         "Parsed bed file into {:L} regions in {:.3f} seconds.",
         pre_partition_regions_list.size(),
         utils::chrono_duration(start_bed_file_parse)));
-  }
-
-  // Add BED array regions, if specified.
-  if (!params_.bed_array_uri.empty()) {
-    auto start_bed_array_parse = std::chrono::steady_clock::now();
-
-    // Open the BED array
-    auto array =
-        std::make_shared<Array>(*ctx_, params_.bed_array_uri, TILEDB_READ);
-
-    // Load the regions from the BED array
-    Region::read_bed_array(array, pre_partition_regions_list);
-
-    LOG_INFO(fmt::format(
-        std::locale(""),
-        "Parsed bed array into {:L} regions in {:.3f} seconds.",
-        pre_partition_regions_list.size(),
-        utils::chrono_duration(start_bed_array_parse)));
   }
 
   std::pair<uint32_t, uint32_t> region_non_empty_domain =

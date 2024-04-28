@@ -181,10 +181,9 @@ void Region::read_bed_array(
       auto chromStart = mq.data<uint64_t>(column_alias[START])[i];
       auto chromEnd = mq.data<uint64_t>(column_alias[END])[i];
 
-      // Each region in the BED array is 0-indexed and inclusive
-      // [0-start, end] which is the same format as the Region struct, so no
-      // modification is required.
-      result.emplace_back(chrom, chromStart, chromEnd, line++);
+      // BED files contain 0-indexed, half-open regions. Convert to a
+      // 0-based, inclusive Region object.
+      result.emplace_back(chrom, chromStart, chromEnd - 1, line++);
     }
   }
 }

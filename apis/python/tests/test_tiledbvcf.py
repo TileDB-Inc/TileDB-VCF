@@ -1573,7 +1573,9 @@ def test_flag_export(tmp_path):
     assert df["info_DS"].tolist() == expected_ds
 
 
-def test_bed_array(tmp_path, test_ds_v4):
+def test_bed_filestore(tmp_path, test_ds_v4):
+    tiledbvcf.config_logging("debug")
+
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -1582,7 +1584,6 @@ def test_bed_array(tmp_path, test_ds_v4):
                     "HG01762",
                     "HG00280",
                     "HG01762",
-                    "HG00280",
                     "HG00280",
                 ]
             ),
@@ -1593,7 +1594,6 @@ def test_bed_array(tmp_path, test_ds_v4):
                     12546,
                     12546,
                     17319,
-                    17480,
                 ],
                 dtype=np.int32,
             ),
@@ -1604,7 +1604,74 @@ def test_bed_array(tmp_path, test_ds_v4):
                     12771,
                     12771,
                     17479,
-                    17486,
+                ],
+                dtype=np.int32,
+            ),
+        }
+    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+
+    # Create BED file
+    bed_file = os.path.join(tmp_path, "test.bed")
+
+    regions = [
+        (1, 12000, 13000),
+        (1, 17000, 17479),
+    ]
+
+    with open(bed_file, "w") as f:
+        for region in regions:
+            f.write(f"{region[0]}\t{region[1]}\t{region[2]}\n")
+
+    # Create BED filestore from BED file
+    bed_filestore = os.path.join(tmp_path, "test.bed.filestore")
+    tiledb.Array.create(bed_filestore, tiledb.ArraySchema.from_file(bed_file))
+    tiledb.Filestore.copy_from(bed_filestore, bed_file)
+
+    # Create the dataset
+    for use_arrow in [False, True]:
+        func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read
+
+        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_filestore)
+        if use_arrow:
+            df = df.to_pandas()
+
+        print(df)
+
+        _check_dfs(
+            expected_df,
+            df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
+        )
+
+
+def test_bed_array(tmp_path, test_ds_v4):
+    expected_df = pd.DataFrame(
+        {
+            "sample_name": pd.Series(
+                [
+                    "HG00280",
+                    "HG01762",
+                    "HG00280",
+                    "HG01762",
+                    "HG00280",
+                ]
+            ),
+            "pos_start": pd.Series(
+                [
+                    12141,
+                    12141,
+                    12546,
+                    12546,
+                    17319,
+                ],
+                dtype=np.int32,
+            ),
+            "pos_end": pd.Series(
+                [
+                    12277,
+                    12277,
+                    12771,
+                    12771,
+                    17479,
                 ],
                 dtype=np.int32,
             ),
@@ -1636,7 +1703,7 @@ def test_bed_array(tmp_path, test_ds_v4):
     for use_arrow in [False, True]:
         func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read
 
-        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_array=bed_array)
+        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_array)
         if use_arrow:
             df = df.to_pandas()
 
