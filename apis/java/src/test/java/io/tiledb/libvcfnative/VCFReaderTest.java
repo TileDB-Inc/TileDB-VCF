@@ -72,8 +72,7 @@ public class VCFReaderTest {
    * @return The VCFReader instance
    * @throws IOException
    */
-  private VCFReader getVFCReader(
-      Optional<String[]> inputSamples, Optional<String> bedFile)
+  private VCFReader getVFCReader(Optional<String[]> inputSamples, Optional<String> bedFile)
       throws IOException {
     String samples[] = inputSamples.orElse(getSamples());
 
@@ -311,9 +310,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testSingleSample() throws IOException {
-    VCFReader reader =
-        getVFCReader(
-            Optional.of(new String[] {getSamples()[0]}), Optional.empty());
+    VCFReader reader = getVFCReader(Optional.of(new String[] {getSamples()[0]}), Optional.empty());
 
     int results = 0;
 
@@ -332,8 +329,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testBEDFile() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     int results = 0;
 
@@ -353,8 +349,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testBEDArray() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDArrayURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDArrayURI()));
 
     int results = 0;
 
@@ -374,8 +369,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testSetSingleBuffer() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
     ByteBuffer data = ByteBuffer.allocateDirect(1024);
     reader.setBuffer("sample_name", data);
 
@@ -392,16 +386,14 @@ public class VCFReaderTest {
 
   @Test
   public void testSetStatsEnabled() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     reader.setStatsEnabled(true);
   }
 
   @Test
   public void testGetStatsEnabled() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
 
     Assert.assertFalse(reader.getStatsEnabled());
     reader.setStatsEnabled(true);
@@ -412,8 +404,7 @@ public class VCFReaderTest {
 
   @Test
   public void testStats() throws IOException {
-    VCFReader reader =
-        getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
+    VCFReader reader = getVFCReader(Optional.empty(), Optional.of(constructBEDURI()));
     reader.setStatsEnabled(true);
     Assert.assertNotNull(reader.stats());
   }
@@ -425,9 +416,7 @@ public class VCFReaderTest {
    */
   @Test
   public void testAttributes() throws IOException {
-    VCFReader reader =
-        getVFCReader(
-            Optional.of(new String[] {getSamples()[0]}), Optional.empty());
+    VCFReader reader = getVFCReader(Optional.of(new String[] {getSamples()[0]}), Optional.empty());
 
     Assert.assertTrue(reader.attributes.size() > 0);
     Assert.assertTrue(reader.fmtAttributes.size() > 0);
