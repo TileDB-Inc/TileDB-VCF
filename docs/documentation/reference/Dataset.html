@@ -788,7 +788,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.export" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.export">export</h3>
-<p><code>Dataset.export(samples=None, regions=None, samples_file=None, bed_file=None, bed_array=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')</code></p>
+<p><code>Dataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')</code></p>
 <p>Exports data to multiple VCF files or a combined VCF file.</p>
 <section id="parameters-6" class="level4">
 <h4 class="anchored" data-anchor-id="parameters-6">Parameters</h4>
@@ -833,54 +833,48 @@ ul.task-list li input[type="checkbox"] {
 <td><code>None</code></td>
 </tr>
 <tr class="odd">
-<td><code>bed_array</code></td>
-<td>str</td>
-<td>URI of a BED array of genomic regions to be read.</td>
-<td><code>None</code></td>
-</tr>
-<tr class="even">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
 <td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>set_af_filter</code></td>
 <td></td>
 <td>Filter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.</td>
 <td><em>required</em></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>scan_all_samples</code></td>
 <td></td>
 <td>Scan all samples when computing internal allele frequency.</td>
 <td><em>required</em></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>enable_progress_estimation</code></td>
 <td>bool</td>
 <td><strong>DEPRECATED</strong> - This parameter will be removed in a future release.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>merge</code></td>
 <td>bool</td>
 <td>Merge samples to create a combined VCF file.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>output_format</code></td>
 <td>str</td>
 <td>Export file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’:vcf.gz, ‘v’: vcf.</td>
 <td><code>'z'</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>output_path</code></td>
 <td>str</td>
 <td>Combined VCF output file.</td>
 <td><code>''</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>output_dir</code></td>
 <td>str</td>
 <td>Directory used for local output of exported samples.</td>
@@ -1044,7 +1038,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read">read</h3>
-<p><code>Dataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, bed_array=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a Pandas DataFrame.</p>
 <p>For large datasets, a call to <code>read()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <p>You can also use the Python generator version, <code>read_iter()</code>.</p>
@@ -1097,24 +1091,18 @@ ul.task-list li input[type="checkbox"] {
 <td><code>None</code></td>
 </tr>
 <tr class="even">
-<td><code>bed_array</code></td>
-<td>str</td>
-<td>URI of a BED array of genomic regions to be read.</td>
-<td><code>None</code></td>
-</tr>
-<tr class="odd">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
 <td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>set_af_filter</code></td>
 <td>str</td>
 <td>Filter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.</td>
 <td><code>''</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>enable_progress_estimation</code></td>
 <td>bool</td>
 <td><strong>DEPRECATED</strong> - This parameter will be removed in a future release.</td>
@@ -1169,7 +1157,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="tiledbvcf.Dataset.read_arrow" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_arrow">read_arrow</h3>
-<p><code>Dataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, bed_array=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
+<p><code>Dataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
 <p>Read data from the dataset into a PyArrow Table.</p>
 <p>For large queries, a call to <code>read_arrow()</code> may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the <code>continue_read()</code> function.</p>
 <section id="parameters-10" class="level4">
@@ -1221,30 +1209,24 @@ ul.task-list li input[type="checkbox"] {
 <td><code>None</code></td>
 </tr>
 <tr class="even">
-<td><code>bed_array</code></td>
-<td>str</td>
-<td>URI of a BED array of genomic regions to be read.</td>
-<td><code>None</code></td>
-</tr>
-<tr class="odd">
 <td><code>skip_check_samples</code></td>
 <td>bool</td>
 <td>Skip checking if the samples in <code>samples_file</code> exist in the dataset.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>set_af_filter</code></td>
 <td>str</td>
 <td>Filter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.</td>
 <td><code>''</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>scan_all_samples</code></td>
 <td>bool</td>
 <td>Scan all samples when computing internal allele frequency.</td>
 <td><code>False</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>enable_progress_estimation</code></td>
 <td>bool</td>
 <td><strong>DEPRECATED</strong> - This parameter will be removed in a future release.</td>
