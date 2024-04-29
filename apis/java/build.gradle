@@ -6,8 +6,17 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '4.0.3'
 }
 
+ext.getVersionName = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'describe', '--tags'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 group 'io.tiledb'
-version '0.31.0'
+version getVersionName()
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -39,6 +48,9 @@ dependencies {
 test {
     testLogging {
         showStandardStreams = true
+    }
+    doLast {
+        println "\nTileDB-VCF version: ${project.version}"
     }
 }
 
