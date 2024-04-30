@@ -92,6 +92,10 @@ steps:
       env: { sourceVersion: $(Build.SourceVersion) }
       displayName: Git Hash 7-digit
 
+    - bash: |
+        git describe --tags > $BUILD_REPOSITORY_LOCALPATH/version.txt
+      displayName: 'Capture version'
+
     - task: ArchiveFiles@2
       inputs:
         rootFolderOrFile: '$(Build.BinariesDirectory)'

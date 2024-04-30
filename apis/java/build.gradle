@@ -8,11 +8,22 @@ plugins {
 
 ext.getVersionName = { ->
     def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'describe', '--tags'
-        standardOutput = stdout
+    try {
+        // Try to get the version from git
+        exec {
+            commandLine 'git', 'describe', '--tags'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    } catch (Exception e1) {
+        try {
+            // Try to get the version from a file
+            return file("../../version.txt").text.trim()
+        } catch (Exception e2) {
+            // Version is unknown
+            return "unknown"
+        }
     }
-    return stdout.toString().trim()
 }
 
 group 'io.tiledb'
