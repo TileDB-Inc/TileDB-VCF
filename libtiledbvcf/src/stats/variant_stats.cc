@@ -103,7 +103,11 @@ void VariantStats::create(
       ctx, COLUMN_STR[SAMPLE], TILEDB_STRING_ASCII, nullptr, nullptr);
   sample.set_filter_list(sample_filters);  // d2
 
-  domain.add_dimensions(contig, pos, sample);
+  auto end =
+      Dimension::create<uint32_t>(ctx, "end", {{pos_min, pos_max}}, pos_extent);
+  end.set_filter_list(int_coord_filters);  // d3
+
+  domain.add_dimensions(contig, pos, sample, end);
   schema.set_domain(domain);
 
   auto allele =
@@ -115,8 +119,8 @@ void VariantStats::create(
   auto n_hom = Attribute::create<int32_t>(ctx, "n_hom", int_attr_filters);
   auto max_length =
       Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
-  auto end = Attribute::create<uint32_t>(ctx, "end", int_attr_filters);
-  schema.add_attributes(ac, an, n_hom, max_length, end);
+
+  schema.add_attributes(ac, an, n_hom, max_length);
 
   // Create array
   auto uri = get_uri(root_uri);
