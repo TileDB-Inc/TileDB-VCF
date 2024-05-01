@@ -2,6 +2,7 @@
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
 ##INFO=<ID=ExcessHet,Number=1,Type=Float,Description="Phred-scaled p-value for exact test of excess heterozygosity">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
 ##FORMAT=<ID=AB,Number=1,Type=Float,Description="Allele balance for each het genotype">
 ##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
