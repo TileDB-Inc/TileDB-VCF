@@ -213,11 +213,6 @@ class VariantStats {
   inline static const std::vector<std::string> COLUMN_STR = {
       "contig", "pos", "sample", "allele"};
 
-  // Array attributes
-  enum Attr { AC = 0, AN, N_HOM, MAX_LENGTH, END, LAST_ };
-  inline static const std::vector<std::string> ATTR_STR = {
-      "ac", "an", "n_hom", "max_length", "end"};
-
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
 
@@ -252,8 +247,16 @@ class VariantStats {
   // Set of sample names in this query (per thread)
   std::set<std::string> sample_names_;
 
+  struct FieldValues {
+    int32_t ac = 0;
+    int32_t an = 0;
+    int32_t n_hom = 0;
+    uint32_t max_length = 0;
+    uint32_t end = 0;
+  };
+
   // Stats per allele at the current locus: map allele -> (map attr -> value)
-  std::map<std::string, std::unordered_map<int, int32_t>> values_;
+  std::map<std::string, FieldValues> values_;
 
   // Contig of the current locus
   std::string contig_;
@@ -288,8 +291,11 @@ class VariantStats {
   // Buffer for allele offsets
   std::vector<uint64_t> allele_offsets_;
 
-  // Buffer for attribute values: map Attr -> value
-  std::unordered_map<int, std::vector<int32_t>> attr_buffers_;
+  std::vector<int32_t> ac_buffer;
+  std::vector<int32_t> an_buffer;
+  std::vector<int32_t> n_hom_buffer;
+  std::vector<uint32_t> max_length_buffer;
+  std::vector<uint32_t> end_buffer;
 
   // Reusable htslib buffer for bcf_get_* functions
   int* dst_ = nullptr;

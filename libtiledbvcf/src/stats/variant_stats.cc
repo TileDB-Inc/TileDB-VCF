@@ -58,13 +58,6 @@ void VariantStats::create(
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
 
-  const std::vector<FilterList> attr_filterlists = {
-      int_attr_filters,
-      int_attr_filters,
-      int_attr_filters,
-      rle_coord_filters,
-      int_attr_filters};
-
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
@@ -117,12 +110,13 @@ void VariantStats::create(
       Attribute::create<std::string>(ctx, COLUMN_STR[ALLELE], str_filters);
   schema.add_attributes(allele);
 
-  // Create attributes
-  for (int i = 0; i < LAST_; i++) {
-    auto attr =
-        Attribute::create<int32_t>(ctx, ATTR_STR[i], attr_filterlists.at(i));
-    schema.add_attributes(attr);
-  }
+  auto ac = Attribute::create<int32_t>(ctx, "ac", int_attr_filters);
+  auto an = Attribute::create<int32_t>(ctx, "an", int_attr_filters);
+  auto n_hom = Attribute::create<int32_t>(ctx, "n_hom", int_attr_filters);
+  auto max_length =
+      Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
+  auto end = Attribute::create<uint32_t>(ctx, "end", int_attr_filters);
+  schema.add_attributes(ac, an, n_hom, max_length, end);
 
   // Create array
   auto uri = get_uri(root_uri);
@@ -327,7 +321,7 @@ void VariantStats::flush(bool finalize) {
   // Update results for the last locus before flushing
   update_results();
 
-  int buffered_records = attr_buffers_[AC].size();
+  int buffered_records = ac_buffer.size();
 
   if (contig_offsets_.data() == nullptr) {
     LOG_DEBUG("[VariantStats] flush called with no records written");
@@ -360,9 +354,11 @@ void VariantStats::flush(bool finalize) {
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
 
-    for (int i = 0; i < LAST_; i++) {
-      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
-    }
+    query_->set_data_buffer("ac", ac_buffer);
+    query_->set_data_buffer("an", an_buffer);
+    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("max_length", max_length_buffer);
+    query_->set_data_buffer("end", end_buffer);
 
     auto st = query_->submit();
     if (st == Query::Status::FAILED) {
@@ -381,9 +377,11 @@ void VariantStats::flush(bool finalize) {
     sample_offsets_.clear();
     allele_buffer_.clear();
     allele_offsets_.clear();
-    for (int i = 0; i < LAST_; i++) {
-      attr_buffers_[i].clear();
-    }
+    ac_buffer.clear();
+    an_buffer.clear();
+    n_hom_buffer.clear();
+    max_length_buffer.clear();
+    end_buffer.clear();
   }
 
   if (finalize) {
@@ -396,9 +394,11 @@ void VariantStats::flush(bool finalize) {
         .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
-    for (int i = 0; i < LAST_; i++) {
-      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
-    }
+    query_->set_data_buffer("ac", ac_buffer);
+    query_->set_data_buffer("an", an_buffer);
+    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("max_length", max_length_buffer);
+    query_->set_data_buffer("end", end_buffer);
     finalize_query();
   }
 }
@@ -536,23 +536,23 @@ void VariantStats::process(
       }
 
       if (gt[i] == 0) {
-        values_[ref_key][AC] += count_delta_;
-        values_[ref_key][AN] = ngt * count_delta_;
-        values_[ref_key][END] = end_;
-        values_[ref_key][MAX_LENGTH] = max_length_;
+        values_[ref_key].ac += count_delta_;
+        values_[ref_key].an = ngt * count_delta_;
+        values_[ref_key].end = end_;
+        values_[ref_key].max_length = max_length_;
       } else {
-        values_[alt][AC] += count_delta_;
-        values_[alt][AN] = ngt * count_delta_;
-        values_[alt][END] = end_;
-        values_[alt][MAX_LENGTH] = max_length_;
+        values_[alt].ac += count_delta_;
+        values_[alt].an = ngt * count_delta_;
+        values_[alt].end = end_;
+        values_[alt].max_length = max_length_;
       }
 
       // Update homozygote count
       if (homozygous && !already_added_homozygous) {
         if (gt[i] == 0) {
-          values_[ref_key][N_HOM] += count_delta_;
+          values_[ref_key].n_hom += count_delta_;
         } else {
-          values_[alt][N_HOM] += count_delta_;
+          values_[alt].n_hom += count_delta_;
         }
         already_added_homozygous = true;
       }
@@ -579,9 +579,11 @@ void VariantStats::update_results() {
       sample_buffer_ += sample_;
       allele_offsets_.push_back(allele_buffer_.size());
       allele_buffer_ += allele;
-      for (int i = 0; i < LAST_; i++) {
-        attr_buffers_[i].push_back(value[i]);
-      }
+      ac_buffer.push_back(value.ac);
+      an_buffer.push_back(value.an);
+      n_hom_buffer.push_back(value.n_hom);
+      max_length_buffer.push_back(value.max_length);
+      end_buffer.push_back(value.end);
     }
     values_.clear();
   }
