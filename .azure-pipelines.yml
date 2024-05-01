@@ -111,6 +111,7 @@ stages:
               unset SYSTEM
               set +e
               ci/collect-nativelibs.sh
+            displayName: 'Collect Native Libraries'
 
           - task: ArchiveFiles@2
             inputs:
