@@ -25,6 +25,7 @@
  */
 
 #include "sample_stats.h"
+#include <htslib/vcfutils.h>
 #include "array_buffers.h"
 #include "managed_query.h"
 #include "utils/utils.h"
@@ -199,11 +200,6 @@ void SampleStats::process(
     }
   }
 
-  auto is_transition = [](char a, char b) {
-    return (a == 'A' && b == 'G') || (a == 'G' && b == 'A') ||
-           (a == 'C' && b == 'T') || (a == 'T' && b == 'C');
-  };
-
   // Compute stats based on the genotypes
   bool is_ref = true;
   bool is_hom = true;
@@ -247,12 +243,22 @@ void SampleStats::process(
   if (var_types & VCF_SNP) {
     n_snp++;
 
+    int ref = bcf_acgt2int(*rec->d.allele[0]);
+
     // Count tis and tvs for each SNP, possibly multi-allelic
     for (int i = 1; i < rec->n_allele; i++) {
-      if (bcf_get_variant_type(rec, i) & VCF_SNP) {
-        bool is_ti = is_transition(rec->d.allele[0][0], rec->d.allele[i][0]);
-        n_ti += is_ti;
-        n_tv += !is_ti;
+      if (bcf_has_variant_type(rec, i, VCF_SNP)) {
+        int alt = bcf_acgt2int(*rec->d.allele[i]);
+
+        if (ref < 0 || alt < 0 || ref == alt) {
+          continue;
+        }
+
+        if (abs(ref - alt) == 2) {
+          n_ti++;
+        } else {
+          n_tv++;
+        }
       }
     }
   }
