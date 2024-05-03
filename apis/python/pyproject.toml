@@ -45,7 +45,7 @@ dependencies = ["pandas", "pyarrow", "pyarrow-hotfix"]
 
 [project.optional-dependencies]
 test = ["dask[distributed]", "pytest", "tiledb"]
-dev = ["black"]
+dev = ["black", "tiledb-cloud"]
 
 [project.urls]
 homepage = "https://tiledb.com"

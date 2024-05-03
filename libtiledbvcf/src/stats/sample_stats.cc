@@ -105,8 +105,6 @@ void SampleStats::create(
     schema.add_attribute(attr);
   };
 
-  add_attribute("contig", TILEDB_STRING_ASCII, dict_fl, true);
-
   std::vector<std::string> columns = {
       "dp_sum",      "dp_sum2",  "dp_count",     "dp_min",    "dp_max",
       "gq_sum",      "gq_sum2",  "gq_count",     "gq_min",    "gq_max",
@@ -173,10 +171,6 @@ void SampleStats::process(
     const std::string& contig,
     uint32_t pos,
     bcf1_t* rec) {
-  if (contig_ != contig) {
-    contig_ = contig;
-  }
-
   if (bcf_get_format_int32(hdr, rec, "DP", &dst_, &ndst_) > 0) {
     if (dst_[0] != bcf_int32_missing) {
       auto dp = static_cast<uint64_t>(dst_[0]);
@@ -243,7 +237,7 @@ void SampleStats::process(
   auto var_types = bcf_has_variant_types(
       rec,
       VCF_SNP | VCF_INDEL | VCF_INS | VCF_DEL | VCF_OVERLAP,
-      bcf_match_subset);
+      bcf_match_overlap);
 
   // Compute stats based on the alleles
   int n_snp = 0;
@@ -295,7 +289,7 @@ void SampleStats::flush(bool finalize) {
     return;
   }
 
-  LOG_DEBUG("[SampleStats] Finalize stats '{}'", contig_);
+  LOG_DEBUG("[SampleStats] Finalize stats");
 
   ArrayBuffers buffers;
 
@@ -319,7 +313,6 @@ void SampleStats::flush(bool finalize) {
 
   for (const auto& [sample, stat] : stats_) {
     buffers["sample"]->push_back(sample);
-    buffers["contig"]->push_back(contig_);
 
     // Add stats to buffers
     for (const auto& [field, value] : stat) {

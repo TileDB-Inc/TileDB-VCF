@@ -132,9 +132,11 @@ class SampleStats {
   /**
    * @brief Write buffered stats to the TileDB array and reset the buffers.
    *
-   * If finalize is true, the query buffers are cleared and the query is
-   * finalized. Finalize should be called after all records have been
-   * processed for a contig or merged contig.
+   * For the sample stats, there is no need to flush the buffers until the
+   * ingestion is complete. The required flush happens in the destructor.
+   *
+   * Note: Each ingestion thread will add one fragment to the sample stats
+   * array.
    *
    * @param finalize If true, finalize the query.
    */

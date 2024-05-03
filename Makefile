@@ -73,7 +73,7 @@ format:
 .PHONY: venv
 venv:
 	@if [ ! -d venv ]; then \
-		python -m venv venv; \
+		python3.9 -m venv venv; \
 		venv/bin/pip install --upgrade pip; \
 	fi
 	@printf "Run the following command to activate the venv:\nsource venv/bin/activate\n"

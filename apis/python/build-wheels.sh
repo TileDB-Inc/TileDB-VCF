@@ -16,4 +16,4 @@ cd -
 wheels=/io/apis/python/wheels
 rm -rf ${wheels}
 /opt/python/cp39-cp39/bin/pip wheel -vvv apis/python -w ${wheels}
-auditwheel repair ${wheels}/*manylinux*.whl -w ${wheels}
+auditwheel repair ${wheels}/tiledbvcf-*.whl -w ${wheels}

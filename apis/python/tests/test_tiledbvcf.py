@@ -1021,7 +1021,6 @@ def test_ingestion_tasks(tmp_path):
     expected_df = pd.DataFrame(
         {
             "sample": ["HG00280", "HG01762"],
-            "contig": ["1", "1"],
             "dp_sum": [879, 64],
             "dp_sum2": [56375, 4096],
             "dp_count": [68, 2],
