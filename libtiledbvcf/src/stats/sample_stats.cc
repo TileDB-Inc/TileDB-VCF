@@ -107,11 +107,12 @@ void SampleStats::create(
   };
 
   std::vector<std::string> columns = {
-      "dp_sum",      "dp_sum2",  "dp_count",     "dp_min",    "dp_max",
-      "gq_sum",      "gq_sum2",  "gq_count",     "gq_min",    "gq_max",
-      "n_records",   "n_called", "n_not_called", "n_hom_ref", "n_het",
-      "n_singleton", "n_snp",    "n_indel",      "n_ins",     "n_del",
-      "n_ti",        "n_tv",     "n_overlap",    "n_multi"};
+      "dp_sum",         "dp_sum2",     "dp_count",   "dp_min",
+      "dp_max",         "gq_sum",      "gq_sum2",    "gq_count",
+      "gq_min",         "gq_max",      "n_records",  "n_called",
+      "n_not_called",   "n_hom_ref",   "n_het",      "n_singleton",
+      "n_snp",          "n_insertion", "n_deletion", "n_transition",
+      "n_transversion", "n_star",      "n_multi"};
 
   for (const auto& name : columns) {
     if (name.starts_with("dp_") || name.starts_with("gq_")) {
@@ -205,6 +206,11 @@ void SampleStats::process(
   bool is_hom = true;
   bool is_missing = true;
   std::unordered_map<int, int> ac;
+  int n_ti = 0;
+  int n_tv = 0;
+  int n_ins = 0;
+  int n_del = 0;
+  int n_star = 0;
 
   int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
   if (ngt > 0) {
@@ -216,6 +222,31 @@ void SampleStats::process(
       is_hom &= allele == first_allele;
       is_missing &= bcf_gt_is_missing(dst_[i]);
       ac[allele] += allele > 0;
+
+      // Update counts for each called, non-REF allele
+      if (!bcf_gt_is_missing(dst_[i]) && allele != 0) {
+        if (bcf_has_variant_type(rec, allele, VCF_SNP)) {
+          // Find REF and ALT for the SNP, which may not be the first base.
+          for (size_t j = 0; j < strlen(rec->d.allele[0]); j++) {
+            int ref = bcf_acgt2int(rec->d.allele[0][j]);
+            int alt = bcf_acgt2int(rec->d.allele[allele][j]);
+            if (ref != alt) {
+              if (abs(ref - alt) == 2) {
+                n_ti++;
+              } else {
+                n_tv++;
+              }
+              break;
+            }
+          }
+        } else if (bcf_has_variant_type(rec, allele, VCF_INS)) {
+          n_ins++;
+        } else if (bcf_has_variant_type(rec, allele, VCF_DEL)) {
+          n_del++;
+        } else if (bcf_has_variant_type(rec, allele, VCF_OVERLAP)) {
+          n_star++;
+        }
+      }
     }
   }
 
@@ -229,59 +260,18 @@ void SampleStats::process(
     n_singleton += count == 1;
   }
 
-  // Get types of variants in the record
-  auto var_types = bcf_has_variant_types(
-      rec,
-      VCF_SNP | VCF_INDEL | VCF_INS | VCF_DEL | VCF_OVERLAP,
-      bcf_match_overlap);
-
-  // Compute stats based on the alleles
-  int n_snp = 0;
-  int n_ti = 0;
-  int n_tv = 0;
-
-  if (var_types & VCF_SNP) {
-    n_snp++;
-
-    int ref = bcf_acgt2int(*rec->d.allele[0]);
-
-    // Count tis and tvs for each SNP, possibly multi-allelic
-    for (int i = 1; i < rec->n_allele; i++) {
-      if (bcf_has_variant_type(rec, i, VCF_SNP)) {
-        int alt = bcf_acgt2int(*rec->d.allele[i]);
-
-        if (ref < 0 || alt < 0 || ref == alt) {
-          continue;
-        }
-
-        if (abs(ref - alt) == 2) {
-          n_ti++;
-        } else {
-          n_tv++;
-        }
-      }
-    }
-  }
-
-  // For multi-allelic records, n_ins + n_del can be > n_indel
-  int n_indel = (var_types & VCF_INDEL) > 0;
-  int n_ins = (var_types & VCF_INS) > 0;
-  int n_del = (var_types & VCF_DEL) > 0;
-  int n_overlap = (var_types & VCF_OVERLAP) > 0;
-
   stats_[sample]["n_records"] += 1;
   stats_[sample]["n_called"] += !is_missing;
   stats_[sample]["n_not_called"] += is_missing;
   stats_[sample]["n_hom_ref"] += is_hom_ref;
   stats_[sample]["n_het"] += is_het;
   stats_[sample]["n_singleton"] += n_singleton;
-  stats_[sample]["n_snp"] += n_snp;
-  stats_[sample]["n_ti"] += n_ti;
-  stats_[sample]["n_tv"] += n_tv;
-  stats_[sample]["n_indel"] += n_indel;
-  stats_[sample]["n_ins"] += n_ins;
-  stats_[sample]["n_del"] += n_del;
-  stats_[sample]["n_overlap"] += n_overlap;
+  stats_[sample]["n_snp"] += n_ti + n_tv;
+  stats_[sample]["n_transition"] += n_ti;
+  stats_[sample]["n_transversion"] += n_tv;
+  stats_[sample]["n_insertion"] += n_ins;
+  stats_[sample]["n_deletion"] += n_del;
+  stats_[sample]["n_star"] += n_star;
   stats_[sample]["n_multi"] += is_multi;
 }
 

@@ -20,3 +20,4 @@ except ImportError:
 
 from .version import version
 from .allele_frequency import read_allele_frequency
+from .sample_qc import sample_qc
