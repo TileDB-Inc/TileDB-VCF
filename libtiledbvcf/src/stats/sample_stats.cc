@@ -139,7 +139,8 @@ void SampleStats::create(
   // Group assets use full paths for tiledb cloud, relative paths otherwise
   auto relative = !utils::starts_with(root_uri, "tiledb://");
   auto array_uri = get_uri_(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+  LOG_DEBUG(
+      "[SampleStats] Adding array '{}' to group '{}'", array_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, SAMPLE_STATS_ARRAY);
 }
@@ -222,6 +223,19 @@ void SampleStats::process(
       is_hom &= allele == first_allele;
       is_missing &= bcf_gt_is_missing(dst_[i]);
       ac[allele] += allele > 0;
+
+      // Skip invalid GT values
+      if (allele >= rec->n_allele) {
+        LOG_WARN(
+            "[SampleStats] Skipping invalid GT: sample={} locus={}:{} "
+            "gt={} n_allele={}",
+            sample,
+            contig,
+            pos,
+            allele,
+            rec->n_allele);
+        continue;
+      }
 
       // Update counts for each called, non-REF allele
       if (!bcf_gt_is_missing(dst_[i]) && allele != 0) {
