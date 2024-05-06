@@ -59,9 +59,6 @@ class ArrowAdapter {
       tiledb_datatype_t datatype, bool use_large = true);
 
  private:
-  static std::pair<const void*, std::size_t> _get_data_and_length(
-      Enumeration& enmr, const void* dst);
-
   template <typename T>
   static const void* _fill_data_buffer(std::vector<T> src, const void* dst) {
     auto sz = src.size() * sizeof(T);

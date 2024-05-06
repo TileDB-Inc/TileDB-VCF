@@ -87,6 +87,9 @@ jobs:
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+        # Skip this step for now because it needs to find tiledb headers in
+        # libtiledbvcf/build/externals/install/include
+        if: false
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
