@@ -67,11 +67,9 @@ class ColumnBuffer {
       std::shared_ptr<Array> array, std::string_view name);
 
   /**
-   * @brief Create a ColumnBuffer based on the provided parameters.
-   *
-   * This is used for creating a ColumnBuffer that is not associated
-   * with a TileDB array, for example when creating a buffer of results
-   * with push_back/push_null.
+   * @brief Create a ColumnBuffer with the provided parameters. The primary
+   * use case is to create a ColumnBuffer that will be populated with
+   * push_back/push_null and passed directly to Arrow.
    *
    * @param name Column name
    * @param type TileDB datatype
@@ -83,8 +81,7 @@ class ColumnBuffer {
       std::string_view name,
       tiledb_datatype_t type,
       bool is_var = false,
-      bool is_nullable = false,
-      bool for_arrow = false);
+      bool is_nullable = false);
 
   /**
    * @brief Convert a bytemap to a bitmap in place.
@@ -105,7 +102,7 @@ class ColumnBuffer {
    * @param num_bytes Number of bytes
    * @param is_var Column type is variable length
    * @param is_nullable Column can contain null values
-   * @param for_arrow The buffer is being built for Arrow
+   * @param is_arrow The buffer is being built for Arrow
    */
   ColumnBuffer(
       std::string_view name,
@@ -114,7 +111,7 @@ class ColumnBuffer {
       size_t num_bytes,
       bool is_var = false,
       bool is_nullable = false,
-      bool for_arrow = false);
+      bool is_arrow = false);
 
   ColumnBuffer() = delete;
   ColumnBuffer(const ColumnBuffer&) = delete;
@@ -319,13 +316,13 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of bytes in the data buffer.
-    if (!for_arrow_) {
+    if (!is_arrow_) {
       offsets_.push_back(num_elements_);
     }
     num_elements_ += value.size();
 
     // Add extra offset for arrow.
-    if (for_arrow_) {
+    if (is_arrow_) {
       offsets_.push_back(num_elements_);
     }
 
@@ -366,13 +363,13 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of bytes in the data buffer.
-    if (!for_arrow_) {
+    if (!is_arrow_) {
       offsets_.push_back(num_elements_);
     }
     num_elements_ += value.size();
 
     // Add extra offset for arrow.
-    if (for_arrow_) {
+    if (is_arrow_) {
       offsets_.push_back(num_elements_);
     }
 
@@ -418,13 +415,13 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of elements in the data buffer.
-    if (!for_arrow_) {
+    if (!is_arrow_) {
       offsets_.push_back(num_elements_ * type_size_);
     }
     num_elements_ += value.size();
 
     // Add extra offset for arrow.
-    if (for_arrow_) {
+    if (is_arrow_) {
       offsets_.push_back(num_elements_);
     }
 
@@ -470,13 +467,13 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of elements in the data buffer.
-    if (!for_arrow_) {
+    if (!is_arrow_) {
       offsets_.push_back(num_elements_ * type_size_);
     }
     num_elements_ += value.size();
 
     // Add extra offset for arrow.
-    if (for_arrow_) {
+    if (is_arrow_) {
       offsets_.push_back(num_elements_);
     }
 
@@ -588,7 +585,7 @@ class ColumnBuffer {
   std::vector<uint8_t> validity_;
 
   // The buffer is being built for Arrow, add an extra offset
-  bool for_arrow_ = false;
+  bool is_arrow_ = false;
 };
 
 }  // namespace tiledb::vcf

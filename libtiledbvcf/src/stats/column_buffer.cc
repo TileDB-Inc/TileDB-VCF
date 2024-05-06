@@ -79,12 +79,10 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
     std::string_view name,
     tiledb_datatype_t type,
     bool is_var,
-    bool is_nullable,
-    bool for_arrow) {
-  // Set the initial size to 0, since the size is not known. The buffers will be
-  // expanded as values are added.
+    bool is_nullable) {
+  // Set the initial size to 0. The buffers will be sized in the constructor.
   return std::make_shared<ColumnBuffer>(
-      name, type, 0, 0, is_var, is_nullable, for_arrow);
+      name, type, 0, 0, is_var, is_nullable, true);
 }
 
 void ColumnBuffer::to_bitmap(std::span<uint8_t> bytemap) {
@@ -114,14 +112,14 @@ ColumnBuffer::ColumnBuffer(
     size_t num_bytes,
     bool is_var,
     bool is_nullable,
-    bool for_arrow)
+    bool is_arrow)
     : name_(name)
     , type_(type)
     , type_size_(tiledb::impl::type_size(type))
     , num_cells_(0)
     , is_var_(is_var)
     , is_nullable_(is_nullable)
-    , for_arrow_(for_arrow) {
+    , is_arrow_(is_arrow) {
   LOG_TRACE(fmt::format(
       "[ColumnBuffer] {} {} bytes is_var={} is_nullable={}",
       name,
@@ -130,7 +128,7 @@ ColumnBuffer::ColumnBuffer(
       is_nullable_));
 
   // Adjust the number of cells and bytes if the buffer is for arrow.
-  if (num_cells == 0 && num_bytes == 0 && for_arrow) {
+  if (num_cells == 0 && num_bytes == 0 && is_arrow) {
     num_bytes = DEFAULT_ALLOC_BYTES;
     num_cells = num_bytes / sizeof(uint64_t);
   }
@@ -141,7 +139,7 @@ ColumnBuffer::ColumnBuffer(
   data_.reserve(num_bytes);
   if (is_var_) {
     offsets_.reserve(num_cells + 1);
-    if (for_arrow_) {
+    if (is_arrow_) {
       // Arrow requires an extra offset for the last cell.
       offsets_.push_back(0);
     }

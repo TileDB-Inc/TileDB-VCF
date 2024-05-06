@@ -558,15 +558,13 @@ std::shared_ptr<ArrayBuffers> SampleStats::sample_qc(
   for (const auto& name : column_names) {
     if (name == "sample") {
       auto buffer =
-          ColumnBuffer::create(name, TILEDB_STRING_ASCII, true, false, true);
+          ColumnBuffer::create(name, TILEDB_STRING_ASCII, true, false);
       buffers->emplace(name, buffer);
     } else if (fp_column_names.contains(name)) {
-      auto buffer =
-          ColumnBuffer::create(name, TILEDB_FLOAT32, false, true, true);
+      auto buffer = ColumnBuffer::create(name, TILEDB_FLOAT32, false, true);
       buffers->emplace(name, buffer);
     } else {
-      auto buffer =
-          ColumnBuffer::create(name, TILEDB_UINT64, false, false, true);
+      auto buffer = ColumnBuffer::create(name, TILEDB_UINT64, false, false);
       buffers->emplace(name, buffer);
     }
   }

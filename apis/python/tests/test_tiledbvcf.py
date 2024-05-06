@@ -1043,7 +1043,7 @@ def test_ingestion_tasks(tmp_path):
             "n_transition": [6, 0],
             "n_transversion": [1, 0],
             "n_star": [0, 0],
-            "n_multi": [5, 0],
+            "n_multiallelic": [5, 0],
         }
     ).astype("uint64", errors="ignore")
 

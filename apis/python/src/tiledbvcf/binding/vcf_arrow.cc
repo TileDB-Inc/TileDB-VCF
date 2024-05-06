@@ -1,6 +1,4 @@
 /**
- * @file   vcf_arrow.h
- *
  * @section LICENSE
  *
  * The MIT License
@@ -30,7 +28,7 @@
 #include <pybind11/stl.h>
 #include <tiledbvcf/tiledbvcf.h>
 
-#include "carrow.h"
+#include "stats/carrow.h"
 #include "vcf_arrow.h"
 
 namespace tiledbvcfpy {
