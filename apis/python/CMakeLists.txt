@@ -114,9 +114,13 @@ pybind11_add_module(
 
 target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 
+target_compile_options(${VCF_TARGET_NAME} PRIVATE -Wno-deprecated-declarations)
+
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
     ${TILEDBVCF_INCLUDE_DIR}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build/externals/install/include"
 )
 
 target_link_libraries(

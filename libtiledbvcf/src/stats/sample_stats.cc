@@ -107,12 +107,12 @@ void SampleStats::create(
   };
 
   std::vector<std::string> columns = {
-      "dp_sum",         "dp_sum2",     "dp_count",   "dp_min",
-      "dp_max",         "gq_sum",      "gq_sum2",    "gq_count",
-      "gq_min",         "gq_max",      "n_records",  "n_called",
-      "n_not_called",   "n_hom_ref",   "n_het",      "n_singleton",
-      "n_snp",          "n_insertion", "n_deletion", "n_transition",
-      "n_transversion", "n_star",      "n_multi"};
+      "dp_sum",         "dp_sum2",     "dp_count",      "dp_min",
+      "dp_max",         "gq_sum",      "gq_sum2",       "gq_count",
+      "gq_min",         "gq_max",      "n_records",     "n_called",
+      "n_not_called",   "n_hom_ref",   "n_het",         "n_singleton",
+      "n_snp",          "n_insertion", "n_deletion",    "n_transition",
+      "n_transversion", "n_star",      "n_multiallelic"};
 
   for (const auto& name : columns) {
     if (name.starts_with("dp_") || name.starts_with("gq_")) {
@@ -134,6 +134,10 @@ void SampleStats::create(
   LOG_DEBUG("[SampleStats] create array");
   auto uri = get_uri_(root_uri);
   tiledb::Array::create(uri, schema);
+
+  // Write metadata
+  Array array(ctx, uri, TILEDB_WRITE);
+  array.put_metadata("version", TILEDB_INT32, 1, &SAMPLE_STATS_VERSION);
 
   // Add array to root group
   // Group assets use full paths for tiledb cloud, relative paths otherwise
@@ -240,7 +244,8 @@ void SampleStats::process(
       // Update counts for each called, non-REF allele
       if (!bcf_gt_is_missing(dst_[i]) && allele != 0) {
         if (bcf_has_variant_type(rec, allele, VCF_SNP)) {
-          // Find REF and ALT for the SNP, which may not be the first base.
+          // Find REF and ALT for the SNP, which may not be the first base for
+          // multi-allelic MNP.
           for (size_t j = 0; j < strlen(rec->d.allele[0]); j++) {
             int ref = bcf_acgt2int(rec->d.allele[0][j]);
             int alt = bcf_acgt2int(rec->d.allele[allele][j]);
@@ -286,7 +291,7 @@ void SampleStats::process(
   stats_[sample]["n_insertion"] += n_ins;
   stats_[sample]["n_deletion"] += n_del;
   stats_[sample]["n_star"] += n_star;
-  stats_[sample]["n_multi"] += is_multi;
+  stats_[sample]["n_multiallelic"] += is_multi;
 }
 
 void SampleStats::flush(bool finalize) {
@@ -400,4 +405,277 @@ void SampleStats::close() {
   enabled_ = false;
 }
 
+void SampleStats::consolidate_commits(
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri_(group);
+
+  // Return if the array does not exist
+  if (uri.empty()) {
+    return;
+  }
+
+  Config cfg = ctx->config();
+  cfg["sm.consolidation.mode"] = "commits";
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
+}
+
+void SampleStats::consolidate_fragment_metadata(
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri_(group);
+
+  // Return if the array does not exist
+  if (uri.empty()) {
+    return;
+  }
+
+  Config cfg = ctx->config();
+  cfg["sm.consolidation.mode"] = "fragment_meta";
+  tiledb::Array::consolidate(*ctx, uri, &cfg);
+}
+
+void SampleStats::vacuum_commits(
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri_(group);
+
+  // Return if the array does not exist
+  if (uri.empty()) {
+    return;
+  }
+
+  Config cfg = ctx->config();
+  cfg["sm.vacuum.mode"] = "commits";
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
+}
+
+void SampleStats::vacuum_fragment_metadata(
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = get_uri_(group);
+
+  // Return if the array does not exist
+  if (uri.empty()) {
+    return;
+  }
+
+  Config cfg = ctx->config();
+  cfg["sm.vacuum.mode"] = "fragment_meta";
+  tiledb::Array::vacuum(*ctx, uri, &cfg);
+}
+
+std::shared_ptr<ArrayBuffers> SampleStats::sample_qc(
+    std::string dataset_uri,
+    std::vector<std::string> samples,
+    std::map<std::string, std::string> config) {
+  printf("[SampleStats] Reading sample stats from '%s'\n", dataset_uri.c_str());
+
+  auto context = Context(Config(config));
+  auto group = Group(context, dataset_uri, TILEDB_READ);
+  auto ss_uri = group.member(SAMPLE_STATS_ARRAY).uri();
+  auto array = std::make_shared<Array>(context, ss_uri, TILEDB_READ);
+
+  auto get_version = [&]() -> std::optional<int> {
+    tiledb_datatype_t value_type;
+    uint32_t value_num;
+    const void* value;
+    array->get_metadata("version", &value_type, &value_num, &value);
+    if (value_type == TILEDB_INT32 && value_num == 1) {
+      return *static_cast<const int*>(value);
+    }
+    return std::nullopt;
+  };
+
+  // Check version
+  auto version = get_version();
+  if (version != SAMPLE_STATS_VERSION) {
+    throw std::runtime_error(
+        "The sample_stats array is the wrong version. Please re-ingest.");
+  }
+
+  // Setup the query
+  ManagedQuery mq(array, "samples_stats", TILEDB_UNORDERED);
+  mq.select_points("sample", samples);
+
+  // Read the results, group by sample and aggregate
+  std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>>
+      stats;
+
+  while (!mq.is_complete()) {
+    mq.submit();
+    auto results = mq.results();
+
+    for (unsigned int i = 0; i < results->num_rows(); i++) {
+      auto sample = std::string(mq.string_view("sample", i));
+      for (auto& name : results->names()) {
+        if (name.ends_with("_max")) {
+          // Max aggregation
+          stats[sample][name] =
+              stats[sample].contains(name) ?
+                  std::max(stats[sample][name], mq.data<uint64_t>(name)[i]) :
+                  mq.data<uint64_t>(name)[i];
+        } else if (name.ends_with("_min")) {
+          // Min aggregation
+          stats[sample][name] =
+              stats[sample].contains(name) ?
+                  std::min(stats[sample][name], mq.data<uint64_t>(name)[i]) :
+                  mq.data<uint64_t>(name)[i];
+        } else if (name != "sample") {
+          // Sum aggregation
+          stats[sample][name] += mq.data<uint64_t>(name)[i];
+        }
+      }
+    }
+  }
+
+  static const std::vector<std::string> column_names{
+      "sample",        "dp_mean",
+      "dp_stddev",     "dp_min",
+      "dp_max",        "gq_mean",
+      "gq_stddev",     "gq_min",
+      "gq_max",        "call_rate",
+      "n_called",      "n_not_called",
+      "n_hom_ref",     "n_het",
+      "n_hom_var",     "n_non_ref",
+      "n_singleton",   "n_snp",
+      "n_insertion",   "n_deletion",
+      "n_transition",  "n_transversion",
+      "n_star",        "r_ti_tv",
+      "r_het_hom_var", "r_insertion_deletion",
+      "n_records",     "n_multiallelic",
+  };
+
+  static const std::set<std::string> fp_column_names{
+      "dp_mean",
+      "dp_stddev",
+      "gq_mean",
+      "gq_stddev",
+      "call_rate",
+      "r_ti_tv",
+      "r_het_hom_var",
+      "r_insertion_deletion",
+  };
+
+  // Create buffers to store the results
+  auto buffers = std::make_shared<ArrayBuffers>();
+  for (const auto& name : column_names) {
+    if (name == "sample") {
+      auto buffer =
+          ColumnBuffer::create(name, TILEDB_STRING_ASCII, true, false, true);
+      buffers->emplace(name, buffer);
+    } else if (fp_column_names.contains(name)) {
+      auto buffer =
+          ColumnBuffer::create(name, TILEDB_FLOAT32, false, true, true);
+      buffers->emplace(name, buffer);
+    } else {
+      auto buffer =
+          ColumnBuffer::create(name, TILEDB_UINT64, false, false, true);
+      buffers->emplace(name, buffer);
+    }
+  }
+
+  // Sort sample names
+  std::set<std::string> sorted_samples;
+  for (const auto& pair : stats) {
+    sorted_samples.insert(pair.first);
+  }
+
+  // Compute results and add them to the buffers
+  for (const auto& sample : sorted_samples) {
+    auto& ss = stats[sample];
+
+    LOG_DEBUG("[SampleStats] Aggregating sample '{}'", sample);
+    for (const auto& name : column_names) {
+      LOG_DEBUG("[SampleStats]   '{}'", name);
+
+      // Helper function to get a value from the stats map
+      auto get = [&](const std::string& key, uint64_t missing_value = 0) {
+        return ss.contains(key) ? ss.at(key) : missing_value;
+      };
+
+      // Helper functions to calculate and push the mean
+      auto push_mean = [&](const std::string& prefix) {
+        auto count = get(prefix + "_count");
+        auto sum = get(prefix + "_sum");
+        if (count > 0) {
+          auto mean = static_cast<float>(sum) / count;
+          buffers->at(prefix + "_mean")->push_back(mean);
+        } else {
+          buffers->at(prefix + "_mean")->push_null();
+        }
+      };
+
+      // Helper functions to calculate and push the stddev
+      auto push_stddev = [&](const std::string& prefix) {
+        auto count = static_cast<float>(get(prefix + "_count"));
+        auto sum = static_cast<float>(get(prefix + "_sum"));
+        auto sum2 = static_cast<float>(get(prefix + "_sum2"));
+        if (count > 1) {
+          auto mean = sum / count;
+          // Note: Hail uses population variance to compute stddev, while pandas
+          // uses sample variance. We choose population variance here to match
+          // the hail results. For reference, sample variance:
+          //   variance = (sum2 - count * mean * mean) / (count - 1)
+          auto variance = sum2 / count - mean * mean;
+          auto stddev = std::sqrt(variance);
+          buffers->at(prefix + "_stddev")->push_back(stddev);
+        } else {
+          buffers->at(prefix + "_stddev")->push_null();
+        }
+      };
+
+      if (name == "sample") {
+        buffers->at("sample")->push_back(sample);
+      } else if (name == "dp_mean") {
+        push_mean("dp");
+      } else if (name == "dp_stddev") {
+        push_stddev("dp");
+      } else if (name == "gq_mean") {
+        push_mean("gq");
+      } else if (name == "gq_stddev") {
+        push_stddev("gq");
+      } else if (name == "n_hom_var") {
+        auto n_hom_var = get("n_called") - get("n_hom_ref") - get("n_het");
+        buffers->at(name)->push_back(n_hom_var);
+
+        if (n_hom_var > 0) {
+          auto value = static_cast<float>(get("n_het")) / n_hom_var;
+          buffers->at("r_het_hom_var")->push_back(value);
+        } else {
+          buffers->at("r_het_hom_var")->push_null();
+        }
+      } else if (name == "n_non_ref") {
+        auto value = get("n_called") - get("n_hom_ref");
+        buffers->at(name)->push_back(value);
+      } else if (name == "r_ti_tv") {
+        if (get("n_transversion") > 0) {
+          auto value =
+              static_cast<float>(get("n_transition")) / get("n_transversion");
+          buffers->at(name)->push_back(value);
+        } else {
+          buffers->at(name)->push_null();
+        }
+      } else if (name == "r_insertion_deletion") {
+        if (get("n_deletion") > 0) {
+          auto value =
+              static_cast<float>(get("n_insertion")) / get("n_deletion");
+          buffers->at(name)->push_back(value);
+        } else {
+          buffers->at(name)->push_null();
+        }
+      } else if (name == "r_het_hom_var") {
+        // Skip, handled in "n_hom_var"
+      } else if (name == "call_rate") {
+        auto total = get("n_called") + get("n_not_called");
+        if (total > 0) {
+          auto value = static_cast<float>(get("n_called")) / total;
+          buffers->at(name)->push_back(value);
+        } else {
+          buffers->at(name)->push_null();
+        }
+      } else {
+        buffers->at(name)->push_back(get(name));
+      }
+    }
+  }
+
+  return buffers;
+}
 }  // namespace tiledb::vcf

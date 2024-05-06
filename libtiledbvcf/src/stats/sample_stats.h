@@ -36,6 +36,8 @@
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>
 
+#include "stats/array_buffers.h"
+
 namespace tiledb::vcf {
 
 /**
@@ -94,6 +96,50 @@ class SampleStats {
    */
   static void close();
 
+  /**
+   * @brief Consolidate commits
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void consolidate_commits(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Consolidate fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void consolidate_fragment_metadata(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Vacuum commits
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void vacuum_commits(std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Vacuum fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void vacuum_fragment_metadata(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Read the sample stats for the provided or all samples.
+   */
+
+  static std::shared_ptr<ArrayBuffers> sample_qc(
+      std::string dataset_uri,
+      std::vector<std::string> samples = {},
+      std::map<std::string, std::string> config = {});
+
   // Constructor
   SampleStats() = default;
 
@@ -145,6 +191,9 @@ class SampleStats {
  private:
   // Array URI basename
   inline static const std::string SAMPLE_STATS_ARRAY = "sample_stats";
+
+  // Array version
+  inline static const int SAMPLE_STATS_VERSION = 1;
 
   // TileDB array pointer
   inline static std::shared_ptr<Array> array_ = nullptr;
