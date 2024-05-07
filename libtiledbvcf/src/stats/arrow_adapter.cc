@@ -138,24 +138,6 @@ std::unique_ptr<ArrowSchema> ArrowAdapter::arrow_schema_from_tiledb_array(
     child->n_children = 0;
     child->children = nullptr;
     child->dictionary = nullptr;
-
-    auto enmr_name = AttributeExperimental::get_enumeration_name(*ctx, attr);
-    if (enmr_name.has_value()) {
-      auto enmr =
-          ArrayExperimental::get_enumeration(*ctx, *tiledb_array, attr.name());
-      auto dict = new ArrowSchema;
-      dict->format =
-          strdup(ArrowAdapter::to_arrow_format(enmr.type(), false).data());
-      dict->name = strdup(enmr.name().c_str());
-      dict->metadata = nullptr;
-      dict->flags = 0;
-      dict->n_children = 0;
-      dict->children = nullptr;
-      dict->dictionary = nullptr;
-      dict->release = &ArrowAdapter::release_schema;
-      dict->private_data = nullptr;
-      child->dictionary = dict;
-    }
     child->release = &ArrowAdapter::release_schema;
   }
 

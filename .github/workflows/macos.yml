@@ -64,6 +64,9 @@ jobs:
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
           libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
+    # Skip this job for now because pybind11 code needs to find tiledb headers in
+    # libtiledbvcf/build/externals/install/include
+    if: false
     runs-on: macos-11
     needs: libtiledbvcf
     env:
@@ -87,9 +90,6 @@ jobs:
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
-        # Skip this step for now because it needs to find tiledb headers in
-        # libtiledbvcf/build/externals/install/include
-        if: false
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
