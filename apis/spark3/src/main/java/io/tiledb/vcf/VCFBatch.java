@@ -2,10 +2,12 @@ package io.tiledb.vcf;
 
 import static io.tiledb.vcf.VCFScanBuilder.pushedSampleNames;
 
+import io.tiledb.java.api.*;
 import io.tiledb.libvcfnative.VCFBedFile;
 import io.tiledb.libvcfnative.VCFReader;
 import io.tiledb.util.CredentialProviderUtils;
 import java.net.URI;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -158,7 +160,19 @@ public class VCFBatch implements Batch {
     // Create Spark input partitions
     List<List<String>> regions = null;
     if (options.getNewPartitionMethod().orElse(false)) {
-      regions = computeRegionPartitionsFromBedFile(numRangePartitions);
+
+      // Compute regions from bed array or bed file
+      Optional<URI> bedArrayURI = options.getBedArrayURI();
+      Optional<URI> bedURI = options.getBedURI();
+      if (bedArrayURI.isPresent()) {
+        regions = computeRegionPartitionsFromBedArray(numRangePartitions, bedArrayURI.get());
+      } else if (bedURI.isPresent()) {
+        regions = computeRegionPartitionsFromBedFile(numRangePartitions);
+      } else {
+        throw new RuntimeException(
+            "Can't use new_partition_method without setting bed_file or bed_array");
+      }
+
       numRangePartitions = regions.size();
       ranges_end = regions.size();
       log.info("New partition method has yielded " + numRangePartitions + " range partitions");
@@ -192,13 +206,112 @@ public class VCFBatch implements Batch {
     return partitionsArray;
   }
 
+  List<List<String>> computeRegionPartitionsFromBedArray(
+      int desiredNumRangePartitions, URI arrayURI) {
+
+    // Read bed array
+
+    try {
+      Map<String, List<String>> mapOfRegions = new HashMap<>();
+      int counter = 0;
+
+      Context ctx = new Context();
+      Array bedArray = new Array(ctx, arrayURI.toString(), QueryType.TILEDB_READ);
+
+      String CONTIG = "alias contig";
+      String START = "alias start";
+      String END = "alias end";
+
+      String[] keys = new String[] {CONTIG, START, END};
+
+      NativeArray contigAliasNA = bedArray.getMetadata(CONTIG, Datatype.TILEDB_STRING_ASCII);
+      NativeArray startAliasNA = bedArray.getMetadata(START, Datatype.TILEDB_STRING_ASCII);
+      NativeArray endAliasNA = bedArray.getMetadata(END, Datatype.TILEDB_STRING_ASCII);
+
+      String contigAlias = new String((byte[]) contigAliasNA.toJavaArray());
+      String startAlias = new String((byte[]) startAliasNA.toJavaArray());
+      String endAlias = new String((byte[]) endAliasNA.toJavaArray());
+
+      Query query = new Query(bedArray);
+      query.setLayout(Layout.TILEDB_UNORDERED);
+
+      Pair<Long, Long> estSize = query.getEstResultSizeVar(ctx, contigAlias);
+
+      // todo unsafe casting needs to be addressed in the java api
+      // Prepare buffers
+      query.setDataBuffer(
+          contigAlias,
+          new NativeArray(ctx, estSize.getSecond().intValue(), Datatype.TILEDB_STRING_ASCII));
+      query.setOffsetsBuffer(
+          contigAlias, new NativeArray(ctx, estSize.getFirst().intValue(), Datatype.TILEDB_UINT64));
+      query.setDataBuffer(
+          startAlias, new NativeArray(ctx, estSize.getFirst().intValue(), Datatype.TILEDB_UINT64));
+      query.setDataBuffer(
+          endAlias, new NativeArray(ctx, estSize.getFirst().intValue(), Datatype.TILEDB_UINT64));
+
+      do {
+        query.submit();
+        // get buffers
+        long[] contigOffsets = (long[]) query.getVarBuffer(contigAlias);
+        byte[] contigData = (byte[]) query.getBuffer(contigAlias);
+
+        String[] contigs = io.tiledb.java.api.Util.bytesToStrings(contigOffsets, contigData);
+        long[] start = (long[]) query.getBuffer(startAlias);
+        long[] end = (long[]) query.getBuffer(endAlias);
+
+        if (!(contigs.length == start.length && start.length == end.length)) {
+          throw new RuntimeException("There was an error reading the bed array");
+        }
+
+        // Put regions in map
+        for (int i = 0; i < contigs.length; i++) {
+          String shortContig = contigs[i].replace("chr", "");
+          String region = shortContig + ":" + start[i] + "-" + end[i] + ":" + counter;
+          counter++;
+
+          // Check if the key exists in the map
+          if (mapOfRegions.containsKey(shortContig)) {
+            // If the key exists, append the region string to the existing list
+            mapOfRegions.get(shortContig).add(region);
+          } else {
+            // If the key doesn't exist, create a new list with the region string
+            List<String> newList = new ArrayList<>();
+            newList.add(region);
+            mapOfRegions.put(shortContig, newList);
+          }
+        }
+      } while (query.getQueryStatus() == QueryStatus.TILEDB_INCOMPLETE);
+
+      List<List<String>> res = new LinkedList<>(mapOfRegions.values());
+
+      // Sort the region list by size of regions in contig, largest first
+      res.sort(Comparator.comparingInt(List<String>::size).reversed());
+
+      // Keep splitting the larges region lists until we have the desired minimum number of range
+      // Partitions, we stop if the large region has a size of 10 or less
+      while (res.size() < desiredNumRangePartitions && res.get(0).size() >= 10) {
+
+        List<String> top = res.remove(0);
+
+        List<String> first = new LinkedList<>(top.subList(0, top.size() / 2));
+        List<String> second = new LinkedList<>(top.subList(top.size() / 2, top.size()));
+        res.add(first);
+        res.add(second);
+
+        // Sort the region list by size of regions in contig
+        res.sort(Comparator.comparingInt(List::size));
+        Collections.reverse(res);
+      }
+
+      return res;
+
+    } catch (TileDBError err) {
+      throw new RuntimeException(err);
+    }
+  }
+
   List<List<String>> computeRegionPartitionsFromBedFile(int desiredNumRangePartitions) {
     Optional<URI> bedURI = options.getBedURI();
-    Optional<URI> bedArrayURI = options.getBedArrayURI();
-    if (!bedURI.isPresent() && !bedArrayURI.isPresent()) {
-      throw new RuntimeException(
-          "Can't use new_partition_method without setting bed_file or bed_array");
-    }
 
     log.info("Init VCFReader for partition calculation");
     String uriString = options.getDatasetURI().get().toString();

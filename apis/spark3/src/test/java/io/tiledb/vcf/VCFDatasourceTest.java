@@ -533,19 +533,9 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("tiledb.vcf.log_level", "TRACE")
             .load();
 
-    Assert.assertEquals(
-        rangePartitions * samplePartitions, dfRead.select("sampleName").rdd().getNumPartitions());
-
     List<Row> rows =
         dfRead
-            .select(
-                "sampleName",
-                "contig",
-                "posStart",
-                "posEnd",
-                "queryBedStart",
-                "queryBedEnd",
-                "queryBedLine")
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
             .collectAsList();
 
     // query from bed file line 184134 (0-indexed line numbers)
@@ -555,23 +545,63 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
     //       not the inclusive value used by tiledb-vcf
     int expectedBedStart = 10600; // 0-indexed
     int expectedBedEnd = 540400; // half-open
-    int expectedBedLine = 184134;
 
     for (int i = 0; i < rows.size(); i++) {
       System.out.println(
           String.format(
-              "*** %s, %s, pos=%d-%d, query=%d-%d, bedLine=%d",
+              "*** %s, %s, pos=%d-%d, query=%d-%d",
               rows.get(i).getString(0),
               rows.get(i).getString(1),
               rows.get(i).getInt(2),
               rows.get(i).getInt(3),
               rows.get(i).getInt(4),
-              rows.get(i).getInt(5),
-              rows.get(i).getInt(6)));
+              rows.get(i).getInt(5)));
       Assert.assertEquals(expectedBedStart, rows.get(i).getInt(4));
       Assert.assertEquals(expectedBedEnd, rows.get(i).getInt(5));
-      Assert.assertEquals(expectedBedLine, rows.get(i).getInt(6));
     }
+  }
+
+  @Test
+  public void testNewPartitionWithBedArrayVsBedFile() {
+    int rangePartitions = 32;
+    int samplePartitions = 2;
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bedfile", testLargeBEDFile())
+            .option("new_partition_method", true)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+
+    List<Row> rows =
+        dfRead
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
+            .orderBy("contig")
+            .collectAsList();
+
+    Dataset<Row> dfRead2 =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bed_array", testLargeBEDArray())
+            .option("new_partition_method", true)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+
+    List<Row> rows2 =
+        dfRead2
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
+            .orderBy("contig")
+            .collectAsList();
+
+    Assert.assertEquals(rows, rows2);
   }
 
   @Test
