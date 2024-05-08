@@ -309,7 +309,7 @@ public class VCFPartitionReader implements PartitionReader<ColumnarBatch> {
       // Set BED array
       Optional<URI> bedArrayURI = options.getBedArrayURI();
       if (bedArrayURI.isPresent()) {
-        vcfReader.setBedArray(bedArrayURI.get().toString());
+        vcfReader.setBedFile(bedArrayURI.get().toString());
       }
     } else {
       if (rangePartitionInfo.getRegions().isEmpty()) {
