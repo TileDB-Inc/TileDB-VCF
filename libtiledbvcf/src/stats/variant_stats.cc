@@ -58,18 +58,32 @@ void VariantStats::create(
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
 
+  rle_coord_filters.set_max_chunk_size(0);
+  int_coord_filters.set_max_chunk_size(0);
+  sample_filters.set_max_chunk_size(0);
+  str_filters.set_max_chunk_size(0);
+  offset_filters.set_max_chunk_size(0);
+  int_attr_filters.set_max_chunk_size(0);
+
+  int compression_level = 9;
+  Filter compression(ctx, TILEDB_FILTER_ZSTD);
+  compression.set_option(TILEDB_COMPRESSION_LEVEL, compression_level);
+
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
   sample_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
+  str_filters.add_filter(compression);
   offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression);
   int_attr_filters.add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
 
   if (checksum) {
     // rle_coord_filters.add_filter({ctx, checksum});
