@@ -284,24 +284,7 @@ public class VCFBatch implements Batch {
 
       List<List<String>> res = new LinkedList<>(mapOfRegions.values());
 
-      // Sort the region list by size of regions in contig, largest first
-      res.sort(Comparator.comparingInt(List<String>::size).reversed());
-
-      // Keep splitting the larges region lists until we have the desired minimum number of range
-      // Partitions, we stop if the large region has a size of 10 or less
-      while (res.size() < desiredNumRangePartitions && res.get(0).size() >= 10) {
-
-        List<String> top = res.remove(0);
-
-        List<String> first = new LinkedList<>(top.subList(0, top.size() / 2));
-        List<String> second = new LinkedList<>(top.subList(top.size() / 2, top.size()));
-        res.add(first);
-        res.add(second);
-
-        // Sort the region list by size of regions in contig
-        res.sort(Comparator.comparingInt(List::size));
-        Collections.reverse(res);
-      }
+      sortRegions(res, desiredNumRangePartitions);
 
       return res;
 
@@ -332,16 +315,22 @@ public class VCFBatch implements Batch {
 
     Map<String, List<String>> mapOfRegions = bedFile.getContigRegionStrings();
     List<List<String>> res = new LinkedList<>(mapOfRegions.values());
+    sortRegions(res, desiredNumRangePartitions);
 
+    bedFile.close();
+    vcfReader.close();
+
+    return res;
+  }
+
+  private void sortRegions(List<List<String>> res, int desiredNumRangePartitions) {
     // Sort the region list by size of regions in contig, largest first
     res.sort(Comparator.comparingInt(List<String>::size).reversed());
 
-    // Keep splitting the larges region lists until we have the desired minimum number of range
+    // Keep splitting the largest region lists until we have the desired minimum number of range
     // Partitions, we stop if the large region has a size of 10 or less
     while (res.size() < desiredNumRangePartitions && res.get(0).size() >= 10) {
-
       List<String> top = res.remove(0);
-
       List<String> first = new LinkedList<>(top.subList(0, top.size() / 2));
       List<String> second = new LinkedList<>(top.subList(top.size() / 2, top.size()));
       res.add(first);
@@ -351,11 +340,6 @@ public class VCFBatch implements Batch {
       res.sort(Comparator.comparingInt(List::size));
       Collections.reverse(res);
     }
-
-    bedFile.close();
-    vcfReader.close();
-
-    return res;
   }
 
   @Override
