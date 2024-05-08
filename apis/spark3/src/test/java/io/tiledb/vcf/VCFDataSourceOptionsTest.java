@@ -100,9 +100,25 @@ public class VCFDataSourceOptionsTest {
   }
 
   @Test
+  public void testBedArrayURIOption() {
+    URI expectedURI = URI.create("s3://foo/bar");
+    HashMap<String, String> optionMap = new HashMap<>();
+    optionMap.put("bed_array", expectedURI.toString());
+    VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(optionMap));
+    Assert.assertTrue(options.getBedArrayURI().isPresent());
+    Assert.assertEquals(expectedURI, options.getBedArrayURI().get());
+  }
+
+  @Test
   public void testSampleURIOptionMissing() {
     VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(new HashMap<>()));
     Assert.assertFalse(options.getBedURI().isPresent());
+  }
+
+  @Test
+  public void testBedArrayURIOptionMissing() {
+    VCFDataSourceOptions options = new VCFDataSourceOptions(new DataSourceOptions(new HashMap<>()));
+    Assert.assertFalse(options.getBedArrayURI().isPresent());
   }
 
   @Test

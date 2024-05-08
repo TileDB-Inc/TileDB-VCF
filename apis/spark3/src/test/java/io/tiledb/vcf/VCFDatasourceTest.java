@@ -25,13 +25,23 @@ import scala.collection.mutable.WrappedArray;
 public class VCFDatasourceTest extends SharedJavaSparkSession {
 
   private String testSampleGroupURI(String sampleGroupName) {
-    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v3", sampleGroupName);
+    Path arraysPath = Paths.get("src", "test", "resources", "arrays", "v4", sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
   }
 
   private String testSampleGroupURI(String sampleGroupName, String version) {
     Path arraysPath = Paths.get("src", "test", "resources", "arrays", version, sampleGroupName);
     return "file://".concat(arraysPath.toAbsolutePath().toString());
+  }
+
+  private String testSimpleBEDArray() {
+    Path arrayPath = Paths.get("src", "test", "resources", "arrays", "bed_array");
+    return "file://".concat(arrayPath.toAbsolutePath().toString());
+  }
+
+  private String testLargeBEDArray() {
+    Path arrayPath = Paths.get("src", "test", "resources", "arrays", "largebedarray");
+    return "file://".concat(arrayPath.toAbsolutePath().toString());
   }
 
   private String testSimpleBEDFile() {
@@ -508,6 +518,93 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
   }
 
   @Test
+  public void testNewPartitionWithBedArray() {
+    int rangePartitions = 32;
+    int samplePartitions = 2;
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bed_array", testLargeBEDArray())
+            .option("new_partition_method", true)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+
+    List<Row> rows =
+        dfRead
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
+            .collectAsList();
+
+    // query from bed file line 184134 (0-indexed line numbers)
+    // 1	10600	540400	15_Quies	0	.	10600	540400	255,255,255
+
+    // NOTE: queryBedEnd returns the half-open value from the bed file,
+    //       not the inclusive value used by tiledb-vcf
+    int expectedBedStart = 10600; // 0-indexed
+    int expectedBedEnd = 540400; // half-open
+
+    for (int i = 0; i < rows.size(); i++) {
+      System.out.println(
+          String.format(
+              "*** %s, %s, pos=%d-%d, query=%d-%d",
+              rows.get(i).getString(0),
+              rows.get(i).getString(1),
+              rows.get(i).getInt(2),
+              rows.get(i).getInt(3),
+              rows.get(i).getInt(4),
+              rows.get(i).getInt(5)));
+      Assert.assertEquals(expectedBedStart, rows.get(i).getInt(4));
+      Assert.assertEquals(expectedBedEnd, rows.get(i).getInt(5));
+    }
+  }
+
+  @Test
+  public void testNewPartitionWithBedArrayVsBedFile() {
+    int rangePartitions = 32;
+    int samplePartitions = 2;
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bedfile", testLargeBEDFile())
+            .option("new_partition_method", true)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+
+    List<Row> rows =
+        dfRead
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
+            .orderBy("contig")
+            .collectAsList();
+
+    Dataset<Row> dfRead2 =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples", "v4"))
+            .option("bed_array", testLargeBEDArray())
+            .option("new_partition_method", true)
+            .option("range_partitions", rangePartitions)
+            .option("sample_partitions", samplePartitions)
+            .option("tiledb.vcf.log_level", "TRACE")
+            .load();
+
+    List<Row> rows2 =
+        dfRead2
+            .select("sampleName", "contig", "posStart", "posEnd", "queryBedStart", "queryBedEnd")
+            .orderBy("contig")
+            .collectAsList();
+
+    Assert.assertEquals(rows, rows2);
+  }
+
+  @Test
   public void testBedFile() {
     Dataset<Row> dfRead =
         session()
@@ -516,6 +613,20 @@ public class VCFDatasourceTest extends SharedJavaSparkSession {
             .option("uri", testSampleGroupURI("ingested_2samples"))
             .option("samplefile", testSampleFile())
             .option("bedfile", testSimpleBEDFile())
+            .load();
+    List<Row> rows = dfRead.select("sampleName").collectAsList();
+    Assert.assertEquals(10, rows.size());
+  }
+
+  @Test
+  public void testBedArray() {
+    Dataset<Row> dfRead =
+        session()
+            .read()
+            .format("io.tiledb.vcf")
+            .option("uri", testSampleGroupURI("ingested_2samples"))
+            .option("samplefile", testSampleFile())
+            .option("bed_array", testSimpleBEDArray())
             .load();
     List<Row> rows = dfRead.select("sampleName").collectAsList();
     Assert.assertEquals(10, rows.size());
