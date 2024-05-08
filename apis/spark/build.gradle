@@ -53,6 +53,7 @@ repositories {
 dependencies {
     compileOnly 'org.apache.spark:spark-sql_2.12:2.4.3'
     compileOnly 'org.apache.spark:spark-core_2.12:2.4.3'
+    implementation 'io.tiledb:tiledb-java:0.24.0'
     compile group: 'io.tiledb', name: 'tiledb-vcf-java', version: version
     compile 'com.amazonaws:aws-java-sdk:1.11.650'
 
