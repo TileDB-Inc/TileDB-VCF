@@ -32,11 +32,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include <htslib/vcf.h>
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>
 
 #include "stats/array_buffers.h"
+
+// Forward declarations for htslib
+struct bcf1_t;
+struct bcf_hdr_t;
 
 namespace tiledb::vcf {
 
@@ -144,14 +147,7 @@ class SampleStats {
   SampleStats() = default;
 
   // Destructor
-  ~SampleStats() {
-    // Flush any remaining stats
-    flush(true);
-
-    if (dst_ != nullptr) {
-      hts_free(dst_);
-    }
-  }
+  ~SampleStats();
 
   // Copy and move constructors/assignments
   SampleStats(const SampleStats&) = delete;

@@ -36,8 +36,6 @@
 #include <span>
 #include <tiledb/tiledb>
 
-#include "utils/logger_public.h"
-
 namespace tiledb::vcf {
 
 using namespace tiledb;
@@ -113,13 +111,11 @@ class ColumnBuffer {
       bool is_nullable = false,
       bool is_arrow = false);
 
+  ~ColumnBuffer();
+
   ColumnBuffer() = delete;
   ColumnBuffer(const ColumnBuffer&) = delete;
   ColumnBuffer(ColumnBuffer&&) = default;
-
-  ~ColumnBuffer() {
-    LOG_TRACE(fmt::format("[ColumnBuffer] release '{}'", name_));
-  }
 
   /**
    * @brief Attach this ColumnBuffer to a TileDB query.
@@ -268,8 +264,6 @@ class ColumnBuffer {
     while (data_.capacity() < (num_cells_ + 1) * type_size_) {
       // Update the data buffer size
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -304,8 +298,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < num_elements_ + value.size()) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -351,8 +343,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < num_elements_ + value.size()) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -400,8 +390,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -452,8 +440,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.

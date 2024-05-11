@@ -25,6 +25,7 @@
  */
 
 #include "sample_stats.h"
+#include <htslib/vcf.h>
 #include <htslib/vcfutils.h>
 #include "array_buffers.h"
 #include "managed_query.h"
@@ -32,11 +33,20 @@
 
 namespace tiledb::vcf {
 
+SampleStats::~SampleStats() {
+  // Flush any remaining stats
+  flush(true);
+
+  if (dst_ != nullptr) {
+    hts_free(dst_);
+  }
+}
+
 std::string SampleStats::get_uri_(const Group& group) {
   try {
     auto member = group.member(SAMPLE_STATS_ARRAY);
     return member.uri();
-  } catch (const tiledb::TileDBError& ex) {
+  } catch (const TileDBError& ex) {
     return "";
   }
 }
@@ -126,14 +136,14 @@ void SampleStats::create(
   // Check schema
   try {
     schema.check();
-  } catch (const tiledb::TileDBError& e) {
+  } catch (const TileDBError& e) {
     throw std::runtime_error(e.what());
   }
 
   // Create array
   LOG_DEBUG("[SampleStats] create array");
   auto uri = get_uri_(root_uri);
-  tiledb::Array::create(uri, schema);
+  Array::create(uri, schema);
 
   // Write metadata
   Array array(ctx, uri, TILEDB_WRITE);
@@ -416,7 +426,7 @@ void SampleStats::consolidate_commits(
 
   Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "commits";
-  tiledb::Array::consolidate(*ctx, uri, &cfg);
+  Array::consolidate(*ctx, uri, &cfg);
 }
 
 void SampleStats::consolidate_fragment_metadata(
@@ -430,7 +440,7 @@ void SampleStats::consolidate_fragment_metadata(
 
   Config cfg = ctx->config();
   cfg["sm.consolidation.mode"] = "fragment_meta";
-  tiledb::Array::consolidate(*ctx, uri, &cfg);
+  Array::consolidate(*ctx, uri, &cfg);
 }
 
 void SampleStats::vacuum_commits(
@@ -444,7 +454,7 @@ void SampleStats::vacuum_commits(
 
   Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "commits";
-  tiledb::Array::vacuum(*ctx, uri, &cfg);
+  Array::vacuum(*ctx, uri, &cfg);
 }
 
 void SampleStats::vacuum_fragment_metadata(
@@ -458,7 +468,7 @@ void SampleStats::vacuum_fragment_metadata(
 
   Config cfg = ctx->config();
   cfg["sm.vacuum.mode"] = "fragment_meta";
-  tiledb::Array::vacuum(*ctx, uri, &cfg);
+  Array::vacuum(*ctx, uri, &cfg);
 }
 
 std::shared_ptr<ArrayBuffers> SampleStats::sample_qc(
