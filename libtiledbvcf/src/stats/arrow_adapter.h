@@ -4,6 +4,8 @@
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>
 
+#include "tiledbvcf_export.h"
+
 // https://arrow.apache.org/docs/format/CDataInterface.html
 // https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout
 // https://arrow.apache.org/docs/format/CDataInterface.html#exporting-a-simple-int32-array
@@ -43,6 +45,7 @@ class ArrowAdapter {
    * @return std::pair<std::unique_ptr<ArrowArray>,
    * std::unique_ptr<ArrowSchema>>
    */
+  TILEDBVCF_EXPORT
   static std::pair<std::unique_ptr<ArrowArray>, std::unique_ptr<ArrowSchema>>
   to_arrow(std::shared_ptr<ColumnBuffer> column);
 

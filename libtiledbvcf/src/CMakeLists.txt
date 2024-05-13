@@ -270,6 +270,7 @@ set(TILEDB_VCF_EXPORT_HEADER "${TILEDB_VCF_EXPORT_HEADER}" PARENT_SCOPE)
 # Set related compiler settings
 target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE -DTILEDB_VCF_OBJECTS_EXPORTS)
 target_include_directories(TILEDB_VCF_OBJECTS PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(tiledbvcf-bin PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the generated header to the public headers list
 list(APPEND TILEDB_VCF_PUBLIC_HEADERS

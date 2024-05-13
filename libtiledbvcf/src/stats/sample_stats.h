@@ -36,6 +36,7 @@
 #include <tiledb/tiledb_experimental>
 
 #include "stats/array_buffers.h"
+#include "tiledbvcf_export.h"
 
 // Forward declarations for htslib
 struct bcf1_t;
@@ -138,6 +139,7 @@ class SampleStats {
    * @brief Read the sample stats for the provided or all samples.
    */
 
+  TILEDBVCF_EXPORT
   static std::shared_ptr<ArrayBuffers> sample_qc(
       std::string dataset_uri,
       std::vector<std::string> samples = {},

@@ -72,7 +72,7 @@ if(NOT TILEDBVCF_LIB)
 else()
     message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
     get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
-    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include/tiledbvcf" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
 
     # Find required shared libs for the current platform

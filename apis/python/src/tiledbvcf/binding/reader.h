@@ -28,7 +28,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <tiledbvcf/tiledbvcf.h>
+#include <tiledbvcf.h>
 
 #include "vcf_arrow.h"
 

@@ -26,7 +26,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
-#include <tiledbvcf/tiledbvcf.h>
+#include <tiledbvcf.h>
 
 // C++ API bindings
 #include "sample_stats.h"
