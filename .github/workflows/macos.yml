@@ -84,9 +84,13 @@ jobs:
           create-args: >-
             python=3.11
             tiledb
+      - name: Install dependencies
+        run: python -m pip install --prefer-binary \
+          pyarrow==10.0.1
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+          TileDB_DIR: "${{ env.CONDA_PREFIX }}/lib/cmake/TileDB"
         run: |
           echo $DYLD_LIBRARY_PATH
           cd apis/python
@@ -155,6 +159,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install --prefer-binary \
+          pyarrow==10.0.1
       - name: Build tiledbvcf-py
         run: cd apis/python && python -m pip install -v .[test]
       - name: Confirm linking
