@@ -77,13 +77,13 @@ jobs:
         with:
           name: libtiledbvcf
           path: dist
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: python -m pip install --prefer-binary \
-          pyarrow==10.0.1
+          environment-name: ci
+          create-args: >-
+            python=3.11
+            tiledb
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
@@ -155,9 +155,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - name: Install dependencies
-        run: python -m pip install --prefer-binary \
-          pyarrow==10.0.1
       - name: Build tiledbvcf-py
         run: cd apis/python && python -m pip install -v .[test]
       - name: Confirm linking
