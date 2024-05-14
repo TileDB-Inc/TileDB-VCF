@@ -411,10 +411,12 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
-        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
-        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+          .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
+    }
 
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
@@ -456,10 +458,14 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
-        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
-        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
+
+    if (array_version_ >= 3) {
+      query_->set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+          .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
+    }
+
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
