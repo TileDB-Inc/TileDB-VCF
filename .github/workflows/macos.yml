@@ -77,26 +77,35 @@ jobs:
         with:
           name: libtiledbvcf
           path: dist
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: ci
           create-args: >-
-            python=3.11
             tiledb
       - name: Activate micromamba
         run: |
           eval "$(micromamba shell hook --shell bash)"
           micromamba activate ci
+          which python
           python --version
-      - name: Install dependencies
-        run: python -m pip install --prefer-binary pyarrow==10.0.1
+          python -m pip install --prefer-binary pyarrow==10.0.1
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
           TileDB_DIR: "${{ env.CONDA_PREFIX }}/lib/cmake/TileDB"
         run: |
+          which python
+          python --version
+          micromamba activate ci
+          which python
+          python --version
           echo $DYLD_LIBRARY_PATH
+          echo $TileDB_DIR
           cd apis/python
           python -m pip install -v .[test]
       - name: Confirm linking
