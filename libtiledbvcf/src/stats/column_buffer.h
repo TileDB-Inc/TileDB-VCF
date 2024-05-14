@@ -410,7 +410,7 @@ class ColumnBuffer {
 
     // Add extra offset for arrow.
     if (is_arrow_) {
-      offsets_.push_back(num_elements_);
+      offsets_.push_back(num_elements_ * type_size_);
     }
 
     size_t bytes =
@@ -460,7 +460,7 @@ class ColumnBuffer {
 
     // Add extra offset for arrow.
     if (is_arrow_) {
-      offsets_.push_back(num_elements_);
+      offsets_.push_back(num_elements_ * type_size_);
     }
 
     size_t bytes =
