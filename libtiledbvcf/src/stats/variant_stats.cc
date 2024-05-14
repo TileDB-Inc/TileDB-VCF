@@ -131,7 +131,10 @@ void VariantStats::create(
       Dimension::create<uint32_t>(ctx, "end", {{pos_min, pos_max}}, pos_extent);
   end.set_filter_list(int_coord_filters);  // d3
 
-  domain.add_dimensions(contig, pos, sample, end);
+  domain.add_dimensions(contig, pos, sample);
+  if (array_version_ >= 3) {
+    domain.add_dimension(sample);
+  }
   schema.set_domain(domain);
 
   auto allele =
@@ -144,7 +147,10 @@ void VariantStats::create(
   auto max_length =
       Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
 
-  schema.add_attributes(ac, an, n_hom, max_length);
+  schema.add_attributes(ac, an, n_hom);
+  if (array_version_ >= 3) {
+    schema.add_attribute(max_length);
+  }
 
   // Create array
   auto uri = get_uri(root_uri);
@@ -385,8 +391,10 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
-    query_->set_data_buffer("max_length", max_length_buffer);
-    query_->set_data_buffer("end", end_buffer);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer("max_length", max_length_buffer);
+      query_->set_data_buffer("end", end_buffer);
+    }
 
     auto st = query_->submit();
     if (st == Query::Status::FAILED) {
@@ -408,8 +416,10 @@ void VariantStats::flush(bool finalize) {
     ac_buffer.clear();
     an_buffer.clear();
     n_hom_buffer.clear();
-    max_length_buffer.clear();
-    end_buffer.clear();
+    if (array_version_ >= 3) {
+      max_length_buffer.clear();
+      end_buffer.clear();
+    }
   }
 
   if (finalize) {
@@ -425,8 +435,10 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
-    query_->set_data_buffer("max_length", max_length_buffer);
-    query_->set_data_buffer("end", end_buffer);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer("max_length", max_length_buffer);
+      query_->set_data_buffer("end", end_buffer);
+    }
     finalize_query();
   }
 }
@@ -610,8 +622,10 @@ void VariantStats::update_results() {
       ac_buffer.push_back(value.ac);
       an_buffer.push_back(value.an);
       n_hom_buffer.push_back(value.n_hom);
-      max_length_buffer.push_back(value.max_length);
-      end_buffer.push_back(value.end);
+      if (array_version_ >= 3) {
+        max_length_buffer.push_back(value.max_length);
+        end_buffer.push_back(value.end);
+      }
     }
     values_.clear();
   }
