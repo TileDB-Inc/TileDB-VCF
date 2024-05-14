@@ -87,25 +87,16 @@ jobs:
           environment-name: ci
           create-args: >-
             tiledb
-      - name: Activate micromamba
-        run: |
-          eval "$(micromamba shell hook --shell bash)"
-          micromamba activate ci
-          which python
-          python --version
-          python -m pip install --prefer-binary pyarrow==10.0.1
+      - name: Install dependencies
+        run: python -m pip install --prefer-binary pyarrow==10.0.1
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
-          TileDB_DIR: "${{ env.CONDA_PREFIX }}/lib/cmake/TileDB"
+          TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB/lib/cmake/TileDB"
         run: |
-          which python
-          python --version
-          micromamba activate ci
-          which python
-          python --version
           echo $DYLD_LIBRARY_PATH
           echo $TileDB_DIR
+          ls -l $TileDB_DIR
           cd apis/python
           python -m pip install -v .[test]
       - name: Confirm linking
