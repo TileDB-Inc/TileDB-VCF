@@ -1169,7 +1169,8 @@ def test_ingest_mode_merged(tmp_path):
     and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_ingest_with_stats(tmp_path):
+def test_ingest_with_stats_v3(tmp_path):
+    tiledbvcf.config_logging("debug")
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats"))
@@ -1194,7 +1195,9 @@ def test_ingest_with_stats(tmp_path):
         shutil.rmtree(os.path.join(tmp_path, "stats_test"))
     # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
+    ds.create_dataset(
+        enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3
+    )
     ds.ingest_samples(bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]

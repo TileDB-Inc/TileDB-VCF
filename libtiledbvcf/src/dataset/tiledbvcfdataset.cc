@@ -259,8 +259,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
     AlleleCount::create(ctx, params.uri, params.checksum);
   }
   if (params.enable_variant_stats) {
-    VariantStats::create(ctx, params.uri, params.checksum);
     VariantStats::set_array_version(params.variant_stats_array_version);
+    VariantStats::create(ctx, params.uri, params.checksum);
   }
   if (params.enable_sample_stats) {
     SampleStats::create(ctx, params.uri, params.checksum);

@@ -313,6 +313,46 @@ class VariantStats {
   int ndst_ = 0;
 
   /**
+   * @brief Add a record to the stats computation buffer, using version 2
+   * schema.
+   *
+   * Records must be added in order of genomic locus (contig, pos) and each
+   * record must be added exactly once.
+   *
+   * @param hdr VCF header for the record
+   * @param sample_name VCF sample name
+   * @param contig Contig part of the record's locus
+   * @param pos Position part of the record's locus
+   * @param record VCF record
+   */
+  void process_v2(
+      const bcf_hdr_t* hdr,
+      const std::string& sample_name,
+      const std::string& contig,
+      uint32_t pos,
+      bcf1_t* record);
+
+  /**
+   * @brief Add a record to the stats computation buffer, using version 3
+   * schema.
+   *
+   * Records must be added in order of genomic locus (contig, pos) and each
+   * record must be added exactly once.
+   *
+   * @param hdr VCF header for the record
+   * @param sample_name VCF sample name
+   * @param contig Contig part of the record's locus
+   * @param pos Position part of the record's locus
+   * @param record VCF record
+   */
+  void process_v3(
+      const bcf_hdr_t* hdr,
+      const std::string& sample_name,
+      const std::string& contig,
+      uint32_t pos,
+      bcf1_t* record);
+
+  /**
    * @brief Move stats for the current locus to the TileDB buffers and start
    * collecting stats at the next locus.
    *
