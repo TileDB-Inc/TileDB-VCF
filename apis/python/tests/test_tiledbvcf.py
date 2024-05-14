@@ -21,10 +21,10 @@ TESTS_INPUT_DIR = os.path.abspath(
 
 def _check_dfs(expected, actual):
     def assert_series(s1, s2):
-        if type(s2.iloc[0]) == np.ndarray:
-            assert len(s1) == len(s2)
-            for i in range(0, len(s1)):
-                assert np.array_equal(s1.iloc[i], s2.iloc[i])
+        if np.issubdtype(s2.dtype, np.floating):
+            assert np.isclose(s1, s2, equal_nan=True).all()
+        elif np.issubdtype(s2.dtype, np.integer):
+            assert s1.astype("int64").equals(s2.astype("int64"))
         else:
             assert s1.equals(s2)
 
@@ -1055,6 +1055,43 @@ def test_ingestion_tasks(tmp_path):
     df = df.astype("uint64", errors="ignore")
 
     assert df.equals(expected_df)
+
+    # Test sample_qc
+    expected_qc = pd.DataFrame(
+        {
+            "sample": ["HG00280", "HG01762"],
+            "dp_mean": [12.92647, 32.0],
+            "dp_stddev": [25.728399, 32.0],
+            "dp_min": [0, 0],
+            "dp_max": [180, 64],
+            "gq_mean": [21.897058, 49.5],
+            "gq_stddev": [26.156845, 49.5],
+            "gq_min": [0, 0],
+            "gq_max": [99, 99],
+            "call_rate": [1.0, 1.0],
+            "n_called": [70, 3],
+            "n_not_called": [0, 0],
+            "n_hom_ref": [64, 3],
+            "n_het": [3, 0],
+            "n_hom_var": [3, 0],
+            "n_non_ref": [6, 0],
+            "n_singleton": [4, 0],
+            "n_snp": [7, 0],
+            "n_insertion": [2, 0],
+            "n_deletion": [1, 0],
+            "n_transition": [6, 0],
+            "n_transversion": [1, 0],
+            "n_star": [0, 0],
+            "r_ti_tv": [6.0, np.nan],
+            "r_het_hom_var": [1.0, np.nan],
+            "r_insertion_deletion": [2.0, np.nan],
+            "n_records": [70, 3],
+            "n_multiallelic": [5, 0],
+        }
+    )
+
+    qc = tiledbvcf.sample_qc(uri)
+    _check_dfs(expected_qc, qc)
 
 
 def test_incremental_ingest(tmp_path):

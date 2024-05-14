@@ -475,8 +475,6 @@ std::shared_ptr<ArrayBuffers> SampleStats::sample_qc(
     std::string dataset_uri,
     std::vector<std::string> samples,
     std::map<std::string, std::string> config) {
-  printf("[SampleStats] Reading sample stats from '%s'\n", dataset_uri.c_str());
-
   auto context = Context(Config(config));
   auto group = Group(context, dataset_uri, TILEDB_READ);
   auto ss_uri = group.member(SAMPLE_STATS_ARRAY).uri();
