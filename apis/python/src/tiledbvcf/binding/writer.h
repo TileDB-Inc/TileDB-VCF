@@ -245,6 +245,11 @@ class Writer {
   */
   void set_compression_level(int level);
 
+  /**
+  Set variant stats array version
+*/
+  void set_variant_stats_version(uint8_t version);
+
  private:
   /** Helper function to free a C writer instance */
   static void deleter(tiledb_vcf_writer_t* w);

@@ -25,6 +25,7 @@
  */
 
 #include "variant_stats.h"
+#include <stdexcept>
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
@@ -33,9 +34,18 @@
 namespace tiledb::vcf {
 
 int32_t VariantStats::max_length_ = 0;
+
+uint32_t VariantStats::array_version_ = VariantStats::VARIANT_STATS_MIN_VERSION;
 //===================================================================
 //= public static functions
 //===================================================================
+
+void VariantStats::set_array_version(uint32_t version) {
+  if (version < VARIANT_STATS_MIN_VERSION || version > VARIANT_STATS_VERSION)
+    throw std::out_of_range(
+        "invalid variant stats version specified for writer");
+  array_version_ = version;
+}
 
 std::string VariantStats::get_uri(const Group& group) {
   try {
@@ -142,7 +152,7 @@ void VariantStats::create(
 
   // Write metadata
   Array array(ctx, uri, TILEDB_WRITE);
-  array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
+  array.put_metadata("version", TILEDB_UINT32, 1, &array_version_);
 
   // Add array to root group
   // Group assests use full paths for tiledb cloud, relative paths otherwise

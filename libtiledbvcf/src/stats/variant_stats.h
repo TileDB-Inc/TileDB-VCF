@@ -69,6 +69,12 @@ class VariantStats {
   //= public static
   //===================================================================
   /**
+   * @brief Assign the array version to write
+   *
+   * @param version the version to write
+   */
+  static void set_array_version(uint32_t version);
+  /**
    * @brief Get the URI from TileDB-VCF dataset group
    *
    * @param group TileDB-VCF dataset group
@@ -206,7 +212,8 @@ class VariantStats {
   inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
 
   // Array version
-  inline static const int VARIANT_STATS_VERSION = 3;
+  inline static const uint32_t VARIANT_STATS_VERSION = 3;
+  inline static const uint32_t VARIANT_STATS_MIN_VERSION = 2;
 
   // Array columns
   enum ColumnNames { CONTIG, POS, SAMPLE, ALLELE };
@@ -240,6 +247,8 @@ class VariantStats {
 
   // maximum allele length ecountered
   static int32_t max_length_;
+
+  static uint32_t array_version_;
 
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
