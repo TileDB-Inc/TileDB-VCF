@@ -22,7 +22,7 @@ jobs:
     # configuration step fails on macos-12 and macos-13
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Configure libtiledbvcf
         run: |
           cmake -S libtiledbvcf -B $(pwd)/libtiledbvcf/build \
@@ -34,7 +34,7 @@ jobs:
         run: cmake --build $(pwd)/libtiledbvcf/build -j 2 --config Debug
       - name: Upload coredump as artifact if build failed
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coredump
           path: libtiledbvcf/build/core
@@ -43,7 +43,7 @@ jobs:
       - name: Install libtiledbvcf
         run: cmake --build $(pwd)/libtiledbvcf/build --config Debug --target install-libtiledbvcf
       - name: Upload libtiledbvcf as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libtiledbvcf
           path: dist/*
@@ -69,26 +69,32 @@ jobs:
     env:
       DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: libtiledbvcf
           path: dist
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install libtiledb
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: ci
+          create-args: tiledb
       - name: Install dependencies
-        run: python -m pip install --prefer-binary \
-          pyarrow==10.0.1
+        run: python -m pip install --prefer-binary pyarrow==10.0.1
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+          TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
           echo $DYLD_LIBRARY_PATH
+          echo $TileDB_DIR
           cd apis/python
           python -m pip install -v .[test]
       - name: Confirm linking
@@ -97,9 +103,9 @@ jobs:
     runs-on: macos-11
     needs: libtiledbvcf
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: libtiledbvcf
           path: dist
@@ -113,9 +119,9 @@ jobs:
     runs-on: macos-11
     needs: libtiledbvcf
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: libtiledbvcf
           path: dist
@@ -131,9 +137,9 @@ jobs:
     runs-on: macos-11
     needs: libtiledbvcf
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: libtiledbvcf
           path: dist
@@ -148,16 +154,15 @@ jobs:
   python-standalone:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: python -m pip install --prefer-binary \
-          pyarrow==10.0.1
+        run: python -m pip install --prefer-binary pyarrow==10.0.1
       - name: Build tiledbvcf-py
         run: cd apis/python && python -m pip install -v .[test]
       - name: Confirm linking

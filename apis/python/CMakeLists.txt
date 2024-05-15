@@ -30,12 +30,11 @@ project(
     LANGUAGES CXX
 )
 
-find_package(pybind11 REQUIRED)
-
 # Search for libtilebdvcf in the default install directory and in the directory
 # specified by the LIBTILEDBVCF_PATH environment variable.
 set(LIBTILEDBVCF_SEARCH_PATHS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib"
+    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/dist/lib"
     "$ENV{LIBTILEDBVCF_PATH}"
 )
 
@@ -51,14 +50,14 @@ find_library(
 if(NOT TILEDBVCF_LIB)
     message(STATUS "Building libtiledbvcf from source")
 
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build")
 
     execute_process(
         COMMAND bash -c "\
             ${CMAKE_COMMAND} .. && \
             ${CMAKE_COMMAND} --build . && \
             ${CMAKE_COMMAND} --build . --target install-libtiledbvcf"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../libtiledbvcf/build"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build"
     )
 
     find_library(
@@ -73,7 +72,7 @@ if(NOT TILEDBVCF_LIB)
 else()
     message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
     get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
-    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
+    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include/tiledbvcf" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
     cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
 
     # Find required shared libs for the current platform
@@ -102,7 +101,26 @@ else()
     file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 endif()
 
+# Search for TileDB in the EP install directory
+list(PREPEND CMAKE_PREFIX_PATH 
+    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
+)
+
+# Search TileDB_DIR first if it is defined
+if (DEFINED TileDB_DIR)
+    list(PREPEND CMAKE_PREFIX_PATH "${TileDB_DIR}")
+endif()
+
+find_package(TileDB REQUIRED)
+
+if (TILEDB_FOUND)
+    get_target_property(TILEDB_LIB TileDB::tiledb_shared IMPORTED_LOCATION_RELEASE)
+    message(STATUS "Found TileDB: ${TILEDB_LIB}")
+endif()
+
 set(VCF_TARGET_NAME libtiledbvcf)
+
+find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
     ${VCF_TARGET_NAME}
@@ -114,9 +132,15 @@ pybind11_add_module(
 
 target_compile_features(${VCF_TARGET_NAME} PRIVATE cxx_std_20)
 
+if (NOT WIN32)
+    target_compile_options(${VCF_TARGET_NAME} PRIVATE -Wno-deprecated-declarations)
+endif()
+
 target_include_directories(
     ${VCF_TARGET_NAME} PRIVATE
     ${TILEDBVCF_INCLUDE_DIR}
+    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/src"
+    $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(

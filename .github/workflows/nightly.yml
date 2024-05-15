@@ -30,7 +30,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
       - name: Clone TileDB
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: TileDB-Inc/TileDB
           ref: ${{ matrix.branches.libtiledb }}
@@ -42,7 +42,7 @@ jobs:
           ref: ${{ matrix.branches.tiledb-py }}
           path: TileDB-Py
       - name: Clone TileDB-VCF
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: TileDB-VCF
           fetch-depth: 0 # fetch everything for python setuptools_scm
@@ -72,7 +72,7 @@ jobs:
       - name: Test libtiledbvcf
         run: bash TileDB-VCF/ci/nightly/test-libtiledbvcf.sh
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install dependencies for tiledb-py build
@@ -96,7 +96,7 @@ jobs:
     needs: nightly
     if: ( failure() || cancelled() ) && github.repository_owner == 'TileDB-Inc' && github.event_name == 'schedule'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Open Issue
         uses: TileDB-Inc/github-actions/open-issue@main
         with:

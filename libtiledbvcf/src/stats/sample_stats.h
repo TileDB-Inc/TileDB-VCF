@@ -32,9 +32,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include <htslib/vcf.h>
 #include <tiledb/tiledb>
 #include <tiledb/tiledb_experimental>
+
+#include "stats/array_buffers.h"
+#include "tiledbvcf_export.h"
+
+// Forward declarations for htslib
+struct bcf1_t;
+struct bcf_hdr_t;
 
 namespace tiledb::vcf {
 
@@ -94,18 +100,56 @@ class SampleStats {
    */
   static void close();
 
+  /**
+   * @brief Consolidate commits
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void consolidate_commits(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Consolidate fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void consolidate_fragment_metadata(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Vacuum commits
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void vacuum_commits(std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Vacuum fragment metadata
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   */
+  static void vacuum_fragment_metadata(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
+   * @brief Read the sample stats for the provided or all samples.
+   */
+
+  TILEDBVCF_EXPORT
+  static std::shared_ptr<ArrayBuffers> sample_qc(
+      std::string dataset_uri,
+      std::vector<std::string> samples = {},
+      std::map<std::string, std::string> config = {});
+
   // Constructor
   SampleStats() = default;
 
   // Destructor
-  ~SampleStats() {
-    // Flush any remaining stats
-    flush(true);
-
-    if (dst_ != nullptr) {
-      hts_free(dst_);
-    }
-  }
+  ~SampleStats();
 
   // Copy and move constructors/assignments
   SampleStats(const SampleStats&) = delete;
@@ -132,9 +176,11 @@ class SampleStats {
   /**
    * @brief Write buffered stats to the TileDB array and reset the buffers.
    *
-   * If finalize is true, the query buffers are cleared and the query is
-   * finalized. Finalize should be called after all records have been
-   * processed for a contig or merged contig.
+   * For the sample stats, there is no need to flush the buffers until the
+   * ingestion is complete. The required flush happens in the destructor.
+   *
+   * Note: Each ingestion thread will add one fragment to the sample stats
+   * array.
    *
    * @param finalize If true, finalize the query.
    */
@@ -143,6 +189,9 @@ class SampleStats {
  private:
   // Array URI basename
   inline static const std::string SAMPLE_STATS_ARRAY = "sample_stats";
+
+  // Array version
+  inline static const int SAMPLE_STATS_VERSION = 1;
 
   // TileDB array pointer
   inline static std::shared_ptr<Array> array_ = nullptr;

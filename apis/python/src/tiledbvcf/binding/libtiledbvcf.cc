@@ -1,19 +1,52 @@
+/**
+ * @section LICENSE
+ *
+ * The MIT License
+ *
+ * @copyright Copyright (c) 2019-2024 TileDB, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
-#include <tiledbvcf/tiledbvcf.h>
+#include <tiledbvcf.h>
 
-#include <map>
-#include <stdexcept>
+// C++ API bindings
+#include "sample_stats.h"
 
+// C API bindings
 #include "reader.h"
 #include "writer.h"
 
+namespace tiledbvcfpy {
+
 namespace py = pybind11;
-using namespace tiledbvcfpy;
+using namespace tiledb::vcf;
 
 PYBIND11_MODULE(libtiledbvcf, m) {
-  m.doc() = "Python binding of the TileDB-VCF library C API.";
+  m.doc() = "Python binding for TileDB-VCF.";
 
+  // C++ API bindings
+  load_sample_stats(m);
+
+  // C API bindings
   m.def("config_logging", &config_logging);
 
   py::class_<Reader>(m, "Reader")
@@ -121,3 +154,5 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_compression_level", &Writer::set_compression_level)
       .def("set_variant_stats_version", &Writer::set_variant_stats_version);
 }
+
+}  // namespace tiledbvcfpy

@@ -1,11 +1,16 @@
 .ninja_deps
 .ninja_log
+.pytest_cache
 CMakeCache.txt
 CMakeFiles/
 CMakeInit.txt
 build.ninja
 build/
 cmake_install.cmake
+dist/
 src/tiledbvcf/libhts.so.*
 src/tiledbvcf/version.py
 wheels/
+
+# exclude from sdist
+dist_links/libtiledbvcf/test/inputs

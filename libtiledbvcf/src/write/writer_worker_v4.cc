@@ -259,7 +259,6 @@ bool WriterWorkerV4::resume() {
 
 void WriterWorkerV4::flush_ingestion_tasks(bool finalize) {
   ac_.flush(finalize);
-  ss_.flush(finalize);
   vs_.flush(finalize);
 }
 

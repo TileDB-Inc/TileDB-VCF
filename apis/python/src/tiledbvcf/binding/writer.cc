@@ -29,7 +29,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <tiledbvcf/tiledbvcf.h>
+#include <tiledbvcf.h>
 
 #include <map>
 #include <set>

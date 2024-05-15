@@ -36,8 +36,6 @@
 #include <span>
 #include <tiledb/tiledb>
 
-#include "utils/logger_public.h"
-
 namespace tiledb::vcf {
 
 using namespace tiledb;
@@ -66,6 +64,29 @@ class ColumnBuffer {
   static std::shared_ptr<ColumnBuffer> create(
       std::shared_ptr<Array> array, std::string_view name);
 
+  /**
+   * @brief Create a ColumnBuffer with the provided parameters. The primary
+   * use case is to create a ColumnBuffer that will be populated with
+   * push_back/push_null and passed directly to Arrow.
+   *
+   * @param name Column name
+   * @param type TileDB datatype
+   * @param is_var Column type is variable length
+   * @param is_nullable Column can contain null values
+   * @return ColumnBuffer
+   */
+  static std::shared_ptr<ColumnBuffer> create(
+      std::string_view name,
+      tiledb_datatype_t type,
+      bool is_var = false,
+      bool is_nullable = false);
+
+  /**
+   * @brief Convert a bytemap to a bitmap in place.
+   *
+   */
+  static void to_bitmap(std::span<uint8_t> bytemap);
+
   //===================================================================
   //= public non-static
   //===================================================================
@@ -76,25 +97,25 @@ class ColumnBuffer {
    * @param name Column name
    * @param type TileDB datatype
    * @param num_cells Number of cells
-   * @param data View of data
+   * @param num_bytes Number of bytes
    * @param is_var Column type is variable length
    * @param is_nullable Column can contain null values
+   * @param is_arrow The buffer is being built for Arrow
    */
   ColumnBuffer(
       std::string_view name,
       tiledb_datatype_t type,
       size_t num_cells,
-      size_t data,
+      size_t num_bytes,
       bool is_var = false,
-      bool is_nullable = false);
+      bool is_nullable = false,
+      bool is_arrow = false);
+
+  ~ColumnBuffer();
 
   ColumnBuffer() = delete;
   ColumnBuffer(const ColumnBuffer&) = delete;
   ColumnBuffer(ColumnBuffer&&) = default;
-
-  ~ColumnBuffer() {
-    LOG_TRACE(fmt::format("[ColumnBuffer] release '{}'", name_));
-  }
 
   /**
    * @brief Attach this ColumnBuffer to a TileDB query.
@@ -208,6 +229,22 @@ class ColumnBuffer {
   }
 
   /**
+   * @brief Convert the data bytemap to a bitmap in place.
+   *
+   */
+  void data_to_bitmap() {
+    ColumnBuffer::to_bitmap(data<uint8_t>());
+  }
+
+  /**
+   * @brief Convert the validity bytemap to a bitmap in place.
+   *
+   */
+  void validity_to_bitmap() {
+    ColumnBuffer::to_bitmap(validity());
+  }
+
+  /**
    * @brief Push data into the buffer.
    *
    * This template handles non-variable length data types.
@@ -227,8 +264,6 @@ class ColumnBuffer {
     while (data_.capacity() < (num_cells_ + 1) * type_size_) {
       // Update the data buffer size
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -263,8 +298,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < num_elements_ + value.size()) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -275,8 +308,15 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of bytes in the data buffer.
-    offsets_.push_back(num_elements_);
+    if (!is_arrow_) {
+      offsets_.push_back(num_elements_);
+    }
     num_elements_ += value.size();
+
+    // Add extra offset for arrow.
+    if (is_arrow_) {
+      offsets_.push_back(num_elements_);
+    }
 
     size_t bytes = num_elements_ + offsets_.size() * sizeof(uint64_t);
 
@@ -303,8 +343,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < num_elements_ + value.size()) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -315,8 +353,15 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of bytes in the data buffer.
-    offsets_.push_back(num_elements_);
+    if (!is_arrow_) {
+      offsets_.push_back(num_elements_);
+    }
     num_elements_ += value.size();
+
+    // Add extra offset for arrow.
+    if (is_arrow_) {
+      offsets_.push_back(num_elements_);
+    }
 
     size_t bytes = num_elements_ + offsets_.size() * sizeof(uint64_t);
 
@@ -345,8 +390,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -360,8 +403,15 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of elements in the data buffer.
-    offsets_.push_back(num_elements_ * type_size_);
+    if (!is_arrow_) {
+      offsets_.push_back(num_elements_ * type_size_);
+    }
     num_elements_ += value.size();
+
+    // Add extra offset for arrow.
+    if (is_arrow_) {
+      offsets_.push_back(num_elements_ * type_size_);
+    }
 
     size_t bytes =
         num_elements_ * type_size_ + offsets_.size() * sizeof(uint64_t);
@@ -390,8 +440,6 @@ class ColumnBuffer {
     // Allocate more memory if needed
     while (data_.capacity() < (num_elements_ + value.size()) * type_size_) {
       data_.reserve(data_.capacity() + DEFAULT_ALLOC_BYTES);
-      LOG_TRACE(
-          "[ColumnBuffer] Reserved {} bytes for {}", data_.capacity(), name_);
     }
 
     // Resize the buffer and copy data into it.
@@ -405,8 +453,15 @@ class ColumnBuffer {
     num_cells_++;
 
     // The offset is the number of elements in the data buffer.
-    offsets_.push_back(num_elements_ * type_size_);
+    if (!is_arrow_) {
+      offsets_.push_back(num_elements_ * type_size_);
+    }
     num_elements_ += value.size();
+
+    // Add extra offset for arrow.
+    if (is_arrow_) {
+      offsets_.push_back(num_elements_ * type_size_);
+    }
 
     size_t bytes =
         num_elements_ * type_size_ + offsets_.size() * sizeof(uint64_t);
@@ -514,6 +569,9 @@ class ColumnBuffer {
 
   // Validity buffer (optional).
   std::vector<uint8_t> validity_;
+
+  // The buffer is being built for Arrow, add an extra offset
+  bool is_arrow_ = false;
 };
 
 }  // namespace tiledb::vcf

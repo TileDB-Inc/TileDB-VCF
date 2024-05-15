@@ -36,6 +36,7 @@
 #include <tiledb/tiledb>
 
 #include "column_buffer.h"
+#include "tiledbvcf_export.h"
 
 namespace tiledb::vcf {
 using namespace tiledb;
@@ -53,6 +54,7 @@ class ArrayBuffers {
    * @param name Column name
    * @return std::shared_ptr<ColumnBuffer> Column buffer
    */
+  TILEDBVCF_EXPORT
   std::shared_ptr<ColumnBuffer> at(const std::string& name);
 
   /**

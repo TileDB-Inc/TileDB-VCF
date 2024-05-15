@@ -2221,6 +2221,8 @@ void TileDBVCFDataset::consolidate_commits(const UtilsParams& params) {
   AlleleCount::consolidate_commits(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array commits.");
   VariantStats::consolidate_commits(ctx_, group);
+  LOG_DEBUG("Consolidate sample_stats array commits.");
+  SampleStats::consolidate_commits(ctx_, group);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragment_metadata(
@@ -2250,6 +2252,8 @@ void TileDBVCFDataset::consolidate_fragment_metadata(
   AlleleCount::consolidate_fragment_metadata(ctx_, group);
   LOG_DEBUG("Consolidate variant_stats array fragment metadata.");
   VariantStats::consolidate_fragment_metadata(ctx_, group);
+  LOG_DEBUG("Consolidate sample_stats array fragment metadata.");
+  SampleStats::consolidate_fragment_metadata(ctx_, group);
 }
 
 void TileDBVCFDataset::consolidate_vcf_header_array_fragments(
@@ -2298,6 +2302,8 @@ void TileDBVCFDataset::vacuum_commits(const UtilsParams& params) {
   AlleleCount::vacuum_commits(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array commits.");
   VariantStats::vacuum_commits(ctx_, group);
+  LOG_DEBUG("Vacuum sample_stats array commits.");
+  SampleStats::vacuum_commits(ctx_, group);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragment_metadata(
@@ -2326,6 +2332,8 @@ void TileDBVCFDataset::vacuum_fragment_metadata(const UtilsParams& params) {
   AlleleCount::vacuum_fragment_metadata(ctx_, group);
   LOG_DEBUG("Vacuum variant_stats array fragment metadata.");
   VariantStats::vacuum_fragment_metadata(ctx_, group);
+  LOG_DEBUG("Vacuum sample_stats array fragment metadata.");
+  SampleStats::vacuum_fragment_metadata(ctx_, group);
 }
 
 void TileDBVCFDataset::vacuum_vcf_header_array_fragments(

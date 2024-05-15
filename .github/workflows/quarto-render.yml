@@ -9,7 +9,7 @@ jobs:
   quarto-render-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: "Install Quarto"
       uses: quarto-dev/quarto-actions/setup@v2

@@ -31,6 +31,7 @@
  */
 
 #include "column_buffer.h"
+#include "utils/logger_public.h"
 
 namespace tiledb::vcf {
 
@@ -75,6 +76,32 @@ std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
   throw std::runtime_error("[ColumnBuffer] Column name not found: " + name_str);
 }
 
+std::shared_ptr<ColumnBuffer> ColumnBuffer::create(
+    std::string_view name,
+    tiledb_datatype_t type,
+    bool is_var,
+    bool is_nullable) {
+  // Set the initial size to 0. The buffers will be sized in the constructor.
+  return std::make_shared<ColumnBuffer>(
+      name, type, 0, 0, is_var, is_nullable, true);
+}
+
+void ColumnBuffer::to_bitmap(std::span<uint8_t> bytemap) {
+  int i_dst = 0;
+  for (unsigned int i_src = 0; i_src < bytemap.size(); i_src++) {
+    // Overwrite every 8 bytes with a one-byte bitmap
+    if (i_src % 8 == 0) {
+      // Each bit in the bitmap corresponds to one byte in the bytemap
+      // Note: the bitmap must be byte-aligned (8 bits)
+      int bitmap = 0;
+      for (unsigned int i = i_src; i < i_src + 8 && i < bytemap.size(); i++) {
+        bitmap |= bytemap[i] << (i % 8);
+      }
+      bytemap[i_dst++] = bitmap;
+    }
+  }
+}
+
 //===================================================================
 //= public non-static
 //===================================================================
@@ -85,29 +112,46 @@ ColumnBuffer::ColumnBuffer(
     size_t num_cells,
     size_t num_bytes,
     bool is_var,
-    bool is_nullable)
+    bool is_nullable,
+    bool is_arrow)
     : name_(name)
     , type_(type)
     , type_size_(tiledb::impl::type_size(type))
     , num_cells_(0)
     , is_var_(is_var)
-    , is_nullable_(is_nullable) {
+    , is_nullable_(is_nullable)
+    , is_arrow_(is_arrow) {
   LOG_TRACE(fmt::format(
       "[ColumnBuffer] {} {} bytes is_var={} is_nullable={}",
       name,
       num_bytes,
       is_var_,
       is_nullable_));
+
+  // Adjust the number of cells and bytes if the buffer is for arrow.
+  if (num_cells == 0 && num_bytes == 0 && is_arrow) {
+    num_bytes = DEFAULT_ALLOC_BYTES;
+    num_cells = num_bytes / sizeof(uint64_t);
+  }
+
   // Call reserve() to allocate memory without initializing the contents.
   // This reduce the time to allocate the buffer and reduces the
   // resident memory footprint of the buffer.
   data_.reserve(num_bytes);
   if (is_var_) {
     offsets_.reserve(num_cells + 1);
+    if (is_arrow_) {
+      // Arrow requires an extra offset for the last cell.
+      offsets_.push_back(0);
+    }
   }
   if (is_nullable_) {
     validity_.reserve(num_cells);
   }
+}
+
+ColumnBuffer::~ColumnBuffer() {
+  LOG_TRACE(fmt::format("[ColumnBuffer] release '{}'", name_));
 }
 
 void ColumnBuffer::attach(Query& query) {

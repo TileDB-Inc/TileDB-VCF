@@ -35,8 +35,8 @@ namespace tiledb {
 namespace vcf {
 
 PVCFExporter::PVCFExporter(const std::string& output_uri, ExportFormat fmt)
-    : uri_(output_uri)
-    , fp_(nullptr, hts_close) {
+    : fp_(nullptr, hts_close) {
+  uri_ = output_uri;
   need_headers_ = true;
   switch (fmt) {
     case ExportFormat::CompressedBCF:
