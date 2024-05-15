@@ -471,6 +471,10 @@ void add_create(CLI::App& app) {
          args->checksum,
          "Checksum to use for dataset validation on read and writes.")
       ->transform(CLI::CheckedTransformer(filter_map));
+  cmd->add_option(
+      "--variant-stats-version",
+      args->variant_stats_array_version,
+      "Select which schema version of variant stats to use: '2', or '3' ");
 
   cmd->option_defaults()->group("Debug options");
   add_logging_options(cmd, args->log_level, args->log_file);

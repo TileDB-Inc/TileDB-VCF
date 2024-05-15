@@ -118,5 +118,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("set_enable_variant_stats", &Writer::set_enable_variant_stats)
       .def("set_enable_sample_stats", &Writer::set_enable_sample_stats)
       .def("set_compress_sample_dim", &Writer::set_compress_sample_dim)
-      .def("set_compression_level", &Writer::set_compression_level);
+      .def("set_compression_level", &Writer::set_compression_level)
+      .def("set_variant_stats_version", &Writer::set_variant_stats_version);
 }

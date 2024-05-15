@@ -25,6 +25,7 @@
  */
 
 #include "variant_stats.h"
+#include <stdexcept>
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
@@ -33,9 +34,18 @@
 namespace tiledb::vcf {
 
 int32_t VariantStats::max_length_ = 0;
+
+uint32_t VariantStats::array_version_ = VariantStats::VARIANT_STATS_MIN_VERSION;
 //===================================================================
 //= public static functions
 //===================================================================
+
+void VariantStats::set_array_version(uint32_t version) {
+  if (version < VARIANT_STATS_MIN_VERSION || version > VARIANT_STATS_VERSION)
+    throw std::out_of_range(
+        "invalid variant stats version specified for writer");
+  array_version_ = version;
+}
 
 std::string VariantStats::get_uri(const Group& group) {
   try {
@@ -121,7 +131,10 @@ void VariantStats::create(
       Dimension::create<uint32_t>(ctx, "end", {{pos_min, pos_max}}, pos_extent);
   end.set_filter_list(int_coord_filters);  // d3
 
-  domain.add_dimensions(contig, pos, sample, end);
+  domain.add_dimensions(contig, pos);
+  if (array_version_ >= 3) {
+    domain.add_dimensions(sample, end);
+  }
   schema.set_domain(domain);
 
   auto allele =
@@ -134,7 +147,10 @@ void VariantStats::create(
   auto max_length =
       Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
 
-  schema.add_attributes(ac, an, n_hom, max_length);
+  schema.add_attributes(ac, an, n_hom);
+  if (array_version_ >= 3) {
+    schema.add_attribute(max_length);
+  }
 
   // Create array
   auto uri = get_uri(root_uri);
@@ -142,7 +158,7 @@ void VariantStats::create(
 
   // Write metadata
   Array array(ctx, uri, TILEDB_WRITE);
-  array.put_metadata("version", TILEDB_UINT32, 1, &VARIANT_STATS_VERSION);
+  array.put_metadata("version", TILEDB_UINT32, 1, &array_version_);
 
   // Add array to root group
   // Group assests use full paths for tiledb cloud, relative paths otherwise
@@ -170,9 +186,35 @@ void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("[VariantStats] Open array '{}'", uri);
 
+  // Determine array version
+  Array fetch_version(*ctx, uri, TILEDB_READ);
+  const void* version = 0;
+  tiledb_datatype_t version_datatype = TILEDB_ANY;
+  uint32_t version_cardinality = 0;
+  fetch_version.get_metadata(
+      "version", &version_datatype, &version_cardinality, &version);
+  if (version) {
+    if (version_datatype == TILEDB_UINT32 && version_cardinality == 1) {
+      array_version_ = *(reinterpret_cast<const uint32_t*>(version));
+    } else {
+      throw std::runtime_error(
+          "malformed version for variant stats array encountered while opening "
+          "for writing");
+    }
+  } else {
+    throw std::runtime_error(
+        "missing version for variant stats array encountered while opening for "
+        "writing");
+  }
+  if (array_version_ > VARIANT_STATS_VERSION ||
+      array_version_ < VARIANT_STATS_MIN_VERSION)
+    throw std::runtime_error(
+        "encountered variant stats array version out of range while writing");
+
   // Open array
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
   enabled_ = true;
+  LOG_DEBUG("[VariantStats] opening array with version {}", array_version_);
 
   // Create query
   query_ = std::make_unique<Query>(*ctx, *array_);
@@ -230,19 +272,21 @@ void VariantStats::close() {
     return;
   }
 
-  Array fetch_max(*ctx_, array_->uri(), TILEDB_READ);
-  const void* alt_max = 0;
-  tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
-  uint32_t alt_max_num = 0;
-  fetch_max.get_metadata(
-      "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
-  if (alt_max)
-    if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
-      if (max_length_ < *((int32_t*)alt_max)) {
-        max_length_ = *((int32_t*)alt_max);
+  if (array_version_ >= 3) {
+    Array fetch_max(*ctx_, array_->uri(), TILEDB_READ);
+    const void* alt_max = 0;
+    tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
+    uint32_t alt_max_num = 0;
+    fetch_max.get_metadata(
+        "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
+    if (alt_max)
+      if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
+        if (max_length_ < *((int32_t*)alt_max)) {
+          max_length_ = *((int32_t*)alt_max);
+        }
       }
-    }
-  array_->put_metadata("max_length", TILEDB_INT32, 1, &max_length_);
+    array_->put_metadata("max_length", TILEDB_INT32, 1, &max_length_);
+  }
 
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("[VariantStats] Close array");
@@ -367,16 +411,20 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
-        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
-        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+          .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
+    }
 
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
-    query_->set_data_buffer("max_length", max_length_buffer);
-    query_->set_data_buffer("end", end_buffer);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer("max_length", max_length_buffer);
+      query_->set_data_buffer("end", end_buffer);
+    }
 
     auto st = query_->submit();
     if (st == Query::Status::FAILED) {
@@ -398,8 +446,10 @@ void VariantStats::flush(bool finalize) {
     ac_buffer.clear();
     an_buffer.clear();
     n_hom_buffer.clear();
-    max_length_buffer.clear();
-    end_buffer.clear();
+    if (array_version_ >= 3) {
+      max_length_buffer.clear();
+      end_buffer.clear();
+    }
   }
 
   if (finalize) {
@@ -408,20 +458,45 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
-        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
-        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
+
+    if (array_version_ >= 3) {
+      query_->set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+          .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
+    }
+
     query_->set_data_buffer("ac", ac_buffer);
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
-    query_->set_data_buffer("max_length", max_length_buffer);
-    query_->set_data_buffer("end", end_buffer);
+    if (array_version_ >= 3) {
+      query_->set_data_buffer("max_length", max_length_buffer);
+      query_->set_data_buffer("end", end_buffer);
+    }
     finalize_query();
   }
 }
 
 void VariantStats::process(
+    const bcf_hdr_t* hdr,
+    const std::string& sample_name,
+    const std::string& contig,
+    uint32_t pos,
+    bcf1_t* rec) {
+  switch (array_version_) {
+    case 2:
+      process_v2(hdr, sample_name, contig, pos, rec);
+      break;
+    case 3:
+      process_v3(hdr, sample_name, contig, pos, rec);
+      break;
+    default:
+      throw std::runtime_error(
+          "invalid array version encountered when processing varinat stats");
+  }
+}
+
+inline void VariantStats::process_v3(
     const bcf_hdr_t* hdr,
     const std::string& sample_name,
     const std::string& contig,
@@ -578,6 +653,147 @@ void VariantStats::process(
   }
 }
 
+inline void VariantStats::process_v2(
+    const bcf_hdr_t* hdr,
+    const std::string& sample_name,
+    const std::string& contig,
+    uint32_t pos,
+    bcf1_t* rec) {
+  if (!enabled_) {
+    return;
+  }
+
+  HtslibValueMem val;
+  int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
+  // Check if locus has changed
+  if (contig != contig_ || pos != pos_ || sample_name != sample_) {
+    if (contig != contig_) {
+      LOG_DEBUG("[VariantStats] new contig = {}", contig);
+    } else if (pos < pos_) {
+      LOG_ERROR(
+          "[VariantStats] contig {} pos out of order {} < {} for sample {}",
+          contig,
+          pos,
+          pos_,
+          sample_name);
+    }
+    update_results();
+    contig_ = contig;
+    pos_ = pos;
+    end_ = end_pos;
+    sample_ = sample_name;
+  }
+
+  // Read GT data from record
+  int ngt = bcf_get_genotypes(hdr, rec, &dst_, &ndst_);
+
+  // Skip if no GT data
+  if (ngt < 0) {
+    return;
+  }
+
+  std::vector<int> gt(ngt);
+  std::vector<int> gt_missing(ngt);
+  for (int i = 0; i < ngt; i++) {
+    gt[i] = bcf_gt_allele(dst_[i]);
+    gt_missing[i] = bcf_gt_is_missing(dst_[i]);
+  }
+  int n_allele = rec->n_allele;
+
+  // Skip if GT value is not a valid allele
+  {
+    bool any_exceeds_nallele = false;
+    for (int i = 0; i < ngt; i++) {
+      any_exceeds_nallele = any_exceeds_nallele || gt[i] >= n_allele;
+    }
+    if (any_exceeds_nallele) {
+      LOG_WARN(
+          "[VariantStats] skipping invalid GT value: sample={} locus={}:{} "
+          "gt={}/{} n_allele={}",
+          sample_name,
+          contig,
+          pos + 1,
+          gt[0],
+          gt[1],
+          n_allele);
+      return;
+    }
+  }
+
+  // Skip if alleles are missing
+  if (ngt >= 0) {
+    bool all_gt_missing = true;
+    for (int i = 0; i < ngt; i++) {
+      all_gt_missing = all_gt_missing && gt_missing[i];
+    }
+    if (all_gt_missing) {
+      return;
+    }
+  } else {
+    return;  // ngt < 0
+  }
+
+  // Add sample name to the set of sample names in this query
+  sample_names_.insert(sample_name);
+
+  // Update called for the REF allele
+  auto ref = rec->d.allele[0];
+
+  // Determine homozygosity, generalized over n genotypes:
+  bool homozygous = true;
+  {
+    int first_gt = 0;
+    bool first_gt_found = false;
+    for (int i = 0; i < ngt; i++) {
+      if (!gt_missing[i]) {
+        if (first_gt_found) {
+          homozygous = homozygous && gt[i] == first_gt;
+        } else {
+          first_gt_found = true;
+          first_gt = gt[i];
+        }
+      } else {
+        homozygous = false;
+      }
+    }
+  }
+
+  int length = end_pos - pos + 1;
+  if ((length = end_pos - pos + 1) > max_length_) {
+    max_length_ = length;
+  }
+
+  bool already_added_homozygous = false;
+  for (int i = 0; i < ngt; i++) {
+    // If not missing, update allele count for GT[i]
+    if (!gt_missing[i]) {
+      auto alt = alt_string(ref, rec->d.allele[gt[i]]);
+
+      if (gt[i] == 0) {
+        values_["ref"].ac += count_delta_;
+        values_["ref"].an = ngt * count_delta_;
+        values_["ref"].end = end_;
+        values_["ref"].max_length = max_length_;
+      } else {
+        values_[alt].ac += count_delta_;
+        values_[alt].an = ngt * count_delta_;
+        values_[alt].end = end_;
+        values_[alt].max_length = max_length_;
+      }
+
+      // Update homozygote count
+      if (homozygous && !already_added_homozygous) {
+        if (gt[i] == 0) {
+          values_["ref"].n_hom += count_delta_;
+        } else {
+          values_[alt].n_hom += count_delta_;
+        }
+        already_added_homozygous = true;
+      }
+    }
+  }
+}
+
 //===================================================================
 //= private functions
 //===================================================================
@@ -600,8 +816,10 @@ void VariantStats::update_results() {
       ac_buffer.push_back(value.ac);
       an_buffer.push_back(value.an);
       n_hom_buffer.push_back(value.n_hom);
-      max_length_buffer.push_back(value.max_length);
-      end_buffer.push_back(value.end);
+      if (array_version_ >= 3) {
+        max_length_buffer.push_back(value.max_length);
+        end_buffer.push_back(value.end);
+      }
     }
     values_.clear();
   }

@@ -358,4 +358,10 @@ void Writer::set_compression_level(int level) {
   check_error(writer, tiledb_vcf_writer_set_compression_level(writer, level));
 }
 
+void Writer::set_variant_stats_version(uint8_t version) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_variant_stats_version(writer, version));
+}
+
 }  // namespace tiledbvcfpy

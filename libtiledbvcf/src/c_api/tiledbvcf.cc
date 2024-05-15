@@ -1811,6 +1811,18 @@ int32_t tiledb_vcf_writer_set_compression_level(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_variant_stats_version(
+    tiledb_vcf_writer_t* writer, uint8_t version) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->set_variant_stats_array_version(version)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

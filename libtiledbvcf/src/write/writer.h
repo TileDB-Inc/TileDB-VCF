@@ -379,6 +379,9 @@ class Writer {
   /** Set zstd compression level */
   void set_compression_level(int level);
 
+  /** Set variant stats array version */
+  void set_variant_stats_array_version(uint8_t version);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

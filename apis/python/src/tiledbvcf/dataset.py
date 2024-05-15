@@ -605,6 +605,7 @@ class Dataset(object):
         enable_sample_stats: bool = True,
         compress_sample_dim: bool = True,
         compression_level: int = 4,
+        variant_stats_version: int = 2,
     ):
         """
         Create a new dataset.
@@ -633,6 +634,8 @@ class Dataset(object):
             Enable compression on the sample dimension.
         compression_level
             Compression level for zstd compression.
+        variant_stats_version
+            Version of the variant stats array.
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -674,6 +677,9 @@ class Dataset(object):
 
         if compression_level is not None:
             self.writer.set_compression_level(compression_level)
+
+        if variant_stats_version is not None:
+            self.writer.set_variant_stats_version(variant_stats_version)
 
         # This call throws an exception if the dataset already exists.
         self.writer.create_dataset()

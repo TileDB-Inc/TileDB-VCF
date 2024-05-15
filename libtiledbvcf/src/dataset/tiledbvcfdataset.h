@@ -68,6 +68,7 @@ struct CreationParams {
   bool enable_sample_stats = true;
   bool compress_sample_dim = true;
   int compression_level = 4;
+  uint8_t variant_stats_array_version = 2;
 };
 
 /** Arguments/params for dataset registration. */

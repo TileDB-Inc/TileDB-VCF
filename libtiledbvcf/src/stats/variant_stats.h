@@ -69,6 +69,12 @@ class VariantStats {
   //= public static
   //===================================================================
   /**
+   * @brief Assign the array version to write
+   *
+   * @param version the version to write
+   */
+  static void set_array_version(uint32_t version);
+  /**
    * @brief Get the URI from TileDB-VCF dataset group
    *
    * @param group TileDB-VCF dataset group
@@ -206,7 +212,8 @@ class VariantStats {
   inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
 
   // Array version
-  inline static const int VARIANT_STATS_VERSION = 3;
+  inline static const uint32_t VARIANT_STATS_VERSION = 3;
+  inline static const uint32_t VARIANT_STATS_MIN_VERSION = 2;
 
   // Array columns
   enum ColumnNames { CONTIG, POS, SAMPLE, ALLELE };
@@ -240,6 +247,8 @@ class VariantStats {
 
   // maximum allele length ecountered
   static int32_t max_length_;
+
+  static uint32_t array_version_;
 
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
@@ -302,6 +311,46 @@ class VariantStats {
 
   // Reusable htslib buffer size for bcf_get_* functions
   int ndst_ = 0;
+
+  /**
+   * @brief Add a record to the stats computation buffer, using version 2
+   * schema.
+   *
+   * Records must be added in order of genomic locus (contig, pos) and each
+   * record must be added exactly once.
+   *
+   * @param hdr VCF header for the record
+   * @param sample_name VCF sample name
+   * @param contig Contig part of the record's locus
+   * @param pos Position part of the record's locus
+   * @param record VCF record
+   */
+  void process_v2(
+      const bcf_hdr_t* hdr,
+      const std::string& sample_name,
+      const std::string& contig,
+      uint32_t pos,
+      bcf1_t* record);
+
+  /**
+   * @brief Add a record to the stats computation buffer, using version 3
+   * schema.
+   *
+   * Records must be added in order of genomic locus (contig, pos) and each
+   * record must be added exactly once.
+   *
+   * @param hdr VCF header for the record
+   * @param sample_name VCF sample name
+   * @param contig Contig part of the record's locus
+   * @param pos Position part of the record's locus
+   * @param record VCF record
+   */
+  void process_v3(
+      const bcf_hdr_t* hdr,
+      const std::string& sample_name,
+      const std::string& contig,
+      uint32_t pos,
+      bcf1_t* record);
 
   /**
    * @brief Move stats for the current locus to the TileDB buffers and start

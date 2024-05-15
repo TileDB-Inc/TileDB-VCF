@@ -1478,5 +1478,9 @@ void Writer::set_compression_level(int level) {
   creation_params_.compression_level = level;
 }
 
+void Writer::set_variant_stats_array_version(uint8_t version) {
+  creation_params_.variant_stats_array_version = version;
+}
+
 }  // namespace vcf
 }  // namespace tiledb

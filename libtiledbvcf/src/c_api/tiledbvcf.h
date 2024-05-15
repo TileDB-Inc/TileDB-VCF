@@ -1698,6 +1698,14 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_compress_sample_dim(
 TILEDBVCF_EXPORT int32_t
 tiledb_vcf_writer_set_compression_level(tiledb_vcf_writer_t* writer, int level);
 
+/**
+ * Sets variant stats array version
+ * @param writer VCF writer object
+ * @param version variant stats array version
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_variant_stats_version(
+    tiledb_vcf_writer_t* writer, uint8_t version);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */
