@@ -30,7 +30,7 @@ namespace tiledb {
 namespace vcf {
 
 uint32_t VCFUtils::get_end_pos(
-    bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val) {
+    const bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val) {
   // Set the default value of END, in case it is not present in the VCF
   uint32_t end = rec->pos + rec->rlen - 1;
 

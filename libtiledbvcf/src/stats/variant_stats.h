@@ -206,16 +206,12 @@ class VariantStats {
   inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";
 
   // Array version
-  inline static const int VARIANT_STATS_VERSION = 2;
+  inline static const int VARIANT_STATS_VERSION = 3;
 
   // Array columns
-  enum ColumnNames { CONTIG, POS, ALLELE };
+  enum ColumnNames { CONTIG, POS, SAMPLE, ALLELE };
   inline static const std::vector<std::string> COLUMN_STR = {
-      "contig", "pos", "allele"};
-
-  // Array attributes
-  enum Attr { AC = 0, N_HOM, LAST_ };
-  inline static const std::vector<std::string> ATTR_STR = {"ac", "n_hom"};
+      "contig", "pos", "sample", "allele"};
 
   // Number of records in the fragment
   inline static std::atomic_int contig_records_ = 0;
@@ -242,20 +238,37 @@ class VariantStats {
   //= private non-static
   //===================================================================
 
+  // maximum allele length ecountered
+  static int32_t max_length_;
+
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
 
   // Set of sample names in this query (per thread)
   std::set<std::string> sample_names_;
 
+  struct FieldValues {
+    int32_t ac = 0;
+    int32_t an = 0;
+    int32_t n_hom = 0;
+    uint32_t max_length = 0;
+    uint32_t end = 0;
+  };
+
   // Stats per allele at the current locus: map allele -> (map attr -> value)
-  std::map<std::string, std::unordered_map<int, int32_t>> values_;
+  std::map<std::string, FieldValues> values_;
 
   // Contig of the current locus
   std::string contig_;
 
+  // current sample
+  std::string sample_;
+
   // Position of the current locus
   uint32_t pos_;
+
+  // End Position of the current locus
+  uint32_t end_;
 
   // Buffer for contigs
   std::string contig_buffer_;
@@ -266,14 +279,23 @@ class VariantStats {
   // Buffer for positions
   std::vector<uint32_t> pos_buffer_;
 
+  // Buffer for samples
+  std::string sample_buffer_;
+
+  // Buffer for contig offsets
+  std::vector<uint64_t> sample_offsets_;
+
   // Buffer for alleles
   std::string allele_buffer_;
 
   // Buffer for allele offsets
   std::vector<uint64_t> allele_offsets_;
 
-  // Buffer for attribute values: map Attr -> value
-  std::unordered_map<int, std::vector<int32_t>> attr_buffers_;
+  std::vector<int32_t> ac_buffer;
+  std::vector<int32_t> an_buffer;
+  std::vector<int32_t> n_hom_buffer;
+  std::vector<uint32_t> max_length_buffer;
+  std::vector<uint32_t> end_buffer;
 
   // Reusable htslib buffer for bcf_get_* functions
   int* dst_ = nullptr;

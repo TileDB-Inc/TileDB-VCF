@@ -77,7 +77,8 @@ class VCFUtils {
    * @param val Reusable memory location for htslib values
    * @return 0-based END position
    */
-  static uint32_t get_end_pos(bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val);
+  static uint32_t get_end_pos(
+      const bcf_hdr_t* hdr, bcf1_t* rec, HtslibValueMem* val);
 
   /**
    * Helper function that reads an HTSlib header instance from the VCF/BCF file

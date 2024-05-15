@@ -27,9 +27,12 @@
 #include "variant_stats.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
+#include "vcf/htslib_value.h"
+#include "vcf/vcf_utils.h"
 
 namespace tiledb::vcf {
 
+int32_t VariantStats::max_length_ = 0;
 //===================================================================
 //= public static functions
 //===================================================================
@@ -50,24 +53,42 @@ void VariantStats::create(
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
+  FilterList sample_filters(ctx);
   FilterList str_filters(ctx);
   FilterList offset_filters(ctx);
   FilterList int_attr_filters(ctx);
 
+  rle_coord_filters.set_max_chunk_size(0);
+  int_coord_filters.set_max_chunk_size(0);
+  sample_filters.set_max_chunk_size(0);
+  str_filters.set_max_chunk_size(0);
+  offset_filters.set_max_chunk_size(0);
+  int_attr_filters.set_max_chunk_size(0);
+
+  int compression_level = 9;
+  Filter compression(ctx, TILEDB_FILTER_ZSTD);
+  compression.set_option(TILEDB_COMPRESSION_LEVEL, compression_level);
+
   rle_coord_filters.add_filter({ctx, TILEDB_FILTER_RLE});
   int_coord_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
-  str_filters.add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
+  sample_filters.add_filter({ctx, TILEDB_FILTER_DICTIONARY})
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
+  str_filters.add_filter(compression);
   offset_filters.add_filter({ctx, TILEDB_FILTER_DOUBLE_DELTA})
       .add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression);
   int_attr_filters.add_filter({ctx, TILEDB_FILTER_BIT_WIDTH_REDUCTION})
-      .add_filter({ctx, TILEDB_FILTER_ZSTD});
+      .add_filter(compression)
+      .add_filter({ctx, TILEDB_FILTER_BYTESHUFFLE});
 
   if (checksum) {
     // rle_coord_filters.add_filter({ctx, checksum});
     int_coord_filters.add_filter({ctx, checksum});
+    sample_filters.add_filter({ctx, checksum});
     str_filters.add_filter({ctx, checksum});
     offset_filters.add_filter({ctx, checksum});
     int_attr_filters.add_filter({ctx, checksum});
@@ -92,18 +113,28 @@ void VariantStats::create(
       ctx, COLUMN_STR[POS], {{pos_min, pos_max}}, pos_extent);
   pos.set_filter_list(int_coord_filters);  // d1
 
-  domain.add_dimensions(contig, pos);
+  auto sample = Dimension::create(
+      ctx, COLUMN_STR[SAMPLE], TILEDB_STRING_ASCII, nullptr, nullptr);
+  sample.set_filter_list(sample_filters);  // d2
+
+  auto end =
+      Dimension::create<uint32_t>(ctx, "end", {{pos_min, pos_max}}, pos_extent);
+  end.set_filter_list(int_coord_filters);  // d3
+
+  domain.add_dimensions(contig, pos, sample, end);
   schema.set_domain(domain);
 
   auto allele =
       Attribute::create<std::string>(ctx, COLUMN_STR[ALLELE], str_filters);
   schema.add_attributes(allele);
 
-  // Create attributes
-  for (int i = 0; i < LAST_; i++) {
-    auto attr = Attribute::create<int32_t>(ctx, ATTR_STR[i], int_attr_filters);
-    schema.add_attributes(attr);
-  }
+  auto ac = Attribute::create<int32_t>(ctx, "ac", int_attr_filters);
+  auto an = Attribute::create<int32_t>(ctx, "an", int_attr_filters);
+  auto n_hom = Attribute::create<int32_t>(ctx, "n_hom", int_attr_filters);
+  auto max_length =
+      Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
+
+  schema.add_attributes(ac, an, n_hom, max_length);
 
   // Create array
   auto uri = get_uri(root_uri);
@@ -194,9 +225,24 @@ void VariantStats::finalize_query() {
 }
 
 void VariantStats::close() {
+  // Prepare to read metadata
   if (!enabled_) {
     return;
   }
+
+  Array fetch_max(*ctx_, array_->uri(), TILEDB_READ);
+  const void* alt_max = 0;
+  tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
+  uint32_t alt_max_num = 0;
+  fetch_max.get_metadata(
+      "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
+  if (alt_max)
+    if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
+      if (max_length_ < *((int32_t*)alt_max)) {
+        max_length_ = *((int32_t*)alt_max);
+      }
+    }
+  array_->put_metadata("max_length", TILEDB_INT32, 1, &max_length_);
 
   std::lock_guard<std::mutex> lock(query_lock_);
   LOG_DEBUG("[VariantStats] Close array");
@@ -293,7 +339,7 @@ void VariantStats::flush(bool finalize) {
   // Update results for the last locus before flushing
   update_results();
 
-  int buffered_records = attr_buffers_[AC].size();
+  int buffered_records = ac_buffer.size();
 
   if (contig_offsets_.data() == nullptr) {
     LOG_DEBUG("[VariantStats] flush called with no records written");
@@ -321,12 +367,16 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
 
-    for (int i = 0; i < LAST_; i++) {
-      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
-    }
+    query_->set_data_buffer("ac", ac_buffer);
+    query_->set_data_buffer("an", an_buffer);
+    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("max_length", max_length_buffer);
+    query_->set_data_buffer("end", end_buffer);
 
     auto st = query_->submit();
     if (st == Query::Status::FAILED) {
@@ -341,11 +391,15 @@ void VariantStats::flush(bool finalize) {
     contig_buffer_.clear();
     contig_offsets_.clear();
     pos_buffer_.clear();
+    sample_buffer_.clear();
+    sample_offsets_.clear();
     allele_buffer_.clear();
     allele_offsets_.clear();
-    for (int i = 0; i < LAST_; i++) {
-      attr_buffers_[i].clear();
-    }
+    ac_buffer.clear();
+    an_buffer.clear();
+    n_hom_buffer.clear();
+    max_length_buffer.clear();
+    end_buffer.clear();
   }
 
   if (finalize) {
@@ -354,11 +408,15 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer(COLUMN_STR[CONTIG], contig_buffer_)
         .set_offsets_buffer(COLUMN_STR[CONTIG], contig_offsets_)
         .set_data_buffer(COLUMN_STR[POS], pos_buffer_)
+        .set_data_buffer(COLUMN_STR[SAMPLE], sample_buffer_)
+        .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_)
         .set_data_buffer(COLUMN_STR[ALLELE], allele_buffer_)
         .set_offsets_buffer(COLUMN_STR[ALLELE], allele_offsets_);
-    for (int i = 0; i < LAST_; i++) {
-      query_->set_data_buffer(ATTR_STR[i], attr_buffers_[i]);
-    }
+    query_->set_data_buffer("ac", ac_buffer);
+    query_->set_data_buffer("an", an_buffer);
+    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("max_length", max_length_buffer);
+    query_->set_data_buffer("end", end_buffer);
     finalize_query();
   }
 }
@@ -373,20 +431,25 @@ void VariantStats::process(
     return;
   }
 
+  HtslibValueMem val;
+  int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
-  if (contig != contig_ || pos != pos_) {
+  if (contig != contig_ || pos != pos_ || sample_name != sample_) {
     if (contig != contig_) {
       LOG_DEBUG("[VariantStats] new contig = {}", contig);
     } else if (pos < pos_) {
       LOG_ERROR(
-          "[VariantStats] contig {} pos out of order {} < {}",
+          "[VariantStats] contig {} pos out of order {} < {} for sample {}",
           contig,
           pos,
-          pos_);
+          pos_,
+          sample_name);
     }
     update_results();
     contig_ = contig;
     pos_ = pos;
+    end_ = end_pos;
+    sample_ = sample_name;
   }
 
   // Read GT data from record
@@ -435,7 +498,7 @@ void VariantStats::process(
       return;
     }
   } else {
-    return;  // ngt <= 0
+    return;  // ngt < 0
   }
 
   // Add sample name to the set of sample names in this query
@@ -463,24 +526,51 @@ void VariantStats::process(
     }
   }
 
+  bool is_nr_block;
+  {
+    bool one_alt = rec->n_allele == 2;
+    bool is_ref = bcf_gt_allele(dst_[0]) == 0;
+    // if no first alt, or if wrong number of alts, this will be blank:
+    // no need to check whether this be a ref block, because this bool will be
+    // used inside an if statement
+    auto alt = one_alt ? std::string(rec->d.allele[1]) : "";
+    is_nr_block = is_ref && (alt == "<NON_REF>");
+  }
+
+  int length = end_pos - pos + 1;
+  if ((length = end_pos - pos + 1) > max_length_) {
+    max_length_ = length;
+  }
+
   bool already_added_homozygous = false;
   for (int i = 0; i < ngt; i++) {
     // If not missing, update allele count for GT[i]
     if (!gt_missing[i]) {
       auto alt = alt_string(ref, rec->d.allele[gt[i]]);
+      std::string ref_key = "ref";
+      if (is_nr_block) {
+        // ref block
+        ref_key = "nr";
+      }
 
       if (gt[i] == 0) {
-        values_["ref"][AC] += count_delta_;
+        values_[ref_key].ac += count_delta_;
+        values_[ref_key].an = ngt * count_delta_;
+        values_[ref_key].end = end_;
+        values_[ref_key].max_length = max_length_;
       } else {
-        values_[alt][AC] += count_delta_;
+        values_[alt].ac += count_delta_;
+        values_[alt].an = ngt * count_delta_;
+        values_[alt].end = end_;
+        values_[alt].max_length = max_length_;
       }
 
       // Update homozygote count
       if (homozygous && !already_added_homozygous) {
         if (gt[i] == 0) {
-          values_["ref"][N_HOM] += count_delta_;
+          values_[ref_key].n_hom += count_delta_;
         } else {
-          values_[alt][N_HOM] += count_delta_;
+          values_[alt].n_hom += count_delta_;
         }
         already_added_homozygous = true;
       }
@@ -503,11 +593,15 @@ void VariantStats::update_results() {
       contig_offsets_.push_back(contig_buffer_.size());
       contig_buffer_ += contig_;
       pos_buffer_.push_back(pos_);
+      sample_offsets_.push_back(sample_buffer_.size());
+      sample_buffer_ += sample_;
       allele_offsets_.push_back(allele_buffer_.size());
       allele_buffer_ += allele;
-      for (int i = 0; i < LAST_; i++) {
-        attr_buffers_[i].push_back(value[i]);
-      }
+      ac_buffer.push_back(value.ac);
+      an_buffer.push_back(value.an);
+      n_hom_buffer.push_back(value.n_hom);
+      max_length_buffer.push_back(value.max_length);
+      end_buffer.push_back(value.end);
     }
     values_.clear();
   }
