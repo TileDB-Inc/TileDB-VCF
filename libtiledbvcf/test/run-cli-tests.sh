@@ -491,9 +491,6 @@ rm -rf ${upload_dir}/outputs
 # also test ingesting stats where one allele is missing (chr2 in first.vcf)
 # -------------------------------------------------------------------
 mkdir -p ${upload_dir}/outputs
-cp -R ${input_dir}/stats ${upload_dir}
-for file in ${upload_dir}/stats/*.vcf;do bcftools view --no-version -Oz -o "${file}".gz "${file}"; done
-for file in ${upload_dir}/stats/*.gz;do bcftools index "${file}"; done
 $tilevcf create -u ${upload_dir}/pre_test3 --enable-variant-stats --enable-allele-count --log-level trace --variant-stats-version 3
 $tilevcf store -u ${upload_dir}/pre_test3 --log-level trace ${upload_dir}/stats/*.vcf.gz
 $tilevcf export -u ${upload_dir}/pre_test3 -d ${upload_dir}/outputs -Ov --af-filter '< 0.2' --log-level trace
