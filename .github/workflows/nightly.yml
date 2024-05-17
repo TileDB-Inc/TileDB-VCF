@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [macos-12, ubuntu-latest]
         branches:
-          - {libtiledb: release-2.21, tiledb-py: 0.27.1}
+          - {libtiledb: release-2.23, tiledb-py: 0.29.0}
           - {libtiledb: dev, tiledb-py: dev}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
@@ -102,6 +102,6 @@ jobs:
         with:
           name: nightly build
           label: nightly-failure
-          assignee: awenocur,gspowley,ihnorton,Shelnutt2
+          assignee: awenocur,gspowley,ihnorton,Shelnutt2,jdblischak
         env:
           TZ: "America/New_York"
