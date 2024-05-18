@@ -278,7 +278,7 @@ void VariantStatsReader::compute_af_worker_() {
 
   // Setup the query
   ManagedQuery mq(array_, "variant_stats", TILEDB_UNORDERED);
-  mq.select_columns({"pos", "allele", "ac"});
+  mq.select_columns({"pos", "sample", "allele", "ac", "an", "end"});
   mq.select_point<std::string>("contig", regions_.front().seq_name);
   for (auto& region : regions_) {
     LOG_DEBUG("[VariantStatsReader] compute_af for region={}", region.to_str());
