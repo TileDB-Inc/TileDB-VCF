@@ -144,12 +144,14 @@ void VariantStats::create(
   auto ac = Attribute::create<int32_t>(ctx, "ac", int_attr_filters);
   auto an = Attribute::create<int32_t>(ctx, "an", int_attr_filters);
   auto n_hom = Attribute::create<int32_t>(ctx, "n_hom", int_attr_filters);
+  auto n_not_called =
+      Attribute::create<int32_t>(ctx, "n_not_called", int_attr_filters);
   auto max_length =
       Attribute::create<uint32_t>(ctx, "max_length", rle_coord_filters);
 
   schema.add_attributes(ac, an, n_hom);
   if (array_version_ >= 3) {
-    schema.add_attribute(max_length);
+    schema.add_attributes(n_not_called, max_length);
   }
 
   // Create array
@@ -239,28 +241,6 @@ void VariantStats::finalize_query() {
     }
   }
   contig_records_ = 0;
-
-  // Write fragment uri -> sample names to array metadata
-  auto frag_num = query_->fragment_num();
-  if (frag_num > 0) {
-    auto uri = query_->fragment_uri(frag_num - 1);
-    std::string samples;
-    for (auto& sample : fragment_sample_names_) {
-      samples += sample + ",";
-    }
-    if (!samples.empty()) {
-      samples.pop_back();
-    }
-    LOG_DEBUG(
-        "[VariantStats] fragment_num = {} uri = {} samples = {}",
-        frag_num,
-        uri,
-        samples);
-    array_->put_metadata(
-        uri, TILEDB_STRING_ASCII, samples.size(), samples.c_str());
-
-    fragment_sample_names_.clear();
-  }
 
   query_ = std::make_unique<Query>(*ctx_, *array_);
   query_->set_layout(TILEDB_GLOBAL_ORDER);
@@ -422,6 +402,7 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
     if (array_version_ >= 3) {
+      query_->set_data_buffer("n_not_called", n_not_called_buffer);
       query_->set_data_buffer("max_length", max_length_buffer);
       query_->set_data_buffer("end", end_buffer);
     }
@@ -430,10 +411,6 @@ void VariantStats::flush(bool finalize) {
     if (st == Query::Status::FAILED) {
       LOG_FATAL("[VariantStats] error submitting TileDB write query");
     }
-
-    // Insert sample names from this query into the set of fragment sample names
-    fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
-    sample_names_.clear();
 
     // Clear buffers
     contig_buffer_.clear();
@@ -447,6 +424,7 @@ void VariantStats::flush(bool finalize) {
     an_buffer.clear();
     n_hom_buffer.clear();
     if (array_version_ >= 3) {
+      n_not_called_buffer.clear();
       max_length_buffer.clear();
       end_buffer.clear();
     }
@@ -470,6 +448,7 @@ void VariantStats::flush(bool finalize) {
     query_->set_data_buffer("an", an_buffer);
     query_->set_data_buffer("n_hom", n_hom_buffer);
     if (array_version_ >= 3) {
+      query_->set_data_buffer("n_not_called", n_not_called_buffer);
       query_->set_data_buffer("max_length", max_length_buffer);
       query_->set_data_buffer("end", end_buffer);
     }
@@ -563,21 +542,18 @@ inline void VariantStats::process_v3(
     }
   }
 
-  // Skip if alleles are missing
-  if (ngt >= 0) {
-    bool all_gt_missing = true;
-    for (int i = 0; i < ngt; i++) {
-      all_gt_missing = all_gt_missing && gt_missing[i];
-    }
-    if (all_gt_missing) {
-      return;
-    }
-  } else {
-    return;  // ngt < 0
+  // If all alleles are missing, update n_not_called and return
+  bool all_gt_missing = true;
+  for (int i = 0; i < ngt; i++) {
+    all_gt_missing = all_gt_missing && gt_missing[i];
   }
 
-  // Add sample name to the set of sample names in this query
-  sample_names_.insert(sample_name);
+  // If all GT are missing, update the n_not_called count for "ref" and return
+  // since the remaining stats are based on GT values.
+  if (all_gt_missing) {
+    values_["ref"].n_not_called += count_delta_;
+    return;
+  }
 
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
@@ -733,9 +709,6 @@ inline void VariantStats::process_v2(
     return;  // ngt < 0
   }
 
-  // Add sample name to the set of sample names in this query
-  sample_names_.insert(sample_name);
-
   // Update called for the REF allele
   auto ref = rec->d.allele[0];
 
@@ -817,6 +790,7 @@ void VariantStats::update_results() {
       an_buffer.push_back(value.an);
       n_hom_buffer.push_back(value.n_hom);
       if (array_version_ >= 3) {
+        n_not_called_buffer.push_back(value.n_not_called);
         max_length_buffer.push_back(value.max_length);
         end_buffer.push_back(value.end);
       }
