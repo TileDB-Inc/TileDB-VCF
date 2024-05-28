@@ -151,8 +151,3 @@ def read_dask(
         samples_file,
         bed_file,
     )
-
-
-# Patch functions and members into dataset class
-Dataset.read_dask = read_dask
-Dataset.map_dask = map_dask
