@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <future>
+#include <set>
 #include <tiledb/tiledb>
 
 #include "dataset/tiledbvcfdataset.h"
@@ -51,7 +52,12 @@ class AFMap {
    * @param allele Allele value
    * @param ac Allele Count
    */
-  void insert(uint32_t pos, const std::string& allele, int ac) {
+  void insert(
+      uint32_t pos,
+      const std::string& allele,
+      int ac,
+      int an = 0,
+      uint32_t end = 0) {
     // Should this insertion be tallied for contributing to transport (Arrow)
     // buffer size?
     bool should_tally = false;
@@ -63,6 +69,12 @@ class AFMap {
       // true if not a duplicate
       should_tally =
           ac_map_[pos].second.find(allele) == ac_map_[pos].second.end();
+    }
+
+    // add encountered ref block to the cache
+    if (array_version >= 3) {
+      if (allele == "nr")
+        ref_block_cache.push_back({pos, end, ac});
     }
 
     // add ac to the an for this position
@@ -194,12 +206,28 @@ class AFMap {
       int* an,
       float_t* af);
 
+  uint32_t array_version = 2;
+
  private:
+  struct RefBlock {
+    uint32_t start;
+    uint32_t end;
+    int32_t ploidy;
+  };
+
   /** Allele Count map: pos -> (an, map: allele -> ac) */
   std::unordered_map<
       uint32_t,
       std::pair<int, std::unordered_map<std::string, int>>>
       ac_map_;
+
+  // std::map<uint64_t, int64_t> an_map;
+
+  // std::set<uint64_t, uint32_t> ref_block_end;
+
+  // uint32_t end_sum;
+
+  std::vector<RefBlock> ref_block_cache;
 
   /** buffer size for transporting allele contents */
   size_t allele_aggregate_size_ = 0;

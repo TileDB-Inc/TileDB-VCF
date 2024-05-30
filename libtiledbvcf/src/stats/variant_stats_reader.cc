@@ -103,7 +103,7 @@ VariantStatsReader::VariantStatsReader(
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
   const void* variant_stats_version_read;
-  int variant_stats_version;
+  uint32_t& variant_stats_version = af_map_.array_version;
   tiledb_datatype_t version_datatype;
   uint32_t version_count;
   array_->get_metadata(
@@ -267,6 +267,8 @@ void VariantStatsReader::parse_condition_() {
 }
 
 void VariantStatsReader::compute_af_worker_() {
+  uint32_t& variant_stats_version = af_map_.array_version;
+
   // parse condition provided by user
   parse_condition_();
 
@@ -295,8 +297,13 @@ void VariantStatsReader::compute_af_worker_() {
       auto pos = mq.data<uint32_t>("pos")[i];
       auto allele = std::string(mq.string_view("allele", i));
       auto ac = mq.data<int32_t>("ac")[i];
-
-      af_map_.insert(pos, allele, ac);
+      if (variant_stats_version >= 3) {
+        auto an = mq.data<int32_t>("an")[i];
+        auto end = mq.data<uint32_t>("end")[i];
+        af_map_.insert(pos, allele, ac, an, end);
+      } else {
+        af_map_.insert(pos, allele, ac);
+      }
     }
   }
 
