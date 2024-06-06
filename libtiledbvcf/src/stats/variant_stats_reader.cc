@@ -47,10 +47,10 @@ inline int pos_comparator(const void* a, const void* b) {
 
 bool AFMap::RefBlockComp::operator()(
     const RefBlock& a, const RefBlock& b) const {
-  if (a.start > b.start) {
+  if (a.start < b.start) {
     return true;
   } else {
-    if (a.end > b.end) {
+    if (a.start == b.start && a.end < b.end) {
       return true;
     }
   }
@@ -59,10 +59,10 @@ bool AFMap::RefBlockComp::operator()(
 
 bool AFMap::RefBlockComp::operator()(
     const RefBlock* a, const RefBlock* b) const {
-  if (a->end > b->end) {
+  if (a->end < b->end) {
     return true;
   } else {
-    if (a->start > b->start) {
+    if (a->end == b->end && a->start < b->start) {
       return true;
     }
   }
@@ -89,6 +89,7 @@ inline void AFMap::advance_to_ref_block(uint32_t pos) {
 void AFMap::finalize_ref_block_cache() {
   std::sort(ref_block_cache_.begin(), ref_block_cache_.end(), RefBlockComp());
   selected_ref_block_ = ref_block_cache_.begin();
+  ref_block_by_end_.clear();
   for (RefBlock& selected_block : ref_block_cache_) {
     ref_block_by_end_.push_back(&selected_block);
   }
@@ -212,6 +213,7 @@ void VariantStatsReader::compute_af() {
   } else {
     compute_af_worker_();
   }
+  af_map_.finalize_ref_block_cache();
 }
 
 void VariantStatsReader::set_condition(std::string condition) {
@@ -224,7 +226,6 @@ void VariantStatsReader::wait() {
       TRY_CATCH_THROW(compute_future_.wait());
     }
   }
-  af_map_.finalize_ref_block_cache();
 }
 
 std::pair<bool, float> VariantStatsReader::pass(
