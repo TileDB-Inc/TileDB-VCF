@@ -45,6 +45,57 @@ inline int pos_comparator(const void* a, const void* b) {
   }
 }
 
+bool AFMap::RefBlockComp::operator()(
+    const RefBlock& a, const RefBlock& b) const {
+  if (a.start > b.start) {
+    return true;
+  } else {
+    if (a.end > b.end) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool AFMap::RefBlockComp::operator()(
+    const RefBlock* a, const RefBlock* b) const {
+  if (a->end > b->end) {
+    return true;
+  } else {
+    if (a->start > b->start) {
+      return true;
+    }
+  }
+  return false;
+}
+
+inline void AFMap::advance_to_ref_block(uint32_t pos) {
+  // ref blocks entering scope
+  while (selected_ref_block_ != ref_block_cache_.end() &&
+         selected_ref_block_->start <= pos) {
+    ac_sum_ += selected_ref_block_->ac;
+    an_sum_ += selected_ref_block_->an;
+    selected_ref_block_++;
+  }
+  // ref blocks exiting scope
+  while (selected_ref_block_end_ != ref_block_by_end_.end() &&
+         (**selected_ref_block_end_).end < pos) {
+    ac_sum_ -= selected_ref_block_->ac;
+    an_sum_ -= selected_ref_block_->an;
+    selected_ref_block_end_++;
+  }
+}
+
+void AFMap::finalize_ref_block_cache() {
+  std::sort(ref_block_cache_.begin(), ref_block_cache_.end(), RefBlockComp());
+  selected_ref_block_ = ref_block_cache_.begin();
+  for (RefBlock& selected_block : ref_block_cache_) {
+    ref_block_by_end_.push_back(&selected_block);
+  }
+  std::sort(ref_block_by_end_.begin(), ref_block_by_end_.end(), RefBlockComp());
+  selected_ref_block_end_ = ref_block_by_end_.begin();
+}
+
 inline void AFMap::retrieve_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -128,6 +179,10 @@ VariantStatsReader::VariantStatsReader(
   }
 }
 
+uint32_t VariantStatsReader::array_version() {
+  return af_map_.array_version;
+}
+
 void VariantStatsReader::retrieve_variant_stats(
     uint32_t* pos,
     char* allele,
@@ -169,6 +224,7 @@ void VariantStatsReader::wait() {
       TRY_CATCH_THROW(compute_future_.wait());
     }
   }
+  af_map_.finalize_ref_block_cache();
 }
 
 std::pair<bool, float> VariantStatsReader::pass(
@@ -176,6 +232,7 @@ std::pair<bool, float> VariantStatsReader::pass(
     const std::string& allele,
     bool scan_all_samples,
     size_t num_samples) {
+  af_map_.advance_to_ref_block(pos);
   if (!allele.compare("<NON_REF>")) {
     return {false, 0.0};
   }
