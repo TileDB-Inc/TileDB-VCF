@@ -183,6 +183,10 @@ void Reader::init_af_filter() {
     Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
     af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group);
     af_filter_->set_condition(params_.af_filter);
+    // TODO: enable sorting only if needed for GVCF IAF feature
+    if (af_filter_->array_version() > 2) {
+      params_.sort_real_start_pos = true;
+    }
   }
 }
 

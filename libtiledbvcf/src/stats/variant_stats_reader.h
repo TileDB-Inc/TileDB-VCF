@@ -74,7 +74,7 @@ class AFMap {
     // add encountered ref block to the cache
     if (array_version >= 3) {
       if (allele == "nr")
-        ref_block_cache.push_back({pos, end, ac});
+        ref_block_cache_.push_back({pos, end, ac, an});
     }
 
     // add ac to the an for this position
@@ -98,6 +98,21 @@ class AFMap {
       allele_cardinality_++;
     }
   }
+
+  /**
+   * @brief Change ref block selection to match or exceed specified position
+   *
+   * @param pos position of ref block to find or exceed
+   *
+   */
+  void advance_to_ref_block(uint32_t pos);
+
+  /**
+   * @brief Transition from loading ref blocks from array to validating and
+   * computing AC/AN for frequencies
+   *
+   */
+  void finalize_ref_block_cache();
 
   /**
    * @brief Accessor for buffer size metrics
@@ -212,7 +227,28 @@ class AFMap {
   struct RefBlock {
     uint32_t start;
     uint32_t end;
-    int32_t ploidy;
+    int32_t ac;
+    int32_t an;
+  };
+
+  /**
+   * @brief The RefBlockComp class serves as a comparator for RefBlocks to be
+   * sorted.
+   *
+   */
+  class RefBlockComp {
+   public:
+    /**
+     * @brief sort ref blocks directly in the cache, ascending by start
+     *
+     */
+    bool operator()(const RefBlock& a, const RefBlock& b) const;
+
+    /**
+     * @brief sort ref block pointers to the cache, ascending by end
+     *
+     */
+    bool operator()(const RefBlock* a, const RefBlock* b) const;
   };
 
   /** Allele Count map: pos -> (an, map: allele -> ac) */
@@ -221,13 +257,21 @@ class AFMap {
       std::pair<int, std::unordered_map<std::string, int>>>
       ac_map_;
 
-  // std::map<uint64_t, int64_t> an_map;
+  uint64_t ac_sum_ = 0;
+  uint64_t an_sum_ = 0;
 
-  // std::set<uint64_t, uint32_t> ref_block_end;
+  /** ref block, selected from ref_block_cache_, that demarcates the beginning
+   * of the overlap  with the current position */
+  std::vector<RefBlock>::iterator selected_ref_block_;
+  /** ref block pointer, selected from ref_block_by_end_, that demarcates the
+   * end of the overlap with the current position */
+  std::vector<const RefBlock*>::iterator selected_ref_block_end_;
 
-  // uint32_t end_sum;
+  /** keep track of all ref blocks in range */
+  std::vector<RefBlock> ref_block_cache_;
 
-  std::vector<RefBlock> ref_block_cache;
+  /** keep track of ref blocks remaining */
+  std::vector<const RefBlock*> ref_block_by_end_;
 
   /** buffer size for transporting allele contents */
   size_t allele_aggregate_size_ = 0;
@@ -259,6 +303,14 @@ class VariantStatsReader {
   VariantStatsReader() = delete;
   VariantStatsReader(const VariantStatsReader&) = delete;
   VariantStatsReader(VariantStatsReader&&) = default;
+
+  /**
+   * @brief Get variant stats array version
+   *
+   * @return variant stats array schema version
+   *
+   */
+  uint32_t array_version();
 
   /**
    * @brief Add a region to the next allele frequency computation
