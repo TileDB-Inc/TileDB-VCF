@@ -1379,7 +1379,7 @@ bool Reader::process_query_results_v4() {
       int allele_index = 0;
       bool is_ref = true;
       for (auto&& allele : alleles) {
-        auto [allele_passes, af] = af_filter_->pass(
+        auto [allele_passes, af, ac, an] = af_filter_->pass(
             real_start,
             is_ref ? "ref" : alleles[0] + "," + allele,
             params_.scan_all_samples,

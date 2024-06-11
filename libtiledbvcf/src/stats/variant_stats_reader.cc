@@ -136,7 +136,7 @@ inline void AFMap::retrieve_variant_stats(
     for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
       ac[row] = allele_to_count.second;
       an[row] = an_to_allele.first;
-      afb[row] = af(pos[row], allele_to_count.first);
+      afb[row] = std::get<0>(af(pos[row], allele_to_count.first));
       std::memcpy(
           allele + allele_offsets[row],
           allele_to_count.first.c_str(),
@@ -213,7 +213,6 @@ void VariantStatsReader::compute_af() {
   } else {
     compute_af_worker_();
   }
-  af_map_.finalize_ref_block_cache();
 }
 
 void VariantStatsReader::set_condition(std::string condition) {
@@ -226,24 +225,31 @@ void VariantStatsReader::wait() {
       TRY_CATCH_THROW(compute_future_.wait());
     }
   }
+  af_map_.finalize_ref_block_cache();
 }
 
-std::pair<bool, float> VariantStatsReader::pass(
+std::tuple<bool, float, uint32_t, uint32_t> VariantStatsReader::pass(
     uint32_t pos,
     const std::string& allele,
     bool scan_all_samples,
     size_t num_samples) {
   af_map_.advance_to_ref_block(pos);
   if (!allele.compare("<NON_REF>")) {
-    return {false, 0.0};
+    // TODO: replace placeholder return values if necessary
+    return {false, 0.0, 0, 0};
   }
-  float af = scan_all_samples ? af_map_.af(pos, allele, num_samples) :
-                                af_map_.af(pos, allele);
+  auto [af, ac, an] =
+      (array_version() > 2) ?
+          (scan_all_samples ? af_map_.af_v3(pos, allele, num_samples) :
+                              af_map_.af_v3(pos, allele)) :
+          (scan_all_samples ? af_map_.af(pos, allele, num_samples) :
+                              af_map_.af(pos, allele));
 
   // Fail the filter if allele was not called
   if (af < 0.0) {
     LOG_DEBUG("[VariantStatsReader] {}:{} not called", pos, allele);
-    return {false, 0.0};
+    // TODO: replace placeholder return values if necessary
+    return {false, 0.0, 0, 0};
   }
 
   LOG_TRACE(
@@ -272,8 +278,7 @@ std::pair<bool, float> VariantStatsReader::pass(
     default:
       throw std::runtime_error("[VariantStatsReader] Invalid IAF operation");
   }
-
-  return {pass, af};
+  return {pass, af, ac, an};
 }
 
 void VariantStatsReader::parse_condition_() {

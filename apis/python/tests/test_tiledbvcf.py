@@ -1241,7 +1241,7 @@ def test_ingest_with_stats_v3(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert data_frame.shape == (3, 8)
+    assert data_frame.shape == (1, 8)
     assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
         343.73
     )
@@ -1254,12 +1254,9 @@ def test_ingest_with_stats_v3(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         scan_all_samples=True,
     )
-    assert (
-        data_frame[
-            (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
-        ]["info_TILEDB_IAF"].iloc[0][0]
-        == 0.9375
-    )
+    assert data_frame[
+        (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
+    ]["info_TILEDB_IAF"].iloc[0][0] == pytest.approx(0.9583333)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
     assert df.shape == (12, 5)
