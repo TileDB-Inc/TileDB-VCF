@@ -90,11 +90,10 @@ class AFMap {
             ac_map_[pos].second[allele],
             ac_map_[pos].first);
       }
-    }
-
-    if (should_tally) {
-      allele_aggregate_size_ += allele.length();
-      allele_cardinality_++;
+      if (should_tally) {
+        allele_aggregate_size_ += allele.length();
+        allele_cardinality_++;
+      }
     }
   }
 
