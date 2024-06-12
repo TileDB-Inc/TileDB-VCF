@@ -235,8 +235,11 @@ class AFMap {
       return {0, 0, pos_map.first + an_sum_};
     }
     return {
-        1.0 * (next_allele->second + ac_sum_) / (pos_map.first + an_sum_),
-        (next_allele->second + ac_sum_),
+        1.0 *
+            (next_allele->second +
+             (next_allele->first == "ref" ? ac_sum_ : 0)) /
+            (pos_map.first + an_sum_),
+        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0),
         (pos_map.first + an_sum_)};
   }
 
@@ -277,8 +280,9 @@ class AFMap {
       return {0, 0, num_samples / 2 + an_sum_};
     }
     return {
-        1.0 * (next_allele->second + ac_sum_) / (num_samples * 2 + an_sum_),
-        next_allele->second + ac_sum_,
+        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0) /
+                                  (num_samples * 2 + an_sum_),
+        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0),
         num_samples * 2 + an_sum_};
   }
 
