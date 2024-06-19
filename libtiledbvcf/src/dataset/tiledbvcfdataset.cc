@@ -764,9 +764,30 @@ void TileDBVCFDataset::load_field_type_maps_v4(
       throw std::runtime_error(
           "Error appending to header for internal allele frequency.");
     }
+    if (bcf_hdr_append(
+            // TODO: do something better than promoting this pointer type;
+            // perhaps the header should be duplicated and later modified
+            const_cast<bcf_hdr_t*>(hdr),
+            "##INFO=<ID=TILEDB_IAC,Number=R,Type=Integer,Description="
+            "\"Internal "
+            "Allele Count, computed over dataset by TileDB\">") < 0) {
+      throw std::runtime_error(
+          "Error appending to header for internal allele count.");
+    }
+    if (bcf_hdr_append(
+            // TODO: do something better than promoting this pointer type;
+            // perhaps the header should be duplicated and later modified
+            const_cast<bcf_hdr_t*>(hdr),
+            "##INFO=<ID=TILEDB_IAN,Number=R,Type=Integer,Description="
+            "\"Internal "
+            "Allele Number, computed over dataset by TileDB\">") < 0) {
+      throw std::runtime_error(
+          "Error appending to header for internal allele number.");
+    }
     info_iaf_field_type_added_ = true;
     if (bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
-      throw std::runtime_error("Error syncing header after adding IAF record.");
+      throw std::runtime_error(
+          "Error syncing header after adding IAF, IAC, IAN records.");
     }
   }
   for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
@@ -940,8 +961,8 @@ void TileDBVCFDataset::delete_samples(
       throw std::runtime_error("Sample not found in dataset: " + sample);
     }
 
-    // If a stats array exists, read the data with the delete exporter, which
-    // adds negative counts to the stats arrays
+    // If a stats array exists, read the data with the delete exporter,
+    // which adds negative counts to the stats arrays
     if (stats_array_exists) {
       ExportParams args;
       args.tiledb_config = tiledb_config;
@@ -1059,8 +1080,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       all_samples,
       first_sample,
       utils::memory_usage_str());
-  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
-  // during fetching
+  // Grab a read lock of concurrency so we don't destroy the
+  // vcf_header_array during fetching
   utils::UniqueReadLock lck_(
       const_cast<utils::RWLock*>(&vcf_header_array_lock_));
 
@@ -1074,14 +1095,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
 
   if (first_sample && !samples.empty())
     throw std::runtime_error(
-        "Cannot set first_sample and samples list in same fetch vcf headers "
+        "Cannot set first_sample and samples list in same fetch vcf "
+        "headers "
         "request");
 
   std::unordered_map<uint32_t, SafeBCFHdr> result;
 
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
+        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly "
+        "null");
 
   // Use a managed query to fetch the headers. Note that the previous
   // implementation used the TILEDB_ROW_MAJOR layout to read the results in
@@ -1099,16 +1122,17 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       mq->select_point("sample", sample.sample_name);
     }
   } else if (first_sample) {
-    // Only read the first sample, based on the non-empty domain. We handle the
-    // case where the first sample was deleted below.
+    // Only read the first sample, based on the non-empty domain. We handle
+    // the case where the first sample was deleted below.
     auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
     if (!non_empty_domain.first.empty()) {
       mq->select_point("sample", non_empty_domain.first);
     } else if (non_empty_domain.second.empty()) {
-      // If the lower and upper bounds of the non-empty domain are empty, then
-      // the array is empty or the array contains an annotation VCF with an
-      // empty sample name. In either case, we will read the VCF headers for
-      // "all" samples to avoid an infinite loop looking for the first sample.
+      // If the lower and upper bounds of the non-empty domain are empty,
+      // then the array is empty or the array contains an annotation VCF
+      // with an empty sample name. In either case, we will read the VCF
+      // headers for "all" samples to avoid an infinite loop looking for the
+      // first sample.
       first_sample = false;
     }
   }
@@ -1123,7 +1147,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     // first sample.
     if (first_sample && num_rows == 0) {
       LOG_DEBUG(
-          "[fetch_vcf_headers_v4] the first sample was deleted, resubmitting");
+          "[fetch_vcf_headers_v4] the first sample was deleted, "
+          "resubmitting");
       mq = std::make_unique<ManagedQuery>(
           vcf_header_array_, "fetch_vcf_headers_v4");
       mq->select_columns({"sample", "header"});
@@ -1188,8 +1213,8 @@ done:
 
 std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
     const std::vector<SampleAndId>& samples) const {
-  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
-  // during fetching
+  // Grab a read lock of concurrency so we don't destroy the
+  // vcf_header_array during fetching
   utils::UniqueReadLock lck_(
       const_cast<utils::RWLock*>(&vcf_header_array_lock_));
 
@@ -1200,7 +1225,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
+        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly "
+        "null");
 
   Query query(*ctx_, *vcf_header_array_);
 
@@ -1237,8 +1263,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   Query::Status status;
 
   do {
-    // Always reset buffer to avoid issue with core library and REST not using
-    // original buffer sizes
+    // Always reset buffer to avoid issue with core library and REST not
+    // using original buffer sizes
     query.set_buffer("header", offsets, data);
     query.set_buffer("sample", sample_data);
 
@@ -1283,7 +1309,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
         bcf_hdr_t* hdr = bcf_hdr_init("r");
         if (!hdr)
           throw std::runtime_error(
-              "Error fetching VCF header data; error allocating VCF header.");
+              "Error fetching VCF header data; error allocating VCF "
+              "header.");
 
         if (0 != bcf_hdr_parse(hdr, hdr_str)) {
           throw std::runtime_error(
@@ -1434,8 +1461,8 @@ void TileDBVCFDataset::read_metadata_v4() {
         "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
 
-  // Grab a read lock of concurrency so we don't destroy the data_array during
-  // fetching
+  // Grab a read lock of concurrency so we don't destroy the data_array
+  // during fetching
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&data_array_lock_));
 
   Metadata metadata;
@@ -1491,8 +1518,8 @@ void TileDBVCFDataset::read_metadata() {
         "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
         "' or its metadata does not exist.");
 
-  // Grab a read lock of concurrency so we don't destroy the data_array during
-  // fetching
+  // Grab a read lock of concurrency so we don't destroy the data_array
+  // during fetching
   utils::UniqueReadLock lck_(const_cast<utils::RWLock*>(&data_array_lock_));
 
   Metadata metadata;
@@ -1586,8 +1613,8 @@ void TileDBVCFDataset::write_metadata(
   Array data_array(ctx, data_array_uri(root_uri), TILEDB_WRITE);
 
   /**
-   * Helper function to CSV-join a list of values and store the base64 encoded
-   * result as an array metadata item.
+   * Helper function to CSV-join a list of values and store the base64
+   * encoded result as an array metadata item.
    */
   const auto put_csv_metadata = [&data_array](
                                     const std::string& name,
@@ -1656,8 +1683,8 @@ void TileDBVCFDataset::write_metadata_v4(
   Array data_array(ctx, data_array_uri(root_uri), TILEDB_WRITE);
 
   /**
-   * Helper function to CSV-join a list of values and store the base64 encoded
-   * result as an array metadata item.
+   * Helper function to CSV-join a list of values and store the base64
+   * encoded result as an array metadata item.
    */
   const auto put_csv_metadata = [&data_array](
                                     const std::string& name,
@@ -1993,7 +2020,8 @@ const char* TileDBVCFDataset::materialized_attribute_name(
 
 bool TileDBVCFDataset::is_attribute_materialized(
     const std::string& attr) const {
-  if (attr == "info_TILEDB_IAF") {
+  if (attr == "info_TILEDB_IAF" || attr == "info_TILEDB_IAC" ||
+      attr == "info_TILEDB_IAN") {
     return true;
   }
 
@@ -2083,8 +2111,8 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
 
 std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
     const {
-  // Grab a read lock of concurrency so we don't destroy the vcf_header_array
-  // during fetching
+  // Grab a read lock of concurrency so we don't destroy the
+  // vcf_header_array during fetching
   utils::UniqueReadLock lck_(
       const_cast<utils::RWLock*>(&vcf_header_array_lock_));
 
@@ -2095,7 +2123,8 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
 
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot fetch TileDB-VCF samples from vcf header array; Array object "
+        "Cannot fetch TileDB-VCF samples from vcf header array; Array "
+        "object "
         "unexpectedly null");
 
   Query query(*ctx_, *vcf_header_array_);
@@ -2131,8 +2160,8 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
   Query::Status status;
 
   do {
-    // Always reset buffer to avoid issue with core library and REST not using
-    // original buffer sizes
+    // Always reset buffer to avoid issue with core library and REST not
+    // using original buffer sizes
     query.set_buffer("sample", sample_offsets, sample_data);
 
     status = query.submit();
@@ -2358,8 +2387,8 @@ void TileDBVCFDataset::vacuum_fragments(const UtilsParams& params) {
 
 void TileDBVCFDataset::load_sample_names_v4() const {
   utils::UniqueWriteLock lck_(&metadata_.sample_names_rw_lock_);
-  // After the lock is acquired we need to make sure a different thread hasn't
-  // loaded it
+  // After the lock is acquired we need to make sure a different thread
+  // hasn't loaded it
   if (sample_names_loaded_)
     return;
 
@@ -2488,7 +2517,8 @@ void TileDBVCFDataset::preload_data_array_fragment_info() {
   /*
   TRY_CATCH_THROW(
       data_array_preload_fragment_info_thread_ = std::async(
-          std::launch::async, [this]() { data_array_fragment_info_load(); }));
+          std::launch::async, [this]() { data_array_fragment_info_load();
+  }));
   */
 }
 

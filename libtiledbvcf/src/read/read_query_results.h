@@ -88,6 +88,8 @@ struct ReadQueryResults {
 
   /** TileDB Internal Allele Frequency values*/
   std::vector<float> af_values;
+  std::vector<uint32_t> ac_values;
+  std::vector<uint32_t> an_values;
 
  private:
   /** Pointer to buffer set holding the actual data. */
