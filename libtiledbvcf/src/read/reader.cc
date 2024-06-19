@@ -1376,6 +1376,8 @@ bool Reader::process_query_results_v4() {
       }
 
       read_state_.query_results.af_values.clear();
+      read_state_.query_results.ac_values.clear();
+      read_state_.query_results.an_values.clear();
       int allele_index = 0;
       bool is_ref = true;
       for (auto&& allele : alleles) {
@@ -1403,6 +1405,8 @@ bool Reader::process_query_results_v4() {
         //  - build vector of AFs matching the order of the VCF record
         //  - all allele AF values are required, so do not exit this loop early
         read_state_.query_results.af_values.push_back(af);
+        read_state_.query_results.ac_values.push_back(ac);
+        read_state_.query_results.an_values.push_back(an);
 
         LOG_TRACE("  pass = {}", pass);
         is_ref = false;

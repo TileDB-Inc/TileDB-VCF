@@ -25,6 +25,7 @@
  */
 
 #include "read/in_memory_exporter.h"
+#include <stdexcept>
 #include "enums/attr_datatype.h"
 
 namespace tiledb {
@@ -975,13 +976,36 @@ bool InMemoryExporter::copy_info_fmt_value(
   const std::string& field_name = dest->info_fmt_field_name;
   const bool is_gt = field_name == "GT";
   const bool is_iaf = field_name == "TILEDB_IAF";
+  const bool is_iac = field_name == "TILEDB_IAC";
+  const bool is_ian = field_name == "TILEDB_IAN";
+
   const void* src = nullptr;
   uint64_t nbytes = 0, nelts = 0;
-  if (is_iaf && !curr_query_results_->af_values.empty()) {
+  auto& af_values = curr_query_results_->af_values;
+  auto& ac_values = curr_query_results_->ac_values;
+  auto& an_values = curr_query_results_->an_values;
+  if ((is_iaf || is_iac || is_ian) && !af_values.empty()) {
+    if (af_values.size() != ac_values.size() ||
+        af_values.size() != an_values.size()) {
+      throw std::runtime_error(
+          "inconsistent cardinality of IAC/IAN/IAF vectors in query results");
+    }
     // assign source pointer, nbytes, and nelts from vector
-    src = curr_query_results_->af_values.data();
-    nelts = curr_query_results_->af_values.size();
-    nbytes = nelts * sizeof(decltype(curr_query_results_->af_values.at(0)));
+    if (is_iaf) {
+      src = af_values.data();
+      nelts = af_values.size();
+      nbytes = nelts * sizeof(decltype(af_values.at(0)));
+    } else {
+      if (is_iac) {
+        src = ac_values.data();
+        nelts = ac_values.size();
+        nbytes = nelts * sizeof(decltype(ac_values.at(0)));
+      } else {
+        src = an_values.data();
+        nelts = an_values.size();
+        nbytes = nelts * sizeof(decltype(an_values.at(0)));
+      }
+    }
   } else {
     get_info_fmt_value(dest, cell_idx, &src, &nbytes, &nelts);
   }
