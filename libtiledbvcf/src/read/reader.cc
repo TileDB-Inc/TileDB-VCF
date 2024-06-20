@@ -1377,7 +1377,7 @@ bool Reader::process_query_results_v4() {
 
       read_state_.query_results.af_values.clear();
       read_state_.query_results.ac_values.clear();
-      read_state_.query_results.an_values.clear();
+      read_state_.query_results.an_value = 0;
       int allele_index = 0;
       bool is_ref = true;
       uint32_t an = 0;
@@ -1412,7 +1412,7 @@ bool Reader::process_query_results_v4() {
         LOG_TRACE("  pass = {}", pass);
         is_ref = false;
       }
-      read_state_.query_results.an_values.push_back(an);
+      read_state_.query_results.an_value = an;
 
       // If all alleles do not pass the af filter, continue
       if (!pass) {
