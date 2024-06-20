@@ -809,6 +809,7 @@ std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
 void VariantStats::update_results() {
   if (values_.size() > 0) {
     for (auto& [allele, value] : values_) {
+      uint32_t& end = value.end;
       auto contig_offsets_point = contig_offsets_.end();
       auto contig_buffer_point = contig_buffer_.end();
       auto pos_buffer_point = pos_buffer_.end();
@@ -823,18 +824,34 @@ void VariantStats::update_results() {
       if (array_version_ >= 3) {
         // check that we don't underrun the end buffer
         if (end_buffer_.size() > 0)
-        // while the end coord is too low to be appended to the end, go backward
-        // until it fits in order
+        // while the end coord or sample name (lexicographically) is too low to
+        // be appended to the end, go backward until it fits in order
         {
-          while (end_buffer_point - 1 > end_buffer_.begin() &&
-                 value.end < *(end_buffer_point - 1) &&
-                 *(pos_buffer_point - 1) == pos_ &&
-                 !strncmp(
-                     sample_buffer_.data() + *(sample_offsets_point - 1),
-                     sample_.data(),
-                     std::min<uint32_t>(
-                         (sample_buffer_.size() - *sample_offsets_point),
-                         sample_.size()))) {
+          int64_t end_diff;
+          int sample_diff;
+          bool sample_out_of_order, sample_equal, not_underrunning,
+              end_out_of_order, pos_equal;
+          auto eval_conditions = [&]() {
+            pos_equal = *(pos_buffer_point - 1) == pos_;
+            end_diff = (static_cast<int64_t>(end) - *(end_buffer_point - 1));
+            end_out_of_order = (end_diff < 0);
+            sample_diff = strncmp(
+                sample_buffer_.data() + *(sample_offsets_point - 1),
+                sample_.data(),
+                std::min<uint32_t>(
+                    (sample_buffer_.size() - *sample_offsets_point),
+                    sample_.size()));
+            sample_out_of_order = (sample_diff > 0);
+            sample_equal = (sample_diff == 0);
+            not_underrunning = end_buffer_point - 1 > end_buffer_.begin();
+          };
+          eval_conditions();
+          while (
+              // need to swap ends
+              (not_underrunning && pos_equal && sample_equal &&
+               end_out_of_order) ||
+              // need to swap samples
+              (not_underrunning && pos_equal && sample_out_of_order)) {
             // decrement iterators by one cell
             contig_offsets_point--;
             contig_buffer_point =
@@ -853,6 +870,7 @@ void VariantStats::update_results() {
             an_buffer_point--;
             n_hom_buffer_point--;
             end_buffer_point--;
+            eval_conditions();
           }
         }
         max_length_buffer_.push_back(value.max_length);
