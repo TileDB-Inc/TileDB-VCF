@@ -952,7 +952,7 @@ void Reader::prepare_variant_stats() {
         "Error preparing variant stats: there should be exactly one region "
         "specified");
   }
-  af_filter_->add_region(params_.regions[0]);
+  af_filter_->add_region(params_.regions[0], true);
   af_filter_->compute_af();
 }
 
