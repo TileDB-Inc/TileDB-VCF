@@ -317,6 +317,9 @@ class AFMap {
 
   uint32_t array_version = 2;
 
+  /** maximum length to extend variant stats query */
+  int32_t max_length = 0;
+
  private:
   struct RefBlock {
     uint32_t start;
@@ -351,8 +354,13 @@ class AFMap {
       std::pair<int, std::unordered_map<std::string, int>>>
       ac_map_;
 
+  /** track running sum of AC when computing IAF for GVCF */
   uint64_t ac_sum_ = 0;
+
+  /** track running sum of AN when computing IAF for GVCF */
   uint64_t an_sum_ = 0;
+
+  /** track position when computing IAF for GVCF */
   uint64_t active_pos_ = 0;
 
   /** ref block, selected from ref_block_cache_, that demarcates the beginning
