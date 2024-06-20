@@ -383,7 +383,7 @@ void VariantStats::flush(bool finalize) {
   // Update results for the last locus before flushing
   update_results();
 
-  int buffered_records = ac_buffer.size();
+  int buffered_records = ac_buffer_.size();
 
   if (contig_offsets_.data() == nullptr) {
     LOG_DEBUG("[VariantStats] flush called with no records written");
@@ -418,12 +418,12 @@ void VariantStats::flush(bool finalize) {
           .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
     }
 
-    query_->set_data_buffer("ac", ac_buffer);
-    query_->set_data_buffer("an", an_buffer);
-    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("ac", ac_buffer_);
+    query_->set_data_buffer("an", an_buffer_);
+    query_->set_data_buffer("n_hom", n_hom_buffer_);
     if (array_version_ >= 3) {
-      query_->set_data_buffer("max_length", max_length_buffer);
-      query_->set_data_buffer("end", end_buffer);
+      query_->set_data_buffer("max_length", max_length_buffer_);
+      query_->set_data_buffer("end", end_buffer_);
     }
 
     auto st = query_->submit();
@@ -443,12 +443,12 @@ void VariantStats::flush(bool finalize) {
     sample_offsets_.clear();
     allele_buffer_.clear();
     allele_offsets_.clear();
-    ac_buffer.clear();
-    an_buffer.clear();
-    n_hom_buffer.clear();
+    ac_buffer_.clear();
+    an_buffer_.clear();
+    n_hom_buffer_.clear();
     if (array_version_ >= 3) {
-      max_length_buffer.clear();
-      end_buffer.clear();
+      max_length_buffer_.clear();
+      end_buffer_.clear();
     }
   }
 
@@ -466,12 +466,12 @@ void VariantStats::flush(bool finalize) {
           .set_offsets_buffer(COLUMN_STR[SAMPLE], sample_offsets_);
     }
 
-    query_->set_data_buffer("ac", ac_buffer);
-    query_->set_data_buffer("an", an_buffer);
-    query_->set_data_buffer("n_hom", n_hom_buffer);
+    query_->set_data_buffer("ac", ac_buffer_);
+    query_->set_data_buffer("an", an_buffer_);
+    query_->set_data_buffer("n_hom", n_hom_buffer_);
     if (array_version_ >= 3) {
-      query_->set_data_buffer("max_length", max_length_buffer);
-      query_->set_data_buffer("end", end_buffer);
+      query_->set_data_buffer("max_length", max_length_buffer_);
+      query_->set_data_buffer("end", end_buffer_);
     }
     finalize_query();
   }
@@ -509,7 +509,8 @@ inline void VariantStats::process_v3(
   HtslibValueMem val;
   int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
-  if (contig != contig_ || pos != pos_ || sample_name != sample_) {
+  if (contig != contig_ || pos != pos_ || sample_name != sample_ ||
+      end_pos != end_) {
     if (contig != contig_) {
       LOG_DEBUG("[VariantStats] new contig = {}", contig);
     } else if (pos < pos_) {
@@ -666,7 +667,8 @@ inline void VariantStats::process_v2(
   HtslibValueMem val;
   int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
-  if (contig != contig_ || pos != pos_ || sample_name != sample_) {
+  if (contig != contig_ || pos != pos_ || sample_name != sample_ ||
+      end_pos != end_) {
     if (contig != contig_) {
       LOG_DEBUG("[VariantStats] new contig = {}", contig);
     } else if (pos < pos_) {
@@ -806,20 +808,70 @@ std::string VariantStats::get_uri(const std::string& root_uri, bool relative) {
 void VariantStats::update_results() {
   if (values_.size() > 0) {
     for (auto& [allele, value] : values_) {
-      contig_offsets_.push_back(contig_buffer_.size());
-      contig_buffer_ += contig_;
-      pos_buffer_.push_back(pos_);
-      sample_offsets_.push_back(sample_buffer_.size());
-      sample_buffer_ += sample_;
-      allele_offsets_.push_back(allele_buffer_.size());
-      allele_buffer_ += allele;
-      ac_buffer.push_back(value.ac);
-      an_buffer.push_back(value.an);
-      n_hom_buffer.push_back(value.n_hom);
+      auto contig_offsets_point = contig_offsets_.end();
+      auto contig_buffer_point = contig_buffer_.end();
+      auto pos_buffer_point = pos_buffer_.end();
+      auto sample_offsets_point = sample_offsets_.end();
+      auto sample_buffer_point = sample_buffer_.end();
+      auto allele_offsets_point = allele_offsets_.end();
+      auto allele_buffer_point = allele_buffer_.end();
+      auto ac_buffer_point = ac_buffer_.end();
+      auto an_buffer_point = an_buffer_.end();
+      auto n_hom_buffer_point = n_hom_buffer_.end();
+      auto end_buffer_point = end_buffer_.end();
       if (array_version_ >= 3) {
-        max_length_buffer.push_back(value.max_length);
-        end_buffer.push_back(value.end);
+        // check that we don't underrun the end buffer
+        if (end_buffer_.size() > 0)
+        // while the end coord is too low to be appended to the end, go backward
+        // until it fits in order
+        {
+          while (end_buffer_point - 1 > end_buffer_.begin() &&
+                 value.end < *(end_buffer_point - 1) &&
+                 *(pos_buffer_point - 1) == pos_ &&
+                 !strncmp(
+                     sample_buffer_.data() + *(sample_offsets_point - 1),
+                     sample_.data(),
+                     std::min(
+                         (sample_buffer_.size() - *sample_offsets_point - 1),
+                         sample_.size()))) {
+            // decrement iterators by one cell
+            contig_offsets_point--;
+            contig_buffer_point =
+                contig_buffer_.begin() + *contig_offsets_point;
+            *contig_offsets_point += contig_.length();
+            pos_buffer_point--;
+            sample_offsets_point--;
+            sample_buffer_point =
+                sample_buffer_.begin() + *sample_offsets_point;
+            *sample_offsets_point += sample_.length();
+            allele_offsets_point--;
+            allele_buffer_point =
+                allele_buffer_.begin() + *allele_offsets_point;
+            *allele_offsets_point += allele.length();
+            ac_buffer_point--;
+            an_buffer_point--;
+            n_hom_buffer_point--;
+            end_buffer_point--;
+          }
+        }
+        max_length_buffer_.push_back(value.max_length);
+        end_buffer_.insert(end_buffer_point, value.end);
       }
+      contig_offsets_.insert(
+          contig_offsets_point, contig_buffer_point - contig_buffer_.begin());
+      contig_buffer_.insert(
+          contig_buffer_point, contig_.begin(), contig_.end());
+      pos_buffer_.insert(pos_buffer_point, pos_);
+      sample_offsets_.insert(
+          sample_offsets_point, sample_buffer_point - sample_buffer_.begin());
+      sample_buffer_.insert(
+          sample_buffer_point, sample_.begin(), sample_.end());
+      allele_offsets_.insert(
+          allele_offsets_point, allele_buffer_point - allele_buffer_.begin());
+      allele_buffer_.insert(allele_buffer_point, allele.begin(), allele.end());
+      ac_buffer_.insert(ac_buffer_point, value.ac);
+      an_buffer_.insert(an_buffer_point, value.an);
+      n_hom_buffer_.insert(n_hom_buffer_point, value.n_hom);
     }
     values_.clear();
   }
