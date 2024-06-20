@@ -184,6 +184,15 @@ VariantStatsReader::VariantStatsReader(
   auto uri = VariantStats::get_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
+  const void* alt_max = 0;
+    tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
+    uint32_t alt_max_num = 0;
+    array_->get_metadata(
+        "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
+    if (alt_max)
+      if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
+          af_map_.max_length = *((int32_t*)alt_max);
+      }
   const void* variant_stats_version_read;
   uint32_t& variant_stats_version = af_map_.array_version;
   tiledb_datatype_t version_datatype;
