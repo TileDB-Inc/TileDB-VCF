@@ -985,8 +985,7 @@ bool InMemoryExporter::copy_info_fmt_value(
   auto& ac_values = curr_query_results_->ac_values;
   auto& an_values = curr_query_results_->an_values;
   if ((is_iaf || is_iac || is_ian) && !af_values.empty()) {
-    if (af_values.size() != ac_values.size() ||
-        af_values.size() != an_values.size()) {
+    if (af_values.size() != ac_values.size()) {
       throw std::runtime_error(
           "inconsistent cardinality of IAC/IAN/IAF vectors in query results");
     }
