@@ -291,6 +291,10 @@ class AFMap {
    */
   void clear() {
     ac_map_.clear();
+    ref_block_cache_.clear();
+    ac_sum_ = 0;
+    an_sum_ = 0;
+    active_pos_ = 0;
   }
 
   /**
@@ -349,6 +353,7 @@ class AFMap {
 
   uint64_t ac_sum_ = 0;
   uint64_t an_sum_ = 0;
+  uint64_t active_pos_ = 0;
 
   /** ref block, selected from ref_block_cache_, that demarcates the beginning
    * of the overlap  with the current position */

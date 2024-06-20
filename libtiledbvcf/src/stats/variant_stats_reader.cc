@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <regex>
+#include <stdexcept>
 
 #include "variant_stats_reader.h"
 
@@ -70,6 +71,15 @@ bool AFMap::RefBlockComp::operator()(
 }
 
 inline void AFMap::advance_to_ref_block(uint32_t pos) {
+  if (pos + 1 == active_pos_) {
+    return;
+  }
+  if (pos + 1 < active_pos_) {
+    throw std::runtime_error(
+        "[VariantStatsReader] ref block computation performed on incompletely "
+        "sorted positions");
+  }
+  active_pos_++;
   // ref blocks entering scope
   while (selected_ref_block_ != ref_block_cache_.end() &&
          selected_ref_block_->start <= pos) {
@@ -80,8 +90,8 @@ inline void AFMap::advance_to_ref_block(uint32_t pos) {
   // ref blocks exiting scope
   while (selected_ref_block_end_ != ref_block_by_end_.end() &&
          (**selected_ref_block_end_).end < pos) {
-    ac_sum_ -= selected_ref_block_->ac;
-    an_sum_ -= selected_ref_block_->an;
+    ac_sum_ -= (**selected_ref_block_end_).ac;
+    an_sum_ -= (**selected_ref_block_end_).an;
     selected_ref_block_end_++;
   }
 }
