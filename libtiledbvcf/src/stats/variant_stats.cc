@@ -507,7 +507,7 @@ inline void VariantStats::process_v3(
   }
 
   HtslibValueMem val;
-  int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
+  uint32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
   if (contig != contig_ || pos != pos_ || sample_name != sample_ ||
       end_pos != end_) {
@@ -665,7 +665,7 @@ inline void VariantStats::process_v2(
   }
 
   HtslibValueMem val;
-  int32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
+  uint32_t end_pos = VCFUtils::get_end_pos(hdr, rec, &val);
   // Check if locus has changed
   if (contig != contig_ || pos != pos_ || sample_name != sample_ ||
       end_pos != end_) {
