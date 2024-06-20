@@ -1380,8 +1380,9 @@ bool Reader::process_query_results_v4() {
       read_state_.query_results.an_values.clear();
       int allele_index = 0;
       bool is_ref = true;
+      uint32_t an = 0;
       for (auto&& allele : alleles) {
-        auto [allele_passes, af, ac, an] = af_filter_->pass(
+        auto [allele_passes, af, ac, allele_an] = af_filter_->pass(
             real_start,
             is_ref ? "ref" : alleles[0] + "," + allele,
             params_.scan_all_samples,
@@ -1406,11 +1407,12 @@ bool Reader::process_query_results_v4() {
         //  - all allele AF values are required, so do not exit this loop early
         read_state_.query_results.af_values.push_back(af);
         read_state_.query_results.ac_values.push_back(ac);
-        read_state_.query_results.an_values.push_back(an);
+        an = allele_an;
 
         LOG_TRACE("  pass = {}", pass);
         is_ref = false;
       }
+      read_state_.query_results.an_values.push_back(an);
 
       // If all alleles do not pass the af filter, continue
       if (!pass) {
