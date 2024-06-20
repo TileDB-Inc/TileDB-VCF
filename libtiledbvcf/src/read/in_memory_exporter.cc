@@ -595,7 +595,8 @@ bool InMemoryExporter::fixed_len_attr(const std::string& attr) {
       "fmt_PS",
       "fmt_PQ",
       "fmt_MQ",
-      "fmt_MIN_DP"};
+      "fmt_MIN_DP",
+      "info_TILEDB_IAN"};
   return fixed_len.count(attr) > 0;
 }
 
@@ -983,7 +984,7 @@ bool InMemoryExporter::copy_info_fmt_value(
   uint64_t nbytes = 0, nelts = 0;
   auto& af_values = curr_query_results_->af_values;
   auto& ac_values = curr_query_results_->ac_values;
-  auto& an_values = curr_query_results_->an_values;
+  uint32_t an_value = curr_query_results_->an_value;
   if ((is_iaf || is_iac || is_ian) && !af_values.empty()) {
     if (af_values.size() != ac_values.size()) {
       throw std::runtime_error(
@@ -1000,9 +1001,9 @@ bool InMemoryExporter::copy_info_fmt_value(
         nelts = ac_values.size();
         nbytes = nelts * sizeof(decltype(ac_values.at(0)));
       } else {
-        src = an_values.data();
-        nelts = an_values.size();
-        nbytes = nelts * sizeof(decltype(an_values.at(0)));
+        src = &an_value;
+        nelts = 1;
+        nbytes = nelts * sizeof(decltype(an_value));
       }
     }
   } else {
