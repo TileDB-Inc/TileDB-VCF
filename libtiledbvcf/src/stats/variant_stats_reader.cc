@@ -270,7 +270,9 @@ std::tuple<bool, float, uint32_t, uint32_t> VariantStatsReader::pass(
     const std::string& allele,
     bool scan_all_samples,
     size_t num_samples) {
-  af_map_.advance_to_ref_block(pos);
+  if (array_version() > 2) {
+    af_map_.advance_to_ref_block(pos);
+  }
   if (!allele.compare("<NON_REF>")) {
     // TODO: replace placeholder return values if necessary
     return {false, 0.0, 0, 0};
