@@ -300,11 +300,11 @@ class VariantStats {
   // Buffer for allele offsets
   std::vector<uint64_t> allele_offsets_;
 
-  std::vector<int32_t> ac_buffer;
-  std::vector<int32_t> an_buffer;
-  std::vector<int32_t> n_hom_buffer;
-  std::vector<uint32_t> max_length_buffer;
-  std::vector<uint32_t> end_buffer;
+  std::vector<int32_t> ac_buffer_;
+  std::vector<int32_t> an_buffer_;
+  std::vector<int32_t> n_hom_buffer_;
+  std::vector<uint32_t> max_length_buffer_;
+  std::vector<uint32_t> end_buffer_;
 
   // Reusable htslib buffer for bcf_get_* functions
   int* dst_ = nullptr;
