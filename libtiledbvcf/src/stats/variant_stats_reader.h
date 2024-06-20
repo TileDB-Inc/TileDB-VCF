@@ -60,39 +60,33 @@ class AFMap {
       uint32_t end = 0) {
     // Should this insertion be tallied for contributing to transport (Arrow)
     // buffer size?
-    bool should_tally = false;
-
-    // TODO: change this to use std::unordered_map::contains when adopting C++20
-    if (ac_map_.find(pos) == ac_map_.end()) {
-      should_tally = true;
-    } else {
-      // true if not a duplicate
-      should_tally =
-          ac_map_[pos].second.find(allele) == ac_map_[pos].second.end();
-    }
 
     // add encountered ref block to the cache
     if (array_version >= 3 && allele == "nr") {
       ref_block_cache_.push_back({pos, end, ac, an});
     } else {
-      // add ac to the an for this position
-      ac_map_[pos].first += ac;
+      if (pos >= min_pos) {
+        bool should_tally =
+            !ac_map_.contains(pos) || !ac_map_[pos].second.contains(allele);
+        // add ac to the an for this position
+        ac_map_[pos].first += ac;
 
-      // add ac to the ac for this position, allele
-      ac_map_[pos].second[allele] += ac;
+        // add ac to the ac for this position, allele
+        ac_map_[pos].second[allele] += ac;
 
-      if (false) {
-        LOG_TRACE(
-            "[AFMap] insert {} {} {} -> ac={} an={}",
-            pos,
-            allele,
-            ac,
-            ac_map_[pos].second[allele],
-            ac_map_[pos].first);
-      }
-      if (should_tally) {
-        allele_aggregate_size_ += allele.length();
-        allele_cardinality_++;
+        if (false) {
+          LOG_TRACE(
+              "[AFMap] insert {} {} {} -> ac={} an={}",
+              pos,
+              allele,
+              ac,
+              ac_map_[pos].second[allele],
+              ac_map_[pos].first);
+        }
+        if (should_tally) {
+          allele_aggregate_size_ += allele.length();
+          allele_cardinality_++;
+        }
       }
     }
   }
@@ -317,8 +311,8 @@ class AFMap {
 
   uint32_t array_version = 2;
 
-  /** maximum length to extend variant stats query */
-  int32_t max_length = 0;
+  /** minimum position for single-range queries */
+  uint32_t min_pos = 0;
 
  private:
   struct RefBlock {
@@ -419,11 +413,14 @@ class VariantStatsReader {
    * @brief Add a region to the next allele frequency computation
    *
    * @param region
+   * @param set_min this single region represents the bounds of a standalone
+   * variant stats query
    */
-  void add_region(Region region) {
+  void add_region(Region region, bool set_min = false) {
     // Wait for any previous async queries to complete
     wait();
     regions_.push_back(region);
+    af_map_.min_pos = set_min ? region.min : 0;
   }
 
   /**
@@ -495,6 +492,9 @@ class VariantStatsReader {
       size_t num_samples);
 
  private:
+  /** maximum length to extend variant stats query */
+  int32_t max_length_ = 0;
+
   // Variant stats array
   std::shared_ptr<Array> array_;
 

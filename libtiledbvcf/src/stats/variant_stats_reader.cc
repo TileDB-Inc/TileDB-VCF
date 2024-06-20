@@ -185,14 +185,13 @@ VariantStatsReader::VariantStatsReader(
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
   const void* alt_max = 0;
-    tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
-    uint32_t alt_max_num = 0;
-    array_->get_metadata(
-        "max_length", &alt_max_datatype, &alt_max_num, &alt_max);
-    if (alt_max)
-      if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
-          af_map_.max_length = *((int32_t*)alt_max);
-      }
+  tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
+  uint32_t alt_max_num = 0;
+  array_->get_metadata("max_length", &alt_max_datatype, &alt_max_num, &alt_max);
+  if (alt_max)
+    if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
+      max_length_ = *((int32_t*)alt_max);
+    }
   const void* variant_stats_version_read;
   uint32_t& variant_stats_version = af_map_.array_version;
   tiledb_datatype_t version_datatype;
@@ -385,7 +384,12 @@ void VariantStatsReader::compute_af_worker_() {
   mq.select_point<std::string>("contig", regions_.front().seq_name);
   for (auto& region : regions_) {
     LOG_DEBUG("[VariantStatsReader] compute_af for region={}", region.to_str());
-    mq.select_ranges<uint32_t>("pos", {{region.min, region.max}});
+    mq.select_ranges<uint32_t>(
+        "pos",
+        {{region.min - ((variant_stats_version > 2) ?
+                            std::min<uint32_t>(region.min, max_length_) :
+                            0),
+          region.max}});
   }
   regions_.clear();
 
