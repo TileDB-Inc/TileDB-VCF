@@ -25,6 +25,7 @@
  */
 
 #include "variant_stats.h"
+#include <algorithm>
 #include <stdexcept>
 #include "utils/logger_public.h"
 #include "utils/utils.h"
@@ -831,8 +832,8 @@ void VariantStats::update_results() {
                  !strncmp(
                      sample_buffer_.data() + *(sample_offsets_point - 1),
                      sample_.data(),
-                     std::min(
-                         (sample_buffer_.size() - *sample_offsets_point - 1),
+                     std::min<uint32_t>(
+                         (sample_buffer_.size() - *sample_offsets_point),
                          sample_.size()))) {
             // decrement iterators by one cell
             contig_offsets_point--;
