@@ -88,13 +88,27 @@ inline void AFMap::advance_to_ref_block(uint32_t pos) {
 
 void AFMap::finalize_ref_block_cache() {
   std::sort(ref_block_cache_.begin(), ref_block_cache_.end(), RefBlockComp());
-  selected_ref_block_ = ref_block_cache_.begin();
   ref_block_by_end_.clear();
   for (RefBlock& selected_block : ref_block_cache_) {
     ref_block_by_end_.push_back(&selected_block);
   }
   std::sort(ref_block_by_end_.begin(), ref_block_by_end_.end(), RefBlockComp());
+  selected_ref_block_ = ref_block_cache_.begin();
   selected_ref_block_end_ = ref_block_by_end_.begin();
+}
+
+// The following two methods are declared to eliminate a branchpoint in a loop
+// where they're called: instead of wrapping the AF version in an if statement,
+// use indirection or generate per-version code paths for the loop.
+static inline std::tuple<float, uint32_t, uint32_t> call_af_v2(
+    AFMap* map, uint32_t& pos, const std::string& allele) {
+  return map->af(pos, allele);
+}
+
+static inline std::tuple<float, uint32_t, uint32_t> call_af_v3(
+    AFMap* map, uint32_t& pos, const std::string& allele) {
+  map->advance_to_ref_block(pos);
+  return map->af_v3(pos, allele);
 }
 
 inline void AFMap::retrieve_variant_stats(
@@ -104,6 +118,9 @@ inline void AFMap::retrieve_variant_stats(
     int* ac,
     int* an,
     float_t* afb) {
+  std::tuple<float, uint32_t, uint32_t> (&call_af)(
+      AFMap*, uint32_t&, const std::string&) =
+      array_version > 2 ? call_af_v3 : call_af_v2;
   {
     size_t row = 0;
     for (std::pair<
@@ -128,15 +145,18 @@ inline void AFMap::retrieve_variant_stats(
           "high");
     }
   }
+
   qsort(pos, allele_cardinality_, sizeof(uint32_t), pos_comparator);
   allele_offsets[0] = 0;
   for (size_t row = 0; row < allele_cardinality_;) {
     std::pair<int, std::unordered_map<std::string, int>> an_to_allele =
         ac_map_[pos[row]];
     for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
-      ac[row] = allele_to_count.second;
-      an[row] = an_to_allele.first;
-      afb[row] = std::get<0>(af(pos[row], allele_to_count.first));
+      auto [this_af, this_ac, this_an] =
+          call_af(this, pos[row], allele_to_count.first);
+      ac[row] = this_ac;
+      an[row] = this_an;
+      afb[row] = this_af;
       std::memcpy(
           allele + allele_offsets[row],
           allele_to_count.first.c_str(),
@@ -225,7 +245,6 @@ void VariantStatsReader::wait() {
       TRY_CATCH_THROW(compute_future_.wait());
     }
   }
-  af_map_.finalize_ref_block_cache();
 }
 
 std::tuple<bool, float, uint32_t, uint32_t> VariantStatsReader::pass(
@@ -374,6 +393,7 @@ void VariantStatsReader::compute_af_worker_() {
       "[VariantStatsReader] query completed in {:.3f} sec. (VmRSS = {})",
       utils::chrono_duration(query_start_timer),
       utils::memory_usage_str());
+  af_map_.finalize_ref_block_cache();
 }
 
 }  // namespace tiledb::vcf
