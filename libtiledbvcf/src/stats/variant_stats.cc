@@ -831,7 +831,7 @@ void VariantStats::update_results() {
           int sample_diff;
           bool sample_out_of_order, sample_equal, not_underrunning,
               end_out_of_order, pos_equal;
-          auto eval_conditions = [&]() {
+          auto out_of_order = [&]() {
             pos_equal = *(pos_buffer_point - 1) == pos_;
             end_diff = (static_cast<int64_t>(end) - *(end_buffer_point - 1));
             end_out_of_order = (end_diff < 0);
@@ -844,14 +844,13 @@ void VariantStats::update_results() {
             sample_out_of_order = (sample_diff > 0);
             sample_equal = (sample_diff == 0);
             not_underrunning = end_buffer_point - 1 > end_buffer_.begin();
+            return static_cast<bool>(  // need to swap ends
+                (not_underrunning && pos_equal && sample_equal &&
+                 end_out_of_order) ||
+                // need to swap samples
+                (not_underrunning && pos_equal && sample_out_of_order));
           };
-          eval_conditions();
-          while (
-              // need to swap ends
-              (not_underrunning && pos_equal && sample_equal &&
-               end_out_of_order) ||
-              // need to swap samples
-              (not_underrunning && pos_equal && sample_out_of_order)) {
+          while (/*cells are out of order*/ out_of_order()) {
             // decrement iterators by one cell
             contig_offsets_point--;
             contig_buffer_point =
@@ -870,7 +869,6 @@ void VariantStats::update_results() {
             an_buffer_point--;
             n_hom_buffer_point--;
             end_buffer_point--;
-            eval_conditions();
           }
         }
         max_length_buffer_.push_back(value.max_length);
