@@ -227,12 +227,11 @@ class AFMap {
     if (next_allele == pos_map.second.end()) {
       return {0, 0, pos_map.first + an_sum_};
     }
+    bool is_ref_block = next_allele->first == "ref";
     return {
-        1.0 *
-            (next_allele->second +
-             (next_allele->first == "ref" ? ac_sum_ : 0)) /
+        1.0 * (next_allele->second + (is_ref_block ? ac_sum_ : 0)) /
             (pos_map.first + an_sum_),
-        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0),
+        next_allele->second + (is_ref_block ? ac_sum_ : 0),
         (pos_map.first + an_sum_)};
   }
 
@@ -272,10 +271,11 @@ class AFMap {
     if (next_allele == pos_map.second.end()) {
       return {0, 0, num_samples / 2 + an_sum_};
     }
+    bool is_ref_block = next_allele->first == "ref";
     return {
-        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0) /
-                                  (num_samples * 2 + an_sum_),
-        next_allele->second + (next_allele->first == "ref" ? ac_sum_ : 0),
+        next_allele->second +
+            (is_ref_block ? ac_sum_ : 0) / (num_samples * 2 + an_sum_),
+        next_allele->second + (is_ref_block ? ac_sum_ : 0),
         num_samples * 2 + an_sum_};
   }
 
