@@ -122,36 +122,8 @@ class AFMap {
    * @param allele Allele value
    * @return float Allele Frequency
    */
-  std::tuple<float, uint32_t, uint32_t> af(
-      uint32_t pos, const std::string& allele) {
-    // calculate af = ac / an
-    std::unordered_map<
-        uint32_t,
-        std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-        pos_map_iterator = ac_map_.find(pos);
-
-    // Return -1.0 if the allele was not called
-    if (pos_map_iterator == ac_map_.end()) {
-      return {-1.0, 0, 0};
-    }
-
-    const auto pos_map = pos_map_iterator->second;
-
-    // We don't know that allele was called in this sample. Ask nicely for the
-    // allele count.
-    auto next_allele = pos_map.second.find(allele);
-
-    // First multiply by 1.0 to force a float type, then look up AC from the
-    // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-    // Divide by AN (pos_map.first) to get AF.
-    if (next_allele == pos_map.second.end()) {
-      return {0, 0, pos_map.first};
-    }
-    return {
-        1.0 * next_allele->second / pos_map.first,
-        next_allele->second,
-        pos_map.first};
-  }
+  inline std::tuple<float, uint32_t, uint32_t> af(
+      uint32_t pos, const std::string& allele);
 
   /**
    * @brief Compute the Allele Frequency for an allele at the given position,
@@ -162,38 +134,8 @@ class AFMap {
    * @param num_samples Number of samples in the entire dataset
    * @return float Allele Frequency
    */
-  std::tuple<float, uint32_t, uint32_t> af(
-      uint32_t pos, const std::string& allele, size_t num_samples) {
-    // calculate af = ac / an
-    std::unordered_map<
-        uint32_t,
-        std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-        pos_map_iterator = ac_map_.find(pos);
-
-    // Return -1.0 if the allele was not called
-    if (pos_map_iterator == ac_map_.end()) {
-      return {-1.0, 0, 0};
-    }
-
-    const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
-        pos_map_iterator->second;
-
-    // We don't know that allele was called in this sample. Ask nicely for the
-    // allele count.
-    decltype(pos_map.second)::const_iterator next_allele =
-        pos_map.second.find(allele);
-
-    // First multiply by 1.0 to force a float type, then look up AC from the
-    // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-    // Divide by AN (pos_map.first) to get AF.
-    if (next_allele == pos_map.second.end()) {
-      return {0, 0, num_samples * 2};
-    }
-    return {
-        1.0 * next_allele->second / num_samples / 2,
-        next_allele->second,
-        num_samples * 2};
-  }
+  inline std::tuple<float, uint32_t, uint32_t> af(
+      uint32_t pos, const std::string& allele, size_t num_samples);
 
   /**
    * @brief Compute the Allele Frequency for an allele at the given position.
@@ -202,38 +144,8 @@ class AFMap {
    * @param allele Allele value
    * @return float Allele Frequency
    */
-  std::tuple<float, uint32_t, uint32_t> af_v3(
-      uint32_t pos, const std::string& allele) {
-    // calculate af = ac / an
-    std::unordered_map<
-        uint32_t,
-        std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-        pos_map_iterator = ac_map_.find(pos);
-
-    // Return -1.0 if the allele was not called
-    if (pos_map_iterator == ac_map_.end()) {
-      return {-1.0, 0, 0};
-    }
-
-    const auto pos_map = pos_map_iterator->second;
-
-    // We don't know that allele was called in this sample. Ask nicely for the
-    // allele count.
-    auto next_allele = pos_map.second.find(allele);
-
-    // First multiply by 1.0 to force a float type, then look up AC from the
-    // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-    // Divide by AN (pos_map.first) to get AF.
-    if (next_allele == pos_map.second.end()) {
-      return {0, 0, pos_map.first + an_sum_};
-    }
-    bool is_ref_block = next_allele->first == "ref";
-    return {
-        1.0 * (next_allele->second + (is_ref_block ? ac_sum_ : 0)) /
-            (pos_map.first + an_sum_),
-        next_allele->second + (is_ref_block ? ac_sum_ : 0),
-        (pos_map.first + an_sum_)};
-  }
+  inline std::tuple<float, uint32_t, uint32_t> af_v3(
+      uint32_t pos, const std::string& allele);
 
   /**
    * @brief Compute the Allele Frequency for an allele at the given position,
@@ -244,40 +156,8 @@ class AFMap {
    * @param num_samples Number of samples in the entire dataset
    * @return float Allele Frequency
    */
-  std::tuple<float, uint32_t, uint32_t> af_v3(
-      uint32_t pos, const std::string& allele, size_t num_samples) {
-    // calculate af = ac / an
-    std::unordered_map<
-        uint32_t,
-        std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-        pos_map_iterator = ac_map_.find(pos);
-
-    // Return -1.0 if the allele was not called
-    if (pos_map_iterator == ac_map_.end()) {
-      return {-1.0, 0, 0};
-    }
-
-    const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
-        pos_map_iterator->second;
-
-    // We don't know that allele was called in this sample. Ask nicely for the
-    // allele count.
-    decltype(pos_map.second)::const_iterator next_allele =
-        pos_map.second.find(allele);
-
-    // First multiply by 1.0 to force a float type, then look up AC from the
-    // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-    // Divide by AN (pos_map.first) to get AF.
-    if (next_allele == pos_map.second.end()) {
-      return {0, 0, num_samples / 2 + an_sum_};
-    }
-    bool is_ref_block = next_allele->first == "ref";
-    return {
-        next_allele->second +
-            (is_ref_block ? ac_sum_ : 0) / (num_samples * 2 + an_sum_),
-        next_allele->second + (is_ref_block ? ac_sum_ : 0),
-        num_samples * 2 + an_sum_};
-  }
+  inline std::tuple<float, uint32_t, uint32_t> af_v3(
+      uint32_t pos, const std::string& allele, size_t num_samples);
 
   /**
    * @brief Clear the map.
