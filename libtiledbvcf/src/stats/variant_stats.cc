@@ -828,21 +828,25 @@ void VariantStats::update_results() {
         // be appended to the end, go backward until it fits in order
         {
           int64_t end_diff;
+          size_t current_sample_offset = sample_buffer_.size();
           int sample_diff;
           bool sample_out_of_order, sample_equal, not_underrunning,
               end_out_of_order, pos_equal;
           auto out_of_order = [&]() {
+            size_t last_sample_length =
+                current_sample_offset - *(sample_offsets_point - 1);
             pos_equal = *(pos_buffer_point - 1) == pos_;
             end_diff = (static_cast<int64_t>(end) - *(end_buffer_point - 1));
             end_out_of_order = (end_diff < 0);
             sample_diff = strncmp(
                 sample_buffer_.data() + *(sample_offsets_point - 1),
                 sample_.data(),
-                std::min<uint32_t>(
-                    (sample_buffer_.size() - *sample_offsets_point),
-                    sample_.size()));
-            sample_out_of_order = (sample_diff > 0);
-            sample_equal = (sample_diff == 0);
+                std::min<uint32_t>(last_sample_length, sample_.size()));
+            sample_out_of_order =
+                (sample_diff > 0 ||
+                 (sample_diff == 0 && last_sample_length > sample_.size()));
+            sample_equal =
+                (sample_diff == 0 && last_sample_length == sample_.length());
             not_underrunning = end_buffer_point - 1 > end_buffer_.begin();
             return static_cast<bool>(  // need to swap ends
                 (not_underrunning && pos_equal && sample_equal &&
@@ -858,6 +862,7 @@ void VariantStats::update_results() {
             *contig_offsets_point += contig_.length();
             pos_buffer_point--;
             sample_offsets_point--;
+            current_sample_offset = *sample_offsets_point;
             sample_buffer_point =
                 sample_buffer_.begin() + *sample_offsets_point;
             *sample_offsets_point += sample_.length();
