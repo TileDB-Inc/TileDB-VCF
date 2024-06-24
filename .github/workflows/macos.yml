@@ -18,11 +18,11 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "11"
 jobs:
   libtiledbvcf:
-    # Stuck on macos-11 because of the htslib dependency. The htslib
-    # configuration step fails on macos-12 and macos-13
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v4
+      - name: Setup to build htslib from source
+        run: brew install autoconf automake
       - name: Configure libtiledbvcf
         run: |
           cmake -S libtiledbvcf -B $(pwd)/libtiledbvcf/build \
@@ -64,7 +64,7 @@ jobs:
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
           libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
-    runs-on: macos-11
+    runs-on: macos-12
     needs: libtiledbvcf
     env:
       DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
@@ -100,7 +100,7 @@ jobs:
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
   java:
-    runs-on: macos-11
+    runs-on: macos-12
     needs: libtiledbvcf
     steps:
       - uses: actions/checkout@v4
@@ -116,7 +116,7 @@ jobs:
       - name: Test
         run: cd apis/java && ./gradlew test
   spark:
-    runs-on: macos-11
+    runs-on: macos-12
     needs: libtiledbvcf
     steps:
       - uses: actions/checkout@v4
@@ -134,7 +134,7 @@ jobs:
       - name: Check format
         run: cd apis/spark && ./gradlew checkFormat
   spark3:
-    runs-on: macos-11
+    runs-on: macos-12
     needs: libtiledbvcf
     steps:
       - uses: actions/checkout@v4
@@ -152,11 +152,13 @@ jobs:
       - name: Check format
         run: cd apis/spark3 && ./gradlew checkFormat
   python-standalone:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Setup to build htslib from source
+        run: brew install autoconf automake
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
