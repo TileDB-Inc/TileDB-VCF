@@ -157,6 +157,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Setup to build htslib from source
+        run: brew install autoconf automake
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
