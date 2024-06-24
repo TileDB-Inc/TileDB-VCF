@@ -1,6 +1,6 @@
 numpy<2
 pandas
-pyarrow==11
+pyarrow==14.0.1
 pyarrow-hotfix
 pybind11
 setuptools
