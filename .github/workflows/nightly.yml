@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [macos-12, ubuntu-latest]
         branches:
-          - {libtiledb: release-2.23, tiledb-py: 0.29.0}
+          - {libtiledb: release-2.24, tiledb-py: 0.30.1}
           - {libtiledb: dev, tiledb-py: dev}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
