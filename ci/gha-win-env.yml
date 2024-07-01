@@ -11,7 +11,7 @@ dependencies:
   - tiledb=2.15
   - vs2019_win-64
   # build tiledbvcf-py
-  - numpy<2
+  - numpy
   - pandas<2.0
   - pyarrow=9.0
   - pyarrow-hotfix
