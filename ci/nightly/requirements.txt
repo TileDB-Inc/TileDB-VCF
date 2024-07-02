@@ -1,7 +1,6 @@
-numpy<2
+numpy
 pandas
-pyarrow==11
-pyarrow-hotfix
+pyarrow
 pybind11
 setuptools
 setuptools_scm

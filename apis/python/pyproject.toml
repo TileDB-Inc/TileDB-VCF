@@ -40,7 +40,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
-dependencies = ["pandas", "pyarrow", "pyarrow-hotfix", "numpy<2"]
+dependencies = ["pandas", "pyarrow", "numpy"]
 
 [project.optional-dependencies]
 test = ["dask[distributed]", "pytest", "tiledb"]
