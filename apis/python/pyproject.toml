@@ -66,4 +66,4 @@ editable.mode = "inplace"
 
 [tool.setuptools_scm]
 root = "../.."
-version_file = "src/tiledbvcf/version.py"
+write_to = "src/tiledbvcf/version.py"
