@@ -260,6 +260,7 @@ class VariantStats {
     int32_t ac = 0;
     int32_t an = 0;
     int32_t n_hom = 0;
+    int32_t n_not_called = 0;  // GT is missing
     uint32_t max_length = 0;
     uint32_t end = 0;
   };
@@ -303,6 +304,7 @@ class VariantStats {
   std::vector<int32_t> ac_buffer;
   std::vector<int32_t> an_buffer;
   std::vector<int32_t> n_hom_buffer;
+  std::vector<int32_t> n_not_called_buffer;
   std::vector<uint32_t> max_length_buffer;
   std::vector<uint32_t> end_buffer;
 
