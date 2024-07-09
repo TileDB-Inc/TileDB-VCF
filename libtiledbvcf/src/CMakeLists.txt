@@ -147,25 +147,13 @@ if (WIN32)
   set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-if(!WIN32)
-  target_link_libraries(tiledbvcf
-    PUBLIC
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-     spdlog::spdlog
-  )
-else()
-  target_link_libraries(tiledbvcf
-    PUBLIC
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-  # spdlog is somehow building under tiledbvcf using HEADER_ONLY source code paths, 
-  # which results in multiply defined symbols being complained about by the msvc linker.
-  # tiledbvcf does not seem to be -requesting- ...HEADER_ONLY anywhere I've found and spdlog -default-
-  # build mode is supposed to be ...COMPILED_LIB, but something is interfering somewhere.
-  #    spdlog::spdlog
-  )
-endif()
+target_link_libraries(tiledbvcf
+  PUBLIC
+    HTSlib::HTSlib
+    TileDB::tiledb_shared
+    spdlog::spdlog
+)
+
 
 if (WIN32)
 target_link_libraries(tiledbvcf4test
