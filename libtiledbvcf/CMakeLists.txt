@@ -77,7 +77,7 @@ endif()
 if (APPLE)
   set(CMAKE_MACOSX_RPATH ON)
   # This option is needed to resolve incorrect instruction when building conda package
-  add_compile_options(-mmacosx-version-min=10.5)
+  add_compile_options(-mmacosx-version-min=12.0)
 endif()
 
 # Add some global compiler flags
