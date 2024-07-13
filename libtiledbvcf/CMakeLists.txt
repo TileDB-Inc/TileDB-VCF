@@ -76,6 +76,8 @@ endif()
 # Use @rpath on macOS for building shared libraries.
 if (APPLE)
   set(CMAKE_MACOSX_RPATH ON)
+  # This option is needed to resolve incorrect instruction when building conda package
+  add_compile_options(-mmacosx-version-min=10.5)
 endif()
 
 # Add some global compiler flags
