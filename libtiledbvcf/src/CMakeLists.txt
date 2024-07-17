@@ -152,6 +152,7 @@ target_link_libraries(tiledbvcf
     HTSlib::HTSlib
     TileDB::tiledb_shared
     spdlog::spdlog
+    fmt::fmt
 )
 
 
