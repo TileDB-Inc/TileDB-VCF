@@ -314,12 +314,11 @@ void TileDBVCFDataset::create_empty_metadata(
   create_group(ctx, metadata_group_uri(root_uri));
   create_sample_header_array(ctx, root_uri, checksum);
 
-  // Group assests use full paths for tiledb cloud, relative paths otherwise
+  // Group assets use full paths for tiledb cloud, relative paths otherwise
   bool relative = !cloud_dataset(root_uri);
 
   // Add arrays to the root group
-  // We create the metadata group to maintain the existing directory structure,
-  // but add the vcf_header array to the root group to simplify array opening.
+  // We add the vcf_header array to the root group to simplify array opening.
   Group root_group(ctx, root_uri, TILEDB_WRITE);
   auto array_uri = vcf_headers_uri(root_uri, relative);
   LOG_DEBUG(
@@ -328,6 +327,16 @@ void TileDBVCFDataset::create_empty_metadata(
       array_uri,
       root_uri);
   root_group.add_member(array_uri, relative, VCF_HEADER_ARRAY);
+
+  // Add the metadata group to the root group, so it will be deleted when the
+  // dataset is deleted.
+  auto group_uri = metadata_group_uri(root_uri, relative);
+  LOG_DEBUG(
+      "Adding group name='{}' uri='{}' to group uri='{}'",
+      METADATA_GROUP,
+      group_uri,
+      root_uri);
+  root_group.add_member(group_uri, relative, METADATA_GROUP);
 }
 
 void TileDBVCFDataset::create_empty_data_array(
