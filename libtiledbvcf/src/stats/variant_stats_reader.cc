@@ -178,14 +178,14 @@ std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
   // We don't know that allele was called in this sample. Ask nicely for the
   // allele count.
   auto next_allele = pos_map.second.find(allele);
+  bool is_ref_block = allele == "ref";
 
   // First multiply by 1.0 to force a float type, then look up AC from the
   // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
   // Divide by AN (pos_map.first) to get AF.
   if (next_allele == pos_map.second.end()) {
-    return {0, 0, pos_map.first + an_sum_};
+    return {0, is_ref_block ? ac_sum_ : 0, pos_map.first + an_sum_};
   }
-  bool is_ref_block = next_allele->first == "ref";
   return {
       1.0 * (next_allele->second + (is_ref_block ? ac_sum_ : 0)) /
           (pos_map.first + an_sum_),
@@ -214,13 +214,14 @@ std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
   decltype(pos_map.second)::const_iterator next_allele =
       pos_map.second.find(allele);
 
+  bool is_ref_block = allele == "ref";
+
   // First multiply by 1.0 to force a float type, then look up AC from the
   // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
   // Divide by AN (pos_map.first) to get AF.
   if (next_allele == pos_map.second.end()) {
-    return {0, 0, num_samples / 2 + an_sum_};
+    return {0, is_ref_block ? ac_sum_ : 0, num_samples / 2 + an_sum_};
   }
-  bool is_ref_block = next_allele->first == "ref";
   return {
       next_allele->second +
           (is_ref_block ? ac_sum_ : 0) / (num_samples * 2 + an_sum_),
