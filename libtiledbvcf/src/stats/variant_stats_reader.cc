@@ -184,7 +184,10 @@ std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
   // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
   // Divide by AN (pos_map.first) to get AF.
   if (next_allele == pos_map.second.end()) {
-    return {0, is_ref ? ac_sum_ : 0, pos_map.first + an_sum_};
+    return {
+        is_ref ? 1.0 * ac_sum_ / (pos_map.first + an_sum_) : 0,
+        is_ref ? ac_sum_ : 0,
+        pos_map.first + an_sum_};
   }
   return {
       1.0 * (next_allele->second + (is_ref ? ac_sum_ : 0)) /
@@ -220,11 +223,14 @@ std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
   // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
   // Divide by AN (pos_map.first) to get AF.
   if (next_allele == pos_map.second.end()) {
-    return {0, is_ref ? ac_sum_ : 0, num_samples / 2 + an_sum_};
+    return {
+        is_ref ? 1.0 * ac_sum_ / (num_samples * 2 + an_sum_) : 0,
+        is_ref ? ac_sum_ : 0,
+        num_samples / 2 + an_sum_};
   }
   return {
-      next_allele->second +
-          (is_ref ? ac_sum_ : 0) / (num_samples * 2 + an_sum_),
+      1.0 * (next_allele->second + (is_ref ? ac_sum_ : 0)) /
+          (num_samples * 2 + an_sum_),
       next_allele->second + (is_ref ? ac_sum_ : 0),
       num_samples * 2 + an_sum_};
 }
