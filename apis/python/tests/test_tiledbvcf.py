@@ -1258,7 +1258,7 @@ def test_ingest_with_stats_v3(tmp_path):
         data_frame[
             (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
         ]["info_TILEDB_IAF"].iloc[0][0]
-        == 15.0
+        == 0.9375
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
