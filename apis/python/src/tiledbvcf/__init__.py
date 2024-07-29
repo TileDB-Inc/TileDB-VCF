@@ -1,6 +1,5 @@
 # Initialize pyarrow first.
 import pyarrow
-import pyarrow_hotfix
 
 import ctypes
 import os
