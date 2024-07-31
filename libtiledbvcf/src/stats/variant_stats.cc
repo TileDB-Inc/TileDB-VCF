@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include "utils/logger_public.h"
+#include "utils/normalize.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
@@ -604,7 +605,7 @@ inline void VariantStats::process_v3(
       }
     }
     normalized_alleles.push_back({ref, true});
-    // TODO: normalize here; normalized_alleles isn't complete until this is
+    normalize(normalized_alleles);
     normalized_alleles.pop_back();
     // done
   }

@@ -41,6 +41,7 @@
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
 #include "utils/logger_public.h"
+#include "utils/normalize.h"
 #include "utils/utils.h"
 
 namespace tiledb {
@@ -1381,6 +1382,9 @@ bool Reader::process_query_results_v4() {
       int allele_index = 0;
       bool is_ref = true;
       uint32_t an = 0;
+      if (af_filter_->array_version() > 2) {
+        normalize(alleles);
+      }
       for (auto&& allele : alleles) {
         auto [allele_passes, af, ac, allele_an] = af_filter_->pass(
             real_start,
