@@ -586,11 +586,13 @@ inline void VariantStats::process_v3(
 
   // Determine homozygosity, generalized over n genotypes:
   bool homozygous = true;
+  std::vector<std::pair<std::string, bool>> normalized_alleles;
   {
     int first_gt = 0;
     bool first_gt_found = false;
     for (int i = 0; i < ngt; i++) {
       if (!gt_missing[i]) {
+        normalized_alleles.push_back({rec->d.allele[gt[i]], gt[i] == 0});
         if (first_gt_found) {
           homozygous = homozygous && gt[i] == first_gt;
         } else {
@@ -601,6 +603,10 @@ inline void VariantStats::process_v3(
         homozygous = false;
       }
     }
+    normalized_alleles.push_back({ref, true});
+    // TODO: normalize here; normalized_alleles isn't complete until this is
+    normalized_alleles.pop_back();
+    // done
   }
 
   bool is_nr_block;
@@ -620,38 +626,35 @@ inline void VariantStats::process_v3(
   }
 
   bool already_added_homozygous = false;
-  for (int i = 0; i < ngt; i++) {
-    // If not missing, update allele count for GT[i]
-    if (!gt_missing[i]) {
-      auto alt = alt_string(ref, rec->d.allele[gt[i]]);
-      std::string ref_key = "ref";
-      if (is_nr_block) {
-        // ref block
-        ref_key = "nr";
-      }
+  std::string ref_key = "ref";
+  if (is_nr_block) {
+    // ref block
+    ref_key = "nr";
+  }
 
-      if (gt[i] == 0) {
-        values_[ref_key].ac += count_delta_;
-        values_[ref_key].an = ngt * count_delta_;
-        values_[ref_key].end = end_;
-        values_[ref_key].max_length = max_length_;
-      } else {
-        values_[alt].ac += count_delta_;
-        values_[alt].an = ngt * count_delta_;
-        values_[alt].end = end_;
-        values_[alt].max_length = max_length_;
-      }
+  for (std::pair<std::string, bool>& allele : normalized_alleles) {
+    // update allele count for GT[i]
 
+    if (allele.second) {  // alt
+      values_[ref_key].ac += count_delta_;
+      values_[ref_key].an = ngt * count_delta_;
+      values_[ref_key].end = end_;
+      values_[ref_key].max_length = max_length_;
+      if (homozygous) {
+        values_[ref_key].n_hom += count_delta_;
+      }
+    } else {  // alt
+      auto formatted_alt = alt_string(ref, allele.first);
+      values_[formatted_alt].ac += count_delta_;
+      values_[formatted_alt].an = ngt * count_delta_;
+      values_[formatted_alt].end = end_;
+      values_[formatted_alt].max_length = max_length_;
       // Update homozygote count
       if (homozygous && !already_added_homozygous) {
-        if (gt[i] == 0) {
-          values_[ref_key].n_hom += count_delta_;
-        } else {
-          values_[alt].n_hom += count_delta_;
-        }
-        already_added_homozygous = true;
+        values_[formatted_alt].n_hom += count_delta_;
       }
     }
+    already_added_homozygous = true;
   }
 }
 
@@ -901,6 +904,10 @@ void VariantStats::update_results() {
 
 std::string VariantStats::alt_string(char* ref, char* alt) {
   return std::string(ref) + "," + std::string(alt);
+}
+
+std::string VariantStats::alt_string(std::string ref, std::string alt) {
+  return ref + "," + alt;
 }
 
 }  // namespace tiledb::vcf

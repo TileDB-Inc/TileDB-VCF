@@ -367,6 +367,15 @@ class VariantStats {
    * @return std::string ALT string
    */
   std::string alt_string(char* ref, char* alt);
+
+  /**
+   * @brief Create an ALT string from the reference and alternate alleles.
+   *
+   * @param ref Reference allele
+   * @param alt Alternate allele
+   * @return std::string ALT string
+   */
+  std::string alt_string(std::string ref, std::string alt);
 };
 
 }  // namespace tiledb::vcf
