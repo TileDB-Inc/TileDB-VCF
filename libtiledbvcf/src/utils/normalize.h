@@ -35,8 +35,7 @@
 namespace tiledb {
 namespace vcf {
 
-template <typename T>
-void normalize(std::vector<T>& alleles);
+void normalize(std::string& ref, std::string& alt);
 
 }  // namespace vcf
 }  // namespace tiledb

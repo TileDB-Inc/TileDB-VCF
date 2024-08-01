@@ -33,49 +33,17 @@
 
 #include <utils/normalize.h>
 
-static inline std::string& get_allele(std::pair<std::string, bool>& allele) {
-  return allele.first;
-}
-
-static inline std::string& get_allele(std::string& allele) {
-  return allele;
-}
-
-static inline std::string& ref_allele(
-    std::vector<std::pair<std::string, bool>>& alleles) {
-  return alleles.back().first;
-}
-
-static inline std::string& ref_allele(std::vector<std::string>& alleles) {
-  return alleles[0];
-}
-
-template <typename T>
-static inline bool is_ref(std::string& allele, std::vector<T>& alleles) {
-  return &allele == &ref_allele(alleles);
-}
-
 namespace tiledb::vcf {
-template <typename T>
-void normalize(std::vector<T>& alleles) {
-  if (alleles.size() == 0) {
-    return;
+void normalize(std::string& ref, std::string& alt) {
+  size_t min_length = UINT64_MAX;
+  min_length = std::min(min_length, alt.length());
+  size_t i = 1;
+  if (alt[alt.length() - i] == ref[ref.length() - i]) {
+    i++;
   }
-  for (T& allele_wrapper : alleles) {
-    size_t min_length = UINT64_MAX;
-    min_length = std::min(min_length, get_allele(allele_wrapper).length());
-    size_t i = 1;
-    std::string& allele = get_allele(allele_wrapper);
-    std::string& ref = ref_allele(alleles);
-    if (!is_ref(allele, alleles) &&
-        allele[allele.length() - i] == ref[ref.length() - i]) {
-      i++;
-    }
-    i--;
-    allele.resize(allele.size() - i);
-  }
+  i--;
+  alt.resize(alt.size() - i);
+  ref.resize(ref.size() - i);
 }
 
-template void normalize(std::vector<std::string>&);
-template void normalize(std::vector<std::pair<std::string, bool>>&);
 }  // namespace tiledb::vcf

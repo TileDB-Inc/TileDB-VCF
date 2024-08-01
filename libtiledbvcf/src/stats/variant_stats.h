@@ -375,7 +375,7 @@ class VariantStats {
    * @param alt Alternate allele
    * @return std::string ALT string
    */
-  std::string alt_string(std::string ref, std::string alt);
+  std::string alt_string_v3(char* ref, char* alt);
 };
 
 }  // namespace tiledb::vcf

@@ -1382,13 +1382,15 @@ bool Reader::process_query_results_v4() {
       int allele_index = 0;
       bool is_ref = true;
       uint32_t an = 0;
-      if (af_filter_->array_version() > 2) {
-        normalize(alleles);
-      }
       for (auto&& allele : alleles) {
+        std::string normalized_ref = alleles[0];
+        std::string normalized_allele = allele;
+        if (af_filter_->array_version() > 2) {
+          normalize(normalized_ref, normalized_allele);
+        }
         auto [allele_passes, af, ac, allele_an] = af_filter_->pass(
             real_start,
-            is_ref ? "ref" : alleles[0] + "," + allele,
+            is_ref ? "ref" : normalized_ref + "," + normalized_allele,
             params_.scan_all_samples,
             num_samples);
 
