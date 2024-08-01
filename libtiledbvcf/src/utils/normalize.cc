@@ -50,34 +50,28 @@ static inline std::string& ref_allele(std::vector<std::string>& alleles) {
   return alleles[0];
 }
 
+template <typename T>
+static inline bool is_ref(std::string& allele, std::vector<T>& alleles) {
+  return &allele == &ref_allele(alleles);
+}
+
 namespace tiledb::vcf {
 template <typename T>
 void normalize(std::vector<T>& alleles) {
   if (alleles.size() == 0) {
     return;
   }
-  size_t min_length = UINT64_MAX;
-  bool done = false;
   for (T& allele_wrapper : alleles) {
+    size_t min_length = UINT64_MAX;
     min_length = std::min(min_length, get_allele(allele_wrapper).length());
-  }
-  size_t i = 1;
-  while (!done && i < min_length) {
-    for (T& allele_wrapper : alleles) {
-      std::string& allele = get_allele(allele_wrapper);
-      if (allele[allele.length() - i] !=
-          ref_allele(alleles)[ref_allele(alleles).length() - i]) {
-        done = true;
-        break;
-      }
-    }
-    if (!done) {
+    size_t i = 1;
+    std::string& allele = get_allele(allele_wrapper);
+    std::string& ref = ref_allele(alleles);
+    if (!is_ref(allele, alleles) &&
+        allele[allele.length() - i] == ref[ref.length() - i]) {
       i++;
     }
-  }
-  i--;
-  for (T& allele_wrapper : alleles) {
-    std::string& allele = get_allele(allele_wrapper);
+    i--;
     allele.resize(allele.size() - i);
   }
 }
