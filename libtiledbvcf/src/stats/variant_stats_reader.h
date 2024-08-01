@@ -58,14 +58,13 @@ class AFMap {
       int ac,
       int an = 0,
       uint32_t end = 0) {
-    // Should this insertion be tallied for contributing to transport (Arrow)
-    // buffer size?
-
     // add encountered ref block to the cache
     if (array_version >= 3 && allele == "nr") {
       ref_block_cache_.push_back({pos, end, ac, an});
     } else {
       if (pos >= min_pos) {
+        // Should this insertion be tallied for contributing to transport
+        // (Arrow)  buffer size?
         bool should_tally =
             !ac_map_.contains(pos) || !ac_map_[pos].second.contains(allele);
         // add ac to the an for this position

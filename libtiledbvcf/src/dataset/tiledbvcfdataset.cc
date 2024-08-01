@@ -768,8 +768,8 @@ void TileDBVCFDataset::load_field_type_maps_v4(
         // TODO: do something better than promoting this pointer type;
         // perhaps the header should be duplicated and later modified
         const_cast<bcf_hdr_t*>(hdr),
-        "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description=\"Internal "
-        "Allele Frequency, computed over dataset by TileDB\">");
+        "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description="
+        "\"Internal Allele Frequency, computed over dataset by TileDB\">");
     if (header_appended < 0) {
       throw std::runtime_error(
           "Error appending to header for internal allele frequency.");
@@ -779,8 +779,8 @@ void TileDBVCFDataset::load_field_type_maps_v4(
             // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
             "##INFO=<ID=TILEDB_IAC,Number=R,Type=Integer,Description="
-            "\"Internal "
-            "Allele Count, computed over dataset by TileDB\">") < 0) {
+            "\"Internal Allele Count, computed over dataset by TileDB\">") <
+        0) {
       throw std::runtime_error(
           "Error appending to header for internal allele count.");
     }
@@ -789,8 +789,8 @@ void TileDBVCFDataset::load_field_type_maps_v4(
             // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
             "##INFO=<ID=TILEDB_IAN,Number=R,Type=Integer,Description="
-            "\"Internal "
-            "Allele Number, computed over dataset by TileDB\">") < 0) {
+            "\"Internal Allele Number, computed over dataset by TileDB\">") <
+        0) {
       throw std::runtime_error(
           "Error appending to header for internal allele number.");
     }

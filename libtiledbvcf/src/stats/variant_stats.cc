@@ -811,6 +811,8 @@ void VariantStats::update_results() {
   if (values_.size() > 0) {
     for (auto& [allele, value] : values_) {
       uint32_t& end = value.end;
+      // initialize iterators for every field; this is where the subsequent
+      // entry is to be inserted
       auto contig_offsets_point = contig_offsets_.end();
       auto contig_buffer_point = contig_buffer_.end();
       auto pos_buffer_point = pos_buffer_.end();
@@ -822,6 +824,11 @@ void VariantStats::update_results() {
       auto an_buffer_point = an_buffer_.end();
       auto n_hom_buffer_point = n_hom_buffer_.end();
       auto end_buffer_point = end_buffer_.end();
+      // The following block is specific to variant stats v3; it sorts the
+      // sample and end dimensions, enabling future support for cohort selection
+      // and potential for improved effiency querying ranges, respectively. If
+      // rows were written out-of-order, this would result in an Embedded
+      // exception being thrown.
       if (array_version_ >= 3) {
         // check that we don't underrun the end buffer
         if (end_buffer_.size() > 0)
@@ -833,6 +840,9 @@ void VariantStats::update_results() {
           int sample_diff;
           bool sample_out_of_order, sample_equal, not_underrunning,
               end_out_of_order, pos_equal;
+          // this lambda determines whether the row being appended be out of
+          // order in either the sample or end dimensions; it depends on the
+          // enclosing scope
           auto out_of_order = [&]() {
             size_t last_sample_length =
                 current_sample_offset - *(sample_offsets_point - 1);
@@ -858,6 +868,7 @@ void VariantStats::update_results() {
           while (/*cells are out of order*/ out_of_order()) {
             // decrement iterators by one cell
             contig_offsets_point--;
+            // buffer iterators are set to match the selected offset
             contig_buffer_point =
                 contig_buffer_.begin() + *contig_offsets_point;
             *contig_offsets_point += contig_.length();
@@ -880,6 +891,8 @@ void VariantStats::update_results() {
         max_length_buffer_.push_back(value.max_length);
         end_buffer_.insert(end_buffer_point, value.end);
       }
+      // for every field iterator, insert the new row into the appropriate
+      // place; if no reordering occurred above, this appends the row
       contig_offsets_.insert(
           contig_offsets_point, contig_buffer_point - contig_buffer_.begin());
       contig_buffer_.insert(

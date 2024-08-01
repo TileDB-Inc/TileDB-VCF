@@ -145,8 +145,7 @@ std::tuple<float, uint32_t, uint32_t> AFMap::af(
 
   // We don't know that allele was called in this sample. Ask nicely for the
   // allele count.
-  decltype(pos_map.second)::const_iterator next_allele =
-      pos_map.second.find(allele);
+  auto next_allele = pos_map.second.find(allele);
 
   // First multiply by 1.0 to force a float type, then look up AC from the
   // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
@@ -327,10 +326,11 @@ VariantStatsReader::VariantStatsReader(
   tiledb_datatype_t alt_max_datatype = TILEDB_ANY;
   uint32_t alt_max_num = 0;
   array_->get_metadata("max_length", &alt_max_datatype, &alt_max_num, &alt_max);
-  if (alt_max)
+  if (alt_max) {
     if (alt_max_datatype == TILEDB_INT32 && alt_max_num == 1) {
       max_length_ = *((int32_t*)alt_max);
     }
+  }
   const void* variant_stats_version_read;
   uint32_t& variant_stats_version = af_map_.array_version;
   tiledb_datatype_t version_datatype;
