@@ -41,6 +41,7 @@
 #include "read/reader.h"
 #include "read/tsv_exporter.h"
 #include "utils/logger_public.h"
+#include "utils/normalize.h"
 #include "utils/utils.h"
 
 namespace tiledb {
@@ -183,6 +184,10 @@ void Reader::init_af_filter() {
     Group group(*ctx_, dataset_->root_uri(), TILEDB_READ);
     af_filter_ = std::make_unique<VariantStatsReader>(ctx_, group);
     af_filter_->set_condition(params_.af_filter);
+    // TODO: enable sorting only if needed for GVCF IAF feature
+    if (af_filter_->array_version() > 2) {
+      params_.sort_real_start_pos = true;
+    }
   }
 }
 
@@ -948,7 +953,7 @@ void Reader::prepare_variant_stats() {
         "Error preparing variant stats: there should be exactly one region "
         "specified");
   }
-  af_filter_->add_region(params_.regions[0]);
+  af_filter_->add_region(params_.regions[0], true);
   af_filter_->compute_af();
 }
 
@@ -1372,12 +1377,20 @@ bool Reader::process_query_results_v4() {
       }
 
       read_state_.query_results.af_values.clear();
+      read_state_.query_results.ac_values.clear();
+      read_state_.query_results.an_value = 0;
       int allele_index = 0;
       bool is_ref = true;
+      uint32_t an = 0;
       for (auto&& allele : alleles) {
-        auto [allele_passes, af] = af_filter_->pass(
+        std::string normalized_ref = alleles[0];
+        std::string normalized_allele = allele;
+        if (af_filter_->array_version() > 2) {
+          normalize(normalized_ref, normalized_allele);
+        }
+        auto [allele_passes, af, ac, allele_an] = af_filter_->pass(
             real_start,
-            is_ref ? "ref" : alleles[0] + "," + allele,
+            is_ref ? "ref" : normalized_ref + "," + normalized_allele,
             params_.scan_all_samples,
             num_samples);
 
@@ -1399,10 +1412,13 @@ bool Reader::process_query_results_v4() {
         //  - build vector of AFs matching the order of the VCF record
         //  - all allele AF values are required, so do not exit this loop early
         read_state_.query_results.af_values.push_back(af);
+        read_state_.query_results.ac_values.push_back(ac);
+        an = allele_an;
 
         LOG_TRACE("  pass = {}", pass);
         is_ref = false;
       }
+      read_state_.query_results.an_value = an;
 
       // If all alleles do not pass the af filter, continue
       if (!pass) {

@@ -764,14 +764,35 @@ void TileDBVCFDataset::load_field_type_maps_v4(
   }
 
   if (add_iaf) {
+    int header_appended = bcf_hdr_append(
+        // TODO: do something better than promoting this pointer type;
+        // perhaps the header should be duplicated and later modified
+        const_cast<bcf_hdr_t*>(hdr),
+        "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description="
+        "\"Internal Allele Frequency, computed over dataset by TileDB\">");
+    if (header_appended < 0) {
+      throw std::runtime_error(
+          "Error appending to header for internal allele frequency.");
+    }
     if (bcf_hdr_append(
             // TODO: do something better than promoting this pointer type;
             // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
-            "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description=\"Internal "
-            "Allele Frequency, computed over dataset by TileDB\">") < 0) {
+            "##INFO=<ID=TILEDB_IAC,Number=R,Type=Integer,Description="
+            "\"Internal Allele Count, computed over dataset by TileDB\">") <
+        0) {
       throw std::runtime_error(
-          "Error appending to header for internal allele frequency.");
+          "Error appending to header for internal allele count.");
+    }
+    if (bcf_hdr_append(
+            // TODO: do something better than promoting this pointer type;
+            // perhaps the header should be duplicated and later modified
+            const_cast<bcf_hdr_t*>(hdr),
+            "##INFO=<ID=TILEDB_IAN,Number=R,Type=Integer,Description="
+            "\"Internal Allele Number, computed over dataset by TileDB\">") <
+        0) {
+      throw std::runtime_error(
+          "Error appending to header for internal allele number.");
     }
     info_iaf_field_type_added_ = true;
     if (bcf_hdr_sync(const_cast<bcf_hdr_t*>(hdr)) < 0) {
@@ -949,8 +970,8 @@ void TileDBVCFDataset::delete_samples(
       throw std::runtime_error("Sample not found in dataset: " + sample);
     }
 
-    // If a stats array exists, read the data with the delete exporter, which
-    // adds negative counts to the stats arrays
+    // If a stats array exists, read the data with the delete exporter,
+    // which adds negative counts to the stats arrays
     if (stats_array_exists) {
       ExportParams args;
       args.tiledb_config = tiledb_config;
@@ -1132,7 +1153,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     // first sample.
     if (first_sample && num_rows == 0) {
       LOG_DEBUG(
-          "[fetch_vcf_headers_v4] the first sample was deleted, resubmitting");
+          "[fetch_vcf_headers_v4] the first sample was deleted, "
+          "resubmitting");
       mq = std::make_unique<ManagedQuery>(
           vcf_header_array_, "fetch_vcf_headers_v4");
       mq->select_columns({"sample", "header"});
@@ -2002,7 +2024,8 @@ const char* TileDBVCFDataset::materialized_attribute_name(
 
 bool TileDBVCFDataset::is_attribute_materialized(
     const std::string& attr) const {
-  if (attr == "info_TILEDB_IAF") {
+  if (attr == "info_TILEDB_IAF" || attr == "info_TILEDB_IAC" ||
+      attr == "info_TILEDB_IAN") {
     return true;
   }
 

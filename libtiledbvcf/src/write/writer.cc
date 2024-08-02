@@ -849,7 +849,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                                 params.avg_vcf_record_size;
 
   LOG_DEBUG("Output buffer records = {}", output_buffer_records);
-  assert(output_buffer_records > 0 && output_buffer_records < UINT32_MAX);
+  assert(
+      output_buffer_records > 0 &&
+      output_buffer_records < static_cast<float>(UINT32_MAX));
 
   if (params.use_legacy_thread_task_size) {
     LOG_INFO(

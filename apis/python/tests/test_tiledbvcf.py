@@ -1241,7 +1241,7 @@ def test_ingest_with_stats_v3(tmp_path):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
-    assert data_frame.shape == (3, 8)
+    assert data_frame.shape == (1, 8)
     assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
         343.73
     )
@@ -1262,7 +1262,7 @@ def test_ingest_with_stats_v3(tmp_path):
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (12, 5)
+    assert df.shape == (13, 5)
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
     )
@@ -1270,9 +1270,8 @@ def test_ingest_with_stats_v3(tmp_path):
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (12, 5)
+    assert df.shape == (13, 5)
     df = df.to_pandas()
-    assert sum(sum((df[df["alleles"] == "nr"] == (9, "nr", 4, 4, 1.0)).values)) == 5
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()
@@ -1343,7 +1342,7 @@ def test_ingest_with_stats_v2(tmp_path):
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (12, 5)
+    assert df.shape == (13, 5)
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
     )
@@ -1351,7 +1350,7 @@ def test_ingest_with_stats_v2(tmp_path):
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (12, 5)
+    assert df.shape == (13, 5)
     df = df.to_pandas()
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
