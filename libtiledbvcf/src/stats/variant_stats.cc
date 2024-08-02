@@ -634,12 +634,12 @@ inline void VariantStats::process_v3(
       if (gt[i] == 0) {
         values_[ref_key].ac += count_delta_;
         values_[ref_key].an = ngt * count_delta_;
-        values_[ref_key].end = end_;
+        values_[ref_key].end = end_pos;
         values_[ref_key].max_length = max_length_;
       } else {
         values_[alt].ac += count_delta_;
         values_[alt].an = ngt * count_delta_;
-        values_[alt].end = end_;
+        values_[alt].end = end_pos;
         values_[alt].max_length = max_length_;
       }
 
@@ -776,12 +776,12 @@ inline void VariantStats::process_v2(
       if (gt[i] == 0) {
         values_["ref"].ac += count_delta_;
         values_["ref"].an = ngt * count_delta_;
-        values_["ref"].end = end_;
+        values_["ref"].end = end_pos;
         values_["ref"].max_length = max_length_;
       } else {
         values_[alt].ac += count_delta_;
         values_[alt].an = ngt * count_delta_;
-        values_[alt].end = end_;
+        values_[alt].end = end_pos;
         values_[alt].max_length = max_length_;
       }
 
