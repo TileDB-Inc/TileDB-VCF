@@ -335,177 +335,211 @@ void AttributeBufferSet::set_buffers(
   if (fixed_alloc_.empty()) {
     // Set all buffers
     if (version == TileDBVCFDataset::Version::V4) {
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::sample,
-          (uint64_t*)sample_name_.offsets().data(),
-          sample_name_.offsets().size(),
           sample_name_.data<void>(),
           sample_name_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::DimensionNames::V4::sample,
+          (uint64_t*)sample_name_.offsets().data(),
+          sample_name_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::contig,
-          (uint64_t*)contig_.offsets().data(),
-          contig_.offsets().size(),
           contig_.data<void>(),
           contig_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::DimensionNames::V4::contig,
+          (uint64_t*)contig_.offsets().data(),
+          contig_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::start_pos,
           start_pos_.data<void>(),
           start_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::real_start_pos,
           real_start_pos_.data<void>(),
           real_start_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::end_pos,
           end_pos_.data<void>(),
           end_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::qual,
           qual_.data<void>(),
           qual_.nelts<float>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::alleles,
-          (uint64_t*)alleles_.offsets().data(),
-          alleles_.offsets().size(),
           alleles_.data<void>(),
           alleles_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::alleles,
+          (uint64_t*)alleles_.offsets().data(),
+          alleles_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::id,
-          (uint64_t*)id_.offsets().data(),
-          id_.offsets().size(),
           id_.data<void>(),
           id_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::id,
+          (uint64_t*)id_.offsets().data(),
+          id_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          filter_ids_.offsets().size(),
           filter_ids_.data<void>(),
           filter_ids_.nelts<int32_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          filter_ids_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::info,
-          (uint64_t*)info_.offsets().data(),
-          info_.offsets().size(),
           info_.data<void>(),
           info_.nelts<uint8_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::info,
+          (uint64_t*)info_.offsets().data(),
+          info_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::fmt,
-          (uint64_t*)fmt_.offsets().data(),
-          fmt_.offsets().size(),
           fmt_.data<void>(),
           fmt_.nelts<uint8_t>());
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::fmt,
+          (uint64_t*)fmt_.offsets().data(),
+          fmt_.offsets().size());
     } else if (version == TileDBVCFDataset::Version::V3) {
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V3::sample,
           sample_.data<void>(),
           sample_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V3::start_pos,
           start_pos_.data<void>(),
           start_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::real_start_pos,
           real_start_pos_.data<void>(),
           real_start_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::end_pos,
           end_pos_.data<void>(),
           end_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::qual,
           qual_.data<void>(),
           qual_.nelts<float>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::alleles,
-          (uint64_t*)alleles_.offsets().data(),
-          alleles_.offsets().size(),
           alleles_.data<void>(),
           alleles_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::alleles,
+          (uint64_t*)alleles_.offsets().data(),
+          alleles_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::id,
-          (uint64_t*)id_.offsets().data(),
-          id_.offsets().size(),
           id_.data<void>(),
           id_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::id,
+          (uint64_t*)id_.offsets().data(),
+          id_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          filter_ids_.offsets().size(),
           filter_ids_.data<void>(),
           filter_ids_.nelts<int32_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          filter_ids_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::info,
-          (uint64_t*)info_.offsets().data(),
-          info_.offsets().size(),
           info_.data<void>(),
           info_.nelts<uint8_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::info,
+          (uint64_t*)info_.offsets().data(),
+          info_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::fmt,
-          (uint64_t*)fmt_.offsets().data(),
-          fmt_.offsets().size(),
           fmt_.data<void>(),
           fmt_.nelts<uint8_t>());
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::fmt,
+          (uint64_t*)fmt_.offsets().data(),
+          fmt_.offsets().size());
     } else {
       assert(version == TileDBVCFDataset::Version::V2);
 
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V2::sample,
           sample_.data<void>(),
           sample_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V2::end_pos,
           end_pos_.data<void>(),
           end_pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::pos,
           pos_.data<void>(),
           pos_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::real_end,
           real_end_.data<void>(),
           real_end_.nelts<uint32_t>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::qual,
           qual_.data<void>(),
           qual_.nelts<float>());
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::alleles,
-          (uint64_t*)alleles_.offsets().data(),
-          alleles_.offsets().size(),
           alleles_.data<void>(),
           alleles_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::alleles,
+          (uint64_t*)alleles_.offsets().data(),
+          alleles_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::id,
-          (uint64_t*)id_.offsets().data(),
-          id_.offsets().size(),
           id_.data<void>(),
           id_.nelts<char>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::id,
+          (uint64_t*)id_.offsets().data(),
+          id_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          filter_ids_.offsets().size(),
           filter_ids_.data<void>(),
           filter_ids_.nelts<int32_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          filter_ids_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::info,
-          (uint64_t*)info_.offsets().data(),
-          info_.offsets().size(),
           info_.data<void>(),
           info_.nelts<uint8_t>());
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::info,
+          (uint64_t*)info_.offsets().data(),
+          info_.offsets().size());
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::fmt,
-          (uint64_t*)fmt_.offsets().data(),
-          fmt_.offsets().size(),
           fmt_.data<void>(),
           fmt_.nelts<uint8_t>());
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::fmt,
+          (uint64_t*)fmt_.offsets().data(),
+          fmt_.offsets().size());
     }
 
     for (const auto& it : extra_attrs()) {
-      query->set_buffer(
+      query->set_data_buffer(
+          it.first, it.second.data<void>(), it.second.nelts<uint8_t>());
+      query->set_offsets_buffer(
           it.first,
           (uint64_t*)it.second.offsets().data(),
-          it.second.offsets().size(),
-          it.second.data<void>(),
-          it.second.nelts<uint8_t>());
+          it.second.offsets().size());
     }
   } else {
     // For fixed-alloc, set only the allocated buffers.
@@ -515,14 +549,12 @@ void AttributeBufferSet::set_buffers(
       Buffer* buff = std::get<2>(p);
       unsigned datatype_size = std::get<3>(p);
       if (var_num) {
-        query->set_buffer(
-            name,
-            (uint64_t*)buff->offsets().data(),
-            buff->offsets().size(),
-            buff->data<void>(),
-            buff->size() / datatype_size);
+        query->set_data_buffer(
+            name, buff->data<void>(), buff->size() / datatype_size);
+        query->set_offsets_buffer(
+            name, (uint64_t*)buff->offsets().data(), buff->offsets().size());
       } else {
-        query->set_buffer(
+        query->set_data_buffer(
             name, buff->data<void>(), buff->size() / datatype_size);
       }
     }
@@ -534,163 +566,170 @@ void AttributeBufferSet::clear_query_buffers(
   if (fixed_alloc_.empty()) {
     // Clear all buffers by setting their size to 0.
     if (version == TileDBVCFDataset::Version::V4) {
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::sample,
-          (uint64_t*)sample_name_.offsets().data(),
-          0,
           sample_name_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::DimensionNames::V4::sample,
+          (uint64_t*)sample_name_.offsets().data(),
+          0);
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::contig,
-          (uint64_t*)contig_.offsets().data(),
-          0,
           contig_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::DimensionNames::V4::contig,
+          (uint64_t*)contig_.offsets().data(),
+          0);
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V4::start_pos,
           start_pos_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::real_start_pos,
           real_start_pos_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::end_pos, end_pos_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::qual, qual_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V4::alleles, alleles_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V4::alleles,
           (uint64_t*)alleles_.offsets().data(),
-          0,
-          alleles_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V4::id, id_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V4::id,
           (uint64_t*)id_.offsets().data(),
-          0,
-          id_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V4::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          0,
           filter_ids_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V4::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          0);
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V4::info, info_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V4::info,
           (uint64_t*)info_.offsets().data(),
-          0,
-          info_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V4::fmt, fmt_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V4::fmt,
           (uint64_t*)fmt_.offsets().data(),
-          0,
-          fmt_.data<void>(),
           0);
     } else if (version == TileDBVCFDataset::Version::V3) {
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V3::sample,
           sample_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V3::start_pos,
           start_pos_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::real_start_pos,
           real_start_pos_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::end_pos, end_pos_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::qual, qual_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V3::alleles, alleles_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V3::alleles,
           (uint64_t*)alleles_.offsets().data(),
-          0,
-          alleles_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V3::id, id_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V3::id,
           (uint64_t*)id_.offsets().data(),
-          0,
-          id_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V3::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          0,
           filter_ids_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V3::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          0);
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V3::info, info_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V3::info,
           (uint64_t*)info_.offsets().data(),
-          0,
-          info_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V3::fmt, fmt_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V3::fmt,
           (uint64_t*)fmt_.offsets().data(),
-          0,
-          fmt_.data<void>(),
           0);
     } else {
       assert(version == TileDBVCFDataset::Version::V2);
 
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V2::sample,
           sample_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::DimensionNames::V2::end_pos,
           end_pos_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::pos, pos_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::real_end, real_end_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::qual, qual_.data<void>(), 0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V2::alleles, alleles_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V2::alleles,
           (uint64_t*)alleles_.offsets().data(),
-          0,
-          alleles_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V2::id, id_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V2::id,
           (uint64_t*)id_.offsets().data(),
-          0,
-          id_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
           TileDBVCFDataset::AttrNames::V2::filter_ids,
-          (uint64_t*)filter_ids_.offsets().data(),
-          0,
           filter_ids_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_offsets_buffer(
+          TileDBVCFDataset::AttrNames::V2::filter_ids,
+          (uint64_t*)filter_ids_.offsets().data(),
+          0);
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V2::info, info_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V2::info,
           (uint64_t*)info_.offsets().data(),
-          0,
-          info_.data<void>(),
           0);
-      query->set_buffer(
+      query->set_data_buffer(
+          TileDBVCFDataset::AttrNames::V2::fmt, fmt_.data<void>(), 0);
+      query->set_offsets_buffer(
           TileDBVCFDataset::AttrNames::V2::fmt,
           (uint64_t*)fmt_.offsets().data(),
-          0,
-          fmt_.data<void>(),
           0);
     }
 
     for (const auto& it : extra_attrs()) {
-      query->set_buffer(
-          it.first,
-          (uint64_t*)it.second.offsets().data(),
-          0,
-          it.second.data<void>(),
-          0);
+      query->set_data_buffer(it.first, it.second.data<void>(), 0);
+      query->set_offsets_buffer(
+          it.first, (uint64_t*)it.second.offsets().data(), 0);
     }
   } else {
     // For fixed-alloc, set only the allocated buffers.
@@ -699,10 +738,10 @@ void AttributeBufferSet::clear_query_buffers(
       const std::string& name = std::get<1>(p);
       Buffer* buff = std::get<2>(p);
       if (var_num) {
-        query->set_buffer(
-            name, (uint64_t*)buff->offsets().data(), 0, buff->data<void>(), 0);
+        query->set_data_buffer(name, buff->data<void>(), 0);
+        query->set_offsets_buffer(name, (uint64_t*)buff->offsets().data(), 0);
       } else {
-        query->set_buffer(name, buff->data<void>(), 0);
+        query->set_data_buffer(name, buff->data<void>(), 0);
       }
     }
   }

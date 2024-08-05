@@ -139,8 +139,8 @@ size_t Buffer::alloced_size() const {
 }
 
 void Buffer::set_query_buffer(const std::string& attr, tiledb::Query& q) {
-  q.set_buffer(
-      attr, offsets_.data(), offsets_.size(), (uint8_t*)data_, data_size_);
+  q.set_data_buffer(attr, (uint8_t*)data_, data_size_);
+  q.set_offsets_buffer(attr, offsets_.data(), offsets_.size());
 }
 
 void Buffer::realloc(uint64_t new_alloced_size, bool clear_new) {
