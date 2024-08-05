@@ -914,10 +914,7 @@ void VariantStats::update_results() {
 }
 
 std::string VariantStats::alt_string(char* ref, char* alt) {
-  std::string normalized_ref = ref;
-  std::string normalized_alt = alt;
-  normalize(normalized_ref, normalized_alt);
-  return normalized_ref + "," + normalized_alt;
+  return std::string(ref) + "," + std::string(alt);
 }
 
 std::string VariantStats::alt_string_v3(char* ref, char* alt) {
