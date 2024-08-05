@@ -663,13 +663,8 @@ bool Reader::next_read_batch_v2_v3() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
-  {
-    std::shared_ptr<ArraySchema> new_schema =
-        std::make_shared<ArraySchema>(read_state_.array->schema());
-    read_state_.schema.swap(new_schema);
-  }
   Subarray subarray =
-      Subarray(read_state_.schema->context(), *read_state_.array);
+      Subarray(read_state_.array->schema().context(), *read_state_.array);
   set_tiledb_query_config();
 
   // Set ranges
@@ -818,13 +813,8 @@ bool Reader::next_read_batch_v4() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
-  {
-    std::shared_ptr<ArraySchema> new_schema =
-        std::make_shared<ArraySchema>(read_state_.array->schema());
-    read_state_.schema.swap(new_schema);
-  }
   Subarray subarray =
-      Subarray(read_state_.schema->context(), *read_state_.array);
+      Subarray(read_state_.array->schema().context(), *read_state_.array);
   set_tiledb_query_config();
 
   // Set ranges

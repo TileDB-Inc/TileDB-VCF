@@ -1234,8 +1234,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
         "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
 
   Query query(*ctx_, *vcf_header_array_);
-  ArraySchema schema = vcf_header_array_->schema();
-  Subarray subarray = Subarray(schema.context(), *vcf_header_array_);
+  Subarray subarray =
+      Subarray(vcf_header_array_->schema().context(), *vcf_header_array_);
 
   std::unordered_map<uint32_t, std::string> sample_name_mapping;
   for (const auto& sample : samples) {

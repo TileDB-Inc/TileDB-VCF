@@ -668,7 +668,6 @@ class Reader {
 
     /** TileDB query object. */
     std::unique_ptr<Query> query;
-    std::shared_ptr<ArraySchema> schema;
 
     /** Struct containing query results from last TileDB query. */
     ReadQueryResults query_results;
