@@ -663,6 +663,13 @@ bool Reader::next_read_batch_v2_v3() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
+  {
+    std::shared_ptr<ArraySchema> new_schema =
+        std::make_shared<ArraySchema>(read_state_.array->schema());
+    read_state_.schema.swap(new_schema);
+  }
+  Subarray subarray =
+      Subarray(read_state_.schema->context(), *read_state_.array);
   set_tiledb_query_config();
 
   // Set ranges
@@ -671,7 +678,7 @@ bool Reader::next_read_batch_v2_v3() {
     debug_ranges << std::endl << "sample ids:" << std::endl;
   }
   for (const auto& sample : read_state_.current_sample_batches) {
-    read_state_.query->add_range(0, sample.sample_id, sample.sample_id);
+    subarray.add_range(0, sample.sample_id, sample.sample_id);
     if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << sample.sample_id << ", " << sample.sample_id << "]"
                    << std::endl;
@@ -681,12 +688,13 @@ bool Reader::next_read_batch_v2_v3() {
     debug_ranges << std::endl << "regions:" << std::endl;
   }
   for (const auto& query_region : read_state_.query_regions) {
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    subarray.add_range(1, query_region.col_min, query_region.col_max);
     if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
     }
   }
+  read_state_.query->set_subarray(subarray);
 
   read_state_.query->set_layout(TILEDB_UNORDERED);
   if (LOG_DEBUG_ENABLED()) {
@@ -810,6 +818,13 @@ bool Reader::next_read_batch_v4() {
 
   // Set up the TileDB query
   read_state_.query.reset(new Query(*ctx_, *read_state_.array));
+  {
+    std::shared_ptr<ArraySchema> new_schema =
+        std::make_shared<ArraySchema>(read_state_.array->schema());
+    read_state_.schema.swap(new_schema);
+  }
+  Subarray subarray =
+      Subarray(read_state_.schema->context(), *read_state_.array);
   set_tiledb_query_config();
 
   // Set ranges
@@ -824,8 +839,7 @@ bool Reader::next_read_batch_v4() {
     if (params_.sample_partitioning.num_partitions == 1) {
       auto non_empty_domain = dataset_->data_array()->non_empty_domain_var(
           TileDBVCFDataset::DimensionNames::V4::sample);
-      read_state_.query->add_range(
-          2, non_empty_domain.first, non_empty_domain.second);
+      subarray.add_range(2, non_empty_domain.first, non_empty_domain.second);
       if (params_.debug_params.print_tiledb_query_ranges &&
           LOG_DEBUG_ENABLED()) {
         debug_ranges << "[" << non_empty_domain.first << ", "
@@ -835,7 +849,7 @@ bool Reader::next_read_batch_v4() {
       // if we have all samples but are partitioning we need to only use the
       // first/last sample of the partition partitions are sorted both globally
       // and in the vector so this is a shortcut to have less ranges
-      read_state_.query->add_range(
+      subarray.add_range(
           2,
           read_state_.current_sample_batches[0].sample_name,
           read_state_
@@ -857,7 +871,7 @@ bool Reader::next_read_batch_v4() {
     // If we are not exporting all samples add the current partition/batch's
     // list
     for (const auto& sample : read_state_.current_sample_batches) {
-      read_state_.query->add_range(2, sample.sample_name, sample.sample_name);
+      subarray.add_range(2, sample.sample_name, sample.sample_name);
       if (params_.debug_params.print_tiledb_query_ranges &&
           LOG_DEBUG_ENABLED()) {
         debug_ranges << "[" << sample.sample_name << ", " << sample.sample_name
@@ -872,7 +886,7 @@ bool Reader::next_read_batch_v4() {
   for (const auto& query_region :
        read_state_.query_regions_v4[read_state_.query_contig_batch_idx]
            .second) {
-    read_state_.query->add_range(1, query_region.col_min, query_region.col_max);
+    subarray.add_range(1, query_region.col_min, query_region.col_max);
     if (params_.debug_params.print_tiledb_query_ranges && LOG_DEBUG_ENABLED()) {
       debug_ranges << "[" << query_region.col_min << ", "
                    << query_region.col_max << "]" << std::endl;
@@ -885,7 +899,7 @@ bool Reader::next_read_batch_v4() {
     }
   }
 
-  read_state_.query->add_range(
+  subarray.add_range(
       0,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first,
       read_state_.query_regions_v4[read_state_.query_contig_batch_idx].first);
@@ -901,6 +915,7 @@ bool Reader::next_read_batch_v4() {
                         .first
                  << "]" << std::endl;
   }
+  read_state_.query->set_subarray(subarray);
 
   // Default export results are not sorted
   read_state_.query->set_layout(TILEDB_UNORDERED);
