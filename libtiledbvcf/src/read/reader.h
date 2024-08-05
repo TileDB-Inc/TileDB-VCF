@@ -47,6 +47,7 @@
 #include "read/read_query_results.h"
 #include "stats/allele_count.h"
 #include "stats/variant_stats_reader.h"
+#include "tiledb/array_schema.h"
 
 namespace tiledb {
 namespace vcf {
