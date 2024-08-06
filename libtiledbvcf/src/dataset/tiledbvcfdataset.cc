@@ -1273,8 +1273,9 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   do {
     // Always reset buffer to avoid issue with core library and REST not using
     // original buffer sizes
-    query.set_buffer("header", offsets, data);
-    query.set_buffer("sample", sample_data);
+    query.set_data_buffer("header", data);
+    query.set_offsets_buffer("header", offsets);
+    query.set_data_buffer("sample", sample_data);
 
     status = query.submit();
 
@@ -1749,11 +1750,13 @@ void TileDBVCFDataset::write_vcf_headers_v4(
 
   query.set_layout(TILEDB_UNORDERED);
   auto offsets_and_data = ungroup_var_buffer(headers);
-  query.set_buffer("header", offsets_and_data);
+  query.set_data_buffer("header", offsets_and_data.second);
+  query.set_offsets_buffer("header", offsets_and_data.first);
 
   auto sample_offsets_and_data = ungroup_var_buffer(samples);
 
-  query.set_buffer("sample", sample_offsets_and_data);
+  query.set_data_buffer("sample", sample_offsets_and_data.second);
+  query.set_offsets_buffer("sample", sample_offsets_and_data.first);
   auto st = query.submit();
   if (st != Query::Status::COMPLETE)
     throw std::runtime_error(
@@ -1773,19 +1776,22 @@ void TileDBVCFDataset::write_vcf_headers_v2(
 
   // Build data vector and subarray
   std::vector<std::string> headers;
-  std::vector<uint32_t> subarray = {
+  Subarray subarray = Subarray(array.schema().context(), array);
+  std::pair<uint32_t, uint32_t> bounds = {
       std::numeric_limits<uint32_t>::max(),
       std::numeric_limits<uint32_t>::min()};
   for (const auto& pair : vcf_headers) {
-    subarray[0] = std::min(subarray[0], pair.first);
-    subarray[1] = std::max(subarray[1], pair.first);
+    bounds.first = std::min(bounds.first, pair.first);
+    bounds.second = std::max(bounds.second, pair.first);
     headers.push_back(pair.second);
   }
+  subarray.add_range(0, bounds.first, bounds.second);
 
   auto offsets_and_data = ungroup_var_buffer(headers);
   query.set_layout(TILEDB_ROW_MAJOR)
       .set_subarray(subarray)
-      .set_buffer("header", offsets_and_data);
+      .set_data_buffer("header", offsets_and_data.second)
+      .set_offsets_buffer("header", offsets_and_data.first);
   auto st = query.submit();
   if (st != Query::Status::COMPLETE)
     throw std::runtime_error(
@@ -2138,7 +2144,10 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
   auto non_empty_domain = vcf_header_array_->non_empty_domain_var(0);
   if (non_empty_domain.first.empty() && non_empty_domain.second.empty())
     return {};
-  query.add_range(0, non_empty_domain.first, non_empty_domain.second);
+  Subarray subarray =
+      Subarray(vcf_header_array_->schema().context(), *vcf_header_array_);
+  subarray.add_range(0, non_empty_domain.first, non_empty_domain.second);
+  query.set_subarray(subarray);
   query.set_layout(TILEDB_ROW_MAJOR);
 
   uint64_t sample_offset_element = 0;
@@ -2168,7 +2177,8 @@ std::vector<std::string> TileDBVCFDataset::get_all_samples_from_vcf_headers()
   do {
     // Always reset buffer to avoid issue with core library and REST not using
     // original buffer sizes
-    query.set_buffer("sample", sample_offsets, sample_data);
+    query.set_data_buffer("sample", sample_data);
+    query.set_offsets_buffer("sample", sample_offsets);
 
     status = query.submit();
 
