@@ -218,7 +218,6 @@ void TileDBVCFDataset::create(const CreationParams& params) {
       TILEDB_STRING_ASCII,
       dataset_type.size(),
       dataset_type.c_str());
-  group.close();
 
   Metadata metadata;
   metadata.tile_capacity = params.tile_capacity;
@@ -245,7 +244,7 @@ void TileDBVCFDataset::create(const CreationParams& params) {
   }
 
   // Create arrays and subgroups and add them to the root group
-  create_empty_metadata(ctx, params.uri, metadata, params.checksum);
+  create_empty_metadata(ctx, params.uri, metadata, params.checksum, group);
   create_empty_data_array(
       ctx,
       params.uri,
@@ -253,22 +252,24 @@ void TileDBVCFDataset::create(const CreationParams& params) {
       params.checksum,
       params.allow_duplicates,
       params.compress_sample_dim,
-      params.compression_level);
+      params.compression_level,
+      group);
 
   if (params.enable_allele_count) {
-    AlleleCount::create(ctx, params.uri, params.checksum);
+    AlleleCount::create(ctx, params.uri, params.checksum, group);
   }
   if (params.enable_variant_stats) {
     VariantStats::set_array_version(params.variant_stats_array_version);
-    VariantStats::create(ctx, params.uri, params.checksum);
+    VariantStats::create(ctx, params.uri, params.checksum, group);
   }
   if (params.enable_sample_stats) {
-    SampleStats::create(ctx, params.uri, params.checksum);
+    SampleStats::create(ctx, params.uri, group, params.checksum);
   }
 
   write_metadata_v4(ctx, params.uri, metadata);
 
   // Log the group structure
+  group.close();
   group.open(TILEDB_READ);
   LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
 
@@ -310,7 +311,8 @@ void TileDBVCFDataset::create_empty_metadata(
     const Context& ctx,
     const std::string& root_uri,
     const Metadata& metadata,
-    const tiledb_filter_type_t& checksum) {
+    const tiledb_filter_type_t& checksum,
+    Group& root_group) {
   create_group(ctx, metadata_group_uri(root_uri));
   create_sample_header_array(ctx, root_uri, checksum);
 
@@ -319,7 +321,6 @@ void TileDBVCFDataset::create_empty_metadata(
 
   // Add arrays to the root group
   // We add the vcf_header array to the root group to simplify array opening.
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
   auto array_uri = vcf_headers_uri(root_uri, relative);
   LOG_DEBUG(
       "Adding array name='{}' uri='{}' to group uri='{}'",
@@ -346,7 +347,8 @@ void TileDBVCFDataset::create_empty_data_array(
     const tiledb_filter_type_t& checksum,
     const bool allow_duplicates,
     const bool compress_sample_dim,
-    const int compression_level) {
+    const int compression_level,
+    Group& root_group) {
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
@@ -464,7 +466,6 @@ void TileDBVCFDataset::create_empty_data_array(
       DATA_ARRAY,
       array_uri,
       root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, DATA_ARRAY);
 }
 

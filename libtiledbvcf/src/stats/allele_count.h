@@ -84,9 +84,13 @@ class AlleleCount {
    * @param ctx TileDB context
    * @param root_uri TileDB-VCF dataset uri
    * @param checksum TileDB checksum filter
+   * @param group TileDB-VCF group containing the array
    */
   static void create(
-      Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum);
+      Context& ctx,
+      const std::string& root_uri,
+      tiledb_filter_type_t checksum,
+      Group& group);
 
   /**
    * @brief Check if the array exists.

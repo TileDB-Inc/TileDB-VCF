@@ -57,7 +57,10 @@ std::string SampleStats::get_uri_(const std::string& root_uri, bool relative) {
 }
 
 void SampleStats::create(
-    Context& ctx, const std::string& root_uri, int compression_level) {
+    Context& ctx,
+    const std::string& root_uri,
+    Group& root_group,
+    int compression_level) {
   // Create filter lists
   FilterList int_fl(ctx);
   FilterList float_fl(ctx);
@@ -155,7 +158,6 @@ void SampleStats::create(
   auto array_uri = get_uri_(root_uri, relative);
   LOG_DEBUG(
       "[SampleStats] Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, SAMPLE_STATS_ARRAY);
 }
 

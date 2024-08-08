@@ -62,10 +62,14 @@ class SampleStats {
    *
    * @param ctx TileDB context
    * @param root_uri URI of TileDB-VCF dataset
+   * @param group TileDB-VCF group containing the array
    * @param compression_level zstd compression level
    */
   static void create(
-      Context& ctx, const std::string& root_uri, int compression_level = 9);
+      Context& ctx,
+      const std::string& root_uri,
+      Group& group,
+      int compression_level = 9);
 
   /**
    * @brief Check if the array exists.

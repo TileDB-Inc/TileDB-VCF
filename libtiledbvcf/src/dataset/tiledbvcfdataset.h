@@ -854,12 +854,14 @@ class TileDBVCFDataset {
    * @param root_uri Root URI of the dataset
    * @param metadata General dataset metadata to write
    * @param checksum optional checksum filter
+   * @param group TileDB-VCF group containing the array
    */
   static void create_empty_metadata(
       const Context& ctx,
       const std::string& root_uri,
       const Metadata& metadata,
-      const tiledb_filter_type_t& checksum);
+      const tiledb_filter_type_t& checksum,
+      Group& group);
 
   /**
    * Creates the empty sample data array for a new dataset.
@@ -868,6 +870,7 @@ class TileDBVCFDataset {
    * @param root_uri Root URI of the dataset
    * @param metadata Dataset metadata containing tile capacity etc. to use
    * @param checksum optional checksum filter
+   * @param group TileDB-VCF group containing the array
    */
   static void create_empty_data_array(
       const Context& ctx,
@@ -876,7 +879,8 @@ class TileDBVCFDataset {
       const tiledb_filter_type_t& checksum,
       const bool allow_duplicates,
       const bool compress_sample_dim,
-      const int compression_level);
+      const int compression_level,
+      Group& group);
 
   /**
    * Creates the empty sample header array for a new dataset.

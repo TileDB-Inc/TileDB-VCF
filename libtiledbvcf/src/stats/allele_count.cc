@@ -45,7 +45,10 @@ std::string AlleleCount::get_uri(const Group& group) {
 }
 
 void AlleleCount::create(
-    Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
+    Context& ctx,
+    const std::string& root_uri,
+    tiledb_filter_type_t checksum,
+    Group& root_group) {
   LOG_DEBUG("[AlleleCount] Create array");
 
   // Create filter lists
@@ -120,7 +123,6 @@ void AlleleCount::create(
   auto relative = !utils::starts_with(root_uri, "tiledb://");
   auto array_uri = get_uri(root_uri, relative);
   LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
 }
 
