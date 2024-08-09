@@ -75,18 +75,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install dependencies for tiledb-py build
-        run: |
-          python -m pip install --prefer-binary \
-            -r TileDB-VCF/ci/nightly/requirements.txt
-          pip list
       - name: Build tiledb-py from source
-        run: |
-          cd TileDB-Py/
-          python setup.py develop --tiledb=../install/
-          python -c "import tiledb; print('successful import')"
-          python -c "import tiledb; print(tiledb.libtiledb.version())"
-          python -c "import tiledb; print(tiledb.version())"
+        run: bash TileDB-VCF/ci/nightly/build-tiledb-py.sh
       - name: Build (and test) tiledbvcf-py
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   issue:
