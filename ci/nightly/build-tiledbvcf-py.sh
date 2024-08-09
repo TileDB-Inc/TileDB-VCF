@@ -20,7 +20,7 @@ fi
 export LIBTILEDBVCF_PATH=$GITHUB_WORKSPACE/install/
 
 cd TileDB-VCF/apis/python
-python -m pip install .[test]
+python -m pip install .[test] pyarrow==12
 python -c "import tiledbvcf; print(tiledbvcf.version)"
 
 pytest

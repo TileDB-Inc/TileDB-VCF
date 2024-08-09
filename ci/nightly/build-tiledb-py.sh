@@ -19,7 +19,7 @@ fi
 export TILEDB_PATH=$GITHUB_WORKSPACE/install/
 
 cd TileDB-Py/
-python -m pip install -Cskbuild.cmake.define.TILEDB_REMOVE_DEPRECATIONS=OFF -v .
+python -m pip install -Cskbuild.cmake.define.TILEDB_REMOVE_DEPRECATIONS=OFF -v . pyarrow==12
 
 # Can't run the import inside of the Git repo because Python automatically looks
 # for `./module/__init.py__`
