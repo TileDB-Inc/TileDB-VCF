@@ -7,6 +7,20 @@ import pyarrow as pa
 
 from . import libtiledbvcf
 
+try:
+    import tiledb.cloud
+
+    can_use_cloud = True
+except Exception:
+    can_use_cloud = False
+
+try:
+    import tiledb
+
+    can_use_embedded = True
+except Exception:
+    can_use_embebbed = False
+
 DEFAULT_ATTRS = [
     "sample_name",
     "contig",
@@ -683,6 +697,23 @@ class Dataset(object):
 
         # This call throws an exception if the dataset already exists.
         self.writer.create_dataset()
+
+    def delete_dataset(self):
+        is_cloud_uri = self.uri.startswith("tiledb:")
+        if is_cloud_uri:
+            if can_use_cloud:
+                tiledb.cloud.asset.delete(self.uri)
+            else:
+                raise Exception(
+                    "Deleting this dataset requires the tiledb.cloud package"
+                )
+        else:
+            if can_use_embedded:
+                with tiledb.scope_ctx(self.cfg):
+                    with tiledb.Group(self.uri, "m") as g:
+                        g.delete(recursive=True)
+            else:
+                raise Exception("Deleting this dataset requires the tiledb package")
 
     def ingest_samples(
         self,
