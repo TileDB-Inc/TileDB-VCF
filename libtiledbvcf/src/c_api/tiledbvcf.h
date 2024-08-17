@@ -1706,6 +1706,16 @@ tiledb_vcf_writer_set_compression_level(tiledb_vcf_writer_t* writer, int level);
 TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_variant_stats_version(
     tiledb_vcf_writer_t* writer, uint8_t version);
 
+/**
+ * Deletes samples from dataset
+ * @param writer VCF writer object
+ * @param samples samples to delete
+ * @param nsamples number of samples to delete
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_delete_samples(
+
+    tiledb_vcf_writer_t* writer, const char** samples, size_t nsamples);
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */

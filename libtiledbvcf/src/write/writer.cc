@@ -1484,5 +1484,13 @@ void Writer::set_variant_stats_array_version(uint8_t version) {
   creation_params_.variant_stats_array_version = version;
 }
 
+/**
+ * @brief Retrieve dataset info for this writer.
+ */
+void Writer::delete_samples(std::vector<std::string> samples) {
+  dataset_->delete_samples(
+      ingestion_params_.uri, samples, ingestion_params_.tiledb_config);
+}
+
 }  // namespace vcf
 }  // namespace tiledb

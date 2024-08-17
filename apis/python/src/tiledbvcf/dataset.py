@@ -851,6 +851,12 @@ class Dataset(object):
             self.writer.register_samples()
         self.writer.ingest_samples()
 
+    def delete_samples(
+        self,
+        sample_uris: List[str] = None,
+    ):
+        self.writer.delete_samples(sample_uris)
+
     def tiledb_stats(self) -> str:
         """
         Get TileDB stats as a string.
