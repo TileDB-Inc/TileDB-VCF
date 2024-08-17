@@ -938,7 +938,9 @@ void TileDBVCFDataset::delete_samples(
     const std::vector<std::string>& sample_names,
     const std::vector<std::string>& tiledb_config) {
   // Open dataset in read mode, required before calling `sample_exists`.
-  open(uri);
+  if (!open_) {
+    open(uri, tiledb_config);
+  }
 
   // Define a function that deletes a sample from an array
   auto delete_sample = [&](Array& array, const std::string& sample) {

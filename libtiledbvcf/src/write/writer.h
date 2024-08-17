@@ -382,6 +382,11 @@ class Writer {
   /** Set variant stats array version */
   void set_variant_stats_array_version(uint8_t version);
 
+  /**
+   * @brief Delete samples from the writer's dataset.
+   */
+  void delete_samples(std::vector<std::string> samples);
+
  private:
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */

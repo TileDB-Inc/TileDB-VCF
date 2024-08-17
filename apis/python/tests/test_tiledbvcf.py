@@ -1197,15 +1197,8 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
 
-# Ok to skip is missing bcftools in Windows CI job
-@pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
-    reason="no bcftools",
-)
-def test_ingest_with_stats_v3(tmp_path):
-    # tiledbvcf.config_logging("debug")
+@pytest.fixture
+def test_stats_bgzipped_inputs(tmp_path):
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats"))
@@ -1221,23 +1214,46 @@ def test_ingest_with_stats_v3(tmp_path):
             check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
-    # print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
         assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats_test"))
-    # tiledbvcf.config_logging("trace")
+    return bgzipped_inputs
+
+
+@pytest.fixture
+def test_stats_sample_names(test_stats_bgzipped_inputs):
+    assert len(test_stats_bgzipped_inputs) == 8
+    return [os.path.basename(file).split(".")[0] for file in test_stats_bgzipped_inputs]
+
+
+@pytest.fixture
+def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
+    assert len(test_stats_bgzipped_inputs) == 8
+    # print(f"bgzipped inputs: {test_stats_bgzipped_inputs}")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(
         enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3
     )
-    ds.ingest_samples(bgzipped_inputs)
+    ds.ingest_samples(test_stats_bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
-    data_frame = ds.read(
-        samples=sample_names,
+    return ds
+
+
+# Ok to skip is missing bcftools in Windows CI job
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
+)
+def test_ingest_with_stats_v3(
+    tmp_path, test_stats_v3_ingestion, test_stats_sample_names
+):
+    data_frame = test_stats_v3_ingestion.read(
+        samples=test_stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
@@ -1249,8 +1265,8 @@ def test_ingest_with_stats_v3(tmp_path):
         data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
-    data_frame = ds.read(
-        samples=sample_names,
+    data_frame = test_stats_v3_ingestion.read(
+        samples=test_stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         scan_all_samples=True,
     )
@@ -1260,8 +1276,7 @@ def test_ingest_with_stats_v3(tmp_path):
         ]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    df = ds.read_variant_stats("chr1:1-10000")
+    df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
     assert df.shape == (13, 5)
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
@@ -1269,14 +1284,35 @@ def test_ingest_with_stats_v3(tmp_path):
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    df = ds.read_variant_stats("chr1:1-10000")
+    df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
     assert df.shape == (13, 5)
     df = df.to_pandas()
-    df = ds.read_allele_count("chr1:1-10000")
+    df = test_stats_v3_ingestion.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
     assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
+
+
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
+)
+def test_delete_samples(tmp_path, test_stats_v3_ingestion, test_stats_sample_names):
+    #    assert test_stats_v3_ingestion.samples() == test_stats_sample_names
+    assert "second" in test_stats_sample_names
+    assert "fifth" in test_stats_sample_names
+    assert "third" in test_stats_sample_names
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
+    # tiledbvcf.config_logging("trace")
+    ds.delete_samples(["second", "fifth"])
+    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
+    sample_names = ds.samples()
+    assert "second" not in sample_names
+    assert "fifth" not in sample_names
+    assert "third" in sample_names
 
 
 # Ok to skip is missing bcftools in Windows CI job
