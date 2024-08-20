@@ -38,6 +38,9 @@ namespace tiledb::vcf {
 int32_t VariantStats::max_length_ = 0;
 
 uint32_t VariantStats::array_version_ = VariantStats::VARIANT_STATS_MIN_VERSION;
+
+bool VariantStats::an_present_ = false;
+
 //===================================================================
 //= public static functions
 //===================================================================
@@ -212,6 +215,10 @@ void VariantStats::init(std::shared_ptr<Context> ctx, const Group& group) {
       array_version_ < VARIANT_STATS_MIN_VERSION)
     throw std::runtime_error(
         "encountered variant stats array version out of range while writing");
+
+  // Check for presence of "an" attribute
+  auto schema = fetch_version.schema();
+  an_present_ = schema.has_attribute("an");
 
   // Open array
   array_ = std::make_unique<Array>(*ctx, uri, TILEDB_WRITE);
@@ -421,7 +428,9 @@ void VariantStats::flush(bool finalize) {
     }
 
     query_->set_data_buffer("ac", ac_buffer_);
-    query_->set_data_buffer("an", an_buffer_);
+    if (an_present_) {
+      query_->set_data_buffer("an", an_buffer_);
+    }
     query_->set_data_buffer("n_hom", n_hom_buffer_);
     if (array_version_ >= 3) {
       query_->set_data_buffer("max_length", max_length_buffer_);
@@ -469,7 +478,9 @@ void VariantStats::flush(bool finalize) {
     }
 
     query_->set_data_buffer("ac", ac_buffer_);
-    query_->set_data_buffer("an", an_buffer_);
+    if (an_present_) {
+      query_->set_data_buffer("an", an_buffer_);
+    }
     query_->set_data_buffer("n_hom", n_hom_buffer_);
     if (array_version_ >= 3) {
       query_->set_data_buffer("max_length", max_length_buffer_);

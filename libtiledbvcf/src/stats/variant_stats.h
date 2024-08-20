@@ -241,14 +241,19 @@ class VariantStats {
   // Sample names included in the fragment
   inline static std::set<std::string> fragment_sample_names_;
 
+  // maximum allele length encountered
+  static int32_t max_length_;
+
+  // Array version
+  static uint32_t array_version_;
+
+  // Flag to indicate if AN is present in the schema, needed to handle
+  // the case where AN could be missing in a version 2 schema
+  static bool an_present_;
+
   //===================================================================
   //= private non-static
   //===================================================================
-
-  // maximum allele length ecountered
-  static int32_t max_length_;
-
-  static uint32_t array_version_;
 
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
