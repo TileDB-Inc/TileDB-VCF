@@ -34,6 +34,10 @@
 namespace tiledb::vcf {
 
 SampleStats::~SampleStats() {
+  if (!enabled_) {
+    return;
+  }
+
   // Flush any remaining stats
   flush(true);
 
@@ -172,6 +176,30 @@ void SampleStats::init(
     LOG_DEBUG("[SampleStats] Ingestion task disabled");
     enabled_ = false;
     return;
+  }
+
+  // Check array version
+  {
+    auto array = Array(*ctx, uri, TILEDB_READ);
+
+    auto get_version = [&]() -> std::optional<int> {
+      tiledb_datatype_t value_type;
+      uint32_t value_num;
+      const void* value;
+      array.get_metadata("version", &value_type, &value_num, &value);
+      if (value_type == TILEDB_INT32 && value_num == 1) {
+        return *static_cast<const int*>(value);
+      }
+      return std::nullopt;
+    };
+
+    auto version = get_version();
+    if (version == std::nullopt) {
+      LOG_WARN(
+          "[SampleStats] Sample stats are deprecated for this array version.");
+      enabled_ = false;
+      return;
+    }
   }
 
   LOG_DEBUG("[SampleStats] Open array '{}'", uri);
