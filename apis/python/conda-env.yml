@@ -2,10 +2,10 @@ name: tiledbvcf-py
 channels:
   - conda-forge
 dependencies:
-  - numpy<2
+  - numpy
   - python<3.12 # based on available tiledb-py wheels
   - pybind11
-  - pyarrow>=14.0.2 # for pyarrow security fix
+  - pyarrow
   - fsspec
   - dask
   - pip
