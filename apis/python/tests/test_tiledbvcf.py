@@ -70,7 +70,6 @@ def test_ds_attrs():
 
 
 def test_basic_count(test_ds):
-    tiledbvcf.config_logging("trace")
     assert test_ds.count() == 14
 
 
@@ -438,8 +437,6 @@ def test_read_var_length_filters(tmp_path):
     ds.ingest_samples(samples)
 
     ds = tiledbvcf.Dataset(uri, mode="r")
-
-    tiledbvcf.config_logging("trace")
     df = ds.read(["pos_start", "filters"])
 
     expected_df = pd.DataFrame(

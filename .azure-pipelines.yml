@@ -53,10 +53,6 @@ stages:
               repository: tiledb/tiledbvcf-py
               context: .
               test_cmd: -c "import tiledbvcf; print(tiledbvcf.version)"
-            # dask:
-            #   dockerfile: docker/Dockerfile-dask-py
-            #   repository: tiledb/tiledbvcf-dask
-            #   context: .
         steps:
         - template: ci/build-images.yml
 
