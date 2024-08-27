@@ -178,4 +178,4 @@ jobs:
       - name: Install bcftools (for tests)
         run: brew install bcftools
       - name: Test tiledbvcf-py
-        run: cd apis/python && pytest
+        run: cd apis/python && pytest -svvv
