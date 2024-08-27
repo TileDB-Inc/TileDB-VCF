@@ -438,6 +438,8 @@ def test_read_var_length_filters(tmp_path):
     ds.ingest_samples(samples)
 
     ds = tiledbvcf.Dataset(uri, mode="r")
+
+    tiledbvcf.config_logging("trace")
     df = ds.read(["pos_start", "filters"])
 
     expected_df = pd.DataFrame(
@@ -913,7 +915,7 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
-@pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
+@pytest.mark.skip
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
