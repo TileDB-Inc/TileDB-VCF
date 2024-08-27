@@ -86,8 +86,6 @@ jobs:
         with:
           environment-name: ci
           create-args: tiledb
-#      - name: Install dependencies
-#        run: python -m pip install --prefer-binary pyarrow==12
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
@@ -163,8 +161,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-#      - name: Install dependencies
-#        run: python -m pip install --prefer-binary pyarrow==12
       - name: Build tiledbvcf-py
         run: cd apis/python && python -m pip install -v .[test]
       - name: Confirm linking
@@ -178,4 +174,4 @@ jobs:
       - name: Install bcftools (for tests)
         run: brew install bcftools
       - name: Test tiledbvcf-py
-        run: cd apis/python && pytest -svvv
+        run: cd apis/python && pytest
