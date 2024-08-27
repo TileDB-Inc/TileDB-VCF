@@ -70,6 +70,7 @@ def test_ds_attrs():
 
 
 def test_basic_count(test_ds):
+    tiledbvcf.config_logging("trace")
     assert test_ds.count() == 14
 
 
