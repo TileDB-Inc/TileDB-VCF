@@ -35,6 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: "Install dependencies"
+        run: apt install -y zlib1g-dev
+
       - name: "Brew setup on macOS" # x-ref c8e49ba8f8b9ce
         if: ${{ startsWith(matrix.os, 'macos-') == true }}
         run: |
