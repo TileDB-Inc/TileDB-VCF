@@ -8,7 +8,7 @@ dependencies:
   - cmake
   - git
   - m2w64-htslib
-  - tiledb
+  - tiledb=2.15
   - vs2019_win-64
   # build tiledbvcf-py
   - numpy
@@ -17,7 +17,12 @@ dependencies:
   - pybind11
   - python
   - rpdb
+  - setuptools
+  - setuptools_scm=6.0.1
+  - setuptools_scm_git_archive
+  - wheel
   # test tiledbvcf-py
   - dask
+  - fsspec<2023.3.0
   - pytest
   - tiledb-py
