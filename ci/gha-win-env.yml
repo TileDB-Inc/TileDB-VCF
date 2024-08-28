@@ -8,6 +8,7 @@ dependencies:
   - cmake
   - git
   - m2w64-htslib
+  - tiledb
   - vs2019_win-64
   # build tiledbvcf-py
   - numpy
