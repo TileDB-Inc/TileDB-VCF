@@ -44,7 +44,6 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.18.1
-        working-directory: tools/pythonpkg
         env:
           CIBW_BUILD_VERBOSITY: 3
           CIBW_ENVIRONMENT_MACOS: >
@@ -55,6 +54,7 @@ jobs:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
         with:
+          package-dir: apis/python
           output-dir: wheelhouse
 
       - uses: actions/upload-artifact@v4
