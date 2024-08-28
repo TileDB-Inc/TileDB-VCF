@@ -1823,6 +1823,21 @@ int32_t tiledb_vcf_writer_set_variant_stats_version(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_delete_samples(
+    tiledb_vcf_writer_t* writer, const char** samples, size_t nsamples) {
+  std::vector<std::string> encoded_samples;
+  for (size_t i = 0; i < nsamples; i++)
+    encoded_samples.emplace_back(samples[i]);
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer, writer->writer_->delete_samples(encoded_samples)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 /* ********************************* */
 /*               ERROR               */
 /* ********************************* */
