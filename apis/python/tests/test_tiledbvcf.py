@@ -912,7 +912,7 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
-# TODO: enable after fixing issue with AWSSDK and pyarrow
+# TODO: enable after libtiledb 2.26.0 is released (https://github.com/TileDB-Inc/TileDB/pull/5223)
 # @pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
 @pytest.mark.skip
 def test_large_export_correctness():
