@@ -138,6 +138,12 @@ endif()
 add_library(tiledbvcf SHARED
   $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
 )
+target_include_directories(tiledbvcf
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/c_api
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 if (WIN32)
   # tiledb_vcf_unit ref's symbols that are not explicitly part of the exported public interface.
   # Since Windows/MSVC does not make all symbols in a shared library visible,

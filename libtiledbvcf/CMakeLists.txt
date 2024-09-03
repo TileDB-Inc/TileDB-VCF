@@ -45,6 +45,7 @@ option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls d
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
+option(TILEDB_ENABLE_PYTHON "TODO: FILL" OFF)
 
 # Set C++20 as required standard for all C++ targets.
 set(CMAKE_CXX_STANDARD 20)
@@ -147,3 +148,7 @@ enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+if (TILEDB_ENABLE_PYTHON)
+  add_subdirectory(../apis/python apis/python)
+endif()

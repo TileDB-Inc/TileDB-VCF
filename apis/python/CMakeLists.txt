@@ -30,6 +30,7 @@ project(
     LANGUAGES CXX
 )
 
+if (NOT TARGET tiledbvcf)
 # Search for libtilebdvcf in the default install directory and in the directory
 # specified by the LIBTILEDBVCF_PATH environment variable.
 set(LIBTILEDBVCF_SEARCH_PATHS 
@@ -100,6 +101,8 @@ else()
 
     file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
 endif()
+    set(TILEDBVCF_LIB tiledbvcf)
+endif()
 
 # Search for TileDB in the EP install directory
 list(PREPEND CMAKE_PREFIX_PATH 
@@ -145,7 +148,7 @@ target_include_directories(
 
 target_link_libraries(
     ${VCF_TARGET_NAME} PRIVATE
-    ${TILEDBVCF_LIB}
+        tiledbvcf
 )
 
 # Search for shared libraries in the same directory as the target
@@ -155,20 +158,20 @@ else()
     set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN")
 endif()
 
-# Install the extension module
-install(
-    TARGETS ${VCF_TARGET_NAME}
-    DESTINATION ${SKBUILD_PROJECT_NAME}
-)
-
-# Install required shared libraries
-install(
-    FILES ${TILEDBVCF_SHARED_LIBS}
-    DESTINATION ${SKBUILD_PROJECT_NAME}
-)
-
-# Install the command line tool
-install(
-    PROGRAMS ${TILEDBVCF_PROGRAMS}
-    DESTINATION ${SKBUILD_SCRIPTS_DIR}
-)
+## Install the extension module
+#install(
+#    TARGETS ${VCF_TARGET_NAME}
+#    DESTINATION ${SKBUILD_PROJECT_NAME}
+#)
+#
+## Install required shared libraries
+#install(
+#    FILES ${TILEDBVCF_SHARED_LIBS}
+#    DESTINATION ${SKBUILD_PROJECT_NAME}
+#)
+#
+## Install the command line tool
+#install(
+#    PROGRAMS ${TILEDBVCF_PROGRAMS}
+#    DESTINATION ${SKBUILD_SCRIPTS_DIR}
+#)
