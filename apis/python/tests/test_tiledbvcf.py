@@ -2056,8 +2056,8 @@ def test_info_end(tmp_path):
 
 
 def test_context_manager():
-    ds1_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
-    ds2_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v4/small.tdb")
+    ds1_uri = os.path.join(TESTS_INPUT_DIR, "arrays", "v4", "ingested_2samples")
+    ds2_uri = os.path.join(TESTS_INPUT_DIR, "arrays", "v4", "small.tdb")
 
     # Test the context manager
     with tiledbvcf.Dataset(ds1_uri) as ds:
