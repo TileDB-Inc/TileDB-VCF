@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.56">
+<meta name="generator" content="quarto-1.5.57">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -319,6 +319,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
   <ul class="collapse">
   <li><a href="#tiledbvcf.Dataset.attributes" id="toc-tiledbvcf.Dataset.attributes" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.attributes">attributes</a></li>
+  <li><a href="#tiledbvcf.Dataset.close" id="toc-tiledbvcf.Dataset.close" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.close">close</a></li>
   <li><a href="#tiledbvcf.Dataset.continue_read" id="toc-tiledbvcf.Dataset.continue_read" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.continue_read">continue_read</a></li>
   <li><a href="#tiledbvcf.Dataset.continue_read_arrow" id="toc-tiledbvcf.Dataset.continue_read_arrow" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</a></li>
   <li><a href="#tiledbvcf.Dataset.count" id="toc-tiledbvcf.Dataset.count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.count">count</a></li>
@@ -425,78 +426,82 @@ ul.task-list li input[type="checkbox"] {
 <td>Return a list of queryable attributes available in the VCF dataset.</td>
 </tr>
 <tr class="even">
+<td><a href="#tiledbvcf.Dataset.close">close</a></td>
+<td>Close the dataset and release resources.</td>
+</tr>
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.continue_read">continue_read</a></td>
 <td>Continue an incomplete read.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.continue_read_arrow">continue_read_arrow</a></td>
 <td>Continue an incomplete read.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.count">count</a></td>
 <td>Count records in the dataset.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.create_dataset">create_dataset</a></td>
 <td>Create a new dataset.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.export">export</a></td>
 <td>Exports data to multiple VCF files or a combined VCF file.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.ingest_samples">ingest_samples</a></td>
 <td>Ingest VCF files into the dataset.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.map_dask">map_dask</a></td>
 <td>Maps a function on a Dask dataframe obtained by reading from the dataset.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read">read</a></td>
 <td>Read data from the dataset into a Pandas DataFrame.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_allele_count">read_allele_count</a></td>
 <td>Read allele count from the dataset into a Pandas DataFrame</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_arrow">read_arrow</a></td>
 <td>Read data from the dataset into a PyArrow Table.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_completed">read_completed</a></td>
 <td>Returns true if the previous read operation was complete.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_dask">read_dask</a></td>
 <td>Reads data from a TileDB-VCF into a Dask DataFrame.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_iter">read_iter</a></td>
 <td>Iterator version of <code>read()</code>.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_variant_stats">read_variant_stats</a></td>
 <td>Read variant stats from the dataset into a Pandas DataFrame</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.sample_count">sample_count</a></td>
 <td>Get the number of samples in the dataset.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.samples">samples</a></td>
 <td>Get the list of samples in the dataset.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.schema_version">schema_version</a></td>
 <td>Get the VCF schema version of the dataset.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.tiledb_stats">tiledb_stats</a></td>
 <td>Get TileDB stats as a string.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.version">version</a></td>
 <td>Return the TileDB-VCF version used to create the dataset.</td>
 </tr>
@@ -550,6 +555,11 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 </section>
+</section>
+<section id="tiledbvcf.Dataset.close" class="level3">
+<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.close">close</h3>
+<p><code>Dataset.close()</code></p>
+<p>Close the dataset and release resources.</p>
 </section>
 <section id="tiledbvcf.Dataset.continue_read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.continue_read">continue_read</h3>
