@@ -2053,3 +2053,35 @@ def test_info_end(tmp_path):
 
     # Check the results
     _check_dfs(df, expected_end)
+
+
+def test_context_manager():
+    ds1_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
+    expected_count1 = 14
+    ds2_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/synth-array")
+    expected_count2 = 19565
+
+    # Test the context manager
+    with tiledbvcf.Dataset(ds1_uri) as ds:
+        assert ds.count() == expected_count1
+
+    with tiledbvcf.Dataset(ds2_uri) as ds:
+        assert ds.count() == expected_count2
+
+    # Open the datasets outside the context manager
+    ds1 = tiledbvcf.Dataset(ds1_uri)
+    assert ds1.count() == expected_count1
+
+    ds2 = tiledbvcf.Dataset(ds2_uri)
+    assert ds2.count() == expected_count2
+
+    # Check that an exception is raised when trying to access a closed dataset
+    ds1.close()
+    with pytest.raises(Exception):
+        assert ds1.count() == expected_count1
+
+    assert ds2.count() == expected_count2
+
+    ds2.close()
+    with pytest.raises(Exception):
+        assert ds2.count() == expected_count2

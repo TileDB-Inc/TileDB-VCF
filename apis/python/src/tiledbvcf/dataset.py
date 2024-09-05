@@ -131,6 +131,20 @@ class Dataset(object):
         else:
             raise Exception("Unsupported dataset mode {}".format(mode))
 
+    def close(self):
+        """Close the dataset and release resources."""
+        if self.mode == "r":
+            del self.reader
+        elif self.mode == "w":
+            del self.writer
+        self.mode = "closed"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def _set_read_cfg(self, cfg):
         if cfg is None:
             return
