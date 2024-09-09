@@ -132,6 +132,16 @@ add_custom_target(install-libtiledbvcf
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/libtiledbvcf
 )
 
+add_custom_target(
+  skbuild-export
+  COMMAND
+  ${CMAKE_COMMAND} --install . --prefix ${SKBUILD_PLATLIB_DIR}/tiledbvcf --config $<CONFIG>
+  WORKING_DIRECTORY
+  ${CMAKE_CURRENT_BINARY_DIR}/libtiledbvcf
+  DEPENDS
+  libtiledbvcf
+)
+
 # make check
 add_custom_target(check
   COMMAND ${CMAKE_COMMAND} --build . --target check --config ${CMAKE_BUILD_TYPE}

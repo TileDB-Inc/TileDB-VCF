@@ -170,13 +170,13 @@ install(
 )
 
 # Install required shared libraries
-install(
-    FILES ${TILEDBVCF_SHARED_LIBS}
-    DESTINATION ${SKBUILD_PROJECT_NAME}
-)
+#install(
+#    FILES ${TILEDBVCF_SHARED_LIBS}
+#    LIBRARY DESTINATION .
+#)
 
 # Install the command line tool
 install(
     PROGRAMS ${TILEDBVCF_PROGRAMS}
-    DESTINATION ${SKBUILD_SCRIPTS_DIR}
+    DESTINATION .
 )
