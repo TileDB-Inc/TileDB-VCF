@@ -105,9 +105,9 @@ endif()
 endif()
 
 # Search for TileDB in the EP install directory
-# list(PREPEND CMAKE_PREFIX_PATH 
-#     "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
-# )
+list(PREPEND CMAKE_PREFIX_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
+)
 
 # Search TileDB_DIR first if it is defined
 if (DEFINED TileDB_DIR)
@@ -170,10 +170,7 @@ install(
 )
 
 # Install required shared libraries
-#install(
-#    FILES ${TILEDBVCF_SHARED_LIBS}
-#    LIBRARY DESTINATION .
-#)
+install(IMPORTED_RUNTIME_ARTIFACTS TileDB::tiledb_shared DESTINATION .)
 
 # Install the command line tool
 install(
