@@ -171,6 +171,7 @@ install(
 
 # Install required shared libraries
 install(IMPORTED_RUNTIME_ARTIFACTS TileDB::tiledb_shared DESTINATION .)
+install(IMPORTED_RUNTIME_ARTIFACTS tiledbvcf DESTINATION .)
 
 # Install the command line tool
 install(
