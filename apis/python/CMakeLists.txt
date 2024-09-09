@@ -105,14 +105,17 @@ endif()
 endif()
 
 # Search for TileDB in the EP install directory
-list(PREPEND CMAKE_PREFIX_PATH 
-    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
-)
+# list(PREPEND CMAKE_PREFIX_PATH 
+#     "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
+# )
 
 # Search TileDB_DIR first if it is defined
 if (DEFINED TileDB_DIR)
     list(PREPEND CMAKE_PREFIX_PATH "${TileDB_DIR}")
 endif()
+
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 find_package(TileDB REQUIRED)
 
@@ -123,7 +126,9 @@ endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
 
-find_package(pybind11 REQUIRED)
+# NOTE: If you remove the line below the Windows build will fail
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(
     ${VCF_TARGET_NAME}
@@ -158,20 +163,20 @@ else()
     set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN")
 endif()
 
-## Install the extension module
-#install(
-#    TARGETS ${VCF_TARGET_NAME}
-#    DESTINATION ${SKBUILD_PROJECT_NAME}
-#)
-#
-## Install required shared libraries
-#install(
-#    FILES ${TILEDBVCF_SHARED_LIBS}
-#    DESTINATION ${SKBUILD_PROJECT_NAME}
-#)
-#
-## Install the command line tool
-#install(
-#    PROGRAMS ${TILEDBVCF_PROGRAMS}
-#    DESTINATION ${SKBUILD_SCRIPTS_DIR}
-#)
+# Install the extension module
+install(
+    TARGETS ${VCF_TARGET_NAME}
+    LIBRARY DESTINATION .
+)
+
+# Install required shared libraries
+install(
+    FILES ${TILEDBVCF_SHARED_LIBS}
+    DESTINATION ${SKBUILD_PROJECT_NAME}
+)
+
+# Install the command line tool
+install(
+    PROGRAMS ${TILEDBVCF_PROGRAMS}
+    DESTINATION ${SKBUILD_SCRIPTS_DIR}
+)
