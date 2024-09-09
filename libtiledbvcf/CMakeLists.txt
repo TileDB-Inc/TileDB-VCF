@@ -48,6 +48,7 @@ option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
 option(TILEDB_ENABLE_PYTHON "TODO: FILL" OFF)
+option(TILEDB_ENABLE_TESTS "TODO: FILL" OFF)
 
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
@@ -153,11 +154,13 @@ set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 # Regular build
 ############################################################
 
-# Enable testing
-enable_testing()
-
 add_subdirectory(src)
-add_subdirectory(test)
+
+if (TILEDB_ENABLE_TESTS)
+  # Enable testing
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 if (TILEDB_ENABLE_PYTHON)
   add_subdirectory(../apis/python apis/python)
