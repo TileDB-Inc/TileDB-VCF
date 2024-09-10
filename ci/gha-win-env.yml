@@ -9,7 +9,7 @@ dependencies:
   - git
   - m2w64-htslib
   - tiledb=2.25
-  - vs2019_win-64
+  - vs2022_win-64
   # build tiledbvcf-py
   - numpy
   - pandas
