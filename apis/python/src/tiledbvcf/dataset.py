@@ -502,6 +502,8 @@ class Dataset(object):
         if isinstance(samples, str):
             samples = [samples]
 
+        self.reader.reset()
+
         if not self.read_completed():
             yield self.read(attrs, samples, regions, samples_file, bed_file)
         while not self.read_completed():

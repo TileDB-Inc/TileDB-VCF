@@ -399,6 +399,24 @@ def test_incomplete_read_generator():
         overall_df,
     )
 
+    # Test that the iterator can be used again
+    dfs = []
+    for df in test_ds.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
+        dfs.append(df)
+    overall_df = pd.concat(dfs, ignore_index=True)
+
+    assert len(overall_df) == 6
+    _check_dfs(
+        pd.DataFrame.from_dict(
+            {
+                "pos_end": np.array(
+                    [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
+                )
+            }
+        ),
+        overall_df,
+    )
+
 
 def test_read_filters(test_ds):
     df = test_ds.read(
