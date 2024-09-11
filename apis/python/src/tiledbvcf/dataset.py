@@ -1,3 +1,5 @@
+import os
+import shutil
 import warnings
 from collections import namedtuple
 from typing import List
@@ -1039,6 +1041,39 @@ class Dataset(object):
         from . import dask_functions
 
         return dask_functions.read_dask(self, *args, **kwargs)
+
+    @staticmethod
+    def delete(uri: str, *, config: dict = None) -> None:
+        """
+        Delete the dataset.
+
+        Parameters
+        ----------
+        uri
+            URI of the dataset.
+        config
+            TileDB configuration.
+        """
+
+        if os.path.exists(uri):
+            shutil.rmtree(uri)
+        elif uri.startswith("tiledb://"):
+            try:
+                import tiledb.cloud
+            except Exception:
+                raise Exception(
+                    "Deleting this dataset requires the tiledb.cloud package"
+                )
+            tiledb.cloud.asset.delete(uri, recursive=True)
+        else:
+            try:
+                import tiledb
+            except Exception:
+                raise Exception("Deleting this dataset requires the tiledb package")
+
+            with tiledb.scope_ctx(config):
+                with tiledb.Group(uri, "m") as g:
+                    g.delete(recursive=True)
 
 
 class TileDBVCFDataset(Dataset):
