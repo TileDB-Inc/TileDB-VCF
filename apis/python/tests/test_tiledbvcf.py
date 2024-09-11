@@ -2112,10 +2112,10 @@ def test_delete_dataset(tmp_path):
         ds.create_dataset()
 
     # Check that the dataset exists
-    assert tiledb.object_type(uri)
+    assert os.path.exists(uri)
 
     # Delete the dataset
     tiledbvcf.Dataset.delete(uri)
 
     # Check that the dataset does not exist
-    assert not tiledb.object_type(uri)
+    assert not os.path.exists(uri)
