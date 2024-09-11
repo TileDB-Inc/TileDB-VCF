@@ -2085,3 +2085,19 @@ def test_context_manager():
     ds2.close()
     with pytest.raises(Exception):
         assert ds2.count() == expected_count2
+
+
+def test_delete_dataset(tmp_path):
+    uri = os.path.join(tmp_path, "delete_dataset")
+
+    with tiledbvcf.Dataset(uri, mode="w") as ds:
+        ds.create_dataset()
+
+    # Check that the dataset exists
+    assert tiledb.object_type(uri)
+
+    # Delete the dataset
+    tiledbvcf.Dataset.delete(uri)
+
+    # Check that the dataset does not exist
+    assert not tiledb.object_type(uri)
