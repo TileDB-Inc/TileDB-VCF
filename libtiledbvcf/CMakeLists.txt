@@ -47,8 +47,8 @@ option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls d
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
-option(TILEDB_ENABLE_PYTHON "TODO: FILL" OFF)
-option(TILEDB_ENABLE_TESTS "TODO: FILL" OFF)
+option(TILEDBVCF_ENABLE_PYTHON "TODO: FILL" OFF)
+option(TILEDBVCF_ENABLE_TESTS "TODO: FILL" OFF)
 
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
