@@ -163,9 +163,9 @@ jobs:
       - name: Confirm linking
         run: |
           otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.dylib
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledb.dylib
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libhts.*.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/lib/libtiledbvcf.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/lib/libtiledb.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/lib/libhts.*.dylib
       - name: Version
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Install bcftools (for tests)
