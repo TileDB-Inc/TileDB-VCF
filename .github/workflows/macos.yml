@@ -29,7 +29,8 @@ jobs:
             -D CMAKE_BUILD_TYPE=Debug \
             -D CMAKE_INSTALL_PREFIX=$(pwd)/dist \
             -D OVERRIDE_INSTALL_PREFIX=OFF \
-            -D DOWNLOAD_TILEDB_PREBUILT=ON
+            -D DOWNLOAD_TILEDB_PREBUILT=ON \
+            -D TILEDBVCF_ENABLE_TESTS=ON
       - name: Build libtiledbvcf
         run: cmake --build $(pwd)/libtiledbvcf/build -j 2 --config Debug
       - name: Upload coredump as artifact if build failed
@@ -72,11 +73,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
-      - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: libtiledbvcf
-          path: dist
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -93,9 +89,6 @@ jobs:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
           TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
-          echo $DYLD_LIBRARY_PATH
-          echo $TileDB_DIR
-          cd apis/python
           python -m pip install -v .[test]
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
