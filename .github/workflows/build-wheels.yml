@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: "Brew setup on macOS" # x-ref c8e49ba8f8b9ce
-        if: ${{ startsWith(matrix.os, 'macos-') == true }}
+        if: ${{ startsWith(matrix.buildplat[0], 'macos-') == true }}
         run: |
           set -e pipefail
           brew update
