@@ -333,19 +333,27 @@ if(WIN32)
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 else()
-#  install(
-#    TARGETS tiledbvcf-bin
-#    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-#    )
+  install(
+    TARGETS tiledbvcf-bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif()
 
-if (NOT TILEDBVCF_ENABLE_PYTHON)
-  install(
-    TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION .
-    ARCHIVE DESTINATION .
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
-  )
+install(
+        TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
+)
+
+if (TILEDBVCF_ENABLE_PYTHON)
+  if (APPLE)
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
+  else()
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
+  endif()
 endif()

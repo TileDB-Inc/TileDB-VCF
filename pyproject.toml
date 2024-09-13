@@ -67,7 +67,7 @@ wheel.license-files = []
 editable.mode = "inplace"
 
 [tool.scikit-build.cmake.define]
-TILEDB_ENABLE_PYTHON = "ON"
+TILEDBVCF_ENABLE_PYTHON = "ON"
 TILEDB_WERROR = "OFF"
 
 [tool.setuptools_scm]

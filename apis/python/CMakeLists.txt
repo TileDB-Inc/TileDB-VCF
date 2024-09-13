@@ -31,97 +31,9 @@ project(
 )
 
 if (NOT TARGET tiledbvcf)
-# Search for libtilebdvcf in the default install directory and in the directory
-# specified by the LIBTILEDBVCF_PATH environment variable.
-set(LIBTILEDBVCF_SEARCH_PATHS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../dist/lib"
-    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/dist/lib"
-    "$ENV{LIBTILEDBVCF_PATH}"
-)
-
-message(STATUS "Searching for libtiledbvcf in ${LIBTILEDBVCF_SEARCH_PATHS}")
-
-# TODO: Use find_package() instead of find_library() to find libtiledbvcf.
-find_library(
-    TILEDBVCF_LIB
-    NAMES tiledbvcf
-    PATHS ${LIBTILEDBVCF_SEARCH_PATHS}
-)
-
-if(NOT TILEDBVCF_LIB)
-    message(STATUS "Building libtiledbvcf from source")
-
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build")
-
-    execute_process(
-        COMMAND bash -c "\
-            ${CMAKE_COMMAND} .. && \
-            ${CMAKE_COMMAND} --build . && \
-            ${CMAKE_COMMAND} --build . --target install-libtiledbvcf"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build"
-    )
-
-    find_library(
-        TILEDBVCF_LIB
-        NAMES tiledbvcf
-        PATHS ${LIBTILEDBVCF_SEARCH_PATHS}
-    )
-endif()
-
-if(NOT TILEDBVCF_LIB)
-    message(FATAL_ERROR "Could not find libtiledbvcf")
-else()
-    message(STATUS "Found libtiledbvcf: ${TILEDBVCF_LIB}")
-    get_filename_component(TILEDBVCF_LIB_DIR ${TILEDBVCF_LIB} DIRECTORY)
-    cmake_path(APPEND TILEDBVCF_LIB_DIR "../include/tiledbvcf" OUTPUT_VARIABLE TILEDBVCF_INCLUDE_DIR)
-    cmake_path(APPEND TILEDBVCF_LIB_DIR "../bin" OUTPUT_VARIABLE TILEDBVCF_BIN_DIR)
-
-    # Find required shared libs for the current platform
-    if (APPLE)
-        set(TILEDBVCF_SHARED_LIB_NAMES
-            "libtiledb.dylib" "libtiledbvcf.dylib" "libhts.*dylib"
-        )
-    elseif(WIN32)
-        set(TILEDBVCF_SHARED_LIB_NAMES
-            "tiledb.lib" "tiledbvcf.lib" "hts-3.lib"
-        )
-    else()
-        set(TILEDBVCF_SHARED_LIB_NAMES
-            "libtiledb.so*" "libtiledbvcf.so" "libhts.so*"
-        )
-    endif()
-
-    set(TILEDBVCF_SHARED_LIBS "")
-    foreach(ITEM ${TILEDBVCF_SHARED_LIB_NAMES})
-        file(GLOB LIB_FILE "${TILEDBVCF_LIB_DIR}/${ITEM}")
-        if(LIB_FILE)
-            list(APPEND TILEDBVCF_SHARED_LIBS "${LIB_FILE}")
-        endif()
-    endforeach()
-
-    file(GLOB TILEDBVCF_PROGRAMS "${TILEDBVCF_BIN_DIR}/tiledbvcf*")
-endif()
-    set(TILEDBVCF_LIB tiledbvcf)
-endif()
-
-# Search for TileDB in the EP install directory
-list(PREPEND CMAKE_PREFIX_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/build/externals/install"
-)
-
-# Search TileDB_DIR first if it is defined
-if (DEFINED TileDB_DIR)
-    list(PREPEND CMAKE_PREFIX_PATH "${TileDB_DIR}")
-endif()
-
-message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-
-find_package(TileDB REQUIRED)
-
-if (TILEDB_FOUND)
-    get_target_property(TILEDB_LIB TileDB::tiledb_shared IMPORTED_LOCATION_RELEASE)
-    message(STATUS "Found TileDB: ${TILEDB_LIB}")
+    # If tiledbvcf is not present it means that this script was not included as a
+    # subdirectory of the tiledbvcf library, thus we need to find it
+    find_package(tiledbvcf REQUIRED)
 endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
@@ -144,23 +56,13 @@ if (NOT WIN32)
     target_compile_options(${VCF_TARGET_NAME} PRIVATE -Wno-deprecated-declarations)
 endif()
 
-target_include_directories(
-    ${VCF_TARGET_NAME} PRIVATE
-    ${TILEDBVCF_INCLUDE_DIR}
-    "${CMAKE_CURRENT_SOURCE_DIR}/dist_links/libtiledbvcf/src"
-    $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-target_link_libraries(
-    ${VCF_TARGET_NAME} PRIVATE
-        tiledbvcf
-)
+target_link_libraries(${VCF_TARGET_NAME} PRIVATE tiledbvcf)
 
 # Search for shared libraries in the same directory as the target
 if (APPLE)
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path")
+    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
 else()
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN")
+    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
 endif()
 
 # Install the extension module
