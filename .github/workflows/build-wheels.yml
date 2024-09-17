@@ -55,7 +55,7 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel bcftools
           CIBW_TEST_COMMAND: pytest {package}/apis/python
           CIBW_TEST_EXTRAS: test
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
+          MACOSX_DEPLOYMENT_TARGET: "13.0"
         with:
           output-dir: wheelhouse
 
