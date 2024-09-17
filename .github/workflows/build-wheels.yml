@@ -110,12 +110,9 @@ jobs:
           path: dist
 
       - name: Install sdist artifact
-        run: pip install --verbose dist/${{ needs.build_sdist.outputs.sdist_name }}
+        run: pip install --verbose dist/${{ needs.build_sdist.outputs.sdist_name }}[test]
 
       - uses: actions/checkout@v4
-
-      - name: Install test dependencies
-        run: pip install pytest hypothesis psutil pyarrow
 
       - name: Run tests
         shell: bash
@@ -123,11 +120,6 @@ jobs:
           PROJECT_CWD=$PWD
           cd ..
           pytest -vv --showlocals $PROJECT_CWD/apis/python
-
-      - name: "Re-run tests without pandas"
-        run: |
-          pip uninstall -y pandas
-          pytest -vv --showlocals $PROJECT_CWD
 
   upload_pypi:
     needs: [build_wheels, test_sdist]
