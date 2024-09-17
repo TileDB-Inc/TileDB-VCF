@@ -40,7 +40,7 @@ jobs:
         run: |
           set -e pipefail
           brew update
-          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate
+          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate bcftools
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.20.0
@@ -53,7 +53,7 @@ jobs:
           CIBW_ARCHS: all
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
-          CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel
+          CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel bcftools
           CIBW_TEST_COMMAND: pytest {package}/apis/python
           CIBW_TEST_EXTRAS: test
         with:
@@ -93,7 +93,7 @@ jobs:
         os:
           - macos-13
           - macos-14
-          - windows-2022
+          # - windows-2022 Currently we do not know how to install bcftools on windows
           - ubuntu-22.04
         python: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
@@ -102,6 +102,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+
+      - name: Install bcftools MacOS
+        if: ${{ startsWith(matrix.buildplat[0], 'macos-') == true }}
+        run: brew install bcftools
+
+      - name: Install bcftools Ubuntu
+        if: ${{ startsWith(matrix.buildplat[0], 'ubuntu-') == true }}
+        run: sudo apt install bcftools
 
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
