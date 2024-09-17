@@ -55,6 +55,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
           CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel
           CIBW_TEST_COMMAND: pytest {package}/apis/python
+          CIBW_TEST_REQUIRES: pytest
         with:
           output-dir: wheelhouse
 
@@ -120,9 +121,8 @@ jobs:
         shell: bash
         run: |
           PROJECT_CWD=$PWD
-          rm tiledb/__init__.py
           cd ..
-          pytest -vv --showlocals $PROJECT_CWD
+          pytest -vv --showlocals $PROJECT_CWD/apis/python
 
       - name: "Re-run tests without pandas"
         run: |
