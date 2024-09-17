@@ -63,6 +63,7 @@ sdist.include = ["src/tiledbvcf/version.py"]
 sdist.exclude = [".gitignore", "build-wheels.sh", "conda-env.yml"]
 wheel.expand-macos-universal-tags = true
 wheel.license-files = []
+wheel.packages = ["apis/python/src/tiledbvcf"]
 # NOTE: editable inplace not working yet
 editable.mode = "inplace"
 
