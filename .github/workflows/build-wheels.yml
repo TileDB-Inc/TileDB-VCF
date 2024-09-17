@@ -104,11 +104,11 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install bcftools MacOS
-        if: ${{ startsWith(matrix.buildplat[0], 'macos-') == true }}
+        if: ${{ startsWith(matrix.os, 'macos-') == true }}
         run: brew install bcftools
 
       - name: Install bcftools Ubuntu
-        if: ${{ startsWith(matrix.buildplat[0], 'ubuntu-') == true }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') == true }}
         run: sudo apt install bcftools
 
       - name: Download sdist artifact
