@@ -33,18 +33,29 @@ cmake_minimum_required(VERSION 3.5)
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
+# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
+
 
 # Superbuild option must be on by default.
 option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
 option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
+
 option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
 option(FORCE_EXTERNAL_SPDLOG "Forces a local build of spdlog instead of searching system paths." ON)
 option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." OFF)
+
 option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls downloading prebuilt artifacts or building from source" ON)
 option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
 option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
 option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
+
+option(TILEDBVCF_ENABLE_PYTHON "TODO: FILL" OFF)
+option(TILEDBVCF_ENABLE_TESTS "TODO: FILL" OFF)
+
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
 
 # Set C++20 as required standard for all C++ targets.
 set(CMAKE_CXX_STANDARD 20)
@@ -114,7 +125,11 @@ add_definitions(-D_FILE_OFFSET_BITS=64)
 ############################################################
 
 # Search the externals install directory for dependencies.
-list(APPEND CMAKE_PREFIX_PATH "${EP_INSTALL_PREFIX}")
+# message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+# list(APPEND CMAKE_PREFIX_PATH "${EP_INSTALL_PREFIX}")
+# message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 # If this is an in-IDE build, we need to disable the superbuild and explicitly
 # set the EP base dir. The normal 'cmake && make' process won't need this step,
@@ -142,8 +157,14 @@ set(EP_INSTALL_PREFIX "${EP_BASE}/install")
 # Regular build
 ############################################################
 
-# Enable testing
-enable_testing()
-
 add_subdirectory(src)
-add_subdirectory(test)
+
+if (TILEDBVCF_ENABLE_TESTS)
+  # Enable testing
+  enable_testing()
+  add_subdirectory(test)
+endif()
+
+if (TILEDBVCF_ENABLE_PYTHON)
+  add_subdirectory(../apis/python apis/python)
+endif()

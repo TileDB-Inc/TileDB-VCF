@@ -138,6 +138,13 @@ endif()
 add_library(tiledbvcf SHARED
   $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
 )
+target_include_directories(tiledbvcf
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/c_api
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 if (WIN32)
   # tiledb_vcf_unit ref's symbols that are not explicitly part of the exported public interface.
   # Since Windows/MSVC does not make all symbols in a shared library visible,
@@ -333,10 +340,20 @@ else()
 endif()
 
 install(
-  TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
+        TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
+        RUNTIME DESTINATION .
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
 )
+
+if (TILEDBVCF_ENABLE_PYTHON)
+  if (APPLE)
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
+  else()
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
+  endif()
+endif()

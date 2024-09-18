@@ -95,7 +95,7 @@ if (NOT HTSLIB_FOUND)
       ExternalProject_Add(ep_htslib
         PREFIX "externals"
         URL https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.20-0/m2w64-htslib-1.20-0.tar.gz
-        URL_HASH SHA1=da39a3ee5e6b4b0d3255bfef95601890afd80709
+        URL_HASH SHA1=6f3e208ccc0262f89dcdf344d96e40696a5db133
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
@@ -164,4 +164,7 @@ endif()
 if (EP_HTSLIB_BUILT AND TARGET HTSlib::HTSlib)
   include(TileDBCommon)
   install_target_libs(HTSlib::HTSlib)
+  if(WIN32)
+    install(FILES "${HTSLIB_PATHS}/bin/hts-3.dll" DESTINATION .)
+  endif()
 endif()
