@@ -84,6 +84,11 @@ jobs:
           create-args: tiledb
       - name: Install dependencies
         run: python -m pip install --prefer-binary pyarrow==10.0.1
+      - name: Intall build dependencies
+        run: |
+          set -e pipefail
+          brew update
+          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate bcftools
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
