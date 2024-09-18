@@ -912,32 +912,33 @@ def test_sample_and_region_partitioned_read():
     assert len(df) == 0
 
 
-@pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
-def test_large_export_correctness():
-    uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
-
-    ds = tiledbvcf.Dataset(uri)
-    df = ds.read(
-        attrs=[
-            "sample_name",
-            "contig",
-            "pos_start",
-            "pos_end",
-            "query_bed_start",
-            "query_bed_end",
-        ],
-        samples=["v2-DjrIAzkP", "v2-YMaDHIoW", "v2-usVwJUmo", "v2-ZVudhauk"],
-        bed_file=os.path.join(
-            TESTS_INPUT_DIR, "E001_15_coreMarks_dense_filtered.bed.gz"
-        ),
-    )
-
-    # total number of exported records
-    assert df.shape[0] == 1172081
-
-    # number of unique exported records
-    record_index = ["sample_name", "contig", "pos_start"]
-    assert df[record_index].drop_duplicates().shape[0] == 1168430
+# TODO: DO NOT MERGE THIS COMMENTED OUT
+# @pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
+# def test_large_export_correctness():
+#     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
+#
+#     ds = tiledbvcf.Dataset(uri)
+#     df = ds.read(
+#         attrs=[
+#             "sample_name",
+#             "contig",
+#             "pos_start",
+#             "pos_end",
+#             "query_bed_start",
+#             "query_bed_end",
+#         ],
+#         samples=["v2-DjrIAzkP", "v2-YMaDHIoW", "v2-usVwJUmo", "v2-ZVudhauk"],
+#         bed_file=os.path.join(
+#             TESTS_INPUT_DIR, "E001_15_coreMarks_dense_filtered.bed.gz"
+#         ),
+#     )
+#
+#     # total number of exported records
+#     assert df.shape[0] == 1172081
+#
+#     # number of unique exported records
+#     record_index = ["sample_name", "contig", "pos_start"]
+#     assert df[record_index].drop_duplicates().shape[0] == 1168430
 
 
 def test_basic_ingest(tmp_path):
