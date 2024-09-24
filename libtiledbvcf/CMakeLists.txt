@@ -96,6 +96,7 @@ if(WIN32 AND NOT MSYS)
   endif()
   # /wd4996 - no deprecated
   add_compile_options(/wd4996)
+  add_compile_options(/utf-8)
 else()
   if (BUILD_TYPE STREQUAL "DEBUG")
     add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)

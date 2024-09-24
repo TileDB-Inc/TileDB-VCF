@@ -595,8 +595,23 @@ void VCFMerger::finish_merge() {
   rec->pos = md_.pos;
 
   // ID
+#ifdef _WIN32
+  // Workaround for windows python feedstock build, since fmt::join is not
+  // available
+  std::string ids{"."};
+  if (!md_.ids.empty()) {
+    std::ostringstream oss;
+    std::copy(
+        md_.ids.begin(),
+        md_.ids.end() - 1,
+        std::ostream_iterator<std::string>(oss, ";"));
+    oss << md_.ids.back();
+    ids = oss.str();
+  }
+#else
   std::string ids =
       md_.ids.size() ? fmt::format("{}", fmt::join(md_.ids, ";")) : ".";
+#endif
   bcf_update_id(hdr_.get(), rec.get(), ids.c_str());
 
   // REF, ALT
