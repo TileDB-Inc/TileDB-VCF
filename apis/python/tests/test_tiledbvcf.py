@@ -934,7 +934,12 @@ def test_sample_and_region_partitioned_read():
 def test_large_export_correctness():
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
-    ds = tiledbvcf.Dataset(uri)
+    tiledb_config = {
+        "vfs.s3.no_sign_request": True,
+        "vfs.s3.region": "us-east-1",
+    }
+
+    ds = tiledbvcf.Dataset(uri, tiledb_config=tiledb_config)
     df = ds.read(
         attrs=[
             "sample_name",
