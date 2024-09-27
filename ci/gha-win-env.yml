@@ -7,7 +7,7 @@ dependencies:
   # build libtiledbvcf
   - cmake
   - git
-  - m2w64-htslib
+  - m2w64-htslib=1.19
   - tiledb=2.15
   - vs2019_win-64
   # build tiledbvcf-py
