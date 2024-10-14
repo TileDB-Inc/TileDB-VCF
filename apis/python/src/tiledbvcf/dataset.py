@@ -1,3 +1,5 @@
+import os
+import shutil
 import warnings
 from collections import namedtuple
 from typing import List
@@ -130,6 +132,20 @@ class Dataset(object):
             self.writer.set_tiledb_stats_enabled(stats)
         else:
             raise Exception("Unsupported dataset mode {}".format(mode))
+
+    def close(self):
+        """Close the dataset and release resources."""
+        if self.mode == "r":
+            del self.reader
+        elif self.mode == "w":
+            del self.writer
+        self.mode = "closed"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def _set_read_cfg(self, cfg):
         if cfg is None:
@@ -487,6 +503,8 @@ class Dataset(object):
             regions = [regions]
         if isinstance(samples, str):
             samples = [samples]
+
+        self.reader.reset()
 
         if not self.read_completed():
             yield self.read(attrs, samples, regions, samples_file, bed_file)
@@ -851,6 +869,14 @@ class Dataset(object):
             self.writer.register_samples()
         self.writer.ingest_samples()
 
+    def delete_samples(
+        self,
+        sample_uris: List[str] = None,
+    ):
+        if self.mode != "w":
+            raise Exception("Dataset not open in write mode")
+        self.writer.delete_samples(sample_uris)
+
     def tiledb_stats(self) -> str:
         """
         Get TileDB stats as a string.
@@ -1015,6 +1041,39 @@ class Dataset(object):
         from . import dask_functions
 
         return dask_functions.read_dask(self, *args, **kwargs)
+
+    @staticmethod
+    def delete(uri: str, *, config: dict = None) -> None:
+        """
+        Delete the dataset.
+
+        Parameters
+        ----------
+        uri
+            URI of the dataset.
+        config
+            TileDB configuration.
+        """
+
+        if os.path.exists(uri):
+            shutil.rmtree(uri)
+        elif uri.startswith("tiledb://"):
+            try:
+                import tiledb.cloud
+            except Exception:
+                raise Exception(
+                    "Deleting this dataset requires the tiledb.cloud package"
+                )
+            tiledb.cloud.asset.delete(uri, recursive=True)
+        else:
+            try:
+                import tiledb
+            except Exception:
+                raise Exception("Deleting this dataset requires the tiledb package")
+
+            with tiledb.scope_ctx(config):
+                with tiledb.Group(uri, "m") as g:
+                    g.delete(recursive=True)
 
 
 class TileDBVCFDataset(Dataset):

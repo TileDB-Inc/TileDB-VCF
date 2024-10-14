@@ -232,6 +232,18 @@ void Writer::ingest_samples() {
   check_error(writer, tiledb_vcf_writer_store(writer));
 }
 
+void Writer::delete_samples(std::vector<std::string> samples_to_delete) {
+  std::vector<const char*> samples;
+  for (std::string& sample : samples_to_delete) {
+    samples.emplace_back(sample.c_str());
+  }
+
+  auto writer = ptr.get();
+  check_error(
+      writer,
+      tiledb_vcf_writer_delete_samples(writer, samples.data(), samples.size()));
+}
+
 void Writer::deleter(tiledb_vcf_writer_t* w) {
   tiledb_vcf_writer_free(&w);
 }

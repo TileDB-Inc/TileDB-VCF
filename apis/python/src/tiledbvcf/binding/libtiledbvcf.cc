@@ -134,6 +134,10 @@ PYBIND11_MODULE(libtiledbvcf, m) {
           "ingest_samples",
           &Writer::ingest_samples,
           py::call_guard<py::gil_scoped_release>())
+      .def(
+          "delete_samples",
+          &Writer::delete_samples,
+          py::call_guard<py::gil_scoped_release>())
       .def("get_schema_version", &Writer::get_schema_version)
       .def("set_tiledb_config", &Writer::set_tiledb_config)
       .def("set_sample_batch_size", &Writer::set_sample_batch_size)
