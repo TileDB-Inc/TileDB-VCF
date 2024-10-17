@@ -40,7 +40,7 @@ jobs:
         run: |
           set -e pipefail
           brew update
-          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate
+          brew install ninja llvm curl bzip2 xz zlib automake pkg-config
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.20.0

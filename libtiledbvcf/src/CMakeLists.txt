@@ -99,7 +99,7 @@ add_library(tiledbvcf SHARED
         ${TILEDB_VCF_EXTERNAL_SOURCES}
 )
 
-target_compile_features(tiledbvcf PUBLIC cxx_std_23)
+target_compile_features(tiledbvcf PUBLIC cxx_std_20)
 
 set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
 
