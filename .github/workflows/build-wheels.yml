@@ -52,7 +52,7 @@ jobs:
           CIBW_ARCHS: all
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
-          CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel bcftools
+          CIBW_BEFORE_ALL_LINUX: yum install -y bzip2-devel xz-devel bcftools curl zip unzip tar
           CIBW_TEST_COMMAND: pytest {package}/apis/python
           CIBW_TEST_EXTRAS: test
           MACOSX_DEPLOYMENT_TARGET: "13.0"
