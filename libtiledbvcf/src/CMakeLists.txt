@@ -1,17 +1,20 @@
-message(STATUS "Starting TileDB-VCF build.")
-
 ############################################################
 # Find required dependencies
 ############################################################
 
+find_package(TileDB REQUIRED)
 find_package(CLI11 REQUIRED)
-find_package(HTSlib REQUIRED)
-find_package(Spdlog REQUIRED)
-find_package(TileDB_EP REQUIRED)
+find_package(spdlog REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(HTSlib REQUIRED IMPORTED_TARGET htslib)
+add_library(HTSlib::HTSlib ALIAS PkgConfig::HTSlib)
 
 ############################################################
 # Get source commit hash
 ############################################################
+
+# TODO: This won't work in sdist
 
 find_package(Git REQUIRED)
 
@@ -91,24 +94,31 @@ set(TILEDB_VCF_EXTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../external/base64/base64.cc
 )
 
-add_library(TILEDB_VCF_OBJECTS OBJECT
-  ${TILEDB_VCF_SOURCES}
-  ${TILEDB_VCF_EXTERNAL_SOURCES}
+add_library(tiledbvcf SHARED
+        ${TILEDB_VCF_SOURCES}
+        ${TILEDB_VCF_EXTERNAL_SOURCES}
 )
 
-set_property(TARGET TILEDB_VCF_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_compile_features(tiledbvcf PUBLIC cxx_std_23)
 
-target_include_directories(TILEDB_VCF_OBJECTS
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../external
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    $<TARGET_PROPERTY:HTSlib::HTSlib,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:TileDB::tiledb_shared,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:spdlog::spdlog,INTERFACE_INCLUDE_DIRECTORIES>
+set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(tiledbvcf
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../external
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE
-  -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
+target_link_libraries(
+        tiledbvcf
+        PUBLIC
+        HTSlib::HTSlib
+        TileDB::tiledb_shared
+        spdlog::spdlog
+)
+
+target_compile_definitions(tiledbvcf PRIVATE
+        -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
 )
 ############################################################
 # Compile options/definitions
@@ -125,19 +135,20 @@ if (SANITIZER)
   else()
     message(STATUS "The TileDB-VCF library is compiled with sanitizer ${SANITIZER} enabled")
   endif()
-  target_compile_options(TILEDB_VCF_OBJECTS
+  target_compile_options(tiledbvcf
           PRIVATE
           -g -fno-omit-frame-pointer -fno-optimize-sibling-calls -fsanitize=${SANITIZER}
           )
 endif()
 
-############################################################
-# tiledbvcf library target
-############################################################
-
-add_library(tiledbvcf SHARED
-  $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
+target_include_directories(
+        tiledbvcf
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/c_api
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
 )
+
 if (WIN32)
   # tiledb_vcf_unit ref's symbols that are not explicitly part of the exported public interface.
   # Since Windows/MSVC does not make all symbols in a shared library visible,
@@ -148,25 +159,6 @@ if (WIN32)
   set_property(TARGET tiledbvcf4test PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-if(!WIN32)
-  target_link_libraries(tiledbvcf
-    PUBLIC
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-     spdlog::spdlog
-  )
-else()
-  target_link_libraries(tiledbvcf
-    PUBLIC
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-  # spdlog is somehow building under tiledbvcf using HEADER_ONLY source code paths, 
-  # which results in multiply defined symbols being complained about by the msvc linker.
-  # tiledbvcf does not seem to be -requesting- ...HEADER_ONLY anywhere I've found and spdlog -default-
-  # build mode is supposed to be ...COMPILED_LIB, but something is interfering somewhere.
-  #    spdlog::spdlog
-  )
-endif()
 
 if (WIN32)
 target_link_libraries(tiledbvcf4test
@@ -201,36 +193,20 @@ set(TILEDB_VCF_PUBLIC_HEADERS
 ############################################################
 
 add_executable(tiledbvcf-bin
-  $<TARGET_OBJECTS:TILEDB_VCF_OBJECTS>
   ${CMAKE_CURRENT_SOURCE_DIR}/cli/tiledbvcf.cc
+)
+
+target_link_libraries(
+        tiledbvcf-bin
+        PUBLIC
+        tiledbvcf
+        CLI11::CLI11
 )
 
 if (WIN32)
   set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcfcli)
 else()
   set_target_properties(tiledbvcf-bin PROPERTIES OUTPUT_NAME tiledbvcf)
-endif()
-
-if(!WIN32)
-  target_link_libraries(tiledbvcf-bin
-    PUBLIC
-      CLI11::CLI11
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-     spdlog::spdlog
-  )
-else()
-  target_link_libraries(tiledbvcf-bin
-    PUBLIC
-      CLI11::CLI11
-      HTSlib::HTSlib
-      TileDB::tiledb_shared
-    # spdlog is somehow building under tiledbvcf using HEADER_ONLY source code paths, 
-    # which results in multiply defined symbols being complained about by the msvc linker.
-    # tiledbvcf does not seem to be -requesting- ...HEADER_ONLY anywhere I've found and spdlog -default-
-    # build mode is supposed to be ...COMPILED_LIB, but something is interfering somewhere.
-  #    spdlog::spdlog
-  )
 endif()
 
 # Sanitizer linker flags
@@ -258,8 +234,8 @@ target_include_directories(tiledbvcf-bin
 include(GenerateExportHeader)
 
 # Generates the file 'tiledbvcf_export.h' suitable for the current compiler.
-generate_export_header(TILEDB_VCF_OBJECTS
-  BASE_NAME tiledbvcf
+generate_export_header(tiledbvcf
+        BASE_NAME tiledbvcf
 )
 
 # Set variables in the parent scope so the tests can reference it.
@@ -269,8 +245,8 @@ set(TILEDB_VCF_EXPORT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/tiledbvcf_export.h")
 set(TILEDB_VCF_EXPORT_HEADER "${TILEDB_VCF_EXPORT_HEADER}" PARENT_SCOPE)
 
 # Set related compiler settings
-target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE -DTILEDB_VCF_OBJECTS_EXPORTS)
-target_include_directories(TILEDB_VCF_OBJECTS PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+#target_compile_definitions(TILEDB_VCF_OBJECTS PRIVATE -DTILEDB_VCF_OBJECTS_EXPORTS)
+#target_include_directories(TILEDB_VCF_OBJECTS PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(tiledbvcf-bin PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the generated header to the public headers list
@@ -333,10 +309,20 @@ else()
 endif()
 
 install(
-  TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
+        TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
+        RUNTIME DESTINATION .
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
 )
+
+if (TILEDBVCF_ENABLE_PYTHON)
+  if (APPLE)
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
+  else()
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
+  endif()
+endif()
