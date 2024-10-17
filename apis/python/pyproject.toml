@@ -29,18 +29,18 @@ dynamic = ["version"]
 description = "TileDB-VCF Python client"
 license = { text = "MIT" }
 authors = []
-requires-python = "~=3.8"
+requires-python = "~=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
-dependencies = ["pandas", "pyarrow", "pyarrow-hotfix", "numpy<2"]
+dependencies = ["pandas", "pyarrow>=14.0.1", "numpy"]
 
 [project.optional-dependencies]
 test = ["dask[distributed]", "pytest", "tiledb"]
