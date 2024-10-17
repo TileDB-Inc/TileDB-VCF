@@ -1,0 +1,16 @@
+{
+    "dependencies": [
+        "cli11",
+        "spdlog",
+        "htslib"
+    ],
+    "features": {
+        "tests": {
+            "description": "Build tiledb tests",
+            "dependencies": [
+                "catch2"
+            ]
+        }
+    }
+}
+

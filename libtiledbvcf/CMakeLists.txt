@@ -25,142 +25,24 @@
 # THE SOFTWARE.
 #
 
-############################################################
-# CMake setup
-############################################################
-
 cmake_minimum_required(VERSION 3.5)
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-  cmake_policy(SET CMP0135 NEW)
-endif()
-# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
+option(TILEDBVCF_ENABLE_TESTS "TODO" OFF)
+option(TILEDBVCF_ENABLE_PYTHON "TODO" OFF)
 
-# Superbuild option must be on by default.
-option(SUPERBUILD "If true, perform a superbuild (builds all missing dependencies)." ON)
-option(CMAKE_IDE "(Used for CLion builds). Disables superbuild and sets the EP install dir." OFF)
+include(cmake/TileDBToolchain.cmake)
+include(cmake/DownloadTileDB.cmake)
 
-option(FORCE_EXTERNAL_HTSLIB "Forces a local build of HTSlib instead of searching system paths." ON)
-option(FORCE_EXTERNAL_SPDLOG "Forces a local build of spdlog instead of searching system paths." ON)
-option(FORCE_EXTERNAL_TILEDB "Forces a local build of TileDB instead of searching system paths." OFF)
-
-option(DOWNLOAD_TILEDB_PREBUILT "If tiledb is being super built, this controls downloading prebuilt artifacts or building from source" ON)
-option(TILEDB_S3 "Enables S3/minio support using aws-cpp-sdk" ON)
-option(TILEDB_WERROR "Enables warnings as errors (-Werror)" ON)
-option(OVERRIDE_INSTALL_PREFIX "Ignores the setting of CMAKE_INSTALL_PREFIX and sets a default prefix" ON)
-
-option(TILEDBVCF_ENABLE_PYTHON "TODO: FILL" OFF)
-option(TILEDBVCF_ENABLE_TESTS "TODO: FILL" OFF)
-
-message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-
-
-# Set C++20 as required standard for all C++ targets.
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) # Don't use GNU extensions
-
-# Release builds by default.
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELEASE)
-endif()
-
-# Root directory default installation prefix
-if (OVERRIDE_INSTALL_PREFIX)
-  set(PREFIX_REL_PATH "${CMAKE_SOURCE_DIR}/../dist")
-  get_filename_component(DEFAULT_PREFIX "${PREFIX_REL_PATH}" ABSOLUTE)
-  set(CMAKE_INSTALL_PREFIX "${DEFAULT_PREFIX}" CACHE PATH "Default install prefix" FORCE)
-  message(STATUS "Using default install prefix ${CMAKE_INSTALL_PREFIX}. To control CMAKE_INSTALL_PREFIX, set OVERRIDE_INSTALL_PREFIX=OFF")
-endif()
-message(STATUS "Install prefix is ${CMAKE_INSTALL_PREFIX}.")
-
-if (FORCE_EXTERNAL_HTSLIB)
-  message(STATUS "Skipping search for htslib, building it as an external project. To use system htslib, set FORCE_EXTERNAL_HTSLIB=OFF")
-endif()
-
-if (FORCE_EXTERNAL_TILEDB)
-  message(STATUS "Skipping search for TileDB, building it as an external project. To use system TileDB, set FORCE_EXTERNAL_TILEDB=OFF")
-endif()
-
-# Use @rpath on macOS for building shared libraries.
-if (APPLE)
-  set(CMAKE_MACOSX_RPATH ON)
-endif()
-
-# Add some global compiler flags
-string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
-if(WIN32 AND NOT MSYS)
-  #Note: seems this branch is taken even when -G "MSYS Makefiles" was used to invoke at top-level!
-  #(cmake --version was 3.24.1 when this apparent failure encountered...)
-  message(STATUS "configuring for WIN32, MSYS is \"${MSYS}\", MSVC is \"${MSVC}\"")
-  #Note: also seems MSVC not yet set at this point, so can't check 'if (MSVC)'.
-  #TBD: figure out approp. compile options to set for WIN32/MSVC if they need to
-  # be different from cmake defaults
-  if (BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
-    set(CMAKE_BUILD_TYPE "Debug")
-  elseif (BUILD_TYPE MATCHES [Rr][Ee][Ll][Ww][Ii][Tt][Hh][Ii][Nn][Ff][Oo])
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-  elseif (BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]")
-    set(CMAKE_BUILD_TYPE "Release")
-  endif()
-  # /wd4996 - no deprecated
-  add_compile_options(/wd4996)
-else()
-  if (BUILD_TYPE STREQUAL "DEBUG")
-    add_compile_options(-DDEBUG -O0 -g3 -ggdb3 -gdwarf-3 -Wall)
-  elseif (BUILD_TYPE STREQUAL "RELEASE")
-    add_compile_options(-DNDEBUG -O3 -Wall)
-  endif()
-  if (TILEDB_WERROR)
-    add_compile_options(-Werror)
-  endif()
-  add_compile_options(-Wno-deprecated-declarations)
-endif()
-add_definitions(-D_FILE_OFFSET_BITS=64)
-
-############################################################
-# Superbuild setup
-############################################################
-
-# Search the externals install directory for dependencies.
-# message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-# list(APPEND CMAKE_PREFIX_PATH "${EP_INSTALL_PREFIX}")
-# message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
-# message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-
-# If this is an in-IDE build, we need to disable the superbuild and explicitly
-# set the EP base dir. The normal 'cmake && make' process won't need this step,
-# it is for better CLion support of the superbuild architecture.
-if (CMAKE_IDE)
-  set(SUPERBUILD OFF)
-  set(EP_BASE "${CMAKE_CURRENT_BINARY_DIR}/externals")
-endif()
-
-if (SUPERBUILD)
-  project(TileDB-VCF-Superbuild)
-  message(STATUS "Starting TileDB-VCF superbuild.")
-  include("cmake/Superbuild.cmake")
-  return()
-endif()
+fetch_prebuilt_tiledb(
+        VERSION 2.26.1
+        RELLIST_HASH SHA256=256216aa989015397f4efbbd319ebeccfead568baa73611aa0c1c0fcea35f8d5
+)
 
 project(TileDB-VCF)
-message(STATUS "Starting TileDB-VCF regular build.")
-
-# Paths to locate the installed external projects.
-set(EP_SOURCE_DIR "${EP_BASE}/src")
-set(EP_INSTALL_PREFIX "${EP_BASE}/install")
-
-############################################################
-# Regular build
-############################################################
 
 add_subdirectory(src)
 
 if (TILEDBVCF_ENABLE_TESTS)
-  # Enable testing
   enable_testing()
   add_subdirectory(test)
 endif()
