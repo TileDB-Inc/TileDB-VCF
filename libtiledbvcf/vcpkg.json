@@ -1,4 +1,5 @@
 {
+    "builtin-baseline": "da5024ed2b7d86be2c41164549d6248ecc682a18",
     "dependencies": [
         "cli11",
         "spdlog",

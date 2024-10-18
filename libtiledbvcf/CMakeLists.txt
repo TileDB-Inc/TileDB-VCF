@@ -58,16 +58,21 @@ if (WIN32)
   find_library(
           HTSLIB_LIBRARIES
           REQUIRED
-          hts hts-3
+          NAMES hts hts-3
           PATHS ${htslib_SOURCE_DIR}
+          PATH_SUFFIXES lib
+          NO_DEFAULT_PATH
   )
   find_path(
           HTSLIB_INCLUDE_DIR
           NAMES htslib/hts.h
           PATHS ${htslib_SOURCE_DIR}
+          PATH_SUFFIXES include
+          NO_DEFAULT_PATH
   )
   add_library(HTSlib::HTSlib UNKNOWN IMPORTED)
   set_target_properties(HTSlib::HTSlib PROPERTIES
+          IMPORTED_IMPLIB "${HTSLIB_LIBRARIES}"
           IMPORTED_LOCATION "${HTSLIB_LIBRARIES}"
           INTERFACE_INCLUDE_DIRECTORIES "${HTSLIB_INCLUDE_DIR}"
   )
