@@ -40,6 +40,34 @@ fetch_prebuilt_tiledb(
 
 project(TileDB-VCF)
 
+############################################################
+# Find required dependencies
+############################################################
+
+find_package(TileDB REQUIRED)
+find_package(CLI11 REQUIRED)
+find_package(spdlog REQUIRED)
+
+if (WIN32)
+  FetchContent_Declare(
+          htslib
+          URL https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.20-0/m2w64-htslib-1.20-0.tar.gz
+          # TODO: URL_HASH SHA256=
+  )
+  FetchContent_MakeAvailable(htslib)
+  find_library(HTSLIB_LIBRARIES REQUIRED hts hts-3)
+  find_path(HTSLIB_INCLUDE_DIR NAMES htslib/hts.h)
+  add_library(HTSlib::HTSlib UNKNOWN IMPORTED)
+  set_target_properties(HTSlib::HTSlib PROPERTIES
+          IMPORTED_LOCATION "${HTSLIB_LIBRARIES}"
+          INTERFACE_INCLUDE_DIRECTORIES "${HTSLIB_INCLUDE_DIR}"
+  )
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(HTSlib REQUIRED IMPORTED_TARGET htslib)
+  add_library(HTSlib::HTSlib ALIAS PkgConfig::HTSlib)
+endif()
+
 add_subdirectory(src)
 
 if (TILEDBVCF_ENABLE_TESTS)

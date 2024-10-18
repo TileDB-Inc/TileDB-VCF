@@ -25,8 +25,6 @@
 # THE SOFTWARE.
 #
 
-find_package(HTSlib REQUIRED)
-find_package(TileDB_EP REQUIRED)
 find_package(Catch2 REQUIRED)
 
 ############################################################
@@ -58,15 +56,10 @@ target_include_directories(tiledb_vcf_unit
     ${CMAKE_CURRENT_SOURCE_DIR}/../external/
 )
 
-if (WIN32)
-  set(NEEDED_TILEDB_VCF_TARGET tiledbvcf4test)
-else()
-  set(NEEDED_TILEDB_VCF_TARGET tiledbvcf)
-endif()
 target_link_libraries(tiledb_vcf_unit
-  PUBLIC
-    ${NEEDED_TILEDB_VCF_TARGET} # 'tiledbvcf' or 'tiledbvcf4test'
-    Catch2::Catch2
+        PUBLIC
+        tiledbvcf
+        Catch2::Catch2
 )
 
 # Sanitizer linker flags
