@@ -18,31 +18,27 @@ on:
       - 'ci/gha-win-env.yml'
       - 'libtiledbvcf/**'
   workflow_dispatch:
-defaults:
-  run:
-    shell: cmd /C CALL {0}
 jobs:
   build:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Install conda env
-        uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ci/gha-win-env.yml
-          cache-environment: true
-          init-shell: cmd.exe
-          condarc: |
-            channels:
-              - conda-forge
-              - tiledb
-            channel_priority: strict
-      - name: Build libtiledbvcf
-        run: cmd /C CALL ci\build-libtiledbvcf.bat
-      - name: libtiledbvcf version
-        run: tiledbvcf.exe version
-      - name: Build tiledbvcf-py
-        run: cmd /C CALL ci\build-tiledbvcf-py.bat
+          fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Build and install libtiledbvcf
+        run: |
+          cmake -S libtiledbvcf -B libtiledbvcf\build
+          cmake --build libtiledbvcf\build -j2
+          cmake --build libtiledbvcf\build -j2 --target install-libtiledbvcf
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install tiledbvcf-py
+        run: |
+          set TileDB_DIR=.\libtiledbvcf\build\externals\install\lib\cmake\TileDB\
+          cd apis\python
+          python -m pip install -v .[test,dev]
       - name: tiledbvcf-py version
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Test
