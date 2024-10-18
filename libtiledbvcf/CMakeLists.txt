@@ -55,8 +55,17 @@ if (WIN32)
           # TODO: URL_HASH SHA256=
   )
   FetchContent_MakeAvailable(htslib)
-  find_library(HTSLIB_LIBRARIES REQUIRED hts hts-3)
-  find_path(HTSLIB_INCLUDE_DIR NAMES htslib/hts.h)
+  find_library(
+          HTSLIB_LIBRARIES
+          REQUIRED
+          hts hts-3
+          PATHS ${htslib_SOURCE_DIR}
+  )
+  find_path(
+          HTSLIB_INCLUDE_DIR
+          NAMES htslib/hts.h
+          PATHS ${htslib_SOURCE_DIR}
+  )
   add_library(HTSlib::HTSlib UNKNOWN IMPORTED)
   set_target_properties(HTSlib::HTSlib PROPERTIES
           IMPORTED_LOCATION "${HTSLIB_LIBRARIES}"
