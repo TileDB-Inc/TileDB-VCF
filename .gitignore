@@ -69,3 +69,6 @@ docs/.quarto
 
 # Python venv
 venv/
+
+# CMake user presets
+CMakeUserPresets.json
