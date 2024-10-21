@@ -30,6 +30,8 @@ cmake_minimum_required(VERSION 3.5)
 option(TILEDBVCF_ENABLE_TESTS "TODO" OFF)
 option(TILEDBVCF_ENABLE_PYTHON "TODO" OFF)
 
+option(TILEDBVCF_INSTALL_TILEDB "TODO" ON)
+
 include(cmake/TileDBToolchain.cmake)
 include(cmake/DownloadTileDB.cmake)
 

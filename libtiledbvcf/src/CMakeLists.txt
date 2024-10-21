@@ -87,6 +87,14 @@ add_library(tiledbvcf
         ${TILEDB_VCF_EXTERNAL_SOURCES}
 )
 
+if (TILEDBVCF_ENABLE_PYTHON)
+  set_target_properties(
+          tiledbvcf
+          PROPERTIES
+          POSITION_INDEPENDENT_CODE ON
+  )
+endif()
+
 target_compile_features(tiledbvcf PUBLIC cxx_std_20)
 
 #set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -268,15 +276,20 @@ else()
   )
 endif()
 
-#install(
-#        TARGETS TileDB::tiledb_shared
-#)
+#if(TILEDBVCF_INSTALL_TILEDB)
+#  install(
+#          IMPORTED_RUNTIME_ARTIFACTS
+#          TileDB::tiledb_shared
+#          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+#          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#  )
+#endif()
 
 install(
-        TARGETS tiledbvcf ${TILEDBVCF_EXTRA_INSTALL_TARGETS}
-        RUNTIME DESTINATION .
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        TARGETS tiledbvcf
+        RUNTIME DESTINATION tiledbvcf
+        LIBRARY DESTINATION tiledbvcf
+        ARCHIVE DESTINATION tiledbvcf
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
 )
