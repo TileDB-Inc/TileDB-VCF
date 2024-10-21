@@ -18,7 +18,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "11"
 jobs:
   libtiledbvcf:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - name: Setup to build htslib from source
@@ -64,7 +64,7 @@ jobs:
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
           libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
-    runs-on: macos-12
+    runs-on: macos-13
     needs: libtiledbvcf
     env:
       DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
@@ -98,7 +98,7 @@ jobs:
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
   java:
-    runs-on: macos-12
+    runs-on: macos-13
     needs: libtiledbvcf
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +114,7 @@ jobs:
       - name: Test
         run: cd apis/java && ./gradlew test
   python-standalone:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
