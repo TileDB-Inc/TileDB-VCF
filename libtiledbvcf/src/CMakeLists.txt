@@ -170,6 +170,7 @@ set(TILEDB_VCF_PUBLIC_HEADERS
 ############################################################
 
 add_executable(tiledbvcf-bin
+        EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/cli/tiledbvcf.cc
 )
 
@@ -244,11 +245,11 @@ set_target_properties(tiledbvcf
 include(GNUInstallDirs)
 
 # Set rpath to be relative to the .so.
-if (APPLE)
-  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
-else()
-  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
-endif()
+#if (APPLE)
+#  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
+#else()
+#  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
+#endif()
 
 #set_property(
 #        TARGET tiledbvcf-bin
