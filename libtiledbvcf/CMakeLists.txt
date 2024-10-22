@@ -50,6 +50,8 @@ find_package(TileDB REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(spdlog REQUIRED)
 
+# TODO: Add simple find_package for Conda builds
+
 if (WIN32)
   FetchContent_Declare(
           htslib

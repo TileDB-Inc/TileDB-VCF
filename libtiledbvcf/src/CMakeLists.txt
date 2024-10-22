@@ -250,56 +250,56 @@ else()
   set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
 endif()
 
-set_property(
-        TARGET tiledbvcf-bin
-        PROPERTY INSTALL_RPATH
-        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
-        "${CMAKE_INSTALL_PREFIX}/lib"
-)
+#set_property(
+#        TARGET tiledbvcf-bin
+#        PROPERTY INSTALL_RPATH
+#        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+#        "${CMAKE_INSTALL_PREFIX}/lib"
+#)
 
-if(WIN32)
-  # Having the .dll and the .exe with the same name was resulting in a .exp
-  # file for the .exe being 'last out' (replacing one of same name for the .dll)
-  # and was causing the python api extension
-  # to link to the .exe, which was not functional.
-  # So, tiledbvcf-bin now sets an output (above somewhere) of tiledbvcfcli.exe
-  # and we install it here RENAMEing it to match the known name in pre-existing
-  # *nix world.
-  install(PROGRAMS $<TARGET_FILE:tiledbvcf-bin>
-          RENAME tiledbvcf.exe
-          DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-else()
-  install(
-          TARGETS tiledbvcf-bin
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-endif()
-
-#if(TILEDBVCF_INSTALL_TILEDB)
+#if(WIN32)
+#  # Having the .dll and the .exe with the same name was resulting in a .exp
+#  # file for the .exe being 'last out' (replacing one of same name for the .dll)
+#  # and was causing the python api extension
+#  # to link to the .exe, which was not functional.
+#  # So, tiledbvcf-bin now sets an output (above somewhere) of tiledbvcfcli.exe
+#  # and we install it here RENAMEing it to match the known name in pre-existing
+#  # *nix world.
+#  install(PROGRAMS $<TARGET_FILE:tiledbvcf-bin>
+#          RENAME tiledbvcf.exe
+#          DESTINATION tiledbvcf
+#  )
+#else()
 #  install(
-#          IMPORTED_RUNTIME_ARTIFACTS
-#          TileDB::tiledb_shared
-#          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-#          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#          TARGETS tiledbvcf-bin
+#          RUNTIME DESTINATION tiledbvcf
 #  )
 #endif()
+
+if(TILEDBVCF_INSTALL_TILEDB)
+  install(
+          IMPORTED_RUNTIME_ARTIFACTS
+          TileDB::tiledb_shared
+          RUNTIME DESTINATION tiledbvcf
+          LIBRARY DESTINATION tiledbvcf/lib
+  )
+endif()
 
 install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf
-        ARCHIVE DESTINATION tiledbvcf
+        LIBRARY DESTINATION tiledbvcf/lib
+        ARCHIVE DESTINATION tiledbvcf/lib
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
 )
 
 if (TILEDBVCF_ENABLE_PYTHON)
   if (APPLE)
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+#    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/..")
     set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
   else()
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+#    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/..")
     set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
   endif()
 endif()

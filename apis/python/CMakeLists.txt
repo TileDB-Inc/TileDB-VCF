@@ -62,22 +62,14 @@ target_link_libraries(${VCF_TARGET_NAME} PRIVATE tiledbvcf)
 if (APPLE)
     set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
 else()
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/")
-    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
+    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
 endif()
-
-install(
-        IMPORTED_RUNTIME_ARTIFACTS
-        TileDB::tiledb_shared
-        RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf
-)
 
 # Install the extension module
 install(
         TARGETS ${VCF_TARGET_NAME}
         RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf
+        LIBRARY DESTINATION tiledbvcf # MODULE
         ARCHIVE DESTINATION tiledbvcf
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
