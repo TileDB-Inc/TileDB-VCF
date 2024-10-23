@@ -69,15 +69,24 @@ if (WIN32)
   )
   find_path(
           HTSLIB_INCLUDE_DIR
+          REQUIRED
           NAMES htslib/hts.h
           PATHS ${htslib_SOURCE_DIR}
           PATH_SUFFIXES include
           NO_DEFAULT_PATH
   )
-  add_library(HTSlib::HTSlib UNKNOWN IMPORTED)
+  find_file(
+          HTSLIB_BINARIES
+          REQUIRED
+          NAMES hts-3.dll
+          PATHS ${htslib_SOURCE_DIR}
+          PATH_SUFFIXES bin
+          NO_DEFAULT_PATH
+  )
+  add_library(HTSlib::HTSlib SHARED IMPORTED)
   set_target_properties(HTSlib::HTSlib PROPERTIES
           IMPORTED_IMPLIB "${HTSLIB_LIBRARIES}"
-          IMPORTED_LOCATION "${HTSLIB_LIBRARIES}"
+          IMPORTED_LOCATION "${HTSLIB_BINARIES}"
           INTERFACE_INCLUDE_DIRECTORIES "${HTSLIB_INCLUDE_DIR}"
   )
 else()

@@ -286,6 +286,15 @@ if(TILEDBVCF_INSTALL_TILEDB)
   )
 endif()
 
+if(WIN32)
+install(
+        IMPORTED_RUNTIME_ARTIFACTS
+        HTSlib::HTSlib
+        RUNTIME DESTINATION tiledbvcf
+        LIBRARY DESTINATION tiledbvcf/lib
+)
+endif()
+
 install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
