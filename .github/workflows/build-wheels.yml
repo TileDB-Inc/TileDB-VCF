@@ -40,7 +40,7 @@ jobs:
         run: |
           set -e pipefail
           brew update
-          brew install automake pkg-config bcftools
+          brew install automake autoconf pkg-config bcftools
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.20.0
