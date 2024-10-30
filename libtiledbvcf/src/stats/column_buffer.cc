@@ -175,8 +175,8 @@ size_t ColumnBuffer::update_size(const Query& query) {
   if (is_var()) {
     num_cells_ = num_offsets;
     // Add extra offset for arrow.
-    if (offsets_.capacity() < num_offsets + 1) {
-      offsets_.reserve(num_offsets + 1);
+    if (offsets_.size() < num_offsets + 1) {
+      offsets_.resize(num_offsets + 1);
     }
     offsets_[num_offsets] = num_elements;
     num_elements_ = num_elements;
