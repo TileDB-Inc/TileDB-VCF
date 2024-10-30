@@ -1,7 +1,7 @@
 import pandas
 
 
-def read_allele_frequency(dataset_uri: str, region: str) -> pandas.DataFrame():
+def read_allele_frequency(dataset_uri: str, region: str) -> pandas.DataFrame:
     """
     Read variant status
 

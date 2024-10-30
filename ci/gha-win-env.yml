@@ -8,13 +8,12 @@ dependencies:
   - cmake
   - git
   - m2w64-htslib
-  - tiledb=2.15
+  - tiledb=2.25
   - vs2019_win-64
   # build tiledbvcf-py
-  - numpy<2
-  - pandas<2.0
-  - pyarrow=9.0
-  - pyarrow-hotfix
+  - numpy
+  - pandas
+  - pyarrow>=14.0.1
   - pybind11
   - python
   - rpdb
