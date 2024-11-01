@@ -33,7 +33,6 @@ test:
 	cd libtiledbvcf/build && make -j check
 	cd libtiledbvcf/test && ./run-cli-tests.sh ../build/ ./inputs/
 	cd apis/java && ./gradlew assemble test
-	cd apis/spark && ./gradlew assemble test
 	pytest apis/python
 	python -c "import tiledbvcf; print(tiledbvcf.version)"
 

@@ -20,7 +20,7 @@ Run the following command from the root of the repository to execute the example
 make notebooks
 ```
 
-> **NOTE** - The example notebooks run task graphs on TileDB Cloud, which requires a TileDB Cloud account and a valid API key.
+> **NOTE** - The example notebooks run task graphs on TileDB, which requires a TileDB account and a valid API key.
 
 
 ## Render Documentation

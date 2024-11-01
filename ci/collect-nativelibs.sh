@@ -13,23 +13,3 @@ mv *.dylib lib
 
 # Linux
 mv *.so* lib
-
-# Spark2
-cd ./apis/spark
-
-./gradlew assemble
-./gradlew shadowJar
-
-mkdir $BUILD_BINARIESDIRECTORY/jars
-cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars
-
-# Spark3
-cd ../..
-
-cd ./apis/spark3
-
-./gradlew assemble
-./gradlew shadowJar
-
-mkdir $BUILD_BINARIESDIRECTORY/jars
-cp ./build/libs/*.jar $BUILD_BINARIESDIRECTORY/jars

@@ -1,10 +1,10 @@
 # Perform Distributed Queries with TileDB-Cloud
 
-The `tiledbvcf` Python package includes integration with [TileDB-Cloud](https://cloud.tiledb.com) to enable distributing large queries in a serverless maner.&#x20;
+The `tiledbvcf` Python package includes integration with [TileDB](https://cloud.tiledb.com) to enable distributing large queries in a serverless manner.&#x20;
 
 ## Task Graphs
 
-You can use the `tiledbvcf` package's TileDB Cloud integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI and Spark.&#x20;
+You can use the `tiledbvcf` package's TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI.&#x20;
 
 ```python
 import tiledbvcf

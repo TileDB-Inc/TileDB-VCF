@@ -2,7 +2,7 @@
 title: Distributed Ingestion
 ---
 
-TileDB Cloud has built in support for simple distributed ingestion.
+TileDB has built in support for scalable distributed ingestion.
 
 `ingest` is a simply python command that will dispatch and run a [task graph](https://docs.tiledb.com/cloud/concepts/tiledb-cloud-internals/task-graphs) to load VCF samples in parallel across a number of machines.
 
