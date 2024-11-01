@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../documentation/how-to/perform-distributed-queries-with-dask.html" rel="next">
+<link href="../../documentation/how-to/read-from-the-dataset.html" rel="next">
 <link href="../../documentation/how-to/ingest-samples.html" rel="prev">
 <link href="../../documentation/assets/tiledb.ico" rel="icon">
 <script src="../../site_libs/quarto-html/quarto.js"></script>
@@ -292,18 +292,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Dask</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Spark</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Read from the Dataset</span></a>
   </div>
@@ -364,10 +352,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="perform-distributed-queries-with-tiledb-cloud" class="level1">
 <h1>Perform Distributed Queries with TileDB-Cloud</h1>
-<p>The <code>tiledbvcf</code> Python package includes integration with <a href="https://cloud.tiledb.com">TileDB-Cloud</a> to enable distributing large queries in a serverless maner. </p>
+<p>The <code>tiledbvcf</code> Python package includes integration with <a href="https://cloud.tiledb.com">TileDB</a> to enable distributing large queries in a serverless manner. </p>
 <section id="task-graphs" class="level2">
 <h2 class="anchored" data-anchor-id="task-graphs">Task Graphs</h2>
-<p>You can use the <code>tiledbvcf</code> package’s TileDB Cloud integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI and Spark. </p>
+<p>You can use the <code>tiledbvcf</code> package’s TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI. </p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb.cloud.vcf</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -810,8 +798,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="pagination-link" aria-label="Perform Distributed Queries with Dask">
-        <span class="nav-page-text">Perform Distributed Queries with Dask</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../documentation/how-to/read-from-the-dataset.html" class="pagination-link" aria-label="Read from the Dataset">
+        <span class="nav-page-text">Read from the Dataset</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

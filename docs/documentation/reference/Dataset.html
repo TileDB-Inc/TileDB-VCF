@@ -256,18 +256,6 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Dask</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Spark</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Read from the Dataset</span></a>
   </div>
@@ -327,12 +315,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#tiledbvcf.Dataset.delete" id="toc-tiledbvcf.Dataset.delete" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.delete">delete</a></li>
   <li><a href="#tiledbvcf.Dataset.export" id="toc-tiledbvcf.Dataset.export" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.export">export</a></li>
   <li><a href="#tiledbvcf.Dataset.ingest_samples" id="toc-tiledbvcf.Dataset.ingest_samples" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.ingest_samples">ingest_samples</a></li>
-  <li><a href="#tiledbvcf.Dataset.map_dask" id="toc-tiledbvcf.Dataset.map_dask" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.map_dask">map_dask</a></li>
   <li><a href="#tiledbvcf.Dataset.read" id="toc-tiledbvcf.Dataset.read" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read">read</a></li>
   <li><a href="#tiledbvcf.Dataset.read_allele_count" id="toc-tiledbvcf.Dataset.read_allele_count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_allele_count">read_allele_count</a></li>
   <li><a href="#tiledbvcf.Dataset.read_arrow" id="toc-tiledbvcf.Dataset.read_arrow" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_arrow">read_arrow</a></li>
   <li><a href="#tiledbvcf.Dataset.read_completed" id="toc-tiledbvcf.Dataset.read_completed" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_completed">read_completed</a></li>
-  <li><a href="#tiledbvcf.Dataset.read_dask" id="toc-tiledbvcf.Dataset.read_dask" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_dask">read_dask</a></li>
   <li><a href="#tiledbvcf.Dataset.read_iter" id="toc-tiledbvcf.Dataset.read_iter" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_iter">read_iter</a></li>
   <li><a href="#tiledbvcf.Dataset.read_variant_stats" id="toc-tiledbvcf.Dataset.read_variant_stats" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.read_variant_stats">read_variant_stats</a></li>
   <li><a href="#tiledbvcf.Dataset.sample_count" id="toc-tiledbvcf.Dataset.sample_count" class="nav-link" data-scroll-target="#tiledbvcf.Dataset.sample_count">sample_count</a></li>
@@ -459,28 +445,20 @@ ul.task-list li input[type="checkbox"] {
 <td>Ingest VCF files into the dataset.</td>
 </tr>
 <tr class="even">
-<td><a href="#tiledbvcf.Dataset.map_dask">map_dask</a></td>
-<td>Maps a function on a Dask dataframe obtained by reading from the dataset.</td>
-</tr>
-<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read">read</a></td>
 <td>Read data from the dataset into a Pandas DataFrame.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_allele_count">read_allele_count</a></td>
 <td>Read allele count from the dataset into a Pandas DataFrame</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_arrow">read_arrow</a></td>
 <td>Read data from the dataset into a PyArrow Table.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#tiledbvcf.Dataset.read_completed">read_completed</a></td>
 <td>Returns true if the previous read operation was complete.</td>
-</tr>
-<tr class="odd">
-<td><a href="#tiledbvcf.Dataset.read_dask">read_dask</a></td>
-<td>Reads data from a TileDB-VCF into a Dask DataFrame.</td>
 </tr>
 <tr class="even">
 <td><a href="#tiledbvcf.Dataset.read_iter">read_iter</a></td>
@@ -1099,14 +1077,6 @@ ul.task-list li input[type="checkbox"] {
 </table>
 </section>
 </section>
-<section id="tiledbvcf.Dataset.map_dask" class="level3">
-<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.map_dask">map_dask</h3>
-<p><code>Dataset.map_dask(*args, **kwargs)</code></p>
-<p>Maps a function on a Dask dataframe obtained by reading from the dataset.</p>
-<p>May be more efficient in some cases than read_dask() followed by a regular Dask map operation.</p>
-<p>The remaining parameters are the same as the read_dask() function.</p>
-<p>:return: Dask DataFrame with results</p>
-</section>
 <section id="tiledbvcf.Dataset.read" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read">read</h3>
 <p><code>Dataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)</code></p>
@@ -1345,16 +1315,6 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 </section>
-</section>
-<section id="tiledbvcf.Dataset.read_dask" class="level3">
-<h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_dask">read_dask</h3>
-<p><code>Dataset.read_dask(*args, **kwargs)</code></p>
-<p>Reads data from a TileDB-VCF into a Dask DataFrame.</p>
-<p>Partitioning proceeds by a straightforward block distribution, parameterized by the total number of partitions and the particular partition index that a particular read operation is responsible for.</p>
-<p>Both region and sample partitioning can be used together.</p>
-<p>The remaining parameters are the same as the normal read() function.</p>
-<p>:param int region_partition: Number of partitions over regions :param int sample_partition: Number of partitions over samples :param int limit_partitions: Maximum number of partitions to read (for testing/debugging)</p>
-<p>:return: Dask DataFrame with results</p>
 </section>
 <section id="tiledbvcf.Dataset.read_iter" class="level3">
 <h3 class="anchored" data-anchor-id="tiledbvcf.Dataset.read_iter">read_iter</h3>

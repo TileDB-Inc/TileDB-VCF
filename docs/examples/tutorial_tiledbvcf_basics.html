@@ -296,18 +296,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/perform-distributed-queries-with-dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Dask</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../documentation/how-to/perform-distributed-queries-with-spark.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Perform Distributed Queries with Spark</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../documentation/how-to/read-from-the-dataset.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Read from the Dataset</span></a>
   </div>
@@ -374,7 +362,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#query-sample-partition-1" id="toc-query-sample-partition-1" class="nav-link" data-scroll-target="#query-sample-partition-1">Query Sample Partition 1</a></li>
   <li><a href="#query-sample-partition-2" id="toc-query-sample-partition-2" class="nav-link" data-scroll-target="#query-sample-partition-2">Query Sample Partition 2</a></li>
   </ul></li>
-  <li><a href="#parallel-queries-with-tiledb-cloud" id="toc-parallel-queries-with-tiledb-cloud" class="nav-link" data-scroll-target="#parallel-queries-with-tiledb-cloud">6. Parallel Queries with TileDB Cloud</a>
+  <li><a href="#parallel-queries-with-tiledb" id="toc-parallel-queries-with-tiledb" class="nav-link" data-scroll-target="#parallel-queries-with-tiledb">6. Parallel Queries with TileDB</a>
   <ul class="collapse">
   <li><a href="#setup-1" id="toc-setup-1" class="nav-link" data-scroll-target="#setup-1">Setup</a></li>
   <li><a href="#run-a-basic-query-serverlessly" id="toc-run-a-basic-query-serverlessly" class="nav-link" data-scroll-target="#run-a-basic-query-serverlessly">Run a Basic Query Serverlessly</a></li>
@@ -410,7 +398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>ingest S3 hosted VCF files directly into TileDB-VCF</li>
 <li>query variant data from TileDB using genomic ranges</li>
 <li>query variant data and export results to single and group VCFs</li>
-<li>perform distributed queries via TileDB Cloud</li>
+<li>perform distributed queries via TileDB</li>
 </ul>
 <section id="setup" class="level1">
 <h1>1. Setup</h1>
@@ -1063,8 +1051,8 @@ Wall time: 67.7 ms</code></pre>
 <p>Key takeaways: - TileDB support fast, parallel slicing - TileDB-VCF provides a convenient API to to partition queries across sample/genomic dimensions</p>
 </section>
 </section>
-<section id="parallel-queries-with-tiledb-cloud" class="level1">
-<h1>6. Parallel Queries with TileDB Cloud</h1>
+<section id="parallel-queries-with-tiledb" class="level1">
+<h1>6. Parallel Queries with TileDB</h1>
 <section id="setup-1" class="level2">
 <h2 class="anchored" data-anchor-id="setup-1">Setup</h2>
 <p>Import the <code>Delayed</code> module from <code>tiledb.cloud</code>. This is allows us to convert a normal python function into one that can be <em>Delayed</em> and serverlessly executed.</p>
@@ -1234,7 +1222,7 @@ Wall time: 8.21 s</code></pre>
 </div>
 </div>
 </div>
-<p>Key takeaways: - TileDB-VCF Datasets can be sliced directly from remote object stores - TileDB Cloud provides a flexible platform for building serverless data processing pipelines</p>
+<p>Key takeaways: - TileDB-VCF Datasets can be sliced directly from remote object stores - TileDB provides a flexible platform for building serverless data processing pipelines</p>
 </section>
 <section id="run-multiple-batches-of-queries-in-parallel" class="level2">
 <h2 class="anchored" data-anchor-id="run-multiple-batches-of-queries-in-parallel">Run Multiple Batches of Queries in Parallel</h2>
@@ -1391,7 +1379,7 @@ Wall time: 9.29 s</code></pre>
 </div>
 </div>
 </div>
-<p>Key takeaways: - TileDB Cloud’s serverless infrastructure makes it easy to setup and run large scale distributed queries</p>
+<p>Key takeaways: - TileDB’s serverless infrastructure makes it easy to setup and run large scale distributed queries</p>
 
 
 </section>
