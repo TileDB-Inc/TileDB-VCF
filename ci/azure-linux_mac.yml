@@ -132,17 +132,14 @@ steps:
 
   - bash: |
       set -e pipefail
-      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
+      pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
 
-        pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+      ./gradlew checkFormat
+      ./gradlew assemble
 
-        ./gradlew checkFormat
-        ./gradlew assemble
+      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
 
-        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
-
-        ./gradlew test
-      fi
+      ./gradlew test
 
     displayName: 'Build and test TileDB-VCF Java API'
 
@@ -155,43 +152,6 @@ steps:
       fi
 
     displayName: 'Build and test TileDB-VCF Python API'
-
-  - bash: |
-      set -e pipefail
-
-      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-        pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark
-
-        ./gradlew assemble
-
-        ./gradlew jar
-
-        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark/build/resources/main/lib:$LD_LIBRARY_PATH
-        ./gradlew test
-
-        ./gradlew checkFormat
-      fi
-
-    condition: eq(variables['Agent.OS'], 'Linux')
-    displayName: 'Build and test TileDB-VCF Spark API'
-
-
-  - bash: |
-      set -e pipefail
-
-      if [[ "$BUILD_SPARK_API" == "ON" ]]; then
-        pushd $BUILD_REPOSITORY_LOCALPATH/apis/spark3
-
-        ./gradlew assemble
-
-        ./gradlew jar
-
-        export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/spark3/build/resources/main/lib:$LD_LIBRARY_PATH
-        ./gradlew test
-      fi
-
-    condition: eq(variables['Agent.OS'], 'Linux')
-    displayName: 'Build and test TileDB-VCF Spark3 API'
 
   - bash: |
       set -e pipefail

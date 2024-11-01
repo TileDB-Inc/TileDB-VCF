@@ -22,7 +22,6 @@ dependencies:
   - setuptools_scm_git_archive
   - wheel
   # test tiledbvcf-py
-  - dask
   - fsspec<2023.3.0
   - pytest
   - tiledb-py

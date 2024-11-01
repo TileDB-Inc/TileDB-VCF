@@ -1001,47 +1001,6 @@ class Dataset(object):
 
         return self.writer.version()
 
-    def map_dask(self, *args, **kwargs):
-        """
-        Maps a function on a Dask dataframe obtained by reading from the dataset.
-
-        May be more efficient in some cases than read_dask() followed by a regular
-        Dask map operation.
-
-        The remaining parameters are the same as the read_dask() function.
-
-        :return: Dask DataFrame with results
-        """
-
-        # Delay importing dask until it is needed
-        from . import dask_functions
-
-        return dask_functions.map_dask(self, *args, **kwargs)
-
-    def read_dask(self, *args, **kwargs):
-        """
-        Reads data from a TileDB-VCF into a Dask DataFrame.
-
-        Partitioning proceeds by a straightforward block distribution, parameterized
-        by the total number of partitions and the particular partition index that
-        a particular read operation is responsible for.
-
-        Both region and sample partitioning can be used together.
-
-        The remaining parameters are the same as the normal read() function.
-
-        :param int region_partition: Number of partitions over regions
-        :param int sample_partition: Number of partitions over samples
-        :param int limit_partitions: Maximum number of partitions to read (for testing/debugging)
-
-        :return: Dask DataFrame with results
-        """
-
-        # Delay importing dask until it is needed
-        from . import dask_functions
-
-        return dask_functions.read_dask(self, *args, **kwargs)
-
     @staticmethod
     def delete(uri: str, *, config: dict = None) -> None:
         """

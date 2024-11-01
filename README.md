@@ -21,7 +21,6 @@ A C++ library for efficient storage and retrieval of genomic variant-call data u
 
 - Command line interface (CLI)
 - APIs for C, C++, Python, and Java
-- Integrates with Spark and Dask
 
 ## Quick Start
 
