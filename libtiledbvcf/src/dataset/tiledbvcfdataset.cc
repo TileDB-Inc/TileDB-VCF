@@ -270,7 +270,8 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   // Log the group structure
   group.open(TILEDB_READ);
-  LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
+  // NOTE: On windows group.dump produces memory access violation
+  // LOG_DEBUG("TileDB Groups: \n{}", group.dump(true));
 
   for (uint64_t i = 0; i < group.member_count(); i++) {
     auto member = group.member(i);
