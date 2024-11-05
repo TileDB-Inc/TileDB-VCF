@@ -1013,14 +1013,10 @@ bool InMemoryExporter::copy_info_fmt_value(
   if (is_gt) {
     // Genotype needs special handling to be decoded.
     const int* genotype = reinterpret_cast<const int*>(src);
-#ifdef _MSC_VER
-    int* decoded = (int*)_alloca(nelts * sizeof(int));
-#else
-    int decoded[nelts];
-#endif
+    auto decoded = std::vector<int>(nelts);
     for (unsigned i = 0; i < nelts; i++)
       decoded[i] = bcf_gt_allele(genotype[i]);
-    return copy_cell(dest, decoded, nelts * sizeof(int), nelts, hdr);
+    return copy_cell(dest, decoded.data(), nelts * sizeof(int), nelts, hdr);
   } else if (is_flag(field_name)) {
     // If this is a flag, convert the src pointer to a true or false value.
     int flag = src == nullptr ? 0 : 1;
