@@ -33,6 +33,8 @@
 
 #include "utils/logger.h"
 
+#include <algorithm>
+
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
