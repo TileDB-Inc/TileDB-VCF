@@ -25,7 +25,7 @@
 # THE SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.21)
 
 option(TILEDBVCF_ENABLE_TESTS "TODO" OFF)
 option(TILEDBVCF_ENABLE_PYTHON "TODO" OFF)
