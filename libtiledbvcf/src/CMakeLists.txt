@@ -288,22 +288,7 @@ endif()
 
 if(WIN32)
 install(
-        IMPORTED_RUNTIME_ARTIFACTS
-        HTSlib::HTSlib
-        RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf/lib
-)
-
-install(
-        IMPORTED_RUNTIME_ARTIFACTS
-        spdlog::spdlog
-        RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf/lib
-)
-
-install(
-        IMPORTED_RUNTIME_ARTIFACTS
-        fmt::fmt
+        IMPORTED_RUNTIME_ARTIFACTS HTSlib::HTSlib spdlog::spdlog fmt::fmt
         RUNTIME DESTINATION tiledbvcf
         LIBRARY DESTINATION tiledbvcf/lib
 )
