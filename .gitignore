@@ -2,6 +2,7 @@
 *.swp
 dev/*
 dist
+env
 libtiledbvcf/cmake-build-*/*
 libtiledbvcf/build/*
 apis/spark/.gradle/*
