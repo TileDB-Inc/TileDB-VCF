@@ -113,42 +113,6 @@ jobs:
         run: cd apis/java && ./gradlew assemble
       - name: Test
         run: cd apis/java && ./gradlew test
-  spark:
-    runs-on: macos-12
-    needs: libtiledbvcf
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: libtiledbvcf
-          path: dist
-      - name: Assemble
-        run: cd apis/spark && ./gradlew assemble
-      - name: Jar
-        run: cd apis/spark && ./gradlew jar
-      - name: Test
-        run: cd apis/spark && ./gradlew test
-      - name: Check format
-        run: cd apis/spark && ./gradlew checkFormat
-  spark3:
-    runs-on: macos-12
-    needs: libtiledbvcf
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: libtiledbvcf
-          path: dist
-      - name: Assemble
-        run: cd apis/spark3 && ./gradlew assemble
-      - name: Jar
-        run: cd apis/spark3 && ./gradlew jar
-      - name: Test
-        run: cd apis/spark3 && ./gradlew test
-      - name: Check format
-        run: cd apis/spark3 && ./gradlew checkFormat
   python-standalone:
     runs-on: macos-12
     steps:

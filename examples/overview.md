@@ -15,7 +15,7 @@ Provides a high-level overview of how to work with VCF data using TileDB. You'll
 * create and populate new TileDB-VCF datasets
 * query variant data by genomic region and/or sample and selectively retrieve specific VCF attributes
 * parallelize queries by partitioning the data and distributing the queries across multiple processes
-* easily scale queries using TileDB Cloud's serverless infrastructure## Introduction
+* easily scale queries using TileDB's serverless infrastructure## Introduction
 
 
 ## TileDB-VCF Allele Frequencies
@@ -37,4 +37,4 @@ notebook: [tutorial_tiledbvcf_gwas](https://cloud.tiledb.com/notebooks/details/T
 
 ### Overview
 
-In this notebook we'll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB Cloud's serverless computation platform.
+In this notebook we'll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB's serverless computation platform.

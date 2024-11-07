@@ -43,7 +43,7 @@ classifiers = [
 dependencies = ["pandas", "pyarrow>=14.0.1", "numpy"]
 
 [project.optional-dependencies]
-test = ["dask[distributed]", "pytest", "tiledb"]
+test = ["pytest", "tiledb"]
 dev = ["black", "tiledb-cloud", "pybind11[global]"]
 
 [project.urls]

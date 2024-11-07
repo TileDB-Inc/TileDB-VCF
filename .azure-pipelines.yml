@@ -21,7 +21,6 @@ stages:
             python.version: '3.x'
             CXX: g++
             BUILD_PYTHON_API: ON
-            BUILD_SPARK_API: ON
             DOWNLOAD_TILEDB_PREBUILT: ON
             ARTIFACT_NAME: linux
       pool:
@@ -67,13 +66,11 @@ stages:
               python.version: '3.x'
               CXX: g++
               BUILD_PYTHON_API: ON
-              BUILD_SPARK_API: ON
             mac:
               imageName: 'macOS-12'
               python.version: '3.7'
               CXX: clang++
               BUILD_PYTHON_API: ON
-              BUILD_SPARK_API: ON
               #SDKROOT: '/Applications/Xcode_10.3.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk'
               MACOSX_DEPLOYMENT_TARGET: '11'
 
