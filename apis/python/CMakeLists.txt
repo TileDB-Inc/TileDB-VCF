@@ -36,7 +36,7 @@ if (NOT TARGET tiledbvcf)
     find_package(tiledbvcf REQUIRED)
 endif()
 
-set_property(TARGET tiledbvcvf PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(VCF_TARGET_NAME libtiledbvcf)
 
