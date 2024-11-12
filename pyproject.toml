@@ -67,7 +67,6 @@ wheel.packages = ["apis/python/src/tiledbvcf"]
 editable.mode = "inplace"
 
 [tool.scikit-build.cmake.define]
-BUILD_SHARED_LIBS = "ON"
 TILEDBVCF_ENABLE_PYTHON = "ON"
 
 [tool.setuptools_scm]

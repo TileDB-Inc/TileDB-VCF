@@ -82,24 +82,16 @@ set(TILEDB_VCF_EXTERNAL_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/base64/base64.cc
 )
 
-add_library(tiledbvcf
+add_library(
+        tiledbvcf
         ${TILEDB_VCF_SOURCES}
         ${TILEDB_VCF_EXTERNAL_SOURCES}
 )
 
-if (TILEDBVCF_ENABLE_PYTHON)
-  set_target_properties(
-          tiledbvcf
-          PROPERTIES
-          POSITION_INDEPENDENT_CODE ON
-  )
-endif()
-
 target_compile_features(tiledbvcf PUBLIC cxx_std_20)
 
-#set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-target_include_directories(tiledbvcf
+target_include_directories(
+        tiledbvcf
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../external
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -113,7 +105,9 @@ target_link_libraries(
         spdlog::spdlog
 )
 
-target_compile_definitions(tiledbvcf PRIVATE
+target_compile_definitions(
+        tiledbvcf
+        PRIVATE
         -DBUILD_COMMIT_HASH="${BUILD_COMMIT_HASH}"
 )
 ############################################################
@@ -147,12 +141,14 @@ target_include_directories(
 
 # Sanitizer linker flags
 if (SANITIZER)
-  target_link_libraries(tiledbvcf
+  target_link_libraries(
+          tiledbvcf
           INTERFACE
           -fsanitize=${SANITIZER}
   )
   if (WIN32)
-    target_link_libraries(tiledbvcf4test
+    target_link_libraries(
+            tiledbvcf4test
             INTERFACE
             -fsanitize=${SANITIZER}
     )
@@ -160,7 +156,8 @@ if (SANITIZER)
 endif()
 
 # List of API headers (to be installed)
-set(TILEDB_VCF_PUBLIC_HEADERS
+set(
+        TILEDB_VCF_PUBLIC_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf.h
         ${CMAKE_CURRENT_SOURCE_DIR}/c_api/tiledbvcf_enum.h
 )
@@ -169,7 +166,8 @@ set(TILEDB_VCF_PUBLIC_HEADERS
 # CLI executable target
 ############################################################
 
-add_executable(tiledbvcf-bin
+add_executable(
+        tiledbvcf-bin
         EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/cli/tiledbvcf.cc
 )
@@ -189,7 +187,8 @@ endif()
 
 # Sanitizer linker flags
 if (SANITIZER)
-  target_link_libraries(tiledbvcf-bin
+  target_link_libraries(
+          tiledbvcf-bin
           INTERFACE
           -fsanitize=${SANITIZER}
   )
@@ -199,7 +198,8 @@ if (NOT APPLE AND NOT WIN32)
   target_link_libraries(tiledbvcf-bin PRIVATE pthread)
 endif()
 
-target_include_directories(tiledbvcf-bin
+target_include_directories(
+        tiledbvcf-bin
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../external
@@ -212,7 +212,8 @@ target_include_directories(tiledbvcf-bin
 include(GenerateExportHeader)
 
 # Generates the file 'tiledbvcf_export.h' suitable for the current compiler.
-generate_export_header(tiledbvcf
+generate_export_header(
+        tiledbvcf
         BASE_NAME tiledbvcf
 )
 
@@ -233,7 +234,8 @@ list(APPEND TILEDB_VCF_PUBLIC_HEADERS
 )
 
 # Set the public headers, which are the ones that get installed.
-set_target_properties(tiledbvcf
+set_target_properties(
+        tiledbvcf
         PROPERTIES
         PUBLIC_HEADER "${TILEDB_VCF_PUBLIC_HEADERS}"
 )
@@ -241,41 +243,6 @@ set_target_properties(tiledbvcf
 ############################################################
 # Installation
 ############################################################
-
-include(GNUInstallDirs)
-
-# Set rpath to be relative to the .so.
-#if (APPLE)
-#  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path/")
-#else()
-#  set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "$ORIGIN/")
-#endif()
-
-#set_property(
-#        TARGET tiledbvcf-bin
-#        PROPERTY INSTALL_RPATH
-#        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
-#        "${CMAKE_INSTALL_PREFIX}/lib"
-#)
-
-#if(WIN32)
-#  # Having the .dll and the .exe with the same name was resulting in a .exp
-#  # file for the .exe being 'last out' (replacing one of same name for the .dll)
-#  # and was causing the python api extension
-#  # to link to the .exe, which was not functional.
-#  # So, tiledbvcf-bin now sets an output (above somewhere) of tiledbvcfcli.exe
-#  # and we install it here RENAMEing it to match the known name in pre-existing
-#  # *nix world.
-#  install(PROGRAMS $<TARGET_FILE:tiledbvcf-bin>
-#          RENAME tiledbvcf.exe
-#          DESTINATION tiledbvcf
-#  )
-#else()
-#  install(
-#          TARGETS tiledbvcf-bin
-#          RUNTIME DESTINATION tiledbvcf
-#  )
-#endif()
 
 if(TILEDBVCF_INSTALL_TILEDB)
   install(
@@ -286,29 +253,16 @@ if(TILEDBVCF_INSTALL_TILEDB)
   )
 endif()
 
-if(WIN32)
-install(
-        IMPORTED_RUNTIME_ARTIFACTS HTSlib::HTSlib spdlog::spdlog fmt::fmt
-        RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf/lib
-)
-endif()
-
 install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
         LIBRARY DESTINATION tiledbvcf/lib
-        ARCHIVE DESTINATION tiledbvcf/lib
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tiledbvcf
 )
 
 if (TILEDBVCF_ENABLE_PYTHON)
   if (APPLE)
-#    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/..")
     set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
   else()
-#    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/..")
     set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
   endif()
 endif()
