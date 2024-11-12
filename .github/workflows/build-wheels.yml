@@ -66,6 +66,11 @@ jobs:
           name: cibw-wheels-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python }}
           path: "./wheelhouse/*.whl"
 
+      - name: "Print log files (failed build only)"
+        run: |
+          cat /Users/runner/work/TileDB-VCF/TileDB-VCF/build/cp310-cp310-macosx_13_0_arm64/_deps/vcpkg-src/buildtrees/htscodecs/autoconf-arm64-osx-err.log
+        if: failure() # only run this job if the build step failed
+
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
