@@ -36,6 +36,8 @@ if (NOT TARGET tiledbvcf)
     find_package(tiledbvcf REQUIRED)
 endif()
 
+set_property(TARGET tiledbvcvf PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 set(VCF_TARGET_NAME libtiledbvcf)
 
 # NOTE: If you remove the line below the Windows build will fail
