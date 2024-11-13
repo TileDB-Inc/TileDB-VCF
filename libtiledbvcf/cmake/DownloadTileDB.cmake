@@ -114,6 +114,8 @@ function(fetch_prebuilt_tiledb)
         detect_artifact_name(FETCH_PREBUILT_TILEDB_ARTIFACT_NAME)
     endif()
 
+    message(STATUS "Downloading TileDB artifact: ${FETCH_PREBUILT_TILEDB_ARTIFACT_NAME}")
+
     string(STRIP ${HASH_${FETCH_PREBUILT_TILEDB_ARTIFACT_NAME}} HASH_${FETCH_PREBUILT_TILEDB_ARTIFACT_NAME})
     FetchContent_Declare(
             tiledb
