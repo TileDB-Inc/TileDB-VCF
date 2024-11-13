@@ -52,7 +52,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Confirm linking
-        run: otool -L dist/lib/libtiledbvcf.dylib
+        run: otool -L dist/tiledbvcf/lib/libtiledbvcf.dylib
       - name: libtiledbvcf version
         run: ./dist/bin/tiledbvcf version
       - name: Install bcftools
