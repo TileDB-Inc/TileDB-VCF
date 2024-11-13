@@ -54,7 +54,7 @@ jobs:
       - name: Confirm linking
         run: otool -L dist/tiledbvcf/lib/libtiledbvcf.dylib
       - name: libtiledbvcf version
-        run: ./dist/bin/tiledbvcf version
+        run: ./dist/tiledbvcf/bin/tiledbvcf version
       - name: Install bcftools
         run: brew install bcftools
       - name: Unit tests

@@ -168,7 +168,6 @@ set(
 
 add_executable(
         tiledbvcf-bin
-        EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/cli/tiledbvcf.cc
 )
 
