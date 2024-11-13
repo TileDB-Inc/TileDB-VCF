@@ -42,7 +42,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Install libtiledbvcf
-        run: cmake --build $(pwd)/libtiledbvcf/build --config Debug --target install-libtiledbvcf
+        run: cmake --install $(pwd)/libtiledbvcf/build --config Debug
       - name: Upload libtiledbvcf as artifact
         uses: actions/upload-artifact@v4
         with:
