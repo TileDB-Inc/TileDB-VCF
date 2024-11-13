@@ -115,7 +115,7 @@ jobs:
         run: |
           set -e pipefail
           brew update
-          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate bcftools
+          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate bcftools libtool
 
       - name: Install bcftools Ubuntu
         if: ${{ startsWith(matrix.os, 'ubuntu-') == true }}
