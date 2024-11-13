@@ -1,19 +1,19 @@
 {
-    "builtin-baseline": "7aeffc91033ad35cc4e2c152f213a866ec6c11ac",
-    "dependencies": [
-        "cli11",
-        "spdlog",
-        {
-            "name": "htslib",
-            "platform": "!windows"
-        }
-    ],
-    "features": {
-        "tests": {
-            "description": "Build tiledb tests",
-            "dependencies": [
-                "catch2"
-            ]
-        }
+  "dependencies": [
+    "cli11",
+    "spdlog",
+    {
+      "name": "htslib",
+      "platform": "!windows"
     }
+  ],
+  "features": {
+    "tests": {
+      "description": "Build tiledb tests",
+      "dependencies": [
+        "catch2"
+      ]
+    }
+  },
+  "builtin-baseline": "b171feebd4f8b7943b56356f9ec1d4dbe44ab82f"
 }
