@@ -59,8 +59,7 @@ jobs:
         run: brew install bcftools
       - name: Unit tests
         run: |
-          make -j 2 -C libtiledbvcf/build/libtiledbvcf tiledb_vcf_unit
-          ./libtiledbvcf/build/libtiledbvcf/test/tiledb_vcf_unit
+          ctest --test-dir libtiledbvcf/build
       - name: CLI tests (require bcftools)
         run: |
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
