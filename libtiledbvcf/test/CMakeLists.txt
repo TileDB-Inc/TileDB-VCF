@@ -31,7 +31,7 @@ find_package(Catch2 REQUIRED)
 # Unit test executable
 ############################################################
 
-add_executable(tiledb_vcf_unit EXCLUDE_FROM_ALL
+add_executable(tiledb_vcf_unit
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-writer.cc
