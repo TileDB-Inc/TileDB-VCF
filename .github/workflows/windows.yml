@@ -37,12 +37,8 @@ jobs:
               - conda-forge
               - tiledb
             channel_priority: strict
-      - name: Build libtiledbvcf
-        run: cmd /C CALL ci\build-libtiledbvcf.bat
-      - name: libtiledbvcf version
-        run: tiledbvcf.exe version
-      - name: Build tiledbvcf-py
-        run: cmd /C CALL ci\build-tiledbvcf-py.bat
+      - name: Install libtiledbvcf python
+        run: pip install --verbose .
       - name: tiledbvcf-py version
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Test
