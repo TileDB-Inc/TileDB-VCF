@@ -15,5 +15,11 @@
       ]
     }
   },
-  "builtin-baseline": "b171feebd4f8b7943b56356f9ec1d4dbe44ab82f"
+  "builtin-baseline": "b171feebd4f8b7943b56356f9ec1d4dbe44ab82f",
+  "overrides": [
+    {
+      "name": "catch2",
+      "version": "2.13.8"
+    }
+  ]
 }
