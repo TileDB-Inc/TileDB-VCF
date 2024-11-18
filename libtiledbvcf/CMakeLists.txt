@@ -27,21 +27,26 @@
 
 cmake_minimum_required(VERSION 3.21)
 
-include(cmake/TileDBToolchain.cmake)
-
-project(TileDB-VCF)
-
 option(TILEDBVCF_ENABLE_TESTS "TODO" OFF)
 option(TILEDBVCF_ENABLE_PYTHON "TODO" OFF)
 
 option(TILEDBVCF_INSTALL_TILEDB "TODO" ON)
+option(TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES "TODO" OFF)
+
+if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
+  include(cmake/TileDBToolchain.cmake)
+endif()
+
+project(TileDB-VCF)
 
 include(cmake/DownloadTileDB.cmake)
 
-fetch_prebuilt_tiledb(
-        VERSION 2.26.1
-        RELLIST_HASH SHA256=256216aa989015397f4efbbd319ebeccfead568baa73611aa0c1c0fcea35f8d5
-)
+if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
+  fetch_prebuilt_tiledb(
+          VERSION 2.26.1
+          RELLIST_HASH SHA256=256216aa989015397f4efbbd319ebeccfead568baa73611aa0c1c0fcea35f8d5
+  )
+endif()
 
 ############################################################
 # Find required dependencies
