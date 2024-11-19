@@ -82,11 +82,6 @@ jobs:
         with:
           environment-name: ci
           create-args: tiledb
-      - name: Install build dependencies
-        run: |
-          set -e pipefail
-          brew update
-          brew install automake pkg-config ninja llvm bzip2 xz autoconf zlib libdeflate bcftools
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
