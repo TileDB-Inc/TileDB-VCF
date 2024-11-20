@@ -68,7 +68,7 @@ jobs:
           otool -L install/lib/libtiledbvcf.dylib
       - name: Install bcftools (for tests) (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt install bcftools
+        run: sudo apt-get install --yes bcftools
       - name: Install bcftools (for tests) (macOS)
         if: runner.os == 'macOS'
         run: brew install bcftools

@@ -23,7 +23,7 @@ steps:
       set -e pipefail
       sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
       sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main'
-      sudo apt install -y clang-format-15
+      sudo apt-get install -y clang-format-15
       src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
       cd $BUILD_REPOSITORY_LOCALPATH
       ci/run-clang-format.sh $src clang-format-15 0 \
@@ -59,7 +59,7 @@ steps:
 
       # Install some extra dependencies to speed up the core TileDB build
       if [[ "$AGENT_OS" == "Linux" ]]; then
-          sudo apt install -y libssl-dev libbz2-dev liblz4-dev libtbb-dev libcurl4-openssl-dev zlib1g-dev
+          sudo apt-get install -y libssl-dev libbz2-dev liblz4-dev libtbb-dev libcurl4-openssl-dev zlib1g-dev
       fi
     displayName: 'Install dependencies'
 
