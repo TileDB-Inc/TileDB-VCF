@@ -36,6 +36,12 @@ steps:
 
   - bash: |
       set -e pipefail
+
+      # Install autoconf/automake (required for htslib)
+      if [[ "$AGENT_OS" == "Linux" ]]; then
+          sudo apt update && sudo apt install -y automake autoconf libbz2-dev
+      fi
+
       # Install bcftools (only required for running the CLI tests)
       version=1.20
       if [[ "$AGENT_OS" == "Linux" ]]; then
@@ -49,11 +55,6 @@ steps:
           popd
       else
           brew install bcftools automake
-      fi
-
-      # Install autoconf/automake (required for htslib)
-      if [[ "$AGENT_OS" == "Linux" ]]; then
-          sudo apt update && sudo apt install -y automake autoconf
       fi
 
       # Install some extra dependencies to speed up the core TileDB build
