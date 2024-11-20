@@ -37,7 +37,7 @@ steps:
   - bash: |
       set -e pipefail
 
-      # Install autoconf/automake (required for htslib)
+      # Install htslib dependencies
       if [[ "$AGENT_OS" == "Linux" ]]; then
           sudo apt-get update && sudo apt-get install -y automake autoconf libbz2-dev liblzma-dev
       fi
