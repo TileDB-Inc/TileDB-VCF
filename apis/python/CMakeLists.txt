@@ -34,10 +34,34 @@ if (NOT TARGET tiledbvcf)
     message(STATUS "DEBUG: tiledbvcf_DIR: ${tiledbvcf_DIR}")
     # If tiledbvcf is not present it means that this script was not included as a
     # subdirectory of the tiledbvcf library, thus we need to find it
-    find_package(tiledbvcf REQUIRED)
+#    find_package(tiledbvcf REQUIRED)
+
+    find_library(
+            TILEDBVCF_LIBRARIES
+            REQUIRED
+            NAMES libtiledbvcf tiledbvcf
+            PATHS ${tiledbvcf_DIR}
+            PATH_SUFFIXES tiledbvcf/lib
+            NO_DEFAULT_PATH
+    )
+    find_path(
+            TILEDBVCF_INCLUDE_DIR
+            REQUIRED
+            NAMES tiledbvcf.h
+            PATHS ${tiledbvcf_DIR}
+            PATH_SUFFIXES include
+            NO_DEFAULT_PATH
+    )
+    add_library(tiledbvcf SHARED IMPORTED)
+    set_target_properties(tiledbvcf PROPERTIES
+            IMPORTED_IMPLIB "${TILEDBVCF_LIBRARIES}"
+            INTERFACE_INCLUDE_DIRECTORIES "${TILEDBVCF_INCLUDE_DIR}"
+    )
 endif()
 
-set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
+if (NOT TARGET TileDB::tiledb_shared)
+    find_package(TileDB REQUIRED)
+endif()
 
 set(VCF_TARGET_NAME libtiledbvcf)
 
@@ -59,7 +83,12 @@ if (NOT WIN32)
     target_compile_options(${VCF_TARGET_NAME} PRIVATE -Wno-deprecated-declarations)
 endif()
 
-target_link_libraries(${VCF_TARGET_NAME} PRIVATE tiledbvcf)
+target_link_libraries(
+        ${VCF_TARGET_NAME}
+        PRIVATE
+        tiledbvcf
+        TileDB::tiledb_shared
+)
 
 # Search for shared libraries in the same directory as the target
 if (APPLE)

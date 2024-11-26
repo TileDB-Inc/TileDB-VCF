@@ -82,10 +82,19 @@ set(TILEDB_VCF_EXTERNAL_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/base64/base64.cc
 )
 
+file(GLOB_RECURSE TILEDB_VCF_HEADERS CONFIGURE_DEPENDS *.h)
+
 add_library(
         tiledbvcf
         ${TILEDB_VCF_SOURCES}
         ${TILEDB_VCF_EXTERNAL_SOURCES}
+)
+
+target_sources(
+        tiledbvcf
+        PUBLIC FILE_SET HEADERS
+        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+        FILES ${TILEDB_VCF_HEADERS}
 )
 
 target_compile_features(tiledbvcf PUBLIC cxx_std_20)
@@ -267,6 +276,8 @@ install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
         LIBRARY DESTINATION tiledbvcf/lib
+        INCLUDES DESTINATION tiledbvcf/include
+        FILE_SET HEADERS
 )
 
 if (TILEDBVCF_ENABLE_PYTHON)
