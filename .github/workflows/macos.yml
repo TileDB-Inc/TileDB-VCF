@@ -84,7 +84,7 @@ jobs:
           create-args: tiledb
       - name: Build tiledbvcf-py
         env:
-          LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+          tiledbvcf_DIR: "${{ github.workspace }}/dist"
           TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
           python -m pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
