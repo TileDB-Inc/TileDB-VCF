@@ -57,14 +57,13 @@ jobs:
         run: ./dist/tiledbvcf/bin/tiledbvcf version
       - name: Install bcftools
         run: brew install bcftools
-        # TODO: Uncomment before merge
-#      - name: Unit tests
-#        run: |
-#          ctest --test-dir libtiledbvcf/build
-#      - name: CLI tests (require bcftools)
-#        run: |
-#          # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
-#          libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
+      - name: Unit tests
+        run: |
+          ctest --test-dir libtiledbvcf/build
+      - name: CLI tests (require bcftools)
+        run: |
+          # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
+          libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
     runs-on: macos-12
     needs: libtiledbvcf
