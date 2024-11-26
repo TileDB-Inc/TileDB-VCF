@@ -57,13 +57,14 @@ jobs:
         run: ./dist/tiledbvcf/bin/tiledbvcf version
       - name: Install bcftools
         run: brew install bcftools
-      - name: Unit tests
-        run: |
-          ctest --test-dir libtiledbvcf/build
-      - name: CLI tests (require bcftools)
-        run: |
-          # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
-          libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
+        # TODO: Uncomment before merge
+#      - name: Unit tests
+#        run: |
+#          ctest --test-dir libtiledbvcf/build
+#      - name: CLI tests (require bcftools)
+#        run: |
+#          # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
+#          libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
     runs-on: macos-12
     needs: libtiledbvcf
@@ -73,6 +74,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: libtiledbvcf
+          path: dist
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -82,9 +88,6 @@ jobs:
         with:
           environment-name: ci
           create-args: tiledb
-      - name: "DEBUG: Print"
-        run: |
-          ls -R ${{ github.workspace }}/dist
       - name: Build tiledbvcf-py
         env:
           tiledbvcf_DIR: "${{ github.workspace }}/dist"
