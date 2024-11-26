@@ -68,7 +68,7 @@ jobs:
     runs-on: macos-12
     needs: libtiledbvcf
     env:
-      DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
+      DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/tiledbvcf/lib"
     steps:
       - uses: actions/checkout@v4
         with:

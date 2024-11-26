@@ -276,8 +276,8 @@ install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
         LIBRARY DESTINATION tiledbvcf/lib
-        INCLUDES DESTINATION tiledbvcf/include
-        FILE_SET HEADERS
+        FILE_SET HEADERS DESTINATION tiledbvcf/include
+        PUBLIC_HEADER DESTINATION tiledbvcf/include
 )
 
 if (TILEDBVCF_ENABLE_PYTHON)
