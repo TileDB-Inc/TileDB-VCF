@@ -31,6 +31,7 @@ project(
 )
 
 if (NOT TARGET tiledbvcf)
+    message(STATUS "DEBUG: tiledbvcf_DIR: ${tiledbvcf_DIR}")
     # If tiledbvcf is not present it means that this script was not included as a
     # subdirectory of the tiledbvcf library, thus we need to find it
     find_package(tiledbvcf REQUIRED)
