@@ -81,7 +81,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: ci
-          create-args: -c bioconda pip tiledb cli11 fmt spdlog htslib
+          create-args: tiledb
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
