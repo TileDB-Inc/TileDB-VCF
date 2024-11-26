@@ -31,15 +31,21 @@ project(
 )
 
 if (NOT TARGET tiledbvcf)
-    message(STATUS "DEBUG: tiledbvcf_DIR: ${tiledbvcf_DIR}")
     # If tiledbvcf is not present it means that this script was not included as a
     # subdirectory of the tiledbvcf library, thus we need to find it
-#    find_package(tiledbvcf REQUIRED)
 
-    find_library(
+    if (APPLE)
+        set(TILEDBVCF_LIB_NAME libtiledbvcf.dylib)
+    elseif(WIN32)
+        set(TILEDBVCF_LIB_NAME tiledbvcf.dll)
+    else()
+        set(TILEDBVCF_LIB_NAME libtiledbvcf.so)
+    endif()
+
+    find_file(
             TILEDBVCF_LIBRARIES
             REQUIRED
-            NAMES libtiledbvcf tiledbvcf
+            NAMES ${TILEDBVCF_LIB_NAME}
             PATHS ${tiledbvcf_DIR}
             PATH_SUFFIXES tiledbvcf/lib
     )
