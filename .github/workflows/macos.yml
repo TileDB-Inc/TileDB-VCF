@@ -81,13 +81,13 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: ci
-          create-args: tiledb cli11 fmt spdlog
+          create-args: -c bioconda pip tiledb cli11 fmt spdlog htslib
       - name: Build tiledbvcf-py
         env:
           LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
           TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
-          python -m pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON .[test]
+          python -m pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
 # TODO: Do not merge with this, we need to modify build.gradle

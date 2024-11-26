@@ -32,6 +32,12 @@ option(TILEDBVCF_ENABLE_PYTHON "TODO" OFF)
 
 option(TILEDBVCF_INSTALL_TILEDB "TODO" ON)
 option(TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES "TODO" OFF)
+option(TILEDBVCF_ONLY_PYTHON_BINDINGS "TODO" OFF)
+
+if (TILEDBVCF_ONLY_PYTHON_BINDINGS)
+  add_subdirectory(../apis/python apis/python)
+  return()
+endif()
 
 if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
   include(cmake/TileDBToolchain.cmake)

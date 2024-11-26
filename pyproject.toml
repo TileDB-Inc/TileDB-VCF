@@ -68,7 +68,7 @@ editable.mode = "inplace"
 
 [tool.scikit-build.cmake.define]
 TILEDBVCF_ENABLE_PYTHON = "ON"
-TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES = "OFF"
+TILEDBVCF_ONLY_PYTHON_BINDINGS = "OFF"
 
 [tool.setuptools_scm]
 version_file = "apis/python/src/tiledbvcf/version.py"
