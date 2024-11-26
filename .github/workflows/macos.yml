@@ -82,6 +82,9 @@ jobs:
         with:
           environment-name: ci
           create-args: tiledb
+      - name: "DEBUG: Print"
+        run: |
+          ls -R ${{ github.workspace }}/dist
       - name: Build tiledbvcf-py
         env:
           tiledbvcf_DIR: "${{ github.workspace }}/dist"
