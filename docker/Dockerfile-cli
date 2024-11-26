@@ -34,8 +34,7 @@ WORKDIR /tmp/libtiledbvcf/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     -DOVERRIDE_INSTALL_PREFIX=OFF \
-    && make -j$(nproc) \
-    && make install-libtiledbvcf
+    && make -j$(nproc) install
 
 FROM ubuntu:22.04
 

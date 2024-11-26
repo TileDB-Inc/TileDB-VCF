@@ -84,15 +84,14 @@ steps:
       cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
       cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist -DDOWNLOAD_TILEDB_PREBUILT=${DOWNLOAD_TILEDB_PREBUILT} ..
 
-      make -j4
-      make -j4 -C libtiledbvcf tiledb_vcf_unit
+      make -j4 tiledb_vcf_unit
       # cmake catches the segfault and blocks the core dump
       # sudo make check
-      ./libtiledbvcf/test/tiledb_vcf_unit
+      ./test/tiledb_vcf_unit
 
       ../test/run-cli-tests.sh . ../test/inputs
 
-      make install-libtiledbvcf
+      make install
 
     displayName: 'Build and test TileDB-VCF'
 

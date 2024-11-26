@@ -17,5 +17,5 @@ cmake --build . --config Release --parallel %CPU_COUNT%
 if %ERRORLEVEL% neq 0 exit 1
 
 rem install
-cmake --build . --target install-libtiledbvcf --config Release
+cmake --build . --target install --config Release
 if %ERRORLEVEL% neq 0 exit 1

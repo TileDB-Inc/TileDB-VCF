@@ -44,10 +44,9 @@ steps:
         cd $BUILD_REPOSITORY_LOCALPATH/libtiledbvcf/build
         cmake -DCMAKE_INSTALL_PREFIX=$BUILD_REPOSITORY_LOCALPATH/dist ..
 
-        make -j4
-        make -j4 -C libtiledbvcf tiledb_vcf_unit
+        make -j4 tiledb_vcf_unit
 
-        make install-libtiledbvcf
+        make install
 
       displayName: 'Build and test TileDB-VCF'
 
