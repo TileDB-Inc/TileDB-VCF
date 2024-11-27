@@ -12,4 +12,4 @@ cmake -S TileDB -B build-libtiledb \
 
 cmake --build build-libtiledb -j2 --config Release
 
-cmake --build build-libtiledb --config Release --target install-tiledb
+cmake --install build-libtiledb

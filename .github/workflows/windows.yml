@@ -1,45 +1,46 @@
-name: Build Python client for Windows
-on:
-  push:
-    branches:
-      - main
-      - 'release-*'
-    paths:
-      - '.github/workflows/windows.yml'
-      - 'apis/python/**'
-      - 'ci/*.bat'
-      - 'ci/gha-win-env.yml'
-      - 'libtiledbvcf/**'
-  pull_request:
-    paths:
-      - '.github/workflows/windows.yml'
-      - 'apis/python/**'
-      - 'ci/*.bat'
-      - 'ci/gha-win-env.yml'
-      - 'libtiledbvcf/**'
-  workflow_dispatch:
-defaults:
-  run:
-    shell: cmd /C CALL {0}
-jobs:
-  build:
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install conda env
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ci/gha-win-env.yml
-          cache-environment: true
-          init-shell: cmd.exe
-          condarc: |
-            channels:
-              - conda-forge
-              - tiledb
-            channel_priority: strict
-      - name: Install libtiledbvcf python
-        run: pip install --verbose .
-      - name: tiledbvcf-py version
-        run: python -c "import tiledbvcf; print(tiledbvcf.version)"
-      - name: Test
-        run: pytest apis\python\tests
+# Windows is currently not supported
+# name: Build Python client for Windows
+# on:
+#   push:
+#     branches:
+#       - main
+#       - 'release-*'
+#     paths:
+#       - '.github/workflows/windows.yml'
+#       - 'apis/python/**'
+#       - 'ci/*.bat'
+#       - 'ci/gha-win-env.yml'
+#       - 'libtiledbvcf/**'
+#   pull_request:
+#     paths:
+#       - '.github/workflows/windows.yml'
+#       - 'apis/python/**'
+#       - 'ci/*.bat'
+#       - 'ci/gha-win-env.yml'
+#       - 'libtiledbvcf/**'
+#   workflow_dispatch:
+# defaults:
+#   run:
+#     shell: cmd /C CALL {0}
+# jobs:
+#   build:
+#     runs-on: windows-2022
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Install conda env
+#         uses: mamba-org/setup-micromamba@v1
+#         with:
+#           environment-file: ci/gha-win-env.yml
+#           cache-environment: true
+#           init-shell: cmd.exe
+#           condarc: |
+#             channels:
+#               - conda-forge
+#               - tiledb
+#             channel_priority: strict
+#       - name: Install libtiledbvcf python
+#         run: pip install --verbose .
+#       - name: tiledbvcf-py version
+#         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
+#       - name: Test
+#         run: pytest apis\python\tests

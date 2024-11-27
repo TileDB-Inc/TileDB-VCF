@@ -56,13 +56,13 @@ jobs:
       - name: Confirm linking (Linux)
         if: runner.os == 'Linux'
         run: |
-          ldd install/lib/libtiledb.so
-          ldd install/lib/libtiledbvcf.so
+          ldd install/tiledbvcf/lib/libtiledb.so
+          ldd install/tiledbvcf/lib/libtiledbvcf.so
       - name: Confirm linking (macOS)
         if: runner.os == 'macOS'
         run: |
-          otool -L install/lib/libtiledb.dylib
-          otool -L install/lib/libtiledbvcf.dylib
+          otool -L install/tiledbvcf/lib/libtiledb.dylib
+          otool -L install/tiledbvcf/lib/libtiledbvcf.dylib
       - name: Install bcftools (for tests) (Linux)
         if: runner.os == 'Linux'
         run: sudo apt install bcftools
