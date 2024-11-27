@@ -56,8 +56,8 @@ jobs:
       - name: Confirm linking (Linux)
         if: runner.os == 'Linux'
         run: |
-          ldd install/tiledbvcf/lib/libtiledb.so
-          ldd install/tiledbvcf/lib/libtiledbvcf.so
+          ldd install/tiledbvcf/lib/libtiledb.so*
+          ldd install/tiledbvcf/lib/libtiledbvcf.so*
       - name: Confirm linking (macOS)
         if: runner.os == 'macOS'
         run: |

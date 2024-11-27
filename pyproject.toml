@@ -70,6 +70,7 @@ editable.mode = "inplace"
 TILEDBVCF_ENABLE_PYTHON = "ON"
 TILEDBVCF_ONLY_PYTHON_BINDINGS = "OFF"
 tiledbvcf_DIR = {env="tiledbvcf_DIR"}
+TileDB_DIR = {env="TileDB_DIR"}
 
 [tool.setuptools_scm]
 version_file = "apis/python/src/tiledbvcf/version.py"
