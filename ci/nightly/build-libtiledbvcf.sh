@@ -7,7 +7,8 @@ cmake -S TileDB-VCF/libtiledbvcf -B build-libtiledbvcf \
   -D CMAKE_BUILD_TYPE=Release \
   -D CMAKE_INSTALL_PREFIX:PATH=$GITHUB_WORKSPACE/install/ \
   -D OVERRIDE_INSTALL_PREFIX=OFF \
-  -D TILEDB_WERROR=OFF
+  -D TILEDB_WERROR=OFF \
+  -D BUILD_SHARED_LIBS=ON
 
 cmake --build build-libtiledbvcf -j2 --config Release
 
