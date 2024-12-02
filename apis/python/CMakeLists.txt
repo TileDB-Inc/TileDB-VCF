@@ -88,11 +88,11 @@ target_link_libraries(
 )
 
 # Search for shared libraries in the same directory as the target
-if (APPLE)
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
-else()
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
-endif()
+# if (APPLE)
+#     set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
+# else()
+#     set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
+# endif()
 
 # Install the extension module
 install(
