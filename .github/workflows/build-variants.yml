@@ -17,6 +17,7 @@ jobs:
           init-shell: >-
             bash
       - name: Configure CMake
+        shell: micromamba-shell {0}
         run: |
           cmake -S libtiledbvcf -B build \
             -D CMAKE_BUILD_TYPE=Release \
@@ -26,9 +27,11 @@ jobs:
             -D DOWNLOAD_TILEDB_PREBUILT=OFF \
             -D TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON
       - name: Build using CMake
+        shell: micromamba-shell {0}
         run: |
           cmake --build build --config Release
       - name: Install using CMake
+        shell: micromamba-shell {0}
         run: |
           cmake --install build --config Release
 
@@ -40,6 +43,7 @@ jobs:
 
       # Tests
       - name: Run unit tests 
+        shell: micromamba-shell {0}
         run: |
           ctest --test-dir build
       # - name: Run CLI tests
@@ -66,6 +70,7 @@ jobs:
           name: libtiledbvcf
           path: install
       - name: Build Python bindings 
+        shell: micromamba-shell {0}
         env:
           tiledbvcf_DIR: "${{ github.workspace }}/install"
           # TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
