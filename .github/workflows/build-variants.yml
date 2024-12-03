@@ -66,7 +66,10 @@ jobs:
           tiledbvcf_DIR: "${{ github.workspace }}/install"
           # TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
-          pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
+          pwd
+          ls -la
+          ls -R
+          pip install -v --no-deps .[test] --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON 
 
       - name: Run tests
         run: |
