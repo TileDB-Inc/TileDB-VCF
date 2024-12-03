@@ -78,6 +78,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          apt install -y ninja
       - name: Build and install using PiP
         run: |
           pip install -v .[test]
