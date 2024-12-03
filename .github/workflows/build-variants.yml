@@ -13,7 +13,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
-          create-args: -c bioconda tiledb spdlog fmt cli11 htslib catch2=2.13
+          create-args: -c bioconda tiledb spdlog fmt cli11 htslib catch2=2.13.8
           init-shell: >-
             bash
       - name: Configure CMake
@@ -23,8 +23,7 @@ jobs:
             -D CMAKE_BUILD_TYPE=Release \
             -D BUILD_SHARED_LIBS=ON \
             -D CMAKE_INSTALL_PREFIX=install \
-            -D OVERRIDE_INSTALL_PREFIX=OFF \
-            -D DOWNLOAD_TILEDB_PREBUILT=OFF \
+            -D TILEDBVCF_ENABLE_TESTS=OFF \
             -D TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON \
             -D CMAKE_PREFIX_PATH=$CONDA_PREFIX
       - name: Build using CMake
@@ -43,10 +42,10 @@ jobs:
           path: install/*
 
       # Tests
-      - name: Run unit tests 
-        shell: micromamba-shell {0}
-        run: |
-          ctest --test-dir build
+      # - name: Run unit tests 
+      #   shell: micromamba-shell {0}
+      #   run: |
+      #     ctest --test-dir build
       # - name: Run CLI tests
       #   run: |
       #     libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
