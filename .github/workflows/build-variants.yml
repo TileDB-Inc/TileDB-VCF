@@ -1,0 +1,88 @@
+name: Build Variants
+
+on:
+  push:
+
+jobs:
+  # This job should mimic conda-feedstock build
+  libtiledbvcf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Mamba environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: ci
+          create-args: tiledb
+      - name: Configure CMake
+        run: |
+          cmake -S libtiledbvcf -B build \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_SHARED_LIBS=ON \
+            -D CMAKE_INSTALL_PREFIX=install \
+            -D OVERRIDE_INSTALL_PREFIX=OFF \
+            -D DOWNLOAD_TILEDB_PREBUILT=OFF \
+            -D TILEDBVCF_ENABLE_TESTS=ON
+      - name: Build using CMake
+        run: |
+          cmake --build build --config Release
+      - name: Install using CMake
+        run: |
+          cmake --install build --config Release
+
+      - name: Upload install folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: libtiledbvcf
+          path: install/*
+
+      # Tests
+      - name: Run unit tests 
+        run: |
+          ctest --test-dir build
+      - name: Run CLI tests
+        run: |
+          libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
+
+
+  # This job should mimic conda-feedstock build
+  python-bindings-external-libtiledbvcf:
+    needs: libtiledbvcf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Mamba environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: ci
+          create-args: tiledb python=3.11
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: libtiledbvcf
+          path: install
+      - name: Build Python bindings 
+        env:
+          tiledbvcf_DIR: "${{ github.workspace }}/install"
+          # TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
+        run: |
+          python -m pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
+
+      - name: Run tests
+        run: |
+          pytest apis/python
+
+
+  # This job should mimic wheel build
+  python-bindings-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and install using PiP
+        run: |
+          pip install -v .[test]
+
+      - name: Run tests
+        run: |
+          pytest apis/python
+
