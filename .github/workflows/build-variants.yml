@@ -55,7 +55,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: ci
-          create-args: tiledb python=3.11
+          create-args: tiledb python=3.11 pip
       - name: Download libtiledbvcf artifact
         uses: actions/download-artifact@v4
         with:
