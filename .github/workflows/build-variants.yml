@@ -85,7 +85,7 @@ jobs:
         run: |
           echo $CONDA_PREFIX
           ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
-          ldd $CONDA_PREFIX/lib/python3.11/site-packages/lib/libtiledb*
+          ldd $CONDA_PREFIX/lib/libtiledb.so*
           ldd ${{ github.workspace }}/install/tiledbvcf/lib/libtiledbvcf*
 
       - name: Run tests
