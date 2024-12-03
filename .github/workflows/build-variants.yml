@@ -99,6 +99,7 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           export LD_LIBRARY_PATH="$CONDA_PREFIX/lib"
+          ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
           pytest apis/python
 
 
