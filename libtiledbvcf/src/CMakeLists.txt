@@ -97,6 +97,8 @@ target_sources(
         FILES ${TILEDB_VCF_HEADERS}
 )
 
+set_property(TARGET tiledbvcf PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_compile_features(tiledbvcf PUBLIC cxx_std_20)
 
 target_include_directories(
