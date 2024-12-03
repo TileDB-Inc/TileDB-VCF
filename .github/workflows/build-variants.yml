@@ -13,7 +13,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
-          create-args: -c bioconda tiledb spdlog fmt cli11 htslib catch2
+          create-args: -c bioconda tiledb spdlog fmt cli11 htslib catch2=2.13
           init-shell: >-
             bash
       - name: Configure CMake
