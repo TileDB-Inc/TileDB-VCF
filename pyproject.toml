@@ -69,6 +69,7 @@ editable.mode = "inplace"
 [tool.scikit-build.cmake.define]
 TILEDBVCF_ENABLE_PYTHON = "ON"
 TILEDBVCF_ONLY_PYTHON_BINDINGS = "OFF"
+TILEDBVCF_SET_RPATH = "ON"
 tiledbvcf_DIR = {env="tiledbvcf_DIR"}
 TileDB_DIR = {env="TileDB_DIR"}
 

@@ -268,12 +268,6 @@ install(
         RUNTIME DESTINATION tiledbvcf/bin
 )
 
-if (APPLE)
-  set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
-else()
-  set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
-endif()
-
 install(
         TARGETS tiledbvcf
         RUNTIME DESTINATION tiledbvcf
@@ -282,10 +276,19 @@ install(
         PUBLIC_HEADER DESTINATION tiledbvcf/include
 )
 
-if (TILEDBVCF_ENABLE_PYTHON)
+if (TILEDBVCF_SET_RPATH)
   if (APPLE)
-    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
   else()
-    set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+  endif()
+
+
+  if (TILEDBVCF_ENABLE_PYTHON)
+    if (APPLE)
+      set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "@loader_path")
+    else()
+      set_target_properties(tiledbvcf PROPERTIES INSTALL_RPATH "\$ORIGIN")
+    endif()
   endif()
 endif()

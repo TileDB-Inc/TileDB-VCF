@@ -87,11 +87,13 @@ target_link_libraries(
         TileDB::tiledb_shared
 )
 
+if (TILEDBVCF_SET_RPATH)
 # Search for shared libraries in the same directory as the target
-if (APPLE)
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
-else()
-    set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
+  if (APPLE)
+      set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "@loader_path/lib")
+  else()
+      set_target_properties(${VCF_TARGET_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
+  endif()
 endif()
 
 # Install the extension module

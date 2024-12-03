@@ -75,7 +75,9 @@ jobs:
         env:
           tiledbvcf_DIR: "${{ github.workspace }}/install"
         run: |
-          pip install -v --no-deps . --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON 
+          pip install -v --no-deps . \
+            --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON \
+            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF 
 
       - name: Debug logs
         shell: micromamba-shell {0}
