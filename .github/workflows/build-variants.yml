@@ -47,6 +47,7 @@ jobs:
       #   run: |
       #     ctest --test-dir build
       # - name: Run CLI tests
+      #   shell: micromamba-shell {0}
       #   run: |
       #     libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
 
@@ -77,6 +78,7 @@ jobs:
           pip install -v --no-deps . --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON 
 
       - name: Run tests
+        shell: micromamba-shell {0}
         run: |
           pytest apis/python
 
