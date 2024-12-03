@@ -77,6 +77,12 @@ jobs:
         run: |
           pip install -v --no-deps . --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON 
 
+      - name: Debug logs
+        shell: micromamba-shell {0}
+        run: |
+          echo $CONDA_PREFIX
+          ldd $CONDA_PREFIX/ci/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
+
       - name: Run tests
         shell: micromamba-shell {0}
         run: |
