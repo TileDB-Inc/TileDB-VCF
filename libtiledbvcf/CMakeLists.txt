@@ -54,6 +54,8 @@ if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
           VERSION 2.26.1
           RELLIST_HASH SHA256=256216aa989015397f4efbbd319ebeccfead568baa73611aa0c1c0fcea35f8d5
   )
+else()
+  add_link_options(--allow-shlib-undefined)
 endif()
 
 ############################################################
