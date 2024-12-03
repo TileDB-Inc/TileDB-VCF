@@ -30,7 +30,7 @@
  * Tests for Bitmap.
  */
 
-#include <catch2/catch_test_macros.hpp>
+#include "catch.hpp"
 
 #include "utils/bitmap.h"
 #include "utils/buffer.h"
