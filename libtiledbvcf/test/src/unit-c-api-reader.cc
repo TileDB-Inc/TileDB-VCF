@@ -28,7 +28,7 @@
  */
 
 #include "c_api/tiledbvcf.h"
-#include "catch.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include "unit-helpers.h"
 
 #include <cstring>
