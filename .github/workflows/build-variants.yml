@@ -63,7 +63,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
-          create-args: -c bioconda htslib tiledb=2.26 python=3.11 pip pytest numpy pandas pyarrow
+          create-args: -c bioconda htslib tiledb=2.26 tiledb-py python=3.11 pip pytest numpy pandas pyarrow
           init-shell: >-
             bash
       - name: Download libtiledbvcf artifact
