@@ -66,6 +66,10 @@ jobs:
           tiledbvcf_DIR: "${{ github.workspace }}/install"
           # TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
+          python --version
+          which python
+          pip --version
+          which pip
           pwd
           ls -la
           ls -R
