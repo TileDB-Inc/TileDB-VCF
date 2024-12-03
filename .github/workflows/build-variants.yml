@@ -10,10 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Mamba environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
           create-args: tiledb
+          init-shell: >-
+            bash
       - name: Configure CMake
         run: |
           cmake -S libtiledbvcf -B build \
@@ -52,10 +54,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Mamba environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
           create-args: tiledb python=3.11 pip
+          init-shell: >-
+            bash
       - name: Download libtiledbvcf artifact
         uses: actions/download-artifact@v4
         with:
