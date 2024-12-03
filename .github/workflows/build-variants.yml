@@ -25,6 +25,7 @@ jobs:
             -D CMAKE_INSTALL_PREFIX=install \
             -D TILEDBVCF_ENABLE_TESTS=OFF \
             -D TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON \
+            -D TILEDBVCF_INSTALL_TILEDB=OFF \
             -D CMAKE_PREFIX_PATH=$CONDA_PREFIX
       - name: Build using CMake
         shell: micromamba-shell {0}
@@ -77,13 +78,15 @@ jobs:
         run: |
           pip install -v --no-deps . \
             --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON \
-            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF 
+            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF \
 
       - name: Debug logs
         shell: micromamba-shell {0}
         run: |
           echo $CONDA_PREFIX
           ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
+          ldd $CONDA_PREFIX/lib/python3.11/site-packages/lib/libtiledb*
+          ldd ${{ github.workspace }}/install/tiledbvcf/lib/libtiledbvcf*
 
       - name: Run tests
         shell: micromamba-shell {0}
