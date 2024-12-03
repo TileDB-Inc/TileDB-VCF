@@ -55,7 +55,7 @@ if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
           RELLIST_HASH SHA256=256216aa989015397f4efbbd319ebeccfead568baa73611aa0c1c0fcea35f8d5
   )
 else()
-  add_link_options(--allow-shlib-undefined)
+  add_link_options("-Wl,--allow-shlib-undefined")
 endif()
 
 ############################################################
