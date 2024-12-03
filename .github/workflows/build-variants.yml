@@ -87,6 +87,13 @@ jobs:
           ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
           ldd $CONDA_PREFIX/lib/libtiledb.so*
           ldd ${{ github.workspace }}/install/tiledbvcf/lib/libtiledbvcf*
+          echo "WITH LD"
+          LD_LIBRARY_PATH=$CONDA_PREFIX ldd ${{ github.workspace }}/install/tiledbvcf/lib/libtiledbvcf*
+          LD_LIBRARY_PATH=$CONDA_PREFIX ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
+
+          echo "WITH LD/lib"
+          LD_LIBRARY_PATH="$CONDA_PREFIX/lib" ldd ${{ github.workspace }}/install/tiledbvcf/lib/libtiledbvcf*
+          LD_LIBRARY_PATH="$CONDA_PREFIX/lib" ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
 
       - name: Run tests
         shell: micromamba-shell {0}
