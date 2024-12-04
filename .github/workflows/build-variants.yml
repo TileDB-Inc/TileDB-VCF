@@ -47,6 +47,9 @@ jobs:
         shell: micromamba-shell {0}
         run: |
           ctest --test-dir build
+      - name: Install cli test dependencies
+        run: |
+          sudo apt-get install -y bcftools
       - name: Run CLI tests
         shell: micromamba-shell {0}
         run: |
