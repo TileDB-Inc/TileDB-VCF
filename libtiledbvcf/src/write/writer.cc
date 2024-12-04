@@ -1106,7 +1106,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
       // When an ingestion worker is finished, clear its query buffers
       // only if the query buffers are not empty.
-      if (finished && worker->records_buffered() > 0) {
+      if (finished && utils::query_buffers_set(query_.get())) {
         worker->buffers().clear_query_buffers(
             query_.get(), dataset_->metadata().version);
       }
