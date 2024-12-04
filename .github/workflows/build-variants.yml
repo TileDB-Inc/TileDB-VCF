@@ -43,14 +43,14 @@ jobs:
           path: install/*
 
       # Tests
-      # - name: Run unit tests 
-      #   shell: micromamba-shell {0}
-      #   run: |
-      #     ctest --test-dir build
-      # - name: Run CLI tests
-      #   shell: micromamba-shell {0}
-      #   run: |
-      #     libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
+      - name: Run unit tests 
+        shell: micromamba-shell {0}
+        run: |
+          ctest --test-dir build
+      - name: Run CLI tests
+        shell: micromamba-shell {0}
+        run: |
+          libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
 
 
   # This job should mimic conda-feedstock build
