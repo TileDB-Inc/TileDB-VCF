@@ -265,7 +265,7 @@ endif()
 
 install(
         TARGETS tiledbvcf-bin
-        RUNTIME DESTINATION tiledbvcf/bin
+        RUNTIME DESTINATION bin
 )
 
 install(
@@ -278,9 +278,9 @@ install(
 
 if (TILEDBVCF_SET_RPATH)
   if (APPLE)
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/lib")
   else()
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/lib")
   endif()
 
 
