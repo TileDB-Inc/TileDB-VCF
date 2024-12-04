@@ -154,7 +154,7 @@ task installNativeLibTask(type: Exec) {
     dependsOn 'makeNativeLibTask'
     workingDir = "${pathConfig.nativeLibBuildDir}"
     executable = 'make'
-    args 'install-libtiledbvcf'
+    args 'install'
 }
 
 // Runs CMake for the JNI library

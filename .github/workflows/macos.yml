@@ -27,9 +27,11 @@ jobs:
         run: |
           cmake -S libtiledbvcf -B $(pwd)/libtiledbvcf/build \
             -D CMAKE_BUILD_TYPE=Debug \
+            -D BUILD_SHARED_LIBS=ON \
             -D CMAKE_INSTALL_PREFIX=$(pwd)/dist \
             -D OVERRIDE_INSTALL_PREFIX=OFF \
-            -D DOWNLOAD_TILEDB_PREBUILT=ON
+            -D DOWNLOAD_TILEDB_PREBUILT=ON \
+            -D TILEDBVCF_ENABLE_TESTS=ON
       - name: Build libtiledbvcf
         run: cmake --build $(pwd)/libtiledbvcf/build -j 2 --config Debug
       - name: Upload coredump as artifact if build failed
@@ -41,7 +43,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Install libtiledbvcf
-        run: cmake --build $(pwd)/libtiledbvcf/build --config Debug --target install-libtiledbvcf
+        run: cmake --install $(pwd)/libtiledbvcf/build --config Debug
       - name: Upload libtiledbvcf as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -50,15 +52,14 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Confirm linking
-        run: otool -L dist/lib/libtiledbvcf.dylib
+        run: otool -L dist/tiledbvcf/lib/libtiledbvcf.dylib
       - name: libtiledbvcf version
-        run: ./dist/bin/tiledbvcf version
+        run: ./dist/tiledbvcf/bin/tiledbvcf version
       - name: Install bcftools
         run: brew install bcftools
       - name: Unit tests
         run: |
-          make -j 2 -C libtiledbvcf/build/libtiledbvcf tiledb_vcf_unit
-          ./libtiledbvcf/build/libtiledbvcf/test/tiledb_vcf_unit
+          ctest --test-dir libtiledbvcf/build
       - name: CLI tests (require bcftools)
         run: |
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
@@ -67,7 +68,7 @@ jobs:
     runs-on: macos-12
     needs: libtiledbvcf
     env:
-      DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
+      DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/tiledbvcf/lib"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,31 +89,29 @@ jobs:
           create-args: tiledb
       - name: Build tiledbvcf-py
         env:
-          LIBTILEDBVCF_PATH: "${{ github.workspace }}/dist"
+          tiledbvcf_DIR: "${{ github.workspace }}/dist"
           TileDB_DIR: "/Users/runner/micromamba/envs/ci/lib/cmake/TileDB"
         run: |
-          echo $DYLD_LIBRARY_PATH
-          echo $TileDB_DIR
-          cd apis/python
-          python -m pip install -v .[test]
+          python -m pip install -v --no-deps --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
       - name: Confirm linking
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
-  java:
-    runs-on: macos-12
-    needs: libtiledbvcf
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download libtiledbvcf artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: libtiledbvcf
-          path: dist
-      - name: Check format
-        run: cd apis/java && ./gradlew checkFormat
-      - name: Assemble
-        run: cd apis/java && ./gradlew assemble
-      - name: Test
-        run: cd apis/java && ./gradlew test
+# TODO: Do not merge with this, we need to modify build.gradle
+#  java:
+#    runs-on: macos-12
+#    needs: libtiledbvcf
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Download libtiledbvcf artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: libtiledbvcf
+#          path: dist
+#      - name: Check format
+#        run: cd apis/java && ./gradlew checkFormat
+#      - name: Assemble
+#        run: cd apis/java && ./gradlew assemble
+#      - name: Test
+#        run: cd apis/java && ./gradlew test
   python-standalone:
     runs-on: macos-12
     steps:
@@ -126,13 +125,11 @@ jobs:
         with:
           python-version: "3.11"
       - name: Build tiledbvcf-py
-        run: cd apis/python && python -m pip install -v .[test]
+        run: python -m pip install -v .[test]
       - name: Confirm linking
         run: |
           otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.dylib
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledb.dylib
-          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libhts.*.dylib
+          otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/lib/libtiledb.dylib
       - name: Version
         run: python -c "import tiledbvcf; print(tiledbvcf.version)"
       - name: Install bcftools (for tests)

@@ -1,4 +1,5 @@
 #include "vcf_merger.h"
+#include <fmt/ranges.h>
 
 namespace tiledb {
 namespace vcf {
