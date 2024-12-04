@@ -13,7 +13,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
-          create-args: -c bioconda tiledb=2.26 spdlog fmt cli11 htslib catch2=2.13.8
+          create-args: -c tiledb tiledb=2.26 spdlog fmt cli11 htslib catch2=2.13.8
           init-shell: >-
             bash
       - name: Configure CMake
@@ -66,7 +66,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
-          create-args: -c bioconda htslib tiledb=2.26 tiledb-py python=3.11 pip pytest numpy pandas pyarrow
+          create-args: -c tiledb htslib tiledb=2.26 tiledb-py python=3.11 pip pytest numpy pandas pyarrow
           init-shell: >-
             bash
       - name: Download libtiledbvcf artifact
@@ -81,7 +81,7 @@ jobs:
         run: |
           pip install -v --no-deps . \
             --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON \
-            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF \
+            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF
 
       - name: Install test dependencies
         run: |
