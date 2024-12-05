@@ -67,7 +67,7 @@ stages:
               CXX: g++
               BUILD_PYTHON_API: ON
             mac:
-              imageName: 'macOS-12'
+              imageName: 'macOS-13'
               python.version: '3.7'
               CXX: clang++
               BUILD_PYTHON_API: ON
