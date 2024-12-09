@@ -258,29 +258,23 @@ if(TILEDBVCF_INSTALL_TILEDB)
   install(
           IMPORTED_RUNTIME_ARTIFACTS
           TileDB::tiledb_shared
-          RUNTIME DESTINATION tiledbvcf
-          LIBRARY DESTINATION tiledbvcf/lib
   )
 endif()
 
 install(
         TARGETS tiledbvcf-bin
-        RUNTIME DESTINATION bin
 )
 
 install(
         TARGETS tiledbvcf
-        RUNTIME DESTINATION tiledbvcf
-        LIBRARY DESTINATION tiledbvcf/lib
-        FILE_SET HEADERS DESTINATION tiledbvcf/include
-        PUBLIC_HEADER DESTINATION tiledbvcf/include
+        FILE_SET HEADERS DESTINATION include
 )
 
 if (TILEDBVCF_SET_RPATH)
   if (APPLE)
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../tiledbvcf/lib")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "@loader_path/../lib")
   else()
-    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../tiledbvcf/lib")
+    set_target_properties(tiledbvcf-bin PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
   endif()
 
 
