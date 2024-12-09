@@ -99,4 +99,5 @@ endif()
 # Install the extension module
 install(
         TARGETS ${VCF_TARGET_NAME}
+        DESTINATION .
 )
