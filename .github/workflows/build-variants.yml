@@ -26,6 +26,7 @@ jobs:
             -D TILEDBVCF_ENABLE_TESTS=OFF \
             -D TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON \
             -D TILEDBVCF_INSTALL_TILEDB=OFF \
+            -D TILEDBVCF_SET_INSTALL_SUBPATH=OFF \
             -D CMAKE_PREFIX_PATH=$CONDA_PREFIX
       - name: Build using CMake
         shell: micromamba-shell {0}
