@@ -82,8 +82,7 @@ jobs:
         run: |
           pip install -v --no-deps . \
             --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON \
-            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF \
-            --config-settings=cmake.define.TILEDBVCF_SET_INSTALL_SUBPATH=OFF
+            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF
 
       - name: Install test dependencies
         run: |
@@ -94,7 +93,7 @@ jobs:
         run: |
           export LD_LIBRARY_PATH="$CONDA_PREFIX/lib"
           cp ${{ github.workspace }}/install/lib/libtiledbvcf* $LD_LIBRARY_PATH
-          ldd $CONDA_PREFIX/lib/python3.11/site-packages/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
+          ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
           pytest apis/python
 
 
