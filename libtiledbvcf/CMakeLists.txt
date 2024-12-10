@@ -37,6 +37,10 @@ option(TILEDBVCF_SET_INSTALL_SUBPATH "TODO" ON)
 
 option(TILEDBVCF_SET_RPATH "TODO" ON)
 
+if(TILEDBVCF_SET_INSTALL_SUBPATH)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/tiledbvcf")
+endif()
+
 if (TILEDBVCF_ONLY_PYTHON_BINDINGS)
   add_subdirectory(../apis/python apis/python)
   return()
@@ -57,10 +61,6 @@ if (NOT TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES)
   )
 else()
   add_link_options("-Wl,--allow-shlib-undefined")
-endif()
-
-if(TILEDBVCF_SET_INSTALL_SUBPATH)
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/tiledbvcf")
 endif()
 
 ############################################################
