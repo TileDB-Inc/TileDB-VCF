@@ -1,22 +1,23 @@
 name: Build Python client for Windows
 on:
-  push:
-    branches:
-      - main
-      - 'release-*'
-    paths:
-      - '.github/workflows/windows.yml'
-      - 'apis/python/**'
-      - 'ci/*.bat'
-      - 'ci/gha-win-env.yml'
-      - 'libtiledbvcf/**'
-  pull_request:
-    paths:
-      - '.github/workflows/windows.yml'
-      - 'apis/python/**'
-      - 'ci/*.bat'
-      - 'ci/gha-win-env.yml'
-      - 'libtiledbvcf/**'
+# TODO: Uncomment this block when windows CI is working.
+#   push:
+#     branches:
+#       - main
+#       - 'release-*'
+#     paths:
+#       - '.github/workflows/windows.yml'
+#       - 'apis/python/**'
+#       - 'ci/*.bat'
+#       - 'ci/gha-win-env.yml'
+#       - 'libtiledbvcf/**'
+#   pull_request:
+#     paths:
+#       - '.github/workflows/windows.yml'
+#       - 'apis/python/**'
+#       - 'ci/*.bat'
+#       - 'ci/gha-win-env.yml'
+#       - 'libtiledbvcf/**'
   workflow_dispatch:
 defaults:
   run:
