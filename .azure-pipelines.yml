@@ -17,7 +17,7 @@ stages:
       strategy:
         matrix:
           linux:
-            imageName: 'ubuntu-22.04'
+            imageName: 'ubuntu-24.04'
             python.version: '3.x'
             CXX: g++
             BUILD_PYTHON_API: ON
@@ -39,7 +39,7 @@ stages:
     jobs:
       - job: Build
         pool:
-          vmImage: 'ubuntu-22.04'
+          vmImage: 'ubuntu-24.04'
         strategy:
           matrix:
             cli:
@@ -62,12 +62,12 @@ stages:
         strategy:
           matrix:
             linux:
-              imageName: 'ubuntu-22.04'
+              imageName: 'ubuntu-24.04'
               python.version: '3.x'
               CXX: g++
               BUILD_PYTHON_API: ON
             mac:
-              imageName: 'macOS-12'
+              imageName: 'macOS-13'
               python.version: '3.7'
               CXX: clang++
               BUILD_PYTHON_API: ON
@@ -92,7 +92,7 @@ stages:
         strategy:
           matrix:
             ubuntu_18:
-              imageName: 'ubuntu-22.04'
+              imageName: 'ubuntu-24.04'
         pool:
           vmImage: $(imageName)
 

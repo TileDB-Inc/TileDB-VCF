@@ -1749,7 +1749,7 @@ def test_flag_export(tmp_path):
 
 
 def test_bed_filestore(tmp_path, test_ds_v4):
-    tiledbvcf.config_logging("debug")
+    # tiledbvcf.config_logging("debug")
 
     expected_df = pd.DataFrame(
         {
@@ -1810,7 +1810,7 @@ def test_bed_filestore(tmp_path, test_ds_v4):
         if use_arrow:
             df = df.to_pandas()
 
-        print(df)
+        # print(df)
 
         _check_dfs(
             expected_df,

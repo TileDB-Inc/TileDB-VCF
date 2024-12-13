@@ -2,8 +2,8 @@ plugins {
     id 'java'
     id 'idea'
     id 'maven-publish'
-    id 'com.github.sherter.google-java-format' version '0.8'
-    id 'com.github.johnrengelman.shadow' version '4.0.3'
+    id 'com.github.sherter.google-java-format' version '0.9'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 ext.getVersionName = { ->
@@ -29,8 +29,10 @@ ext.getVersionName = { ->
 group 'io.tiledb'
 version getVersionName()
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
 
 sourceSets {
     main {
@@ -51,9 +53,9 @@ repositories {
 
 dependencies {
     // https://mvnrepository.com/artifact/commons-io/commons-io
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.17.0'
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 test {
@@ -105,6 +107,10 @@ shadowJar {
 
 import com.github.sherter.googlejavaformatgradleplugin.GoogleJavaFormat
 import com.github.sherter.googlejavaformatgradleplugin.VerifyGoogleJavaFormat
+
+googleJavaFormat {
+    toolVersion = '1.7'
+}
 
 task format(type: GoogleJavaFormat) {
     source = sourceSets*.allJava
@@ -206,12 +212,13 @@ assemble {
 }
 
 task sourceJar(type: Jar) {
-    classifier "sources"
+    archiveClassifier.set("sources")
     from sourceSets.main.allJava
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier "javadoc"
+    archiveClassifier.set("javadoc")
     from javadoc.destinationDir
 }
 

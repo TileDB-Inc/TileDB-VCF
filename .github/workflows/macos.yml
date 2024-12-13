@@ -18,7 +18,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "11"
 jobs:
   libtiledbvcf:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - name: Setup to build htslib from source
@@ -52,9 +52,9 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Confirm linking
-        run: otool -L dist/tiledbvcf/lib/libtiledbvcf.dylib
+        run: otool -L dist/lib/libtiledbvcf.dylib
       - name: libtiledbvcf version
-        run: ./dist/tiledbvcf/bin/tiledbvcf version
+        run: ./dist/bin/tiledbvcf version
       - name: Install bcftools
         run: brew install bcftools
       - name: Unit tests
@@ -65,7 +65,7 @@ jobs:
           # USAGE: run-cli-tests.sh <build-dir> <inputs-dir>
           libtiledbvcf/test/run-cli-tests.sh libtiledbvcf/build libtiledbvcf/test/inputs
   python:
-    runs-on: macos-12
+    runs-on: macos-13
     needs: libtiledbvcf
     env:
       DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/tiledbvcf/lib"
@@ -97,7 +97,7 @@ jobs:
         run: otool -L /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-*-darwin.so
 # TODO: Do not merge with this, we need to modify build.gradle
 #  java:
-#    runs-on: macos-12
+#    runs-on: macos-13
 #    needs: libtiledbvcf
 #    steps:
 #      - uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
 #      - name: Test
 #        run: cd apis/java && ./gradlew test
   python-standalone:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:

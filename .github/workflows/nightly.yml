@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, ubuntu-latest]
+        os: [macos-13, ubuntu-24.04]
         branches:
           - {libtiledb: release-2.26, tiledb-py: 0.32.0}
           - {libtiledb: dev, tiledb-py: dev}
@@ -48,6 +48,9 @@ jobs:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Build libtiledb
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
+      - name: Setup to build htslib from source (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install --yes automake autoconf libbz2-dev liblzma-dev
       - name: Setup to build htslib from source (macOS)
         if: runner.os == 'macOS'
         run: brew install autoconf automake
@@ -65,7 +68,7 @@ jobs:
           otool -L install/tiledbvcf/lib/libtiledbvcf.dylib
       - name: Install bcftools (for tests) (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt install bcftools
+        run: sudo apt-get install --yes bcftools
       - name: Install bcftools (for tests) (macOS)
         if: runner.os == 'macOS'
         run: brew install bcftools
