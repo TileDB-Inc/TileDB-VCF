@@ -17,7 +17,7 @@ then
   echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
 fi
 
-export tiledbvcf_DIR=$GITHUB_WORKSPACE/install/
+export tiledbvcf_DIR=$GITHUB_WORKSPACE/install/tiledbvcf
 export TileDB_DIR=$GITHUB_WORKSPACE/install/
 
 cd TileDB-VCF
