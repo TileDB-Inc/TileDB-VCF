@@ -106,6 +106,8 @@ jobs:
         with:
           name: libtiledbvcf
           path: dist
+      - name: Build dependencies
+        run: brew install autoconf automake
       - name: Check format
         run: cd apis/java && ./gradlew checkFormat
       - name: Assemble
