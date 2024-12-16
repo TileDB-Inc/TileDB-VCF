@@ -151,16 +151,16 @@ task cmakeNativeLibTask(type: Exec) {
 task makeNativeLibTask(type: Exec) {
     dependsOn 'cmakeNativeLibTask'
     workingDir = "${pathConfig.nativeLibBuildDir}"
-    executable = 'make'
-    args '-j8'
+    executable = 'cmake'
+    args '--build', '.'
 }
 
 // Installs the native TileDB-VCF library.
 task installNativeLibTask(type: Exec) {
-    dependsOn 'makeNativeLibTask'
+    dependsOn 'cmakeNativeLibTask'
     workingDir = "${pathConfig.nativeLibBuildDir}"
-    executable = 'make'
-    args 'install'
+    executable = 'cmake'
+    args '--install', '.'
 }
 
 // Runs CMake for the JNI library
