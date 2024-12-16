@@ -106,6 +106,9 @@ jobs:
         with:
           name: libtiledbvcf
           path: dist
+      - name: Debug
+        run: |
+          ls -R dist
       - name: Build dependencies
         run: brew install autoconf automake
       - name: Check format
