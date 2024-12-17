@@ -197,7 +197,7 @@ task installJNITask(type: Exec) {
 
 // Try to find the native TileDB-VCF library.
 task findNativeLib {
-    if (file("${pathConfig.nativeLibInstallDir}/include/tiledbvcf.h").isFile()) {
+    if (file("${pathConfig.nativeLibInstallDir}/include/tiledbvcf/tiledbvcf.h").isFile()) {
         ext.foundNativeLib = "true"
         println "Found native TileDB-VCF library: ${pathConfig.nativeLibInstallDir}"
     } else {
