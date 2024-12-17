@@ -61,12 +61,12 @@ find_package(JNI REQUIRED)
 # You can set CMAKE_PREFIX_PATH manually for a custom TileDB-VCF location.
 find_library(TILEDBVCF_LIBRARY
   NAMES
-    tiledbvcf
+    tiledbvcf libtiledbvcf
   PATH_SUFFIXES lib
 )
 find_path(TILEDBVCF_INCLUDE_DIR
   NAMES
-    tiledbvcf/tiledbvcf.h
+    tiledbvcf.h
   PATH_SUFFIXES include
 )
 include(FindPackageHandleStandardArgs)
