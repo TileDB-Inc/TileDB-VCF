@@ -66,7 +66,7 @@ find_library(TILEDBVCF_LIBRARY
 )
 find_path(TILEDBVCF_INCLUDE_DIR
   NAMES
-    tiledbvcf.h
+    tiledbvcf/tiledbvcf.h
   PATH_SUFFIXES include
 )
 include(FindPackageHandleStandardArgs)

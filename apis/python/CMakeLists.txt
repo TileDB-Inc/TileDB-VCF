@@ -47,7 +47,7 @@ if (NOT TARGET tiledbvcf)
             REQUIRED
             NAMES tiledbvcf.h
             PATHS ${tiledbvcf_DIR}
-            PATH_SUFFIXES include
+            PATH_SUFFIXES include/tiledbvcf
     )
     add_library(tiledbvcf SHARED IMPORTED)
     set_target_properties(tiledbvcf PROPERTIES
