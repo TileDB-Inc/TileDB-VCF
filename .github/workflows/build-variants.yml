@@ -1,0 +1,115 @@
+name: Build Variants
+
+on:
+  push:
+
+jobs:
+  # This job should mimic conda-feedstock build
+  libtiledbvcf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Mamba environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: ci
+          create-args: -c tiledb tiledb=2.26 spdlog fmt cli11 htslib catch2=2.13.8
+          init-shell: >-
+            bash
+      - name: Configure CMake
+        shell: micromamba-shell {0}
+        run: |
+          cmake -S libtiledbvcf -B build \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_SHARED_LIBS=ON \
+            -D CMAKE_INSTALL_PREFIX=install \
+            -D TILEDBVCF_ENABLE_TESTS=OFF \
+            -D TILEDBVCF_FORCE_EXTERNAL_DEPENDENCIES=ON \
+            -D TILEDBVCF_INSTALL_TILEDB=OFF \
+            -D TILEDBVCF_SET_INSTALL_SUBPATH=OFF \
+            -D CMAKE_PREFIX_PATH=$CONDA_PREFIX
+      - name: Build using CMake
+        shell: micromamba-shell {0}
+        run: |
+          cmake --build build --config Release
+      - name: Install using CMake
+        shell: micromamba-shell {0}
+        run: |
+          cmake --install build --config Release
+
+      - name: Upload install folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: libtiledbvcf
+          path: install/*
+
+      # Tests
+      - name: Run unit tests 
+        shell: micromamba-shell {0}
+        run: |
+          ctest --test-dir build
+      - name: Install cli test dependencies
+        run: |
+          sudo apt-get install -y bcftools
+      - name: Run CLI tests
+        shell: micromamba-shell {0}
+        run: |
+          libtiledbvcf/test/run-cli-tests.sh build libtiledbvcf/test/inputs
+
+
+  # This job should mimic conda-feedstock build
+  python-bindings-external-libtiledbvcf:
+    needs: libtiledbvcf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Mamba environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: ci
+          create-args: -c tiledb htslib tiledb=2.26 tiledb-py python=3.11 pip pytest numpy pandas pyarrow
+          init-shell: >-
+            bash
+      - name: Download libtiledbvcf artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: libtiledbvcf
+          path: install
+      - name: Build Python bindings 
+        shell: micromamba-shell {0}
+        env:
+          tiledbvcf_DIR: "${{ github.workspace }}/install"
+        run: |
+          pip install -v --no-deps . \
+            --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON \
+            --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get install -y bcftools
+
+      - name: Run tests
+        shell: micromamba-shell {0}
+        run: |
+          export LD_LIBRARY_PATH="$CONDA_PREFIX/lib"
+          cp ${{ github.workspace }}/install/lib/libtiledbvcf* $LD_LIBRARY_PATH
+          ldd $CONDA_PREFIX/lib/python3.11/site-packages/tiledbvcf/libtiledbvcf.cpython-311-x86_64-linux-gnu.so
+          pytest apis/python
+
+
+  # This job should mimic wheel build
+  python-bindings-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get install -y ninja-build bcftools
+      - name: Build and install using PiP
+        run: |
+          pip install -v .[test]
+
+      - name: Run tests
+        run: |
+          pytest apis/python
+
