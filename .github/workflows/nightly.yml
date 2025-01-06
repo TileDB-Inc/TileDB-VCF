@@ -25,7 +25,7 @@ jobs:
         os: [macos-13, ubuntu-24.04]
         branches:
           - {libtiledb: release-2.26, tiledb-py: 0.32.0}
-          - {libtiledb: dev, tiledb-py: dev}
+          - {libtiledb: main, tiledb-py: main}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
