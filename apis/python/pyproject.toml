@@ -51,7 +51,7 @@ homepage = "https://tiledb.com"
 repository = "https://github.com/TileDB-Inc/TileDB-VCF"
 
 [build-system]
-requires = ["scikit-build-core", "pybind11[global]"]
+requires = ["scikit-build-core", "pybind11[global]", "setuptools-scm>=8.1.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
