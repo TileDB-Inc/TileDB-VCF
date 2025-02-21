@@ -165,6 +165,9 @@ std::vector<std::string> TileDBVCFDataset::get_vcf_attributes(std::string uri) {
 
   // Read VCF header into string for parsing
   bcf_hdr_t* hdr = VCFUtils::hdr_read_header(uri);
+  if (hdr == nullptr) {
+    throw std::runtime_error("Error reading VCF header from: " + uri);
+  }
   std::string hdrstr = VCFUtils::hdr_to_string(hdr);
   const char* p = hdrstr.c_str();
 

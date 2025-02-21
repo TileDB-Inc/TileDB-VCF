@@ -62,6 +62,12 @@ uint32_t VCFUtils::get_end_pos(
 
 bcf_hdr_t* VCFUtils::hdr_read_header(const std::string& path) {
   auto fh = vcf_open(path.c_str(), "r");
+
+  int retries = 3;
+  while (!fh && retries--) {
+    fh = vcf_open(path.c_str(), "r");
+  }
+
   if (!fh)
     return nullptr;
   auto hdr = bcf_hdr_read(fh);
