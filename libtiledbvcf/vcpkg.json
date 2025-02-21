@@ -1,0 +1,25 @@
+{
+  "dependencies": [
+    "cli11",
+    "spdlog",
+    {
+      "name": "htslib",
+      "platform": "!windows"
+    }
+  ],
+  "features": {
+    "tests": {
+      "description": "Build tiledb tests",
+      "dependencies": [
+        "catch2"
+      ]
+    }
+  },
+  "builtin-baseline": "b171feebd4f8b7943b56356f9ec1d4dbe44ab82f",
+  "overrides": [
+    {
+      "name": "catch2",
+      "version": "2.13.8"
+    }
+  ]
+}

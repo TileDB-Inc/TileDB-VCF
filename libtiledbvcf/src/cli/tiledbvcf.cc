@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include <CLI11.hpp>
+#include <CLI/CLI.hpp>
 #include <tiledb/tiledb>
 
 #include "dataset/tiledbvcfdataset.h"
