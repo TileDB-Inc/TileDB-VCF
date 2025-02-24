@@ -21,7 +21,7 @@ export tiledbvcf_DIR=$GITHUB_WORKSPACE/install/tiledbvcf
 export TileDB_DIR=$GITHUB_WORKSPACE/install/
 
 cd TileDB-VCF
-python -m pip install -v --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON .[test]
+python -m pip install -v --config-settings=cmake.define.TILEDBVCF_ONLY_PYTHON_BINDINGS=ON --config-settings=cmake.define.TILEDBVCF_SET_RPATH=OFF .[test]
 python -c "import tiledbvcf; print(tiledbvcf.version)"
 
 pytest
