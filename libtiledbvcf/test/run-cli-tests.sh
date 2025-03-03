@@ -12,7 +12,7 @@ set -ex
 
 build_dir=$PWD/$1
 input_dir=$PWD/$2
-tilevcf=${build_dir}/libtiledbvcf/src/tiledbvcf
+tilevcf=${build_dir}/src/tiledbvcf
 upload_dir=/tmp/tilevcf-upload-dir-$$
 
 # Clean up test outputs

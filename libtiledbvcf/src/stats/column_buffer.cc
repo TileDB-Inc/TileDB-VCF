@@ -178,7 +178,7 @@ size_t ColumnBuffer::update_size(const Query& query) {
     if (offsets_.capacity() < num_offsets + 1) {
       offsets_.reserve(num_offsets + 1);
     }
-    offsets_[num_offsets] = num_elements;
+    *(offsets_.data() + num_offsets) = num_elements;
     num_elements_ = num_elements;
   } else {
     num_cells_ = num_elements;
@@ -198,8 +198,8 @@ std::vector<std::string> ColumnBuffer::strings() {
 }
 
 std::string_view ColumnBuffer::string_view(uint64_t index) {
-  auto start = offsets_[index];
-  auto len = offsets_[index + 1] - start;
+  auto start = *(offsets_.data() + index);
+  auto len = *(offsets_.data() + index + 1) - start;
 
   // For the last cell, the length is the remaining bytes in the buffer.
   if (index == num_cells_ - 1) {

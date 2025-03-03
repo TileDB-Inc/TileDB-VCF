@@ -1,7 +1,8 @@
 .vscode*
 *.swp
 dev/*
-dist/*
+dist
+env
 libtiledbvcf/cmake-build-*/*
 libtiledbvcf/build/*
 apis/java/.gradle/*
@@ -57,3 +58,6 @@ docs/.quarto
 
 # Python venv
 venv/
+
+# CMake user presets
+CMakeUserPresets.json
