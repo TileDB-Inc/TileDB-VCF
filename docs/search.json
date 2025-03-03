@@ -1,53 +1,5 @@
 [
   {
-    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html",
-    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html",
-    "title": "TileDB-VCF Allele Frequencies",
-    "section": "",
-    "text": "This notebook will walk you through\nThis notebook uses the TileDB-Inc/vcf-1kghicov-dragen-v376 version of the 1000 genome project.\nimport tiledbvcf\nimport tiledb\nuri = \"tiledb://TileDB-Inc/vcf-1kghicov-dragen-v376\"",
-    "crumbs": [
-      "Home page",
-      "Examples",
-      "TileDB-VCF Allele Frequencies"
-    ]
-  },
-  {
-    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#including-allele-frequency-field",
-    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#including-allele-frequency-field",
-    "title": "TileDB-VCF Allele Frequencies",
-    "section": "Including Allele Frequency Field",
-    "text": "Including Allele Frequency Field\nThe computed allele frequency can be included in results with the info_TILEDB_IAF attribute\n\nattributes = [\"sample_name\", \"contig\", \"pos_start\", \"pos_end\", \"alleles\", \"fmt_GT\", \"info_TILEDB_IAF\"]\n\nds = tiledbvcf.Dataset(uri, mode=\"r\")\n\n\n# Query for BTD across all 3404 samples\ndf = ds.read(\n    attrs=attributes,\n    regions=[\"chr3:15601341-15722311\"],\n)\n\n\ndf\n\n\n\n\n\n\n\n\nsample_name\ncontig\npos_start\npos_end\nalleles\nfmt_GT\ninfo_TILEDB_IAF\n\n\n\n\n0\nHG00096\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n1\nHG00097\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n2\nHG00099\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n3\nHG00100\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n4\nHG00101\nchr3\n15601536\n15601536\n[A, G]\n[0, 1]\nNone\n\n\n...\n...\n...\n...\n...\n...\n...\n...\n\n\n606391\nNA21143\nchr3\n15721413\n15721413\n[C, T]\n[0, 1]\nNone\n\n\n606392\nNA21144\nchr3\n15721413\n15721413\n[C, T]\n[1, 1]\nNone\n\n\n606393\nNA21144\nchr3\n15721470\n15721470\n[T, C]\n[0, 1]\nNone\n\n\n606394\nNA21143\nchr3\n15721933\n15721933\n[C, T]\n[0, 1]\nNone\n\n\n606395\nNA21144\nchr3\n15722066\n15722066\n[A, G]\n[0, 1]\nNone\n\n\n\n\n606396 rows × 7 columns",
-    "crumbs": [
-      "Home page",
-      "Examples",
-      "TileDB-VCF Allele Frequencies"
-    ]
-  },
-  {
-    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#filtering-on-iaf",
-    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#filtering-on-iaf",
-    "title": "TileDB-VCF Allele Frequencies",
-    "section": "Filtering on IAF",
-    "text": "Filtering on IAF\nFilters for allele frequency can also be included by using the set_af_filter parameter.\n\n# Query for BTD across all 3404 samples\ndf = ds.read(\n    attrs=attributes,\n    regions=[\"chr3:15601341-15722311\"],\n    set_af_filter=\"&lt;0.5\",\n)\n\n\ndf\n\n\n\n\n\n\n\n\nsample_name\ncontig\npos_start\npos_end\nalleles\nfmt_GT\ninfo_TILEDB_IAF\n\n\n\n\n0\nHG00101\nchr3\n15601536\n15601536\n[A, G]\n[0, 1]\n[0.027682202, 0.9723178]\n\n\n1\nHG00100\nchr3\n15601668\n15601668\n[G, A]\n[0, 1]\n[0.43612567, 0.56387436]\n\n\n2\nHG00100\nchr3\n15602568\n15602568\n[A, G]\n[0, 1]\n[0.42662117, 0.57337886]\n\n\n3\nHG00100\nchr3\n15602688\n15602688\n[G, A]\n[0, 1]\n[0.47108433, 0.52891564]\n\n\n4\nHG00096\nchr3\n15603161\n15603161\n[A, G]\n[0, 1]\n[0.44444445, 0.5555556]\n\n\n...\n...\n...\n...\n...\n...\n...\n...\n\n\n370583\nNA21144\nchr3\n15721189\n15721189\n[C, G]\n[0, 1]\n[0.43555242, 0.5644476]\n\n\n370584\nNA21143\nchr3\n15721340\n15721340\n[G, A]\n[0, 1]\n[0.3335806, 0.6664194]\n\n\n370585\nNA21143\nchr3\n15721413\n15721413\n[C, T]\n[0, 1]\n[0.33333334, 0.6666667]\n\n\n370586\nNA21144\nchr3\n15721470\n15721470\n[T, C]\n[0, 1]\n[0.4868421, 0.5131579]\n\n\n370587\nNA21144\nchr3\n15722066\n15722066\n[A, G]\n[0, 1]\n[0.4359155, 0.56408453]\n\n\n\n\n370588 rows × 7 columns",
-    "crumbs": [
-      "Home page",
-      "Examples",
-      "TileDB-VCF Allele Frequencies"
-    ]
-  },
-  {
-    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#accessing-allele-frequencies-directly",
-    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#accessing-allele-frequencies-directly",
-    "title": "TileDB-VCF Allele Frequencies",
-    "section": "Accessing Allele Frequencies Directly",
-    "text": "Accessing Allele Frequencies Directly\nAllele frequencies can also be queried directly in addition to as part of the variant query\n\n# Get the variant stats ur\nwith tiledb.Group(uri) as g:\n    alleles_uri  = g[\"variant_stats\"].uri\n\n\n# BRCA1 from https://www.ncbi.nlm.nih.gov/gene/672\ncontig = 'chr17'\nregion = slice(43_036_174, 43_133_600)  # pos is 0 based\n\n\n# Query allele frequencies and get results as a pandas dataframe\n\nwith tiledb.open(alleles_uri) as A:\n    df = A.query(attrs=[\"ac\", \"allele\"], dims=[\"pos\", \"contig\"]).df[contig, region]\n\n\n# Summarize frequencies\n\ndef calc_af(df):\n    \"\"\"Consolidate AC and compute AN, AF\"\"\"\n    # Allele Count (AC) = sum of all AC at the same locus\n    # This step consolidates ACs from all ingested batches\n    df = df.groupby([\"pos\", \"allele\"], sort=True).sum()\n\n    # Allele Number (AN) = sum of AC at the same locus\n    an = df.groupby([\"pos\"], sort=True).ac.sum().rename(\"an\") \n    df = df.join(an, how=\"inner\")\n    \n    # Allele Frequency (AF) = AC / AN\n    df[\"af\"] = df.ac / df.an\n    return df\n\ncalc_af(df)\n\n\n\n\n\n\n\n\n\nac\nan\naf\n\n\npos\nallele\n\n\n\n\n\n\n\n43036179\nA\n33\n66\n0.500000\n\n\nG\n33\n66\n0.500000\n\n\n43036181\nA\n1\n2\n0.500000\n\n\nG\n1\n2\n0.500000\n\n\n43036308\nC\n238\n528\n0.450758\n\n\n...\n...\n...\n...\n...\n\n\n43133528\nC\n5\n12\n0.416667\n\n\nT\n6\n12\n0.500000\n\n\nTC\n1\n12\n0.083333\n\n\n43133556\nC\n1\n2\n0.500000\n\n\nT\n1\n2\n0.500000\n\n\n\n\n8292 rows × 3 columns",
-    "crumbs": [
-      "Home page",
-      "Examples",
-      "TileDB-VCF Allele Frequencies"
-    ]
-  },
-  {
     "objectID": "examples/tutorial_tiledbvcf_basics.html",
     "href": "examples/tutorial_tiledbvcf_basics.html",
     "title": "TileDB-VCF Tutorial",
@@ -156,27 +108,99 @@
     ]
   },
   {
-    "objectID": "documentation/ingestion/distributed-ingestion.html",
-    "href": "documentation/ingestion/distributed-ingestion.html",
-    "title": "Distributed Ingestion",
+    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html",
+    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html",
+    "title": "TileDB-VCF Allele Frequencies",
     "section": "",
-    "text": "TileDB has built in support for scalable distributed ingestion.\ningest is a simply python command that will dispatch and run a task graph to load VCF samples in parallel across a number of machines.",
+    "text": "This notebook will walk you through\nThis notebook uses the TileDB-Inc/vcf-1kghicov-dragen-v376 version of the 1000 genome project.\nimport tiledbvcf\nimport tiledb\nuri = \"tiledb://TileDB-Inc/vcf-1kghicov-dragen-v376\"",
     "crumbs": [
       "Home page",
-      "Ingestion",
-      "Distributed Ingestion"
+      "Examples",
+      "TileDB-VCF Allele Frequencies"
     ]
   },
   {
-    "objectID": "documentation/ingestion/distributed-ingestion.html#example",
-    "href": "documentation/ingestion/distributed-ingestion.html#example",
-    "title": "Distributed Ingestion",
-    "section": "Example",
-    "text": "Example\nIn order to run this example please make sure to have install TileDB-Cloud-Py with pip install --user tiledb-cloud.\nimport tiledb.cloud\nfrom tiledb.cloud.vcf import ingest\n\ns3_storage_uri = \"s3://my_bucket/my_array\"\nvcf_location = \"s3://1000genomes-dragen-v3.7.6/data/individuals/hg38-graph-based\"\npattern = \"*.hard-filtered.vcf.gz\"\nmax_files = 75\nname = f\"dragen-v3.7.6-example-{max_files}\"\n\nnamespace = \"my-organization\"\ntiledb_uri = f\"tiledb://{namespace}/{name}\"\n\n# Define which contigs we want to ingest\ncontigs = Contigs.CHROMOSOMES\n\n\ningest(\n    s3_storage_uri,\n    config=config,\n    search_uri=vcf_location,\n    pattern=pattern,\n    max_files=max_files,\n    contigs=contigs,\n)\n\nContigs\nTileDB support specifying the contigs you wish to ingest. The default behavior is to ingestion all contigs present in a VCF file. However you can specify if you’d like to restrict to a specific list or a predefined list\nOptions for contigs:\n\nALL\nCHROMOSOMES\nOTHER",
+    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#including-allele-frequency-field",
+    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#including-allele-frequency-field",
+    "title": "TileDB-VCF Allele Frequencies",
+    "section": "Including Allele Frequency Field",
+    "text": "Including Allele Frequency Field\nThe computed allele frequency can be included in results with the info_TILEDB_IAF attribute\n\nattributes = [\"sample_name\", \"contig\", \"pos_start\", \"pos_end\", \"alleles\", \"fmt_GT\", \"info_TILEDB_IAF\"]\n\nds = tiledbvcf.Dataset(uri, mode=\"r\")\n\n\n# Query for BTD across all 3404 samples\ndf = ds.read(\n    attrs=attributes,\n    regions=[\"chr3:15601341-15722311\"],\n)\n\n\ndf\n\n\n\n\n\n\n\n\nsample_name\ncontig\npos_start\npos_end\nalleles\nfmt_GT\ninfo_TILEDB_IAF\n\n\n\n\n0\nHG00096\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n1\nHG00097\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n2\nHG00099\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n3\nHG00100\nchr3\n15601536\n15601536\n[A, G]\n[1, 1]\nNone\n\n\n4\nHG00101\nchr3\n15601536\n15601536\n[A, G]\n[0, 1]\nNone\n\n\n...\n...\n...\n...\n...\n...\n...\n...\n\n\n606391\nNA21143\nchr3\n15721413\n15721413\n[C, T]\n[0, 1]\nNone\n\n\n606392\nNA21144\nchr3\n15721413\n15721413\n[C, T]\n[1, 1]\nNone\n\n\n606393\nNA21144\nchr3\n15721470\n15721470\n[T, C]\n[0, 1]\nNone\n\n\n606394\nNA21143\nchr3\n15721933\n15721933\n[C, T]\n[0, 1]\nNone\n\n\n606395\nNA21144\nchr3\n15722066\n15722066\n[A, G]\n[0, 1]\nNone\n\n\n\n\n606396 rows × 7 columns",
+    "crumbs": [
+      "Home page",
+      "Examples",
+      "TileDB-VCF Allele Frequencies"
+    ]
+  },
+  {
+    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#filtering-on-iaf",
+    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#filtering-on-iaf",
+    "title": "TileDB-VCF Allele Frequencies",
+    "section": "Filtering on IAF",
+    "text": "Filtering on IAF\nFilters for allele frequency can also be included by using the set_af_filter parameter.\n\n# Query for BTD across all 3404 samples\ndf = ds.read(\n    attrs=attributes,\n    regions=[\"chr3:15601341-15722311\"],\n    set_af_filter=\"&lt;0.5\",\n)\n\n\ndf\n\n\n\n\n\n\n\n\nsample_name\ncontig\npos_start\npos_end\nalleles\nfmt_GT\ninfo_TILEDB_IAF\n\n\n\n\n0\nHG00101\nchr3\n15601536\n15601536\n[A, G]\n[0, 1]\n[0.027682202, 0.9723178]\n\n\n1\nHG00100\nchr3\n15601668\n15601668\n[G, A]\n[0, 1]\n[0.43612567, 0.56387436]\n\n\n2\nHG00100\nchr3\n15602568\n15602568\n[A, G]\n[0, 1]\n[0.42662117, 0.57337886]\n\n\n3\nHG00100\nchr3\n15602688\n15602688\n[G, A]\n[0, 1]\n[0.47108433, 0.52891564]\n\n\n4\nHG00096\nchr3\n15603161\n15603161\n[A, G]\n[0, 1]\n[0.44444445, 0.5555556]\n\n\n...\n...\n...\n...\n...\n...\n...\n...\n\n\n370583\nNA21144\nchr3\n15721189\n15721189\n[C, G]\n[0, 1]\n[0.43555242, 0.5644476]\n\n\n370584\nNA21143\nchr3\n15721340\n15721340\n[G, A]\n[0, 1]\n[0.3335806, 0.6664194]\n\n\n370585\nNA21143\nchr3\n15721413\n15721413\n[C, T]\n[0, 1]\n[0.33333334, 0.6666667]\n\n\n370586\nNA21144\nchr3\n15721470\n15721470\n[T, C]\n[0, 1]\n[0.4868421, 0.5131579]\n\n\n370587\nNA21144\nchr3\n15722066\n15722066\n[A, G]\n[0, 1]\n[0.4359155, 0.56408453]\n\n\n\n\n370588 rows × 7 columns",
+    "crumbs": [
+      "Home page",
+      "Examples",
+      "TileDB-VCF Allele Frequencies"
+    ]
+  },
+  {
+    "objectID": "examples/tutorial_tiledbvcf_allele_frequencies.html#accessing-allele-frequencies-directly",
+    "href": "examples/tutorial_tiledbvcf_allele_frequencies.html#accessing-allele-frequencies-directly",
+    "title": "TileDB-VCF Allele Frequencies",
+    "section": "Accessing Allele Frequencies Directly",
+    "text": "Accessing Allele Frequencies Directly\nAllele frequencies can also be queried directly in addition to as part of the variant query\n\n# Get the variant stats ur\nwith tiledb.Group(uri) as g:\n    alleles_uri  = g[\"variant_stats\"].uri\n\n\n# BRCA1 from https://www.ncbi.nlm.nih.gov/gene/672\ncontig = 'chr17'\nregion = slice(43_036_174, 43_133_600)  # pos is 0 based\n\n\n# Query allele frequencies and get results as a pandas dataframe\n\nwith tiledb.open(alleles_uri) as A:\n    df = A.query(attrs=[\"ac\", \"allele\"], dims=[\"pos\", \"contig\"]).df[contig, region]\n\n\n# Summarize frequencies\n\ndef calc_af(df):\n    \"\"\"Consolidate AC and compute AN, AF\"\"\"\n    # Allele Count (AC) = sum of all AC at the same locus\n    # This step consolidates ACs from all ingested batches\n    df = df.groupby([\"pos\", \"allele\"], sort=True).sum()\n\n    # Allele Number (AN) = sum of AC at the same locus\n    an = df.groupby([\"pos\"], sort=True).ac.sum().rename(\"an\") \n    df = df.join(an, how=\"inner\")\n    \n    # Allele Frequency (AF) = AC / AN\n    df[\"af\"] = df.ac / df.an\n    return df\n\ncalc_af(df)\n\n\n\n\n\n\n\n\n\nac\nan\naf\n\n\npos\nallele\n\n\n\n\n\n\n\n43036179\nA\n33\n66\n0.500000\n\n\nG\n33\n66\n0.500000\n\n\n43036181\nA\n1\n2\n0.500000\n\n\nG\n1\n2\n0.500000\n\n\n43036308\nC\n238\n528\n0.450758\n\n\n...\n...\n...\n...\n...\n\n\n43133528\nC\n5\n12\n0.416667\n\n\nT\n6\n12\n0.500000\n\n\nTC\n1\n12\n0.083333\n\n\n43133556\nC\n1\n2\n0.500000\n\n\nT\n1\n2\n0.500000\n\n\n\n\n8292 rows × 3 columns",
+    "crumbs": [
+      "Home page",
+      "Examples",
+      "TileDB-VCF Allele Frequencies"
+    ]
+  },
+  {
+    "objectID": "documentation/ingestion/cli.html",
+    "href": "documentation/ingestion/cli.html",
+    "title": "CLI",
+    "section": "",
+    "text": "Note\n\n\n\nThe files used in the following examples can be obtained here.\n\n\nThe first step is to create an empty dataset. Let’s save the dataset in a new array called small_dataset:\ntiledbvcf create --uri small_dataset",
     "crumbs": [
       "Home page",
       "Ingestion",
-      "Distributed Ingestion"
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "documentation/ingestion/cli.html#create-a-new-dataset",
+    "href": "documentation/ingestion/cli.html#create-a-new-dataset",
+    "title": "CLI",
+    "section": "",
+    "text": "Note\n\n\n\nThe files used in the following examples can be obtained here.\n\n\nThe first step is to create an empty dataset. Let’s save the dataset in a new array called small_dataset:\ntiledbvcf create --uri small_dataset",
+    "crumbs": [
+      "Home page",
+      "Ingestion",
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "documentation/ingestion/cli.html#store-samples",
+    "href": "documentation/ingestion/cli.html#store-samples",
+    "title": "CLI",
+    "section": "Store samples",
+    "text": "Store samples\n\nIngest from local storage\nWe’ll start with a small example using 3 synthetic VCF files, assuming they are locally available in a folder data/vcfs:\ntree data\n## data\n## ├── gene-promoters-hg38.bed\n## ├── s3-bcf-samples.txt\n## └── vcfs\n##     ├── G1.vcf.gz\n##     ├── G1.vcf.gz.csi\n##     ├── G2.vcf.gz\n##     ├── G2.vcf.gz.csi\n##     ├── G3.vcf.gz\n##     └── G3.vcf.gz.csi\n##\n## 1 directory, 8 files\nIndex files are required for ingestion. If your VCF/BCF files have not been indexed you can use bcftools to do so:\nfor f in data/vcfs/*.vcf.gz; do bcftools index -c $f; done\nWe can ingest these files into small_dataset as follows:\ntiledbvcf store --uri small_dataset data/vcfs/G*.vcf.gz\nThat’s it! Let’s verify everything went okay using the stat command to provide high-level statistics about our dataset including the number of samples it contains and the variant attributes it includes.\ntiledbvcf stat --uri small_dataset\n## Statistics for dataset 'small_dataset':\n## - Version: 4\n## - Tile capacity: 10,000\n## - Anchor gap: 1,000\n## - Number of registered samples: 3\n## - Extracted attributes: none\nAt this point you have successfully created and populated a TileDB VCF dataset using data stored locally on your machine. Next we’ll look at the more common scenario of working with files stored on a cloud object store.\n\n\nIngest from S3\nTileDB Embedded’s native cloud features make it possible to ingest samples directly from remote locations. Here, we’ll ingest the following samples located on AWS S3:\ncat data/s3-bcf-samples.txt\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf\n\n\n\n\n\n\nNote\n\n\n\nSamples in this second batch are stored as BCF files which are also supported by TileDB-VCF.\n\n\nThis process is identical to the steps perfo_r_med above, the only changes needed to our code involve setting --scratch-mb to allocate some temporary space for downloading the files and providing the URLs for the remote files. In this case, we’ll simply pass the s3-bcf-samples.txt file, which includes a list of the BCF files we want to ingest.\n\n\n\n\n\n\nNote\n\n\n\nWhen ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s sample_bactch_size (which by default is 10). You can read more about the data model here.\n\n\nYou can add the --verbose flag to print out more information during the store phase.\ntiledbvcf store \\\n  --uri small_dataset \\\n  --samples-file data/s3-bcf-samples.txt \\\n  --verbose\n  \n## Initialization completed in 3.17565 sec.\n## ...\n## Done. Ingested 1,391 records (+ 69,548 anchors) from 7 samples in 10.6751\n## seconds.\nConsolidating and vacuuming fragment metadata and commits are recommended after creating a new dataset or adding several new samples to an existing dataset.\ntiledbvcf utils consolidate fragment_meta --uri small_dataset\ntiledbvcf utils consolidate commits --uri small_dataset\ntiledbvcf utils vacuum fragment_meta --uri small_dataset\ntiledbvcf utils vacuum commits --uri small_dataset",
+    "crumbs": [
+      "Home page",
+      "Ingestion",
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "documentation/ingestion/cli.html#incremental-updates",
+    "href": "documentation/ingestion/cli.html#incremental-updates",
+    "title": "CLI",
+    "section": "Incremental Updates",
+    "text": "Incremental Updates\nA key advantage to using TileDB as a data store for genomic variant data is the ability to efficiently add new samples as they become available. The dataset creation command should be called once. Then you can invoke the store command multiple commands.\n\n\n\n\n\n\nNote\n\n\n\nThe store command is thread- and process-safe, even on the cloud. That means it can be invoked in parallel, arbitrarily scaling out the ingestion of massive datasets.\n\n\nSuppose we run the store for the first 3 local samples, followed by the store command for the 7 samples stored on the S3. If we run the stat command, we can verify that our dataset now includes 10 samples.\ntiledbvcf stat --uri small_dataset\n## Statistics for dataset 'small_dataset':\n## - Version: 4\n## - Tile capacity: 10,000\n## - Anchor gap: 1,000\n## - Number of registered samples: 10\n## - Extracted attributes: none\nBecause TileDB is designed to be updatable, the store process happens efficiently and without ever touching any previously or concurrently ingested data, avoiding computationally expensive operations like regenerating combined VCF files.",
+    "crumbs": [
+      "Home page",
+      "Ingestion",
+      "CLI"
     ]
   },
   {
@@ -201,6 +225,137 @@
       "Home page",
       "Ingestion",
       "Python"
+    ]
+  },
+  {
+    "objectID": "documentation/reference/config_logging.html",
+    "href": "documentation/reference/config_logging.html",
+    "title": "config_logging",
+    "section": "",
+    "text": "config_logging(level='fatal', log_file='')\nConfigure tiledbvcf logging.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nlevel\nstr\nLog level from (fatal|error|warn|info|debug|trace)\n'fatal'\n\n\nlog_file\nstr\nLog file path.\n''"
+  },
+  {
+    "objectID": "documentation/reference/config_logging.html#parameters",
+    "href": "documentation/reference/config_logging.html#parameters",
+    "title": "config_logging",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nlevel\nstr\nLog level from (fatal|error|warn|info|debug|trace)\n'fatal'\n\n\nlog_file\nstr\nLog file path.\n''"
+  },
+  {
+    "objectID": "documentation/reference/ReadConfig.html",
+    "href": "documentation/reference/ReadConfig.html",
+    "title": "ReadConfig",
+    "section": "",
+    "text": "ReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nlimit\nint\nMax number of records (rows) to read\n\n\nregion_partition\ntuple\nRegion partition tuple (idx, num_partitions)\n\n\nsample_partition\ntuple\nSamples partition tuple (idx, num_partitions)\n\n\nsort_regions\nbool\nWhether or not to sort the regions to be read, default True\n\n\nmemory_budget_mb\nint\nMemory budget (MB) for buffer and internal allocations, default 2048MB\n\n\ntiledb_config\nList[str]\nList of strings of format ‘option=value’\n\n\nbuffer_percentage\nint\nPercentage of memory to dedicate to TileDB Query Buffers, default 25\n\n\ntiledb_tile_cache_percentage\nint\nPercentage of memory to dedicate to TileDB Tile Cache, default 10"
+  },
+  {
+    "objectID": "documentation/reference/ReadConfig.html#attributes",
+    "href": "documentation/reference/ReadConfig.html#attributes",
+    "title": "ReadConfig",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\nlimit\nint\nMax number of records (rows) to read\n\n\nregion_partition\ntuple\nRegion partition tuple (idx, num_partitions)\n\n\nsample_partition\ntuple\nSamples partition tuple (idx, num_partitions)\n\n\nsort_regions\nbool\nWhether or not to sort the regions to be read, default True\n\n\nmemory_budget_mb\nint\nMemory budget (MB) for buffer and internal allocations, default 2048MB\n\n\ntiledb_config\nList[str]\nList of strings of format ‘option=value’\n\n\nbuffer_percentage\nint\nPercentage of memory to dedicate to TileDB Query Buffers, default 25\n\n\ntiledb_tile_cache_percentage\nint\nPercentage of memory to dedicate to TileDB Tile Cache, default 10"
+  },
+  {
+    "objectID": "documentation/how-to/work-with-cloud-object-stores.html",
+    "href": "documentation/how-to/work-with-cloud-object-stores.html",
+    "title": "Work with Cloud Object Stores",
+    "section": "",
+    "text": "TileDB Embedded provides native support for reading from and writing to cloud object stores like AWS S3, Google Cloud Storage, and Microsoft Azure Blob Store. This guide will cover some considerations for using TileDB-VCF with these services. The examples will focus exclusively on S3, which is the most widely used, but note any of the aforementioned services can be substituted, as well as on-premise services like MinIO that provide S3-compatible APIs.\n\n\nThe process of creating a TileDB-VCF dataset on S3 is nearly identical to creating a local dataset. The only difference being an s3:// address is passed to the --uri argument rather than a local file path.\ntiledbvcf create --uri s3://my-bucket/my_dataset\nThis also works when querying a TileDB-VCF dataset located on S3.\ntiledbvcf export \\\n  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"\n\n\n\nVCF files located on S3 can be ingested directly into a TileDBVCF dataset using 1 of 2 different possible approaches. \n\n\nThe first approach is the easiest, you simply pass the tiledbvcf store command a list of S3 URIs and TileDB-VCF takes care of the rest:\ntiledbvcf store \\\n    --uri my_dataset \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nIn this approach, remote VCF index files (which are relatively tiny) are downloaded locally, allowing TileDB-VCF to retrieve chunks of variant data from the remote VCF files without having to download them in full. By default, index files are downloaded to your current working directory, however, you can choose to store them in different location (e.g., a temporary directory) using the --scratch-dir argument.\n\n\n\nThe second approach is to download batches of VCF files in their entirety before ingestion, which may slightly improve ingestion performance. This approach requires allocating TileDB-VCF with scratch disk space using the --scratch-mb and --scratch-dir arguments.\ntiledbvcf store \\\n    --uri my_dataset \\\n    --scratch-dir \"$TMPDIR\" \\\n    --scratch-mb 4096 \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nThe number of VCF files that are downloaded at a time is determined by the --sample-batch-size parameter, which defaults to 10. Downloading and ingestion happens asynchronously, so, for example, batch 3 will be downloaded as batch 2 is being ingestion. As a result, you must configure enough scratch space to store at least 20 samples, assuming a batch size of 10.\n\n\n\n\nFor TileDB to access a remote storage bucket you must be properly authenticated on the machine running TileDB. For S3, this means having access to the appropriate AWS access key ID and secret access key. This typically happens in one of three ways:\n\n\nIf the AWS Command Line Interface (CLI) is installed on your machine, running aws configure will store your credentials in a local profile that TileDB can access. You can verify the CLI has been previously configured by running:\naws s3 ls\nIf properly configured, this will output a list of the S3 buckets you (and thus TileDB) can access.\n\n\n\nYou can pass your AWS access key ID and secret access key to TileDB-VCF directly via the --tiledb-config argument, which expects a comma-separated string:\ntiledbvcf store \\\n    --uri my_dataset \\\n    --tiledb-config vfs.s3.aws_access_key_id=&lt;id&gt;,vfs.s3.aws_secret_access_key=&lt;secret&gt; \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n\n\n\nYour AWS credentials can also be passed to TileDB by defining the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Work with Cloud Object Stores"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#remote-datasets",
+    "href": "documentation/how-to/work-with-cloud-object-stores.html#remote-datasets",
+    "title": "Work with Cloud Object Stores",
+    "section": "",
+    "text": "The process of creating a TileDB-VCF dataset on S3 is nearly identical to creating a local dataset. The only difference being an s3:// address is passed to the --uri argument rather than a local file path.\ntiledbvcf create --uri s3://my-bucket/my_dataset\nThis also works when querying a TileDB-VCF dataset located on S3.\ntiledbvcf export \\\n  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Work with Cloud Object Stores"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#remote-vcf-files",
+    "href": "documentation/how-to/work-with-cloud-object-stores.html#remote-vcf-files",
+    "title": "Work with Cloud Object Stores",
+    "section": "",
+    "text": "VCF files located on S3 can be ingested directly into a TileDBVCF dataset using 1 of 2 different possible approaches. \n\n\nThe first approach is the easiest, you simply pass the tiledbvcf store command a list of S3 URIs and TileDB-VCF takes care of the rest:\ntiledbvcf store \\\n    --uri my_dataset \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nIn this approach, remote VCF index files (which are relatively tiny) are downloaded locally, allowing TileDB-VCF to retrieve chunks of variant data from the remote VCF files without having to download them in full. By default, index files are downloaded to your current working directory, however, you can choose to store them in different location (e.g., a temporary directory) using the --scratch-dir argument.\n\n\n\nThe second approach is to download batches of VCF files in their entirety before ingestion, which may slightly improve ingestion performance. This approach requires allocating TileDB-VCF with scratch disk space using the --scratch-mb and --scratch-dir arguments.\ntiledbvcf store \\\n    --uri my_dataset \\\n    --scratch-dir \"$TMPDIR\" \\\n    --scratch-mb 4096 \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nThe number of VCF files that are downloaded at a time is determined by the --sample-batch-size parameter, which defaults to 10. Downloading and ingestion happens asynchronously, so, for example, batch 3 will be downloaded as batch 2 is being ingestion. As a result, you must configure enough scratch space to store at least 20 samples, assuming a batch size of 10.",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Work with Cloud Object Stores"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#authentication",
+    "href": "documentation/how-to/work-with-cloud-object-stores.html#authentication",
+    "title": "Work with Cloud Object Stores",
+    "section": "",
+    "text": "For TileDB to access a remote storage bucket you must be properly authenticated on the machine running TileDB. For S3, this means having access to the appropriate AWS access key ID and secret access key. This typically happens in one of three ways:\n\n\nIf the AWS Command Line Interface (CLI) is installed on your machine, running aws configure will store your credentials in a local profile that TileDB can access. You can verify the CLI has been previously configured by running:\naws s3 ls\nIf properly configured, this will output a list of the S3 buckets you (and thus TileDB) can access.\n\n\n\nYou can pass your AWS access key ID and secret access key to TileDB-VCF directly via the --tiledb-config argument, which expects a comma-separated string:\ntiledbvcf store \\\n    --uri my_dataset \\\n    --tiledb-config vfs.s3.aws_access_key_id=&lt;id&gt;,vfs.s3.aws_secret_access_key=&lt;secret&gt; \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n\n\n\nYour AWS credentials can also be passed to TileDB by defining the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Work with Cloud Object Stores"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/overview.html",
+    "href": "documentation/how-to/overview.html",
+    "title": "How To",
+    "section": "",
+    "text": "How To\nThis section includes useful guides about the usage of TileDB-VCF:\n{% content-ref url=“handle-large-queries.md” %} handle-large-queries.md {% endcontent-ref %}\n{% content-ref url=“work-with-cloud-object-stores.md” %} work-with-cloud-object-stores.md {% endcontent-ref %}"
+  },
+  {
+    "objectID": "documentation/how-to/read-from-the-dataset.html",
+    "href": "documentation/how-to/read-from-the-dataset.html",
+    "title": "Read from the Dataset",
+    "section": "",
+    "text": "Before slicing the data, you may wish to get some information about your dataset, such as the sample names, the attributes you can query, etc.\n You can get the sample names as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.samples()\ntiledbvcf list -u my_vcf_dataset\nYou can get the attributes as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.attributes()                      # will print all queryable attributes\nds.attributes(attr_type = \"builtin\") # will print all materialized attributes\ntiledbvcf stat -u my_vcf_datset\n\n\n\nYou can rapidly read from a TileDB-VCF dataset by providing three main parameters (all optional):\n\nA subset of the samples\nA subset of the attributes\nOne or more genomic ranges\n\nEither as strings in format chr:pos_range\nOr via a BED file\n\n\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.read(\n    attrs = [\"alleles\", \"pos_start\", \"pos_end\"],\n    regions = [\"1:113409605-113475691\", \"1:113500000-113600000\"],\n    # or pass regions as follows:\n    # bed_file = &lt;bed_filename&gt;\n    samples = ['HG0099', 'HG00100']\n)\ntiledbvcf export \\\n    --uri my_vcf_dataset \\\n    --output-format t \\\n    --tsv-fields ALT,Q:POS,Q:END\n    --sample-names HG0099,HG00100\n    --regions 1:113409605-113475691,1:113500000-113600000\n    # or pass the regions in a BED file as follows:\n    # --regions-file &lt;bed_filename&gt;",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Read from the Dataset"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/read-from-the-dataset.html#basic-utils",
+    "href": "documentation/how-to/read-from-the-dataset.html#basic-utils",
+    "title": "Read from the Dataset",
+    "section": "",
+    "text": "Before slicing the data, you may wish to get some information about your dataset, such as the sample names, the attributes you can query, etc.\n You can get the sample names as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.samples()\ntiledbvcf list -u my_vcf_dataset\nYou can get the attributes as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.attributes()                      # will print all queryable attributes\nds.attributes(attr_type = \"builtin\") # will print all materialized attributes\ntiledbvcf stat -u my_vcf_datset",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Read from the Dataset"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/read-from-the-dataset.html#reading",
+    "href": "documentation/how-to/read-from-the-dataset.html#reading",
+    "title": "Read from the Dataset",
+    "section": "",
+    "text": "You can rapidly read from a TileDB-VCF dataset by providing three main parameters (all optional):\n\nA subset of the samples\nA subset of the attributes\nOne or more genomic ranges\n\nEither as strings in format chr:pos_range\nOr via a BED file\n\n\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.read(\n    attrs = [\"alleles\", \"pos_start\", \"pos_end\"],\n    regions = [\"1:113409605-113475691\", \"1:113500000-113600000\"],\n    # or pass regions as follows:\n    # bed_file = &lt;bed_filename&gt;\n    samples = ['HG0099', 'HG00100']\n)\ntiledbvcf export \\\n    --uri my_vcf_dataset \\\n    --output-format t \\\n    --tsv-fields ALT,Q:POS,Q:END\n    --sample-names HG0099,HG00100\n    --regions 1:113409605-113475691,1:113500000-113600000\n    # or pass the regions in a BED file as follows:\n    # --regions-file &lt;bed_filename&gt;",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Read from the Dataset"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/create-a-dataset.html",
+    "href": "documentation/how-to/create-a-dataset.html",
+    "title": "Create a Dataset",
+    "section": "",
+    "text": "Create a Dataset\nThe first step before ingesting any VCF samples is to create a dataset. This effectively creates a TileDB group and the appropriate empty arrays in it. \nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\") # sets dataset to \"Write\" mode\nds.create_dataset()                     # creates the dataset and\n                                        # keeps it in \"Write\" mode\ntiledbvcf create --uri my_vcf_dataset\n\nIf you wish to turn some of the `INFO` and `FMT` fields into separate _materialized_ attributes, you can do so as follows (names should be `fmt_X` or `info_X` for a field name `X` - case sensitive).\n\n```python\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\") \nds.create_dataset(extra_attrs=[\"info_AA\"])\ntiledbvcf create --uri my_vcf_dataset --attributes info_AA",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Create a Dataset"
     ]
   },
   {
@@ -273,126 +428,6 @@
       "Home page",
       "Background",
       "Data Model"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/read-from-the-dataset.html",
-    "href": "documentation/how-to/read-from-the-dataset.html",
-    "title": "Read from the Dataset",
-    "section": "",
-    "text": "Before slicing the data, you may wish to get some information about your dataset, such as the sample names, the attributes you can query, etc.\n You can get the sample names as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.samples()\ntiledbvcf list -u my_vcf_dataset\nYou can get the attributes as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.attributes()                      # will print all queryable attributes\nds.attributes(attr_type = \"builtin\") # will print all materialized attributes\ntiledbvcf stat -u my_vcf_datset\n\n\n\nYou can rapidly read from a TileDB-VCF dataset by providing three main parameters (all optional):\n\nA subset of the samples\nA subset of the attributes\nOne or more genomic ranges\n\nEither as strings in format chr:pos_range\nOr via a BED file\n\n\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.read(\n    attrs = [\"alleles\", \"pos_start\", \"pos_end\"],\n    regions = [\"1:113409605-113475691\", \"1:113500000-113600000\"],\n    # or pass regions as follows:\n    # bed_file = &lt;bed_filename&gt;\n    samples = ['HG0099', 'HG00100']\n)\ntiledbvcf export \\\n    --uri my_vcf_dataset \\\n    --output-format t \\\n    --tsv-fields ALT,Q:POS,Q:END\n    --sample-names HG0099,HG00100\n    --regions 1:113409605-113475691,1:113500000-113600000\n    # or pass the regions in a BED file as follows:\n    # --regions-file &lt;bed_filename&gt;",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Read from the Dataset"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/read-from-the-dataset.html#basic-utils",
-    "href": "documentation/how-to/read-from-the-dataset.html#basic-utils",
-    "title": "Read from the Dataset",
-    "section": "",
-    "text": "Before slicing the data, you may wish to get some information about your dataset, such as the sample names, the attributes you can query, etc.\n You can get the sample names as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.samples()\ntiledbvcf list -u my_vcf_dataset\nYou can get the attributes as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.attributes()                      # will print all queryable attributes\nds.attributes(attr_type = \"builtin\") # will print all materialized attributes\ntiledbvcf stat -u my_vcf_datset",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Read from the Dataset"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/read-from-the-dataset.html#reading",
-    "href": "documentation/how-to/read-from-the-dataset.html#reading",
-    "title": "Read from the Dataset",
-    "section": "",
-    "text": "You can rapidly read from a TileDB-VCF dataset by providing three main parameters (all optional):\n\nA subset of the samples\nA subset of the attributes\nOne or more genomic ranges\n\nEither as strings in format chr:pos_range\nOr via a BED file\n\n\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"r\") # open in \"Read\" mode\nds.read(\n    attrs = [\"alleles\", \"pos_start\", \"pos_end\"],\n    regions = [\"1:113409605-113475691\", \"1:113500000-113600000\"],\n    # or pass regions as follows:\n    # bed_file = &lt;bed_filename&gt;\n    samples = ['HG0099', 'HG00100']\n)\ntiledbvcf export \\\n    --uri my_vcf_dataset \\\n    --output-format t \\\n    --tsv-fields ALT,Q:POS,Q:END\n    --sample-names HG0099,HG00100\n    --regions 1:113409605-113475691,1:113500000-113600000\n    # or pass the regions in a BED file as follows:\n    # --regions-file &lt;bed_filename&gt;",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Read from the Dataset"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/ingest-samples.html",
-    "href": "documentation/how-to/ingest-samples.html",
-    "title": "Ingest Samples",
-    "section": "",
-    "text": "Ingest Samples\n\n\n\n\n\n\nNote\n\n\n\nIndexed files are required for ingestion. If your VCF/BCF files have not been indexed, you can use bcftoolsto do so:\n\n\nfor f in data/vcfs/*.vcf.gz; do bcftools index -c $f; done\nYou can ingest samples into an already created dataset as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\")\nds.ingest_samples(sample_uris = [\"sample_1\", \"samples_2\"])\nJust add a regular expression for the VCF file locations at the end of the store command:\ntiledbvcf store --uri my_vcf_dataset *.bcf \nAlternatively, provide a text file with the absolute locations of the VCF files, separated by a new line:\ntiledbvcf store --uri my_vcf_dataset --samples-file samples.txt\n\n\n\n\n\n\nNote\n\n\n\nIncremental updates work in the same manner as the ingestion above, nothing special is needed. In addition, the ingestion is thread- and process-safe and, therefore, can be performed in parallel.",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Ingest Samples"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html",
-    "href": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html",
-    "title": "Perform Distributed Queries with TileDB-Cloud",
-    "section": "",
-    "text": "The tiledbvcf Python package includes integration with TileDB to enable distributing large queries in a serverless manner. \n\n\nYou can use the tiledbvcf package’s TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI. \nimport tiledbvcf\nimport tiledb.cloud.vcf\n\ntiledb.cloud.vcf.query.read('my-large-dataset',\n                       attrs=['sample_name', 'pos_start', 'pos_end'],\n                       bed_file='very-large-bedfile.bed',\n                       region_partitions=10,\n                       sample_partitions=2)\nThe result is a pyarrow table.",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Perform Distributed Queries with TileDB-Cloud"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html#task-graphs",
-    "href": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html#task-graphs",
-    "title": "Perform Distributed Queries with TileDB-Cloud",
-    "section": "",
-    "text": "You can use the tiledbvcf package’s TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI. \nimport tiledbvcf\nimport tiledb.cloud.vcf\n\ntiledb.cloud.vcf.query.read('my-large-dataset',\n                       attrs=['sample_name', 'pos_start', 'pos_end'],\n                       bed_file='very-large-bedfile.bed',\n                       region_partitions=10,\n                       sample_partitions=2)\nThe result is a pyarrow table.",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Perform Distributed Queries with TileDB-Cloud"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/handle-large-queries.html",
-    "href": "documentation/how-to/handle-large-queries.html",
-    "title": "Handle Large Queries",
-    "section": "",
-    "text": "Unlike TileDB-VCF’s CLI, which exports directly to disk, results for queries performed using Python are read into memory. Therefore, when querying even moderately sized genomic datasets, the amount of available memory must be taken into consideration.\nThis guide demonstrates several of the TileDB-VCF features for overcoming memory limitations when querying large datasets. \n\n\nOne strategy for accommodating large queries is to simply increase the amount of memory available to tiledbvcf. By default tiledbvcf allocates 2GB of memory for queries. However, this value can be adjusted using the memory_budget_mb parameter. For the purposes of this tutorial the budget will be decreased to demonstrate how tiledbvcf is able to perform genome-scale queries even in a memory constrained environment.\nimport tiledbvcf\ncfg = tiledbvcf.ReadConfig(memory_budget_mb=256)\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\n\n\nFor queries that encompass many genomic regions you can simply provide an external bed file. In this example, you will query for any variants located in the promoter region of a known gene located on chromosomes 1-4.\nAfter performing a query, you can use read_completed() to verify whether or not all results were successfully returned.\nattrs = [\"sample_name\", \"contig\", \"pos_start\", \"fmt_GT\"]\ndf = ds.read(attrs, bed_file = \"data/gene-promoters-hg38.bed\")\nds.read_completed()\n\n## False\nIn this case, it returned False, indicating the requested data was too large to fit into the allocated memory so tiledbvcf retrieved as many records as possible in this first batch. The remaining records can be retrieved using continue_read(). Here, we’ve setup our code to accommodate the possibility that the full set of results are split across multiple batches.\nprint (\"The dataframe contains\")\n\nwhile not ds.read_completed():\n    print (f\"\\t...{df.shape[0]} rows\")\n    df = df.append(ds.continue_read())\n\nprint (f\"\\t...{df.shape[0]} rows\")\n\n## The dataframe contains\n##   ...1525201 rows\n##   ...3050402 rows\n##   ...3808687 rows\nHere is the final dataframe, which includes 3,808,687 records:\ndf\n\n##         sample_name contig  pos_start    fmt_GT\n## 0       v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1       v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2       v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3       v2-RzweTRSv   chr1          1  [-1, -1]\n## 4       v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...             ...    ...        ...       ...\n## 758280  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 758281  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 758282  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 758283  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 758284  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]\n\n\n\nA Python generator version of the read method is also provided. This pattern provides a powerful interface for batch processing variant data.\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\ndf = pd.DataFrame()\nfor batch in ds.read_iter(attrs, bed_file = \"data/gene-promoters-hg38.bed\"):\n    df = df.append(batch, ignore_index = True)\n\ndf\n\n##          sample_name contig  pos_start    fmt_GT\n## 0        v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1        v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3        v2-RzweTRSv   chr1          1  [-1, -1]\n## 4        v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...              ...    ...        ...       ...\n## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Handle Large Queries"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/handle-large-queries.html#setting-the-memory-budget",
-    "href": "documentation/how-to/handle-large-queries.html#setting-the-memory-budget",
-    "title": "Handle Large Queries",
-    "section": "",
-    "text": "One strategy for accommodating large queries is to simply increase the amount of memory available to tiledbvcf. By default tiledbvcf allocates 2GB of memory for queries. However, this value can be adjusted using the memory_budget_mb parameter. For the purposes of this tutorial the budget will be decreased to demonstrate how tiledbvcf is able to perform genome-scale queries even in a memory constrained environment.\nimport tiledbvcf\ncfg = tiledbvcf.ReadConfig(memory_budget_mb=256)\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Handle Large Queries"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/handle-large-queries.html#performing-batched-reads",
-    "href": "documentation/how-to/handle-large-queries.html#performing-batched-reads",
-    "title": "Handle Large Queries",
-    "section": "",
-    "text": "For queries that encompass many genomic regions you can simply provide an external bed file. In this example, you will query for any variants located in the promoter region of a known gene located on chromosomes 1-4.\nAfter performing a query, you can use read_completed() to verify whether or not all results were successfully returned.\nattrs = [\"sample_name\", \"contig\", \"pos_start\", \"fmt_GT\"]\ndf = ds.read(attrs, bed_file = \"data/gene-promoters-hg38.bed\")\nds.read_completed()\n\n## False\nIn this case, it returned False, indicating the requested data was too large to fit into the allocated memory so tiledbvcf retrieved as many records as possible in this first batch. The remaining records can be retrieved using continue_read(). Here, we’ve setup our code to accommodate the possibility that the full set of results are split across multiple batches.\nprint (\"The dataframe contains\")\n\nwhile not ds.read_completed():\n    print (f\"\\t...{df.shape[0]} rows\")\n    df = df.append(ds.continue_read())\n\nprint (f\"\\t...{df.shape[0]} rows\")\n\n## The dataframe contains\n##   ...1525201 rows\n##   ...3050402 rows\n##   ...3808687 rows\nHere is the final dataframe, which includes 3,808,687 records:\ndf\n\n##         sample_name contig  pos_start    fmt_GT\n## 0       v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1       v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2       v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3       v2-RzweTRSv   chr1          1  [-1, -1]\n## 4       v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...             ...    ...        ...       ...\n## 758280  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 758281  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 758282  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 758283  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 758284  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Handle Large Queries"
-    ]
-  },
-  {
-    "objectID": "documentation/how-to/handle-large-queries.html#iteration",
-    "href": "documentation/how-to/handle-large-queries.html#iteration",
-    "title": "Handle Large Queries",
-    "section": "",
-    "text": "A Python generator version of the read method is also provided. This pattern provides a powerful interface for batch processing variant data.\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\ndf = pd.DataFrame()\nfor batch in ds.read_iter(attrs, bed_file = \"data/gene-promoters-hg38.bed\"):\n    df = df.append(batch, ignore_index = True)\n\ndf\n\n##          sample_name contig  pos_start    fmt_GT\n## 0        v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1        v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3        v2-RzweTRSv   chr1          1  [-1, -1]\n## 4        v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...              ...    ...        ...       ...\n## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
-    "crumbs": [
-      "Home page",
-      "How To",
-      "Handle Large Queries"
     ]
   },
   {
@@ -480,51 +515,6 @@
     ]
   },
   {
-    "objectID": "documentation/reference/index.html",
-    "href": "documentation/reference/index.html",
-    "title": "Python",
-    "section": "",
-    "text": "Dataset\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\nReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\nconfig_logging\nConfigure tiledbvcf logging.",
-    "crumbs": [
-      "Home page",
-      "API Reference",
-      "Python"
-    ]
-  },
-  {
-    "objectID": "documentation/reference/index.html#tiledbvcf",
-    "href": "documentation/reference/index.html#tiledbvcf",
-    "title": "Python",
-    "section": "",
-    "text": "Dataset\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\nReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\nconfig_logging\nConfigure tiledbvcf logging.",
-    "crumbs": [
-      "Home page",
-      "API Reference",
-      "Python"
-    ]
-  },
-  {
-    "objectID": "documentation/reference/Dataset.html",
-    "href": "documentation/reference/Dataset.html",
-    "title": "Dataset",
-    "section": "",
-    "text": "Dataset(self, uri, mode='r', cfg=None, stats=False, verbose=False, tiledb_config=None)\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nmode\nstr\nMode of operation (‘r’|‘w’)\n'r'\n\n\ncfg\nReadConfig\nTileDB-VCF configuration.\nNone\n\n\nstats\nbool\nEnable internal TileDB statistics.\nFalse\n\n\nverbose\nbool\nEnable verbose output.\nFalse\n\n\ntiledb_config\ndict\nTileDB configuration, alternative to cfg.tiledb_config.\nNone\n\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nattributes\nReturn a list of queryable attributes available in the VCF dataset.\n\n\nclose\nClose the dataset and release resources.\n\n\ncontinue_read\nContinue an incomplete read.\n\n\ncontinue_read_arrow\nContinue an incomplete read.\n\n\ncount\nCount records in the dataset.\n\n\ncreate_dataset\nCreate a new dataset.\n\n\ndelete\nDelete the dataset.\n\n\nexport\nExports data to multiple VCF files or a combined VCF file.\n\n\ningest_samples\nIngest VCF files into the dataset.\n\n\nread\nRead data from the dataset into a Pandas DataFrame.\n\n\nread_allele_count\nRead allele count from the dataset into a Pandas DataFrame\n\n\nread_arrow\nRead data from the dataset into a PyArrow Table.\n\n\nread_completed\nReturns true if the previous read operation was complete.\n\n\nread_iter\nIterator version of read().\n\n\nread_variant_stats\nRead variant stats from the dataset into a Pandas DataFrame\n\n\nsample_count\nGet the number of samples in the dataset.\n\n\nsamples\nGet the list of samples in the dataset.\n\n\nschema_version\nGet the VCF schema version of the dataset.\n\n\ntiledb_stats\nGet TileDB stats as a string.\n\n\nversion\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nDataset.attributes(attr_type='all')\nReturn a list of queryable attributes available in the VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattr_type\nstr\nThe subset of attributes to retrieve; “info” or “fmt” will only retrieve attributes ingested from the VCF INFO and FORMAT fields, respectively, “builtin” retrieves the static attributes defined in TileDB-VCF’s schema, “all” (the default) returns all queryable attributes.\n'all'\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nA list of attribute names.\n\n\n\n\n\n\n\nDataset.close()\nClose the dataset and release resources.\n\n\n\nDataset.continue_read(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nThe next batch of data as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.continue_read_arrow(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nThe next batch of data as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.count(samples=None, regions=None)\nCount records in the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to include in the count.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to include in the count.\nNone\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of intersecting records in the dataset.\n\n\n\n\n\n\n\nDataset.create_dataset(extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, enable_sample_stats=True, compress_sample_dim=True, compression_level=4, variant_stats_version=2)\nCreate a new dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nextra_attrs\nstr\nCSV list of extra attributes to materialize from fmt and info fields.\nNone\n\n\nvcf_attrs\nstr\nURI of VCF file with all fmt and info fields to materialize in the dataset.\nNone\n\n\ntile_capacity\nint\nTile capacity to use for the array schema.\n10000\n\n\nanchor_gap\nint\nLength of gaps between inserted anchor records in bases.\n1000\n\n\nchecksum_type\nstr\nOptional checksum type for the dataset, “sha256” or “md5”.\n'sha256'\n\n\nallow_duplicates\nbool\nAllow records with duplicate start positions to be written to the array.\nTrue\n\n\nenable_allele_count\nbool\nEnable the allele count ingestion task.\nTrue\n\n\nenable_variant_stats\nbool\nEnable the variant stats ingestion task.\nTrue\n\n\nenable_sample_stats\nbool\nEnable the sample stats ingestion task.\nTrue\n\n\ncompress_sample_dim\nbool\nEnable compression on the sample dimension.\nTrue\n\n\ncompression_level\nint\nCompression level for zstd compression.\n4\n\n\nvariant_stats_version\nint\nVersion of the variant stats array.\n2\n\n\n\n\n\n\n\nDataset.delete(uri, *, config=None)\nDelete the dataset.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nconfig\ndict\nTileDB configuration.\nNone\n\n\n\n\n\n\n\nDataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')\nExports data to multiple VCF files or a combined VCF file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\n\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\nrequired\n\n\nscan_all_samples\n\nScan all samples when computing internal allele frequency.\nrequired\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\nmerge\nbool\nMerge samples to create a combined VCF file.\nFalse\n\n\noutput_format\nstr\nExport file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’:vcf.gz, ‘v’: vcf.\n'z'\n\n\noutput_path\nstr\nCombined VCF output file.\n''\n\n\noutput_dir\nstr\nDirectory used for local output of exported samples.\n'.'\n\n\n\n\n\n\n\nDataset.ingest_samples(sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)\nIngest VCF files into the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsample_uris\nList[str]\nList of sample URIs to ingest.\nNone\n\n\nthreads\nint\nSet the number of threads used for ingestion.\nNone\n\n\ntotal_memory_budget_mb\nint\nTotal memory budget for ingestion (MiB).\nNone\n\n\ntotal_memory_percentage\nfloat\nPercentage of total system memory used for ingestion (overrides ‘total_memory_budget_mb’).\nNone\n\n\nratio_tiledb_memory\nfloat\nRatio of memory budget allocated to TileDB::sm.mem.total_budget.\nNone\n\n\nmax_tiledb_memory_mb\nint\nMaximum memory allocated to TileDB::sm.mem.total_budget (MiB).\nNone\n\n\ninput_record_buffer_mb\nint\nSize of input record buffer for each sample file (MiB).\nNone\n\n\navg_vcf_record_size\nint\nAverage VCF record size (bytes).\nNone\n\n\nratio_task_size\nfloat\nRatio of worker task size to computed task size.\nNone\n\n\nratio_output_flush\nfloat\nRatio of output buffer capacity that triggers a flush to TileDB.\nNone\n\n\nscratch_space_path\nstr\nDirectory used for local storage of downloaded remote samples.\nNone\n\n\nscratch_space_size\nint\nAmount of local storage that can be used for downloading remote samples (MB).\nNone\n\n\nsample_batch_size\nint\nNumber of samples per batch for ingestion (default 10).\nNone\n\n\nresume\nbool\nWhether to check and attempt to resume a partial completed ingestion.\nFalse\n\n\ncontig_fragment_merging\nbool\nWhether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow- merging options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseudo contigs which are small in size.\nTrue\n\n\ncontigs_to_keep_separate\nList[str]\nList of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.\nNone\n\n\ncontigs_to_allow_merging\nList[str]\nList of contigs that should be allowed to be merged into combined fragments.\nNone\n\n\ncontig_mode\nstr\nSelect which contigs are ingested: ‘all’, ‘separate’, or ‘merged’.\n'all'\n\n\nthread_task_size\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nmemory_budget_mb\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nrecord_limit\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\n\n\n\n\n\nDataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a Pandas DataFrame.\nFor large datasets, a call to read() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\nYou can also use the Python generator version, read_iter().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nQuery results as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.read_allele_count(region=None)\nRead allele count from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a PyArrow Table.\nFor large queries, a call to read_arrow() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nscan_all_samples\nbool\nScan all samples when computing internal allele frequency.\nFalse\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nQuery results as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.read_completed()\nReturns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.\n\n\n\n\n\nType\nDescription\n\n\n\n\nTrue if the previous read operation was complete.\n\n\n\n\n\n\n\n\nDataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)\nIterator version of read().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\n\n\n\n\n\nDataset.read_variant_stats(region=None)\nRead variant stats from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.sample_count()\nGet the number of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of samples in the dataset.\n\n\n\n\n\n\n\nDataset.samples()\nGet the list of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nList of samples in the dataset.\n\n\n\n\n\n\n\nDataset.schema_version()\nGet the VCF schema version of the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nVCF schema version of the dataset.\n\n\n\n\n\n\n\nDataset.tiledb_stats()\nGet TileDB stats as a string.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nTileDB stats as a string.\n\n\n\n\n\n\n\nDataset.version()\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nThe TileDB-VCF version."
-  },
-  {
-    "objectID": "documentation/reference/Dataset.html#parameters",
-    "href": "documentation/reference/Dataset.html#parameters",
-    "title": "Dataset",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nmode\nstr\nMode of operation (‘r’|‘w’)\n'r'\n\n\ncfg\nReadConfig\nTileDB-VCF configuration.\nNone\n\n\nstats\nbool\nEnable internal TileDB statistics.\nFalse\n\n\nverbose\nbool\nEnable verbose output.\nFalse\n\n\ntiledb_config\ndict\nTileDB configuration, alternative to cfg.tiledb_config.\nNone"
-  },
-  {
-    "objectID": "documentation/reference/Dataset.html#methods",
-    "href": "documentation/reference/Dataset.html#methods",
-    "title": "Dataset",
-    "section": "",
-    "text": "Name\nDescription\n\n\n\n\nattributes\nReturn a list of queryable attributes available in the VCF dataset.\n\n\nclose\nClose the dataset and release resources.\n\n\ncontinue_read\nContinue an incomplete read.\n\n\ncontinue_read_arrow\nContinue an incomplete read.\n\n\ncount\nCount records in the dataset.\n\n\ncreate_dataset\nCreate a new dataset.\n\n\ndelete\nDelete the dataset.\n\n\nexport\nExports data to multiple VCF files or a combined VCF file.\n\n\ningest_samples\nIngest VCF files into the dataset.\n\n\nread\nRead data from the dataset into a Pandas DataFrame.\n\n\nread_allele_count\nRead allele count from the dataset into a Pandas DataFrame\n\n\nread_arrow\nRead data from the dataset into a PyArrow Table.\n\n\nread_completed\nReturns true if the previous read operation was complete.\n\n\nread_iter\nIterator version of read().\n\n\nread_variant_stats\nRead variant stats from the dataset into a Pandas DataFrame\n\n\nsample_count\nGet the number of samples in the dataset.\n\n\nsamples\nGet the list of samples in the dataset.\n\n\nschema_version\nGet the VCF schema version of the dataset.\n\n\ntiledb_stats\nGet TileDB stats as a string.\n\n\nversion\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nDataset.attributes(attr_type='all')\nReturn a list of queryable attributes available in the VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattr_type\nstr\nThe subset of attributes to retrieve; “info” or “fmt” will only retrieve attributes ingested from the VCF INFO and FORMAT fields, respectively, “builtin” retrieves the static attributes defined in TileDB-VCF’s schema, “all” (the default) returns all queryable attributes.\n'all'\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nA list of attribute names.\n\n\n\n\n\n\n\nDataset.close()\nClose the dataset and release resources.\n\n\n\nDataset.continue_read(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nThe next batch of data as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.continue_read_arrow(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nThe next batch of data as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.count(samples=None, regions=None)\nCount records in the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to include in the count.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to include in the count.\nNone\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of intersecting records in the dataset.\n\n\n\n\n\n\n\nDataset.create_dataset(extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, enable_sample_stats=True, compress_sample_dim=True, compression_level=4, variant_stats_version=2)\nCreate a new dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nextra_attrs\nstr\nCSV list of extra attributes to materialize from fmt and info fields.\nNone\n\n\nvcf_attrs\nstr\nURI of VCF file with all fmt and info fields to materialize in the dataset.\nNone\n\n\ntile_capacity\nint\nTile capacity to use for the array schema.\n10000\n\n\nanchor_gap\nint\nLength of gaps between inserted anchor records in bases.\n1000\n\n\nchecksum_type\nstr\nOptional checksum type for the dataset, “sha256” or “md5”.\n'sha256'\n\n\nallow_duplicates\nbool\nAllow records with duplicate start positions to be written to the array.\nTrue\n\n\nenable_allele_count\nbool\nEnable the allele count ingestion task.\nTrue\n\n\nenable_variant_stats\nbool\nEnable the variant stats ingestion task.\nTrue\n\n\nenable_sample_stats\nbool\nEnable the sample stats ingestion task.\nTrue\n\n\ncompress_sample_dim\nbool\nEnable compression on the sample dimension.\nTrue\n\n\ncompression_level\nint\nCompression level for zstd compression.\n4\n\n\nvariant_stats_version\nint\nVersion of the variant stats array.\n2\n\n\n\n\n\n\n\nDataset.delete(uri, *, config=None)\nDelete the dataset.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nconfig\ndict\nTileDB configuration.\nNone\n\n\n\n\n\n\n\nDataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')\nExports data to multiple VCF files or a combined VCF file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\n\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\nrequired\n\n\nscan_all_samples\n\nScan all samples when computing internal allele frequency.\nrequired\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\nmerge\nbool\nMerge samples to create a combined VCF file.\nFalse\n\n\noutput_format\nstr\nExport file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’:vcf.gz, ‘v’: vcf.\n'z'\n\n\noutput_path\nstr\nCombined VCF output file.\n''\n\n\noutput_dir\nstr\nDirectory used for local output of exported samples.\n'.'\n\n\n\n\n\n\n\nDataset.ingest_samples(sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)\nIngest VCF files into the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsample_uris\nList[str]\nList of sample URIs to ingest.\nNone\n\n\nthreads\nint\nSet the number of threads used for ingestion.\nNone\n\n\ntotal_memory_budget_mb\nint\nTotal memory budget for ingestion (MiB).\nNone\n\n\ntotal_memory_percentage\nfloat\nPercentage of total system memory used for ingestion (overrides ‘total_memory_budget_mb’).\nNone\n\n\nratio_tiledb_memory\nfloat\nRatio of memory budget allocated to TileDB::sm.mem.total_budget.\nNone\n\n\nmax_tiledb_memory_mb\nint\nMaximum memory allocated to TileDB::sm.mem.total_budget (MiB).\nNone\n\n\ninput_record_buffer_mb\nint\nSize of input record buffer for each sample file (MiB).\nNone\n\n\navg_vcf_record_size\nint\nAverage VCF record size (bytes).\nNone\n\n\nratio_task_size\nfloat\nRatio of worker task size to computed task size.\nNone\n\n\nratio_output_flush\nfloat\nRatio of output buffer capacity that triggers a flush to TileDB.\nNone\n\n\nscratch_space_path\nstr\nDirectory used for local storage of downloaded remote samples.\nNone\n\n\nscratch_space_size\nint\nAmount of local storage that can be used for downloading remote samples (MB).\nNone\n\n\nsample_batch_size\nint\nNumber of samples per batch for ingestion (default 10).\nNone\n\n\nresume\nbool\nWhether to check and attempt to resume a partial completed ingestion.\nFalse\n\n\ncontig_fragment_merging\nbool\nWhether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow- merging options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseudo contigs which are small in size.\nTrue\n\n\ncontigs_to_keep_separate\nList[str]\nList of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.\nNone\n\n\ncontigs_to_allow_merging\nList[str]\nList of contigs that should be allowed to be merged into combined fragments.\nNone\n\n\ncontig_mode\nstr\nSelect which contigs are ingested: ‘all’, ‘separate’, or ‘merged’.\n'all'\n\n\nthread_task_size\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nmemory_budget_mb\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nrecord_limit\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\n\n\n\n\n\nDataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a Pandas DataFrame.\nFor large datasets, a call to read() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\nYou can also use the Python generator version, read_iter().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nQuery results as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.read_allele_count(region=None)\nRead allele count from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a PyArrow Table.\nFor large queries, a call to read_arrow() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nscan_all_samples\nbool\nScan all samples when computing internal allele frequency.\nFalse\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nQuery results as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.read_completed()\nReturns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.\n\n\n\n\n\nType\nDescription\n\n\n\n\nTrue if the previous read operation was complete.\n\n\n\n\n\n\n\n\nDataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)\nIterator version of read().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\n\n\n\n\n\nDataset.read_variant_stats(region=None)\nRead variant stats from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.sample_count()\nGet the number of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of samples in the dataset.\n\n\n\n\n\n\n\nDataset.samples()\nGet the list of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nList of samples in the dataset.\n\n\n\n\n\n\n\nDataset.schema_version()\nGet the VCF schema version of the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nVCF schema version of the dataset.\n\n\n\n\n\n\n\nDataset.tiledb_stats()\nGet TileDB stats as a string.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nTileDB stats as a string.\n\n\n\n\n\n\n\nDataset.version()\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nThe TileDB-VCF version."
-  },
-  {
     "objectID": "documentation/index.html",
     "href": "documentation/index.html",
     "title": "TileDB-VCF",
@@ -578,34 +568,6 @@
       "Home page",
       "TileDB-VCF"
     ]
-  },
-  {
-    "objectID": "documentation/reference/ReadConfig.html",
-    "href": "documentation/reference/ReadConfig.html",
-    "title": "ReadConfig",
-    "section": "",
-    "text": "ReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nlimit\nint\nMax number of records (rows) to read\n\n\nregion_partition\ntuple\nRegion partition tuple (idx, num_partitions)\n\n\nsample_partition\ntuple\nSamples partition tuple (idx, num_partitions)\n\n\nsort_regions\nbool\nWhether or not to sort the regions to be read, default True\n\n\nmemory_budget_mb\nint\nMemory budget (MB) for buffer and internal allocations, default 2048MB\n\n\ntiledb_config\nList[str]\nList of strings of format ‘option=value’\n\n\nbuffer_percentage\nint\nPercentage of memory to dedicate to TileDB Query Buffers, default 25\n\n\ntiledb_tile_cache_percentage\nint\nPercentage of memory to dedicate to TileDB Tile Cache, default 10"
-  },
-  {
-    "objectID": "documentation/reference/ReadConfig.html#attributes",
-    "href": "documentation/reference/ReadConfig.html#attributes",
-    "title": "ReadConfig",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nlimit\nint\nMax number of records (rows) to read\n\n\nregion_partition\ntuple\nRegion partition tuple (idx, num_partitions)\n\n\nsample_partition\ntuple\nSamples partition tuple (idx, num_partitions)\n\n\nsort_regions\nbool\nWhether or not to sort the regions to be read, default True\n\n\nmemory_budget_mb\nint\nMemory budget (MB) for buffer and internal allocations, default 2048MB\n\n\ntiledb_config\nList[str]\nList of strings of format ‘option=value’\n\n\nbuffer_percentage\nint\nPercentage of memory to dedicate to TileDB Query Buffers, default 25\n\n\ntiledb_tile_cache_percentage\nint\nPercentage of memory to dedicate to TileDB Tile Cache, default 10"
-  },
-  {
-    "objectID": "documentation/reference/config_logging.html",
-    "href": "documentation/reference/config_logging.html",
-    "title": "config_logging",
-    "section": "",
-    "text": "config_logging(level='fatal', log_file='')\nConfigure tiledbvcf logging.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nlevel\nstr\nLog level from (fatal|error|warn|info|debug|trace)\n'fatal'\n\n\nlog_file\nstr\nLog file path.\n''"
-  },
-  {
-    "objectID": "documentation/reference/config_logging.html#parameters",
-    "href": "documentation/reference/config_logging.html#parameters",
-    "title": "config_logging",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nlevel\nstr\nLog level from (fatal|error|warn|info|debug|trace)\n'fatal'\n\n\nlog_file\nstr\nLog file path.\n''"
   },
   {
     "objectID": "documentation/api-reference/cli.html",
@@ -716,6 +678,18 @@
     ]
   },
   {
+    "objectID": "documentation/how-to/ingest-samples.html",
+    "href": "documentation/how-to/ingest-samples.html",
+    "title": "Ingest Samples",
+    "section": "",
+    "text": "Ingest Samples\n\n\n\n\n\n\nNote\n\n\n\nIndexed files are required for ingestion. If your VCF/BCF files have not been indexed, you can use bcftoolsto do so:\n\n\nfor f in data/vcfs/*.vcf.gz; do bcftools index -c $f; done\nYou can ingest samples into an already created dataset as follows:\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\")\nds.ingest_samples(sample_uris = [\"sample_1\", \"samples_2\"])\nJust add a regular expression for the VCF file locations at the end of the store command:\ntiledbvcf store --uri my_vcf_dataset *.bcf \nAlternatively, provide a text file with the absolute locations of the VCF files, separated by a new line:\ntiledbvcf store --uri my_vcf_dataset --samples-file samples.txt\n\n\n\n\n\n\nNote\n\n\n\nIncremental updates work in the same manner as the ingestion above, nothing special is needed. In addition, the ingestion is thread- and process-safe and, therefore, can be performed in parallel.",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Ingest Samples"
+    ]
+  },
+  {
     "objectID": "documentation/how-to/export-to-vcf.html",
     "href": "documentation/how-to/export-to-vcf.html",
     "title": "Export to VCF",
@@ -752,70 +726,144 @@
     ]
   },
   {
-    "objectID": "documentation/how-to/create-a-dataset.html",
-    "href": "documentation/how-to/create-a-dataset.html",
-    "title": "Create a Dataset",
+    "objectID": "documentation/how-to/handle-large-queries.html",
+    "href": "documentation/how-to/handle-large-queries.html",
+    "title": "Handle Large Queries",
     "section": "",
-    "text": "Create a Dataset\nThe first step before ingesting any VCF samples is to create a dataset. This effectively creates a TileDB group and the appropriate empty arrays in it. \nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\") # sets dataset to \"Write\" mode\nds.create_dataset()                     # creates the dataset and\n                                        # keeps it in \"Write\" mode\ntiledbvcf create --uri my_vcf_dataset\n\nIf you wish to turn some of the `INFO` and `FMT` fields into separate _materialized_ attributes, you can do so as follows (names should be `fmt_X` or `info_X` for a field name `X` - case sensitive).\n\n```python\nimport tiledbvcf\n\nuri = \"my_vcf_dataset\" \nds = tiledbvcf.Dataset(uri, mode = \"w\") \nds.create_dataset(extra_attrs=[\"info_AA\"])\ntiledbvcf create --uri my_vcf_dataset --attributes info_AA",
+    "text": "Unlike TileDB-VCF’s CLI, which exports directly to disk, results for queries performed using Python are read into memory. Therefore, when querying even moderately sized genomic datasets, the amount of available memory must be taken into consideration.\nThis guide demonstrates several of the TileDB-VCF features for overcoming memory limitations when querying large datasets. \n\n\nOne strategy for accommodating large queries is to simply increase the amount of memory available to tiledbvcf. By default tiledbvcf allocates 2GB of memory for queries. However, this value can be adjusted using the memory_budget_mb parameter. For the purposes of this tutorial the budget will be decreased to demonstrate how tiledbvcf is able to perform genome-scale queries even in a memory constrained environment.\nimport tiledbvcf\ncfg = tiledbvcf.ReadConfig(memory_budget_mb=256)\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\n\n\nFor queries that encompass many genomic regions you can simply provide an external bed file. In this example, you will query for any variants located in the promoter region of a known gene located on chromosomes 1-4.\nAfter performing a query, you can use read_completed() to verify whether or not all results were successfully returned.\nattrs = [\"sample_name\", \"contig\", \"pos_start\", \"fmt_GT\"]\ndf = ds.read(attrs, bed_file = \"data/gene-promoters-hg38.bed\")\nds.read_completed()\n\n## False\nIn this case, it returned False, indicating the requested data was too large to fit into the allocated memory so tiledbvcf retrieved as many records as possible in this first batch. The remaining records can be retrieved using continue_read(). Here, we’ve setup our code to accommodate the possibility that the full set of results are split across multiple batches.\nprint (\"The dataframe contains\")\n\nwhile not ds.read_completed():\n    print (f\"\\t...{df.shape[0]} rows\")\n    df = df.append(ds.continue_read())\n\nprint (f\"\\t...{df.shape[0]} rows\")\n\n## The dataframe contains\n##   ...1525201 rows\n##   ...3050402 rows\n##   ...3808687 rows\nHere is the final dataframe, which includes 3,808,687 records:\ndf\n\n##         sample_name contig  pos_start    fmt_GT\n## 0       v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1       v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2       v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3       v2-RzweTRSv   chr1          1  [-1, -1]\n## 4       v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...             ...    ...        ...       ...\n## 758280  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 758281  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 758282  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 758283  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 758284  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]\n\n\n\nA Python generator version of the read method is also provided. This pattern provides a powerful interface for batch processing variant data.\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\ndf = pd.DataFrame()\nfor batch in ds.read_iter(attrs, bed_file = \"data/gene-promoters-hg38.bed\"):\n    df = df.append(batch, ignore_index = True)\n\ndf\n\n##          sample_name contig  pos_start    fmt_GT\n## 0        v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1        v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3        v2-RzweTRSv   chr1          1  [-1, -1]\n## 4        v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...              ...    ...        ...       ...\n## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
     "crumbs": [
       "Home page",
       "How To",
-      "Create a Dataset"
+      "Handle Large Queries"
     ]
   },
   {
-    "objectID": "documentation/how-to/overview.html",
-    "href": "documentation/how-to/overview.html",
-    "title": "How To",
+    "objectID": "documentation/how-to/handle-large-queries.html#setting-the-memory-budget",
+    "href": "documentation/how-to/handle-large-queries.html#setting-the-memory-budget",
+    "title": "Handle Large Queries",
     "section": "",
-    "text": "How To\nThis section includes useful guides about the usage of TileDB-VCF:\n{% content-ref url=“handle-large-queries.md” %} handle-large-queries.md {% endcontent-ref %}\n{% content-ref url=“work-with-cloud-object-stores.md” %} work-with-cloud-object-stores.md {% endcontent-ref %}"
-  },
-  {
-    "objectID": "documentation/how-to/work-with-cloud-object-stores.html",
-    "href": "documentation/how-to/work-with-cloud-object-stores.html",
-    "title": "Work with Cloud Object Stores",
-    "section": "",
-    "text": "TileDB Embedded provides native support for reading from and writing to cloud object stores like AWS S3, Google Cloud Storage, and Microsoft Azure Blob Store. This guide will cover some considerations for using TileDB-VCF with these services. The examples will focus exclusively on S3, which is the most widely used, but note any of the aforementioned services can be substituted, as well as on-premise services like MinIO that provide S3-compatible APIs.\n\n\nThe process of creating a TileDB-VCF dataset on S3 is nearly identical to creating a local dataset. The only difference being an s3:// address is passed to the --uri argument rather than a local file path.\ntiledbvcf create --uri s3://my-bucket/my_dataset\nThis also works when querying a TileDB-VCF dataset located on S3.\ntiledbvcf export \\\n  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"\n\n\n\nVCF files located on S3 can be ingested directly into a TileDBVCF dataset using 1 of 2 different possible approaches. \n\n\nThe first approach is the easiest, you simply pass the tiledbvcf store command a list of S3 URIs and TileDB-VCF takes care of the rest:\ntiledbvcf store \\\n    --uri my_dataset \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nIn this approach, remote VCF index files (which are relatively tiny) are downloaded locally, allowing TileDB-VCF to retrieve chunks of variant data from the remote VCF files without having to download them in full. By default, index files are downloaded to your current working directory, however, you can choose to store them in different location (e.g., a temporary directory) using the --scratch-dir argument.\n\n\n\nThe second approach is to download batches of VCF files in their entirety before ingestion, which may slightly improve ingestion performance. This approach requires allocating TileDB-VCF with scratch disk space using the --scratch-mb and --scratch-dir arguments.\ntiledbvcf store \\\n    --uri my_dataset \\\n    --scratch-dir \"$TMPDIR\" \\\n    --scratch-mb 4096 \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nThe number of VCF files that are downloaded at a time is determined by the --sample-batch-size parameter, which defaults to 10. Downloading and ingestion happens asynchronously, so, for example, batch 3 will be downloaded as batch 2 is being ingestion. As a result, you must configure enough scratch space to store at least 20 samples, assuming a batch size of 10.\n\n\n\n\nFor TileDB to access a remote storage bucket you must be properly authenticated on the machine running TileDB. For S3, this means having access to the appropriate AWS access key ID and secret access key. This typically happens in one of three ways:\n\n\nIf the AWS Command Line Interface (CLI) is installed on your machine, running aws configure will store your credentials in a local profile that TileDB can access. You can verify the CLI has been previously configured by running:\naws s3 ls\nIf properly configured, this will output a list of the S3 buckets you (and thus TileDB) can access.\n\n\n\nYou can pass your AWS access key ID and secret access key to TileDB-VCF directly via the --tiledb-config argument, which expects a comma-separated string:\ntiledbvcf store \\\n    --uri my_dataset \\\n    --tiledb-config vfs.s3.aws_access_key_id=&lt;id&gt;,vfs.s3.aws_secret_access_key=&lt;secret&gt; \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n\n\n\nYour AWS credentials can also be passed to TileDB by defining the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.",
+    "text": "One strategy for accommodating large queries is to simply increase the amount of memory available to tiledbvcf. By default tiledbvcf allocates 2GB of memory for queries. However, this value can be adjusted using the memory_budget_mb parameter. For the purposes of this tutorial the budget will be decreased to demonstrate how tiledbvcf is able to perform genome-scale queries even in a memory constrained environment.\nimport tiledbvcf\ncfg = tiledbvcf.ReadConfig(memory_budget_mb=256)\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)",
     "crumbs": [
       "Home page",
       "How To",
-      "Work with Cloud Object Stores"
+      "Handle Large Queries"
     ]
   },
   {
-    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#remote-datasets",
-    "href": "documentation/how-to/work-with-cloud-object-stores.html#remote-datasets",
-    "title": "Work with Cloud Object Stores",
+    "objectID": "documentation/how-to/handle-large-queries.html#performing-batched-reads",
+    "href": "documentation/how-to/handle-large-queries.html#performing-batched-reads",
+    "title": "Handle Large Queries",
     "section": "",
-    "text": "The process of creating a TileDB-VCF dataset on S3 is nearly identical to creating a local dataset. The only difference being an s3:// address is passed to the --uri argument rather than a local file path.\ntiledbvcf create --uri s3://my-bucket/my_dataset\nThis also works when querying a TileDB-VCF dataset located on S3.\ntiledbvcf export \\\n  --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \\\n  --sample-names v2-tJjMfKyL,v2-eBAdKwID \\\n  -Ot --tsv-fields \"CHR,POS,REF,S:GT\" \\\n  --regions \"chr7:144000320-144008793,chr11:56490349-56491395\"",
+    "text": "For queries that encompass many genomic regions you can simply provide an external bed file. In this example, you will query for any variants located in the promoter region of a known gene located on chromosomes 1-4.\nAfter performing a query, you can use read_completed() to verify whether or not all results were successfully returned.\nattrs = [\"sample_name\", \"contig\", \"pos_start\", \"fmt_GT\"]\ndf = ds.read(attrs, bed_file = \"data/gene-promoters-hg38.bed\")\nds.read_completed()\n\n## False\nIn this case, it returned False, indicating the requested data was too large to fit into the allocated memory so tiledbvcf retrieved as many records as possible in this first batch. The remaining records can be retrieved using continue_read(). Here, we’ve setup our code to accommodate the possibility that the full set of results are split across multiple batches.\nprint (\"The dataframe contains\")\n\nwhile not ds.read_completed():\n    print (f\"\\t...{df.shape[0]} rows\")\n    df = df.append(ds.continue_read())\n\nprint (f\"\\t...{df.shape[0]} rows\")\n\n## The dataframe contains\n##   ...1525201 rows\n##   ...3050402 rows\n##   ...3808687 rows\nHere is the final dataframe, which includes 3,808,687 records:\ndf\n\n##         sample_name contig  pos_start    fmt_GT\n## 0       v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1       v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2       v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3       v2-RzweTRSv   chr1          1  [-1, -1]\n## 4       v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...             ...    ...        ...       ...\n## 758280  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 758281  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 758282  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 758283  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 758284  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
     "crumbs": [
       "Home page",
       "How To",
-      "Work with Cloud Object Stores"
+      "Handle Large Queries"
     ]
   },
   {
-    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#remote-vcf-files",
-    "href": "documentation/how-to/work-with-cloud-object-stores.html#remote-vcf-files",
-    "title": "Work with Cloud Object Stores",
+    "objectID": "documentation/how-to/handle-large-queries.html#iteration",
+    "href": "documentation/how-to/handle-large-queries.html#iteration",
+    "title": "Handle Large Queries",
     "section": "",
-    "text": "VCF files located on S3 can be ingested directly into a TileDBVCF dataset using 1 of 2 different possible approaches. \n\n\nThe first approach is the easiest, you simply pass the tiledbvcf store command a list of S3 URIs and TileDB-VCF takes care of the rest:\ntiledbvcf store \\\n    --uri my_dataset \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nIn this approach, remote VCF index files (which are relatively tiny) are downloaded locally, allowing TileDB-VCF to retrieve chunks of variant data from the remote VCF files without having to download them in full. By default, index files are downloaded to your current working directory, however, you can choose to store them in different location (e.g., a temporary directory) using the --scratch-dir argument.\n\n\n\nThe second approach is to download batches of VCF files in their entirety before ingestion, which may slightly improve ingestion performance. This approach requires allocating TileDB-VCF with scratch disk space using the --scratch-mb and --scratch-dir arguments.\ntiledbvcf store \\\n    --uri my_dataset \\\n    --scratch-dir \"$TMPDIR\" \\\n    --scratch-mb 4096 \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\nThe number of VCF files that are downloaded at a time is determined by the --sample-batch-size parameter, which defaults to 10. Downloading and ingestion happens asynchronously, so, for example, batch 3 will be downloaded as batch 2 is being ingestion. As a result, you must configure enough scratch space to store at least 20 samples, assuming a batch size of 10.",
+    "text": "A Python generator version of the read method is also provided. This pattern provides a powerful interface for batch processing variant data.\nds = tiledbvcf.Dataset(uri, mode = \"r\", cfg = cfg)\n\ndf = pd.DataFrame()\nfor batch in ds.read_iter(attrs, bed_file = \"data/gene-promoters-hg38.bed\"):\n    df = df.append(batch, ignore_index = True)\n\ndf\n\n##          sample_name contig  pos_start    fmt_GT\n## 0        v2-Qhhvcspe   chr1          1  [-1, -1]\n## 1        v2-YMaDHIoW   chr1          1  [-1, -1]\n## 2        v2-Mcwmkqnx   chr1          1  [-1, -1]\n## 3        v2-RzweTRSv   chr1          1  [-1, -1]\n## 4        v2-ijrKdkKh   chr1          1  [-1, -1]\n## ...              ...    ...        ...       ...\n## 3808682  v2-PDeVyHSO   chr4  190063262    [0, 0]\n## 3808683  v2-PDeVyHSO   chr4  190063264  [-1, -1]\n## 3808684  v2-PDeVyHSO   chr4  190063265  [-1, -1]\n## 3808685  v2-PDeVyHSO   chr4  190063392    [0, 0]\n## 3808686  v2-PDeVyHSO   chr4  190063418  [-1, -1]\n## \n## [3808687 rows x 4 columns]",
     "crumbs": [
       "Home page",
       "How To",
-      "Work with Cloud Object Stores"
+      "Handle Large Queries"
     ]
   },
   {
-    "objectID": "documentation/how-to/work-with-cloud-object-stores.html#authentication",
-    "href": "documentation/how-to/work-with-cloud-object-stores.html#authentication",
-    "title": "Work with Cloud Object Stores",
+    "objectID": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html",
+    "href": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html",
+    "title": "Perform Distributed Queries with TileDB-Cloud",
     "section": "",
-    "text": "For TileDB to access a remote storage bucket you must be properly authenticated on the machine running TileDB. For S3, this means having access to the appropriate AWS access key ID and secret access key. This typically happens in one of three ways:\n\n\nIf the AWS Command Line Interface (CLI) is installed on your machine, running aws configure will store your credentials in a local profile that TileDB can access. You can verify the CLI has been previously configured by running:\naws s3 ls\nIf properly configured, this will output a list of the S3 buckets you (and thus TileDB) can access.\n\n\n\nYou can pass your AWS access key ID and secret access key to TileDB-VCF directly via the --tiledb-config argument, which expects a comma-separated string:\ntiledbvcf store \\\n    --uri my_dataset \\\n    --tiledb-config vfs.s3.aws_access_key_id=&lt;id&gt;,vfs.s3.aws_secret_access_key=&lt;secret&gt; \\\n    s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n\n\n\nYour AWS credentials can also be passed to TileDB by defining the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.",
+    "text": "The tiledbvcf Python package includes integration with TileDB to enable distributing large queries in a serverless manner. \n\n\nYou can use the tiledbvcf package’s TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI. \nimport tiledbvcf\nimport tiledb.cloud.vcf\n\ntiledb.cloud.vcf.query.read('my-large-dataset',\n                       attrs=['sample_name', 'pos_start', 'pos_end'],\n                       bed_file='very-large-bedfile.bed',\n                       region_partitions=10,\n                       sample_partitions=2)\nThe result is a pyarrow table.",
     "crumbs": [
       "Home page",
       "How To",
-      "Work with Cloud Object Stores"
+      "Perform Distributed Queries with TileDB-Cloud"
+    ]
+  },
+  {
+    "objectID": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html#task-graphs",
+    "href": "documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html#task-graphs",
+    "title": "Perform Distributed Queries with TileDB-Cloud",
+    "section": "",
+    "text": "You can use the tiledbvcf package’s TileDB integration to partition read operations across regions and samples. The partitioning semantics are identical to those used by the CLI. \nimport tiledbvcf\nimport tiledb.cloud.vcf\n\ntiledb.cloud.vcf.query.read('my-large-dataset',\n                       attrs=['sample_name', 'pos_start', 'pos_end'],\n                       bed_file='very-large-bedfile.bed',\n                       region_partitions=10,\n                       sample_partitions=2)\nThe result is a pyarrow table.",
+    "crumbs": [
+      "Home page",
+      "How To",
+      "Perform Distributed Queries with TileDB-Cloud"
+    ]
+  },
+  {
+    "objectID": "documentation/reference/index.html",
+    "href": "documentation/reference/index.html",
+    "title": "Python",
+    "section": "",
+    "text": "Dataset\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\nReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\nconfig_logging\nConfigure tiledbvcf logging.",
+    "crumbs": [
+      "Home page",
+      "API Reference",
+      "Python"
+    ]
+  },
+  {
+    "objectID": "documentation/reference/index.html#tiledbvcf",
+    "href": "documentation/reference/index.html#tiledbvcf",
+    "title": "Python",
+    "section": "",
+    "text": "Dataset\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\nReadConfig\nConfig settings for a TileDB-VCF dataset.\n\n\nconfig_logging\nConfigure tiledbvcf logging.",
+    "crumbs": [
+      "Home page",
+      "API Reference",
+      "Python"
+    ]
+  },
+  {
+    "objectID": "documentation/reference/Dataset.html",
+    "href": "documentation/reference/Dataset.html",
+    "title": "Dataset",
+    "section": "",
+    "text": "Dataset(self, uri, mode='r', cfg=None, stats=False, verbose=False, tiledb_config=None)\nA class that provides read/write access to a TileDB-VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nmode\nstr\nMode of operation (‘r’|‘w’)\n'r'\n\n\ncfg\nReadConfig\nTileDB-VCF configuration.\nNone\n\n\nstats\nbool\nEnable internal TileDB statistics.\nFalse\n\n\nverbose\nbool\nEnable verbose output.\nFalse\n\n\ntiledb_config\ndict\nTileDB configuration, alternative to cfg.tiledb_config.\nNone\n\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nattributes\nReturn a list of queryable attributes available in the VCF dataset.\n\n\nclose\nClose the dataset and release resources.\n\n\ncontinue_read\nContinue an incomplete read.\n\n\ncontinue_read_arrow\nContinue an incomplete read.\n\n\ncount\nCount records in the dataset.\n\n\ncreate_dataset\nCreate a new dataset.\n\n\ndelete\nDelete the dataset.\n\n\nexport\nExports data to multiple VCF files or a combined VCF file.\n\n\ningest_samples\nIngest VCF files into the dataset.\n\n\nread\nRead data from the dataset into a Pandas DataFrame.\n\n\nread_allele_count\nRead allele count from the dataset into a Pandas DataFrame\n\n\nread_arrow\nRead data from the dataset into a PyArrow Table.\n\n\nread_completed\nReturns true if the previous read operation was complete.\n\n\nread_iter\nIterator version of read().\n\n\nread_variant_stats\nRead variant stats from the dataset into a Pandas DataFrame\n\n\nsample_count\nGet the number of samples in the dataset.\n\n\nsamples\nGet the list of samples in the dataset.\n\n\nschema_version\nGet the VCF schema version of the dataset.\n\n\ntiledb_stats\nGet TileDB stats as a string.\n\n\nversion\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nDataset.attributes(attr_type='all')\nReturn a list of queryable attributes available in the VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattr_type\nstr\nThe subset of attributes to retrieve; “info” or “fmt” will only retrieve attributes ingested from the VCF INFO and FORMAT fields, respectively, “builtin” retrieves the static attributes defined in TileDB-VCF’s schema, “all” (the default) returns all queryable attributes.\n'all'\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nA list of attribute names.\n\n\n\n\n\n\n\nDataset.close()\nClose the dataset and release resources.\n\n\n\nDataset.continue_read(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nThe next batch of data as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.continue_read_arrow(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nThe next batch of data as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.count(samples=None, regions=None)\nCount records in the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to include in the count.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to include in the count.\nNone\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of intersecting records in the dataset.\n\n\n\n\n\n\n\nDataset.create_dataset(extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, enable_sample_stats=True, compress_sample_dim=True, compression_level=4, variant_stats_version=2)\nCreate a new dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nextra_attrs\nstr\nCSV list of extra attributes to materialize from fmt and info fields.\nNone\n\n\nvcf_attrs\nstr\nURI of VCF file with all fmt and info fields to materialize in the dataset.\nNone\n\n\ntile_capacity\nint\nTile capacity to use for the array schema.\n10000\n\n\nanchor_gap\nint\nLength of gaps between inserted anchor records in bases.\n1000\n\n\nchecksum_type\nstr\nOptional checksum type for the dataset, “sha256” or “md5”.\n'sha256'\n\n\nallow_duplicates\nbool\nAllow records with duplicate start positions to be written to the array.\nTrue\n\n\nenable_allele_count\nbool\nEnable the allele count ingestion task.\nTrue\n\n\nenable_variant_stats\nbool\nEnable the variant stats ingestion task.\nTrue\n\n\nenable_sample_stats\nbool\nEnable the sample stats ingestion task.\nTrue\n\n\ncompress_sample_dim\nbool\nEnable compression on the sample dimension.\nTrue\n\n\ncompression_level\nint\nCompression level for zstd compression.\n4\n\n\nvariant_stats_version\nint\nVersion of the variant stats array.\n2\n\n\n\n\n\n\n\nDataset.delete(uri, *, config=None)\nDelete the dataset.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nconfig\ndict\nTileDB configuration.\nNone\n\n\n\n\n\n\n\nDataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')\nExports data to multiple VCF files or a combined VCF file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\n\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\nrequired\n\n\nscan_all_samples\n\nScan all samples when computing internal allele frequency.\nrequired\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\nmerge\nbool\nMerge samples to create a combined VCF file.\nFalse\n\n\noutput_format\nstr\nExport file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’:vcf.gz, ‘v’: vcf.\n'z'\n\n\noutput_path\nstr\nCombined VCF output file.\n''\n\n\noutput_dir\nstr\nDirectory used for local output of exported samples.\n'.'\n\n\n\n\n\n\n\nDataset.ingest_samples(sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)\nIngest VCF files into the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsample_uris\nList[str]\nList of sample URIs to ingest.\nNone\n\n\nthreads\nint\nSet the number of threads used for ingestion.\nNone\n\n\ntotal_memory_budget_mb\nint\nTotal memory budget for ingestion (MiB).\nNone\n\n\ntotal_memory_percentage\nfloat\nPercentage of total system memory used for ingestion (overrides ‘total_memory_budget_mb’).\nNone\n\n\nratio_tiledb_memory\nfloat\nRatio of memory budget allocated to TileDB::sm.mem.total_budget.\nNone\n\n\nmax_tiledb_memory_mb\nint\nMaximum memory allocated to TileDB::sm.mem.total_budget (MiB).\nNone\n\n\ninput_record_buffer_mb\nint\nSize of input record buffer for each sample file (MiB).\nNone\n\n\navg_vcf_record_size\nint\nAverage VCF record size (bytes).\nNone\n\n\nratio_task_size\nfloat\nRatio of worker task size to computed task size.\nNone\n\n\nratio_output_flush\nfloat\nRatio of output buffer capacity that triggers a flush to TileDB.\nNone\n\n\nscratch_space_path\nstr\nDirectory used for local storage of downloaded remote samples.\nNone\n\n\nscratch_space_size\nint\nAmount of local storage that can be used for downloading remote samples (MB).\nNone\n\n\nsample_batch_size\nint\nNumber of samples per batch for ingestion (default 10).\nNone\n\n\nresume\nbool\nWhether to check and attempt to resume a partial completed ingestion.\nFalse\n\n\ncontig_fragment_merging\nbool\nWhether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow- merging options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseudo contigs which are small in size.\nTrue\n\n\ncontigs_to_keep_separate\nList[str]\nList of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.\nNone\n\n\ncontigs_to_allow_merging\nList[str]\nList of contigs that should be allowed to be merged into combined fragments.\nNone\n\n\ncontig_mode\nstr\nSelect which contigs are ingested: ‘all’, ‘separate’, or ‘merged’.\n'all'\n\n\nthread_task_size\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nmemory_budget_mb\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nrecord_limit\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\n\n\n\n\n\nDataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a Pandas DataFrame.\nFor large datasets, a call to read() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\nYou can also use the Python generator version, read_iter().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nQuery results as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.read_allele_count(region=None)\nRead allele count from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a PyArrow Table.\nFor large queries, a call to read_arrow() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nscan_all_samples\nbool\nScan all samples when computing internal allele frequency.\nFalse\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nQuery results as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.read_completed()\nReturns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.\n\n\n\n\n\nType\nDescription\n\n\n\n\nTrue if the previous read operation was complete.\n\n\n\n\n\n\n\n\nDataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)\nIterator version of read().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\n\n\n\n\n\nDataset.read_variant_stats(region=None)\nRead variant stats from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.sample_count()\nGet the number of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of samples in the dataset.\n\n\n\n\n\n\n\nDataset.samples()\nGet the list of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nList of samples in the dataset.\n\n\n\n\n\n\n\nDataset.schema_version()\nGet the VCF schema version of the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nVCF schema version of the dataset.\n\n\n\n\n\n\n\nDataset.tiledb_stats()\nGet TileDB stats as a string.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nTileDB stats as a string.\n\n\n\n\n\n\n\nDataset.version()\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nThe TileDB-VCF version."
+  },
+  {
+    "objectID": "documentation/reference/Dataset.html#parameters",
+    "href": "documentation/reference/Dataset.html#parameters",
+    "title": "Dataset",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nmode\nstr\nMode of operation (‘r’|‘w’)\n'r'\n\n\ncfg\nReadConfig\nTileDB-VCF configuration.\nNone\n\n\nstats\nbool\nEnable internal TileDB statistics.\nFalse\n\n\nverbose\nbool\nEnable verbose output.\nFalse\n\n\ntiledb_config\ndict\nTileDB configuration, alternative to cfg.tiledb_config.\nNone"
+  },
+  {
+    "objectID": "documentation/reference/Dataset.html#methods",
+    "href": "documentation/reference/Dataset.html#methods",
+    "title": "Dataset",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nattributes\nReturn a list of queryable attributes available in the VCF dataset.\n\n\nclose\nClose the dataset and release resources.\n\n\ncontinue_read\nContinue an incomplete read.\n\n\ncontinue_read_arrow\nContinue an incomplete read.\n\n\ncount\nCount records in the dataset.\n\n\ncreate_dataset\nCreate a new dataset.\n\n\ndelete\nDelete the dataset.\n\n\nexport\nExports data to multiple VCF files or a combined VCF file.\n\n\ningest_samples\nIngest VCF files into the dataset.\n\n\nread\nRead data from the dataset into a Pandas DataFrame.\n\n\nread_allele_count\nRead allele count from the dataset into a Pandas DataFrame\n\n\nread_arrow\nRead data from the dataset into a PyArrow Table.\n\n\nread_completed\nReturns true if the previous read operation was complete.\n\n\nread_iter\nIterator version of read().\n\n\nread_variant_stats\nRead variant stats from the dataset into a Pandas DataFrame\n\n\nsample_count\nGet the number of samples in the dataset.\n\n\nsamples\nGet the list of samples in the dataset.\n\n\nschema_version\nGet the VCF schema version of the dataset.\n\n\ntiledb_stats\nGet TileDB stats as a string.\n\n\nversion\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nDataset.attributes(attr_type='all')\nReturn a list of queryable attributes available in the VCF dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattr_type\nstr\nThe subset of attributes to retrieve; “info” or “fmt” will only retrieve attributes ingested from the VCF INFO and FORMAT fields, respectively, “builtin” retrieves the static attributes defined in TileDB-VCF’s schema, “all” (the default) returns all queryable attributes.\n'all'\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nA list of attribute names.\n\n\n\n\n\n\n\nDataset.close()\nClose the dataset and release resources.\n\n\n\nDataset.continue_read(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nThe next batch of data as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.continue_read_arrow(release_buffers=True)\nContinue an incomplete read.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nrelease_buffers\nbool\nRelease the buffers after reading.\nTrue\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nThe next batch of data as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.count(samples=None, regions=None)\nCount records in the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to include in the count.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to include in the count.\nNone\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of intersecting records in the dataset.\n\n\n\n\n\n\n\nDataset.create_dataset(extra_attrs=None, vcf_attrs=None, tile_capacity=10000, anchor_gap=1000, checksum_type='sha256', allow_duplicates=True, enable_allele_count=True, enable_variant_stats=True, enable_sample_stats=True, compress_sample_dim=True, compression_level=4, variant_stats_version=2)\nCreate a new dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nextra_attrs\nstr\nCSV list of extra attributes to materialize from fmt and info fields.\nNone\n\n\nvcf_attrs\nstr\nURI of VCF file with all fmt and info fields to materialize in the dataset.\nNone\n\n\ntile_capacity\nint\nTile capacity to use for the array schema.\n10000\n\n\nanchor_gap\nint\nLength of gaps between inserted anchor records in bases.\n1000\n\n\nchecksum_type\nstr\nOptional checksum type for the dataset, “sha256” or “md5”.\n'sha256'\n\n\nallow_duplicates\nbool\nAllow records with duplicate start positions to be written to the array.\nTrue\n\n\nenable_allele_count\nbool\nEnable the allele count ingestion task.\nTrue\n\n\nenable_variant_stats\nbool\nEnable the variant stats ingestion task.\nTrue\n\n\nenable_sample_stats\nbool\nEnable the sample stats ingestion task.\nTrue\n\n\ncompress_sample_dim\nbool\nEnable compression on the sample dimension.\nTrue\n\n\ncompression_level\nint\nCompression level for zstd compression.\n4\n\n\nvariant_stats_version\nint\nVersion of the variant stats array.\n2\n\n\n\n\n\n\n\nDataset.delete(uri, *, config=None)\nDelete the dataset.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nuri\nstr\nURI of the dataset.\nrequired\n\n\nconfig\ndict\nTileDB configuration.\nNone\n\n\n\n\n\n\n\nDataset.export(samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, enable_progress_estimation=False, merge=False, output_format='z', output_path='', output_dir='.')\nExports data to multiple VCF files or a combined VCF file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\n\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\nrequired\n\n\nscan_all_samples\n\nScan all samples when computing internal allele frequency.\nrequired\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\nmerge\nbool\nMerge samples to create a combined VCF file.\nFalse\n\n\noutput_format\nstr\nExport file format: ‘b’: bcf (compressed), ‘u’: bcf, ‘z’:vcf.gz, ‘v’: vcf.\n'z'\n\n\noutput_path\nstr\nCombined VCF output file.\n''\n\n\noutput_dir\nstr\nDirectory used for local output of exported samples.\n'.'\n\n\n\n\n\n\n\nDataset.ingest_samples(sample_uris=None, threads=None, total_memory_budget_mb=None, total_memory_percentage=None, ratio_tiledb_memory=None, max_tiledb_memory_mb=None, input_record_buffer_mb=None, avg_vcf_record_size=None, ratio_task_size=None, ratio_output_flush=None, scratch_space_path=None, scratch_space_size=None, sample_batch_size=None, resume=False, contig_fragment_merging=True, contigs_to_keep_separate=None, contigs_to_allow_merging=None, contig_mode='all', thread_task_size=None, memory_budget_mb=None, record_limit=None)\nIngest VCF files into the dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsample_uris\nList[str]\nList of sample URIs to ingest.\nNone\n\n\nthreads\nint\nSet the number of threads used for ingestion.\nNone\n\n\ntotal_memory_budget_mb\nint\nTotal memory budget for ingestion (MiB).\nNone\n\n\ntotal_memory_percentage\nfloat\nPercentage of total system memory used for ingestion (overrides ‘total_memory_budget_mb’).\nNone\n\n\nratio_tiledb_memory\nfloat\nRatio of memory budget allocated to TileDB::sm.mem.total_budget.\nNone\n\n\nmax_tiledb_memory_mb\nint\nMaximum memory allocated to TileDB::sm.mem.total_budget (MiB).\nNone\n\n\ninput_record_buffer_mb\nint\nSize of input record buffer for each sample file (MiB).\nNone\n\n\navg_vcf_record_size\nint\nAverage VCF record size (bytes).\nNone\n\n\nratio_task_size\nfloat\nRatio of worker task size to computed task size.\nNone\n\n\nratio_output_flush\nfloat\nRatio of output buffer capacity that triggers a flush to TileDB.\nNone\n\n\nscratch_space_path\nstr\nDirectory used for local storage of downloaded remote samples.\nNone\n\n\nscratch_space_size\nint\nAmount of local storage that can be used for downloading remote samples (MB).\nNone\n\n\nsample_batch_size\nint\nNumber of samples per batch for ingestion (default 10).\nNone\n\n\nresume\nbool\nWhether to check and attempt to resume a partial completed ingestion.\nFalse\n\n\ncontig_fragment_merging\nbool\nWhether to enable merging of contigs into fragments. This overrides the contigs-to-keep-separate/contigs-to-allow- merging options. Generally contig fragment merging is good, this is a performance optimization to reduce the prefixes on a s3/azure/gcs bucket when there is a large number of pseudo contigs which are small in size.\nTrue\n\n\ncontigs_to_keep_separate\nList[str]\nList of contigs that should not be merged into combined fragments. The default list includes all standard human chromosomes in both UCSC (e.g., chr1) and Ensembl (e.g., 1) formats.\nNone\n\n\ncontigs_to_allow_merging\nList[str]\nList of contigs that should be allowed to be merged into combined fragments.\nNone\n\n\ncontig_mode\nstr\nSelect which contigs are ingested: ‘all’, ‘separate’, or ‘merged’.\n'all'\n\n\nthread_task_size\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nmemory_budget_mb\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\nrecord_limit\nint\nDEPRECATED - This parameter will be removed in a future release.\nNone\n\n\n\n\n\n\n\nDataset.read(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a Pandas DataFrame.\nFor large datasets, a call to read() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\nYou can also use the Python generator version, read_iter().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npd.DataFrame\nQuery results as a Pandas DataFrame.\n\n\n\n\n\n\n\nDataset.read_allele_count(region=None)\nRead allele count from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.read_arrow(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None, skip_check_samples=False, set_af_filter='', scan_all_samples=False, enable_progress_estimation=False)\nRead data from the dataset into a PyArrow Table.\nFor large queries, a call to read_arrow() may not be able to fit all results in memory. In that case, the returned table will contain as many results as possible, and in order to retrieve the rest of the results, use the continue_read() function.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\nskip_check_samples\nbool\nSkip checking if the samples in samples_file exist in the dataset.\nFalse\n\n\nset_af_filter\nstr\nFilter variants by internal allele frequency. For example, to include variants with AF &gt; 0.1, set this to “&gt;0.1”.\n''\n\n\nscan_all_samples\nbool\nScan all samples when computing internal allele frequency.\nFalse\n\n\nenable_progress_estimation\nbool\nDEPRECATED - This parameter will be removed in a future release.\nFalse\n\n\n\n\n\n\n\n\n\nType\nDescription\n\n\n\n\npa.Table\nQuery results as a PyArrow Table.\n\n\n\n\n\n\n\nDataset.read_completed()\nReturns true if the previous read operation was complete. A read is considered complete if the resulting dataframe contained all results.\n\n\n\n\n\nType\nDescription\n\n\n\n\nTrue if the previous read operation was complete.\n\n\n\n\n\n\n\n\nDataset.read_iter(attrs=DEFAULT_ATTRS, samples=None, regions=None, samples_file=None, bed_file=None)\nIterator version of read().\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nattrs\nList[str]\nList of attribute names to be read.\nDEFAULT_ATTRS\n\n\nsamples\n(str, List[str])\nSample names to be read.\nNone\n\n\nregions\n(str, List[str])\nGenomic regions to be read.\nNone\n\n\nsamples_file\nstr\nURI of file containing sample names to be read, one per line.\nNone\n\n\nbed_file\nstr\nURI of a BED file of genomic regions to be read.\nNone\n\n\n\n\n\n\n\nDataset.read_variant_stats(region=None)\nRead variant stats from the dataset into a Pandas DataFrame\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\nstr\nGenomic region to be queried.\nNone\n\n\n\n\n\n\n\nDataset.sample_count()\nGet the number of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nNumber of samples in the dataset.\n\n\n\n\n\n\n\nDataset.samples()\nGet the list of samples in the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nlist\nList of samples in the dataset.\n\n\n\n\n\n\n\nDataset.schema_version()\nGet the VCF schema version of the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nint\nVCF schema version of the dataset.\n\n\n\n\n\n\n\nDataset.tiledb_stats()\nGet TileDB stats as a string.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nTileDB stats as a string.\n\n\n\n\n\n\n\nDataset.version()\nReturn the TileDB-VCF version used to create the dataset.\n\n\n\n\n\nType\nDescription\n\n\n\n\nstr\nThe TileDB-VCF version."
+  },
+  {
+    "objectID": "documentation/ingestion/distributed-ingestion.html",
+    "href": "documentation/ingestion/distributed-ingestion.html",
+    "title": "Distributed Ingestion",
+    "section": "",
+    "text": "TileDB has built in support for scalable distributed ingestion.\ningest is a simply python command that will dispatch and run a task graph to load VCF samples in parallel across a number of machines.",
+    "crumbs": [
+      "Home page",
+      "Ingestion",
+      "Distributed Ingestion"
+    ]
+  },
+  {
+    "objectID": "documentation/ingestion/distributed-ingestion.html#example",
+    "href": "documentation/ingestion/distributed-ingestion.html#example",
+    "title": "Distributed Ingestion",
+    "section": "Example",
+    "text": "Example\nIn order to run this example please make sure to have install TileDB-Cloud-Py with pip install --user tiledb-cloud.\nimport tiledb.cloud\nfrom tiledb.cloud.vcf import ingest\n\ns3_storage_uri = \"s3://my_bucket/my_array\"\nvcf_location = \"s3://1000genomes-dragen-v3.7.6/data/individuals/hg38-graph-based\"\npattern = \"*.hard-filtered.vcf.gz\"\nmax_files = 75\nname = f\"dragen-v3.7.6-example-{max_files}\"\n\nnamespace = \"my-organization\"\ntiledb_uri = f\"tiledb://{namespace}/{name}\"\n\n# Define which contigs we want to ingest\ncontigs = Contigs.CHROMOSOMES\n\n\ningest(\n    s3_storage_uri,\n    config=config,\n    search_uri=vcf_location,\n    pattern=pattern,\n    max_files=max_files,\n    contigs=contigs,\n)\n\nContigs\nTileDB support specifying the contigs you wish to ingest. The default behavior is to ingestion all contigs present in a VCF file. However you can specify if you’d like to restrict to a specific list or a predefined list\nOptions for contigs:\n\nALL\nCHROMOSOMES\nOTHER",
+    "crumbs": [
+      "Home page",
+      "Ingestion",
+      "Distributed Ingestion"
     ]
   },
   {
@@ -824,82 +872,6 @@
     "title": "Ingestion",
     "section": "",
     "text": "Ingestion of VCF files is easy and straight forward.\nTileDB offers quick and easy cli, a python api and capabilities in TileDB for one-line distributed ingestion supporting millions of VCF files."
-  },
-  {
-    "objectID": "documentation/ingestion/cli.html",
-    "href": "documentation/ingestion/cli.html",
-    "title": "CLI",
-    "section": "",
-    "text": "Note\n\n\n\nThe files used in the following examples can be obtained here.\n\n\nThe first step is to create an empty dataset. Let’s save the dataset in a new array called small_dataset:\ntiledbvcf create --uri small_dataset",
-    "crumbs": [
-      "Home page",
-      "Ingestion",
-      "CLI"
-    ]
-  },
-  {
-    "objectID": "documentation/ingestion/cli.html#create-a-new-dataset",
-    "href": "documentation/ingestion/cli.html#create-a-new-dataset",
-    "title": "CLI",
-    "section": "",
-    "text": "Note\n\n\n\nThe files used in the following examples can be obtained here.\n\n\nThe first step is to create an empty dataset. Let’s save the dataset in a new array called small_dataset:\ntiledbvcf create --uri small_dataset",
-    "crumbs": [
-      "Home page",
-      "Ingestion",
-      "CLI"
-    ]
-  },
-  {
-    "objectID": "documentation/ingestion/cli.html#store-samples",
-    "href": "documentation/ingestion/cli.html#store-samples",
-    "title": "CLI",
-    "section": "Store samples",
-    "text": "Store samples\n\nIngest from local storage\nWe’ll start with a small example using 3 synthetic VCF files, assuming they are locally available in a folder data/vcfs:\ntree data\n## data\n## ├── gene-promoters-hg38.bed\n## ├── s3-bcf-samples.txt\n## └── vcfs\n##     ├── G1.vcf.gz\n##     ├── G1.vcf.gz.csi\n##     ├── G2.vcf.gz\n##     ├── G2.vcf.gz.csi\n##     ├── G3.vcf.gz\n##     └── G3.vcf.gz.csi\n##\n## 1 directory, 8 files\nIndex files are required for ingestion. If your VCF/BCF files have not been indexed you can use bcftools to do so:\nfor f in data/vcfs/*.vcf.gz; do bcftools index -c $f; done\nWe can ingest these files into small_dataset as follows:\ntiledbvcf store --uri small_dataset data/vcfs/G*.vcf.gz\nThat’s it! Let’s verify everything went okay using the stat command to provide high-level statistics about our dataset including the number of samples it contains and the variant attributes it includes.\ntiledbvcf stat --uri small_dataset\n## Statistics for dataset 'small_dataset':\n## - Version: 4\n## - Tile capacity: 10,000\n## - Anchor gap: 1,000\n## - Number of registered samples: 3\n## - Extracted attributes: none\nAt this point you have successfully created and populated a TileDB VCF dataset using data stored locally on your machine. Next we’ll look at the more common scenario of working with files stored on a cloud object store.\n\n\nIngest from S3\nTileDB Embedded’s native cloud features make it possible to ingest samples directly from remote locations. Here, we’ll ingest the following samples located on AWS S3:\ncat data/s3-bcf-samples.txt\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G4.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G5.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G6.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G7.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G8.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G9.bcf\n## s3://tiledb-inc-demo-data/examples/notebooks/vcfs/G10.bcf\n\n\n\n\n\n\nNote\n\n\n\nSamples in this second batch are stored as BCF files which are also supported by TileDB-VCF.\n\n\nThis process is identical to the steps perfo_r_med above, the only changes needed to our code involve setting --scratch-mb to allocate some temporary space for downloading the files and providing the URLs for the remote files. In this case, we’ll simply pass the s3-bcf-samples.txt file, which includes a list of the BCF files we want to ingest.\n\n\n\n\n\n\nNote\n\n\n\nWhen ingesting samples from S3, you must configure enough scratch space to hold at least 20 samples. In general, you need 2 × the sample dimension’s sample_bactch_size (which by default is 10). You can read more about the data model here.\n\n\nYou can add the --verbose flag to print out more information during the store phase.\ntiledbvcf store \\\n  --uri small_dataset \\\n  --samples-file data/s3-bcf-samples.txt \\\n  --verbose\n  \n## Initialization completed in 3.17565 sec.\n## ...\n## Done. Ingested 1,391 records (+ 69,548 anchors) from 7 samples in 10.6751\n## seconds.\nConsolidating and vacuuming fragment metadata and commits are recommended after creating a new dataset or adding several new samples to an existing dataset.\ntiledbvcf utils consolidate fragment_meta --uri small_dataset\ntiledbvcf utils consolidate commits --uri small_dataset\ntiledbvcf utils vacuum fragment_meta --uri small_dataset\ntiledbvcf utils vacuum commits --uri small_dataset",
-    "crumbs": [
-      "Home page",
-      "Ingestion",
-      "CLI"
-    ]
-  },
-  {
-    "objectID": "documentation/ingestion/cli.html#incremental-updates",
-    "href": "documentation/ingestion/cli.html#incremental-updates",
-    "title": "CLI",
-    "section": "Incremental Updates",
-    "text": "Incremental Updates\nA key advantage to using TileDB as a data store for genomic variant data is the ability to efficiently add new samples as they become available. The dataset creation command should be called once. Then you can invoke the store command multiple commands.\n\n\n\n\n\n\nNote\n\n\n\nThe store command is thread- and process-safe, even on the cloud. That means it can be invoked in parallel, arbitrarily scaling out the ingestion of massive datasets.\n\n\nSuppose we run the store for the first 3 local samples, followed by the store command for the 7 samples stored on the S3. If we run the stat command, we can verify that our dataset now includes 10 samples.\ntiledbvcf stat --uri small_dataset\n## Statistics for dataset 'small_dataset':\n## - Version: 4\n## - Tile capacity: 10,000\n## - Anchor gap: 1,000\n## - Number of registered samples: 10\n## - Extracted attributes: none\nBecause TileDB is designed to be updatable, the store process happens efficiently and without ever touching any previously or concurrently ingested data, avoiding computationally expensive operations like regenerating combined VCF files.",
-    "crumbs": [
-      "Home page",
-      "Ingestion",
-      "CLI"
-    ]
-  },
-  {
-    "objectID": "examples/overview.html",
-    "href": "examples/overview.html",
-    "title": "Overview",
-    "section": "",
-    "text": "This section provides fully runnable examples."
-  },
-  {
-    "objectID": "examples/overview.html#tiledb-vcf-basics",
-    "href": "examples/overview.html#tiledb-vcf-basics",
-    "title": "Overview",
-    "section": "TileDB-VCF Basics",
-    "text": "TileDB-VCF Basics\nnotebook: tutorial_tiledbvcf_basics\n\nOverview\nProvides a high-level overview of how to work with VCF data using TileDB. You’ll see how to use TileDB-VCF’s Python package to:\n\ncreate and populate new TileDB-VCF datasets\nquery variant data by genomic region and/or sample and selectively retrieve specific VCF attributes\nparallelize queries by partitioning the data and distributing the queries across multiple processes\neasily scale queries using TileDB’s serverless infrastructure## Introduction"
-  },
-  {
-    "objectID": "examples/overview.html#tiledb-vcf-allele-frequencies",
-    "href": "examples/overview.html#tiledb-vcf-allele-frequencies",
-    "title": "Overview",
-    "section": "TileDB-VCF Allele Frequencies",
-    "text": "TileDB-VCF Allele Frequencies\nnotebook: tutorial_tiledbvcf_allele_frequencies\n\nOverview\nProvides a high-level overview of how to work with allele frequencies as part of TileDB-VCF. You’ll see how to use TileDB-VCF’s Python package to:\n\nSelecting allele frequencies\nFiltering on allele frequencies\nDirect allele frequency access"
-  },
-  {
-    "objectID": "examples/overview.html#tiledb-vcf-task-graph-based-genome-wide-analysis",
-    "href": "examples/overview.html#tiledb-vcf-task-graph-based-genome-wide-analysis",
-    "title": "Overview",
-    "section": "TileDB-VCF Task Graph-Based Genome-wide Analysis",
-    "text": "TileDB-VCF Task Graph-Based Genome-wide Analysis\nnotebook: tutorial_tiledbvcf_gwas\n\nOverview\nIn this notebook we’ll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB’s serverless computation platform."
   },
   {
     "objectID": "examples/tutorial_tiledbvcf_gwas.html",
@@ -996,5 +968,33 @@
       "Examples",
       "GWAS with the 1000 Genomes TileDB-VCF Dataset"
     ]
+  },
+  {
+    "objectID": "examples/overview.html",
+    "href": "examples/overview.html",
+    "title": "Overview",
+    "section": "",
+    "text": "This section provides fully runnable examples."
+  },
+  {
+    "objectID": "examples/overview.html#tiledb-vcf-basics",
+    "href": "examples/overview.html#tiledb-vcf-basics",
+    "title": "Overview",
+    "section": "TileDB-VCF Basics",
+    "text": "TileDB-VCF Basics\nnotebook: tutorial_tiledbvcf_basics\n\nOverview\nProvides a high-level overview of how to work with VCF data using TileDB. You’ll see how to use TileDB-VCF’s Python package to:\n\ncreate and populate new TileDB-VCF datasets\nquery variant data by genomic region and/or sample and selectively retrieve specific VCF attributes\nparallelize queries by partitioning the data and distributing the queries across multiple processes\neasily scale queries using TileDB’s serverless infrastructure## Introduction"
+  },
+  {
+    "objectID": "examples/overview.html#tiledb-vcf-allele-frequencies",
+    "href": "examples/overview.html#tiledb-vcf-allele-frequencies",
+    "title": "Overview",
+    "section": "TileDB-VCF Allele Frequencies",
+    "text": "TileDB-VCF Allele Frequencies\nnotebook: tutorial_tiledbvcf_allele_frequencies\n\nOverview\nProvides a high-level overview of how to work with allele frequencies as part of TileDB-VCF. You’ll see how to use TileDB-VCF’s Python package to:\n\nSelecting allele frequencies\nFiltering on allele frequencies\nDirect allele frequency access"
+  },
+  {
+    "objectID": "examples/overview.html#tiledb-vcf-task-graph-based-genome-wide-analysis",
+    "href": "examples/overview.html#tiledb-vcf-task-graph-based-genome-wide-analysis",
+    "title": "Overview",
+    "section": "TileDB-VCF Task Graph-Based Genome-wide Analysis",
+    "text": "TileDB-VCF Task Graph-Based Genome-wide Analysis\nnotebook: tutorial_tiledbvcf_gwas\n\nOverview\nIn this notebook we’ll perform a rudimentary genome-wide association study using the 1000 Genomes (1KG) dataset. The goal of this tutorial is to demonstrate the mechanics of performing genome-wide analyses using variant call data stored with TileDB-VCF and how such analyses can be easily scaled using TileDB’s serverless computation platform."
   }
 ]
