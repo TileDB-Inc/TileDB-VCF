@@ -50,7 +50,9 @@ jobs:
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
       - name: Setup to build htslib from source (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install --yes automake autoconf libbz2-dev liblzma-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes automake autoconf libbz2-dev liblzma-dev
       - name: Setup to build htslib from source (macOS)
         if: runner.os == 'macOS'
         run: brew install autoconf automake
