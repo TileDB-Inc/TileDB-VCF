@@ -9,7 +9,7 @@ cd /io/
 mkdir -p libtiledbvcf/build
 cd libtiledbvcf/build
 cmake -DTILEDBVCF_ENABLE_TESTING=OFF ..
-make -j && make install-libtiledbvcf
+make -j install
 cd -
 
 # Build Python wheels
