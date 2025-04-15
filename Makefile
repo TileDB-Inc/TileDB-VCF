@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 # print help by default
 help:
 
-# install 
+# install
 # -------------------------------------------------------------------
 
 # set default variable values, if non-null
@@ -125,7 +125,7 @@ Rules:
 Options:
   build=BUILD_TYPE    Cmake build type = Release|Debug|RelWithDebInfo|Coverage [Release]
   prefix=PREFIX       Install location [${PWD}/dist]
-  tiledb=TILEDB_DIST  Absolute path to custom TileDB build 
+  tiledb=TILEDB_DIST  Absolute path to custom TileDB build
 
 Examples:
   Install Release build
@@ -145,10 +145,9 @@ Examples:
     make update
 
 
-endef 
+endef
 export HELP
 
 .PHONY: help
 help:
 	@printf "$${HELP}"
-
