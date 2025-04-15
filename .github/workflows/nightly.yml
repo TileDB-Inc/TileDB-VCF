@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [macos-13, ubuntu-24.04]
         branches:
-          - {libtiledb: release-2.26, tiledb-py: 0.32.0}
+          - {libtiledb: release-2.27, tiledb-py: 0.33.3}
           - {libtiledb: main, tiledb-py: main}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
@@ -50,7 +50,9 @@ jobs:
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
       - name: Setup to build htslib from source (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install --yes automake autoconf libbz2-dev liblzma-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes automake autoconf libbz2-dev liblzma-dev
       - name: Setup to build htslib from source (macOS)
         if: runner.os == 'macOS'
         run: brew install autoconf automake
