@@ -66,8 +66,8 @@ if (NOT SPDLOG_FOUND)
       PREFIX "externals"
       # Set download name to avoid collisions with only the version number in the filename
       DOWNLOAD_NAME ep_spdlog.zip
-      URL "https://github.com/gabime/spdlog/archive/v1.15.3.zip"
-      URL_HASH SHA1=dc8d01fb9e5878d193795ca616194c52d98adf76
+      URL "https://github.com/gabime/spdlog/archive/v1.12.0.zip"
+      URL_HASH SHA1=2ea8a77a4a39dc296757620754bc41ad475ca77b
       CMAKE_ARGS
         -DCMAKE_PREFIX_PATH=${EP_INSTALL_PREFIX}
         -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_PREFIX}
