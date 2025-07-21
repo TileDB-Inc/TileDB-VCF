@@ -1,5 +1,3 @@
-#include "spdlog/fmt/ranges.h"
-
 #include "vcf_merger.h"
 
 namespace tiledb {
