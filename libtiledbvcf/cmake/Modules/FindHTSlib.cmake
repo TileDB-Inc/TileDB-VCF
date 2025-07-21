@@ -66,9 +66,9 @@ if (NOT HTSLIB_FOUND)
     message(STATUS "Adding HTSlib as an external project")
     # Use explicit soname to avoid having to use library symlinks (easier for embedding).
     if (APPLE)
-      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.20.dylib")
+      set(EXTRA_LDFLAGS "-Wl,-install_name,@rpath/libhts.1.22.1.dylib")
     else()
-      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.20")
+      set(EXTRA_LDFLAGS "-Wl,-soname,libhts.so.1.22.1")
     endif()
     SET(CFLAGS "")
     string( TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
@@ -94,8 +94,8 @@ if (NOT HTSLIB_FOUND)
       
       ExternalProject_Add(ep_htslib
         PREFIX "externals"
-        URL https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.20-0/m2w64-htslib-1.20-0.tar.gz
-        URL_HASH SHA1=da39a3ee5e6b4b0d3255bfef95601890afd80709
+        URL "https://github.com/TileDB-Inc/m2w64-htslib-build/releases/download/1.22.1-0/m2w64-htslib-1.22.1-0.tar.gz"
+        URL_HASH SHA256=d6bce9d6dd7001450a1804255af2144b7b00fee1792ab6bed6991733601cc75f
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
@@ -122,8 +122,8 @@ if (NOT HTSLIB_FOUND)
 
       ExternalProject_Add(ep_htslib
         PREFIX "externals"
-        URL "https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2"
-        URL_HASH SHA1=da8bf95e4ae2404d1a48f88ece94ca25d69d6596
+        URL "https://github.com/samtools/htslib/releases/download/1.22.1/htslib-1.22.1.tar.bz2"
+        URL_HASH SHA256=3dfa6eeb71db719907fe3ef7c72cb2ec9965b20b58036547c858c89b58c342f7
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND
             autoheader
