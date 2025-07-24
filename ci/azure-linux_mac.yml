@@ -39,11 +39,11 @@ steps:
 
       # Install htslib dependencies
       if [[ "$AGENT_OS" == "Linux" ]]; then
-          sudo apt-get update && sudo apt-get install -y automake autoconf libbz2-dev liblzma-dev
+          sudo apt-get update && sudo apt-get install -y automake autoconf libbz2-dev liblzma-dev libcurl4-openssl-dev
       fi
 
       # Install bcftools (only required for running the CLI tests)
-      version=1.20
+      version=1.22
       if [[ "$AGENT_OS" == "Linux" ]]; then
           pushd /tmp
           wget https://github.com/samtools/bcftools/releases/download/${version}/bcftools-${version}.tar.bz2

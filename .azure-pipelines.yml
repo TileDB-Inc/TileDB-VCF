@@ -1,9 +1,9 @@
 trigger:
   branches:
     include:
-    - main
-    - release-*
-    - refs/tags/*
+      - main
+      - release-*
+      - refs/tags/*
 
 variables:
   isRefTag: $[startsWith(variables['Build.SourceBranch'], 'refs/tags')]
@@ -13,44 +13,44 @@ stages:
   - stage: CI
     condition: eq(variables.isRefTag, false)
     jobs:
-    - job: Build
-      strategy:
-        matrix:
-          linux:
-            imageName: 'ubuntu-24.04'
-            python.version: '3.x'
-            CXX: g++
-            BUILD_PYTHON_API: ON
-            DOWNLOAD_TILEDB_PREBUILT: ON
-            ARTIFACT_NAME: linux
-      pool:
-        vmImage: $(imageName)
-      steps:
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '$(python.version)'
-          architecture: 'x64'
-      - script: printenv
-        displayName: 'Print Env'
-      - template: ci/azure-linux_mac.yml
+      - job: Build
+        strategy:
+          matrix:
+            linux:
+              imageName: "ubuntu-24.04"
+              python.version: "3.x"
+              CXX: g++
+              BUILD_PYTHON_API: ON
+              DOWNLOAD_TILEDB_PREBUILT: ON
+              ARTIFACT_NAME: linux
+        pool:
+          vmImage: $(imageName)
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(python.version)"
+              architecture: "x64"
+          - script: printenv
+            displayName: "Print Env"
+          - template: ci/azure-linux_mac.yml
 
   - stage: Docker
     condition: or(succeeded(), eq(variables.isRefTag, true))
     jobs:
       - job: Build
         pool:
-          vmImage: 'ubuntu-24.04'
+          vmImage: "ubuntu-24.04"
         strategy:
           matrix:
             cli:
               dockerfile: docker/Dockerfile-cli
               repository: tiledb/tiledbvcf-cli
               context: .
-              test_cmd: version
+              test_cmd: tiledbvcf version
             python:
               dockerfile: docker/Dockerfile-py
               repository: tiledb/tiledbvcf-py
               context: .
               test_cmd: -c "import tiledbvcf; print(tiledbvcf.version)"
         steps:
-        - template: ci/build-images.yml
+          - template: ci/build-images.yml
