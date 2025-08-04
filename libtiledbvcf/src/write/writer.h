@@ -150,6 +150,10 @@ struct IngestionParams {
   //  SEPARATE = contigs in the contigs_to_keep_separate
   //  MERGED = contigs not in the contigs_to_keep_separate
   ContigMode contig_mode = ContigMode::ALL;
+
+  // Variant params
+  std::string variant_json;
+  std::string variant_tmp_dir;
 };
 
 /* ********************************* */
@@ -273,6 +277,14 @@ class Writer {
 
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
+
+  /**
+   * Adds a single variant to an existing sample.
+   *
+   * This is curently implemented as a special case of ingestion, i.e. a VCF
+   * containing the single variant is generated and then ingested.
+   */
+  void add_variant();
 
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);

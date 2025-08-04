@@ -31,8 +31,11 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "read/pvcf_exporter.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
+#include "utils/utils.h"
+#include "utils/variant_utils.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
 #include "write/writer_worker_v2.h"
@@ -520,6 +523,61 @@ void Writer::ingest_samples() {
           total_records_expected_);
     }
   }
+}
+
+void Writer::add_variant() {
+  // Parse the input JSON into a Variant
+  Variant v(ingestion_params_.variant_json);
+
+  // Open the dataset
+  if (tiledb_config_ != nullptr) {
+    ctx_.reset(new Context(*tiledb_config_));
+  } else {
+    ctx_.reset(new Context);
+  }
+  dataset_.reset(new TileDBVCFDataset(ctx_));
+  dataset_->open(ingestion_params_.uri, ingestion_params_.tiledb_config);
+
+  // Check that the sample exists in the dataset
+  if (!dataset_->sample_exists(v.sample_name)) {
+    std::string message = fmt::format(
+        "Sample \"{}\" does not existing in dataset",
+        v.sample_name);
+    LOG_ERROR(message);
+    throw std::runtime_error(message);
+  }
+
+  // Load the VCF header for the sample
+  uint32_t sample_id = dataset_->sample_id(v.sample_name);
+  SampleAndId sample = {v.sample_name, sample_id};
+  std::unordered_map<uint32_t, SafeBCFHdr> headers;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    headers = dataset_->fetch_vcf_headers({sample});
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    headers = dataset_->fetch_vcf_headers_v4({sample}, nullptr, false, false);
+  }
+
+  // Create temporary VCF and TBI files
+  std::string filename = v.sample_name + "-" + v.chrom + "-" + v.id + ".vcf.gz";
+  std::string sample_uri =
+    utils::uri_join(ingestion_params_.variant_tmp_dir, filename);
+  bcf_hdr_t* hdr = headers.at(sample_id).get();
+  SafeBCFRec rec(bcf_init(), bcf_destroy);
+  bcf1_t* rec_ptr = rec.get();
+  v.to_record(hdr, rec_ptr);
+  VCFUtils::write_vcf(sample_uri, hdr, {rec_ptr});
+  std::string index_uri = sample_uri + ".tbi";
+
+  // Ingest the variant using the temporary VCF and TBI files
+  set_sample_uris(sample_uri);
+  set_num_threads(1);
+  ingest_samples();
+
+  // Remove temporary VCF and TBI files
+  vfs_->remove_file(sample_uri);
+  vfs_->remove_file(index_uri);
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
