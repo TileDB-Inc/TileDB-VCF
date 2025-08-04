@@ -2066,6 +2066,12 @@ const char* TileDBVCFDataset::sample_name(const int32_t index) const {
   return this->sample_names_[index].data();
 }
 
+uint32_t TileDBVCFDataset::sample_id(const std::string& sample_name) {
+  if (!sample_names_loaded_ && metadata_.version == Version::V4)
+    load_sample_names_v4();
+  return metadata_.sample_ids.at(sample_name);
+}
+
 std::string TileDBVCFDataset::data_array_uri(
     const std::string& root_uri, bool relative, bool legacy) {
   char delimiter = legacy ? '-' : '/';

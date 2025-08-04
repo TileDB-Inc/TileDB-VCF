@@ -31,11 +31,14 @@
 #ifndef TILEDB_VCF_VCF_UTILS_H
 #define TILEDB_VCF_VCF_UTILS_H
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include <htslib/hts.h>
 #include <htslib/synced_bcf_reader.h>
 #include <htslib/vcf.h>
 #include <htslib/vcfutils.h>
-#include <map>
 
 #include "region.h"
 #include "vcf/htslib_value.h"
@@ -147,6 +150,22 @@ class VCFUtils {
    */
   static bool normalize_sample_name(
       const std::string& sample, std::string* normalized);
+
+  /**
+   * Helper function that writes a VCF file with the given header and records.
+   *
+   * @param uri The VCF file to be written
+   * @param hdr Header instance for the records
+   * @param recs Records to be written
+   * @param gzip Whether or not to gzip the VCF file
+   * @param index Whether or not to create a TBI index file
+   */
+  static void write_vcf(
+    const std::string& uri,
+    bcf_hdr_t* hdr,
+    std::vector<bcf1_t*> const &recs,
+    bool gzip = true,
+    bool index = true);
 };
 
 }  // namespace vcf
