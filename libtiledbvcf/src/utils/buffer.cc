@@ -196,9 +196,17 @@ std::vector<std::string_view> Buffer::data() const {
   assert(!offsets_.empty());
   assert(data_);
 
+  uint64_t len, start, end = 0;
   std::vector<std::string_view> vec(offset_nelts_);
   for (uint64_t i = 0; i < offset_nelts_; i++) {
-    vec[i] = value(i);
+    start = offsets_[i];
+    if (start >= end) {
+      len = std::strlen(data_ + start);
+      end = start + len;
+    } else {
+      len = end - start;
+    }
+    vec[i] = std::string_view(data_ + start, len);
   }
 
   return vec;
