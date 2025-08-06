@@ -188,7 +188,7 @@ std::string_view Buffer::value(uint64_t element_index) const {
   assert(data_);
 
   uint64_t start = offsets_[element_index];
-  uint64_t len = strlen(data_ + start);
+  uint64_t len = data_size_ - start;
   return std::string_view(data_ + start, len);
 }
 
