@@ -38,13 +38,17 @@ bool DeleteExporter::export_record(
   SafeBCFRec rec(bcf_init(), bcf_destroy);
 
   // Populate the htslib record
+  const field_filter no_fields = {};
+  const field_filter genotype_fields = {"GT"};
   recover_record(
       hdr,
       query_results,
       cell_idx,
       query_region.seq_name,
       contig_offset,
-      rec.get());
+      rec.get(),
+      &no_fields,
+      &genotype_fields);
 
   // Flush and finalize the stats array querys when moving to a new contig
   if (contig_ != query_region.seq_name && !contig_.empty()) {
