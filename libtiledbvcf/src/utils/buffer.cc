@@ -188,8 +188,8 @@ std::string_view Buffer::value(uint64_t element_index) const {
   assert(data_);
 
   uint64_t start = offsets_[element_index];
-  uint64_t len = strlen(data_ + start);
-  return std::string_view(data_ + start, len);
+  uint64_t length = offsets_[element_index + 1] - start;
+  return std::string_view(data_ + start, length);
 }
 
 std::vector<std::string_view> Buffer::data() const {
@@ -197,8 +197,10 @@ std::vector<std::string_view> Buffer::data() const {
   assert(data_);
 
   std::vector<std::string_view> vec(offset_nelts_);
-  for (uint64_t i = 0; i < offset_nelts_; i++) {
-    vec[i] = value(i);
+  for (uint64_t i = 0; i < offset_nelts_ - 1; i++) {
+    uint64_t start = offsets_[i];
+    uint64_t length = offsets_[i + 1] - start;
+    vec[i] = std::string_view(data_ + start, length);
   }
 
   return vec;
