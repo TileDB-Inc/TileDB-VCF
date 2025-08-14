@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include "utils/logger_public.h"
 #include "vcf/vcf_utils.h"
 
 namespace tiledb {
@@ -223,6 +224,68 @@ bool VCFUtils::normalize_sample_name(
   }
 
   return true;
+}
+
+void VCFUtils::write_vcf(
+    const std::string& uri,
+    bcf_hdr_t* hdr,
+    std::vector<bcf1_t*> const &recs,
+    bool gzip,
+    bool index) {
+  // Open the VCF file
+  const char* uri_c = uri.c_str();
+  std::string mode = "w";
+  if (gzip) mode += "z";
+  htsFile* out_fh = bcf_open(uri_c, mode.c_str());
+  if (out_fh == NULL) {
+    std::string message = fmt::format("Can't write to \"{}\"", uri);
+    LOG_FATAL(message);
+  }
+
+  // Write the header
+  if (bcf_hdr_write(out_fh, hdr) != 0) {
+    std::string message = fmt::format("Cannot write header to \"{}\"", uri);
+    LOG_ERROR(message);
+  }
+
+  // Initialize the index
+  // NOTE: bcf_idx_init must be called after the header has been written but
+  // before any records are written
+  std::string index_uri = uri + ".tbi";
+  const char* index_uri_c = index_uri.c_str();
+  if (index) {
+    if (bcf_idx_init(out_fh, hdr, 0, index_uri_c) < 0) {
+      std::string message =
+        fmt::format("Cannot write to TBI file \"{}\"", index_uri);
+      LOG_ERROR(message);
+    }
+  }
+
+  // Write records
+  for (bcf1_t* rec : recs) {
+    if (bcf_write(out_fh, hdr, rec) != 0) {
+      std::string message = fmt::format("Cannot write record to \"{}\"", uri);
+      LOG_ERROR(message);
+    }
+  }
+
+  // Cleanup
+  if (index) {
+    if (bcf_idx_save(out_fh) < 0) {
+      if (hts_close(out_fh)) {
+        std::string message =
+          fmt::format("Failed to close TBI file \"{}\"", index_uri);
+        LOG_ERROR(message);
+      }
+      std::string message =
+        fmt::format("Cannot write to TBI file \"{}\"", index_uri);
+      LOG_ERROR(message);
+    }
+  }
+  if (hts_close(out_fh)) {
+    std::string message = fmt::format("Failed to close \"{}\"", uri);
+    LOG_ERROR(message);
+  }
 }
 
 }  // namespace vcf

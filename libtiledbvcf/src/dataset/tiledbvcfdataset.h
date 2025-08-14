@@ -478,6 +478,14 @@ class TileDBVCFDataset {
   const char* sample_name(int32_t index) const;
 
   /**
+   * @brief Get sample id (row index) by name
+   *
+   * @param sample_name The name of the sample to get the id for
+   * @return uint32_t The id for the given sample name
+   */
+  uint32_t sample_id(const std::string& sample_name);
+
+  /**
    * Writes the given sample header data to the separate sample header array in
    * the dataset.
    *

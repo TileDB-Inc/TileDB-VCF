@@ -106,6 +106,34 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
   LOG_TRACE("Finished store command.");
 }
 
+/** Store/ingest a single variant. */
+void do_variant(const IngestionParams& args, const CLI::App& cmd) {
+  if (args.variant_json.size() == 0) {
+    std::cerr
+        << "ERROR: RequiredError: --json is required\n";
+    throw CLI::CallForHelp();
+  }
+
+  if (args.verbose) {
+    LOG_SET_LEVEL("debug");
+  }
+
+  LOG_TRACE("Starting add-variant command.");
+  config_to_log(cmd);
+
+  Writer writer;
+  writer.set_all_params(args);
+  writer.add_variant();
+
+  if (args.tiledb_stats_enabled) {
+    char* stats;
+    writer.tiledb_stats(&stats);
+    std::cout << "TileDB Internal Statistics:" << std::endl;
+    std::cout << stats << std::endl;
+  }
+  LOG_TRACE("Finished add-variant command.");
+}
+
 /** Delete. */
 void do_delete(const DeleteParams& args, const CLI::App& cmd) {
   LOG_TRACE("Starting delete command.");
@@ -680,6 +708,79 @@ void add_store(CLI::App& app) {
   cmd->callback([args, cmd]() { do_store(*args, *cmd); });
 }
 
+void add_variant(CLI::App& app) {
+  auto args = std::make_shared<IngestionParams>();
+  auto cmd =
+      app.add_subcommand(
+        "add-variant",
+        "Adds a variant to an existing sample in a TileDB-VCF dataset");
+
+  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
+  add_tiledb_uri_option(cmd, args->uri);
+
+  cmd->option_defaults()->group("Variant options");
+  cmd->add_option(
+         "-j,--json",
+         args->variant_json,
+         "JSON describing the variant to add")
+         ->required();
+  args->variant_tmp_dir = "/dev/shm";
+  cmd->add_option(
+      "-d,--tmp-dir",
+      args->variant_tmp_dir,
+      "Directory used for temporary file storage")
+      ->default_str(args->variant_tmp_dir);
+
+  cmd->option_defaults()->group("TileDB options");
+  add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_flag("--stats", args->tiledb_stats_enabled, "Enable TileDB stats");
+  cmd->add_flag(
+      "--stats-vcf-header-array",
+      args->tiledb_stats_enabled_vcf_header_array,
+      "Enable TileDB stats for vcf header array usage");
+
+  cmd->option_defaults()->group("Contig options");
+  cmd->add_flag(
+      "!--disable-contig-fragment-merging",
+      args->contig_fragment_merging,
+      "Disable merging of contigs into fragments. Generally contig fragment "
+      "merging is good, this is a performance optimization to reduce the "
+      "prefixes on a s3/azure/gcs bucket when there is a large number of "
+      "pseudo contigs which are small in size.");
+  cmd->add_option(
+         "--contigs-to-keep-separate",
+         args->contigs_to_keep_separate,
+         "Comma-separated list of contigs that should not be merged "
+         "into combined fragments. The default list includes all "
+         "standard human chromosomes in both UCSC (e.g., chr1) and "
+         "Ensembl (e.g., 1) formats.")
+      ->delimiter(',')
+      ->default_str("")
+      ->excludes("--disable-contig-fragment-merging");
+  cmd->add_option(
+         "--contigs-to-allow-merging",
+         args->contigs_to_allow_merging,
+         "Comma-separated list of contigs that should be allowed to "
+         "be merged into combined fragments.")
+      ->delimiter(',')
+      ->excludes("--disable-contig-fragment-merging")
+      ->excludes("--contigs-to-keep-separate");
+  cmd->add_option(
+         "--contig-mode",
+         args->contig_mode,
+         "Select which contigs are ingested: 'separate', 'merged', or 'all' "
+         "contigs")
+      ->transform(CLI::CheckedTransformer(contig_mode_map));
+
+  cmd->option_defaults()->group("Debug options");
+  add_logging_options(cmd, args->log_level, args->log_file);
+  cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
+  CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
+
+  // register function to implement this command
+  cmd->callback([args, cmd]() { do_variant(*args, *cmd); });
+}
+
 void add_delete(CLI::App& app) {
   auto args = std::make_shared<DeleteParams>();
   auto cmd =
@@ -964,6 +1065,7 @@ int main(int argc, char** argv) {
   add_create(app);
   add_register(app);
   add_store(app);
+  add_variant(app);
   add_delete(app);
   add_export(app);
   add_list(app);
