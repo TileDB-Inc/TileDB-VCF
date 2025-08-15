@@ -981,7 +981,7 @@ void TileDBVCFDataset::delete_samples(
       ExportParams args;
       args.tiledb_config = tiledb_config;
       args.uri = uri;
-      args.sample_names = sample_names;
+      args.sample_names = {sample};
       args.format = ExportFormat::Delete;
       args.export_to_disk = true;
 
