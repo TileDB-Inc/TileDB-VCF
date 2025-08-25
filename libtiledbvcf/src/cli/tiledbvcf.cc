@@ -409,10 +409,9 @@ void add_logging_options(
          [](const std::string& value) { LOG_SET_LEVEL(value); },
          "Log message level")
       ->default_str("fatal")
-      ->check(
-          CLI::IsMember(
-              {"fatal", "error", "warn", "info", "debug", "trace"},
-              CLI::ignore_case));
+      ->check(CLI::IsMember(
+          {"fatal", "error", "warn", "info", "debug", "trace"},
+          CLI::ignore_case));
   cmd->add_option_function<std::string>(
       "--log-file",
       [](const std::string& value) { LOG_SET_FILE(value); },
