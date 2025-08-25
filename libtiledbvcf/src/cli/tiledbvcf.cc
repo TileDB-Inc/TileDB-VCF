@@ -129,8 +129,8 @@ void do_delete(const DeleteParams& args, const CLI::App& cmd) {
   params.tiledb_config = args.tiledb_config;
   params.memory_budget_mb = args.memory_budget_mb;
   params.memory_budget_breakdown.buffers_percentage = args.buffers_percentage;
-  params.memory_budget_breakdown.tile_cache_percentage
-    = args.tile_cache_percentage;
+  params.memory_budget_breakdown.tile_cache_percentage =
+      args.tile_cache_percentage;
   dataset.delete_samples(args.sample_names, params);
   LOG_TRACE("Finished delete command.");
 }
@@ -409,9 +409,10 @@ void add_logging_options(
          [](const std::string& value) { LOG_SET_LEVEL(value); },
          "Log message level")
       ->default_str("fatal")
-      ->check(CLI::IsMember(
-          {"fatal", "error", "warn", "info", "debug", "trace"},
-          CLI::ignore_case));
+      ->check(
+          CLI::IsMember(
+              {"fatal", "error", "warn", "info", "debug", "trace"},
+              CLI::ignore_case));
   cmd->add_option_function<std::string>(
       "--log-file",
       [](const std::string& value) { LOG_SET_FILE(value); },

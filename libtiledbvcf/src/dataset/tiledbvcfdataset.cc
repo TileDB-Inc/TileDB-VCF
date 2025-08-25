@@ -949,8 +949,7 @@ void TileDBVCFDataset::delete_samples(
 }
 
 void TileDBVCFDataset::delete_samples(
-    const std::vector<std::string>& sample_names,
-    const ExportParams& params) {
+    const std::vector<std::string>& sample_names, const ExportParams& params) {
   assert(params.format == ExportFormat::Delete);
   assert(params.export_to_disk);
 

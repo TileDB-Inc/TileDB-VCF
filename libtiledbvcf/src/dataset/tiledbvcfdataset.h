@@ -346,8 +346,7 @@ class TileDBVCFDataset {
    * @param params The read parameters to use, including TileDB config values
    */
   void delete_samples(
-      const std::vector<std::string>& sample_names,
-      const ExportParams& params);
+      const std::vector<std::string>& sample_names, const ExportParams& params);
 
   /**
    * @brief Delete samples from the dataset. This removes samples from the
