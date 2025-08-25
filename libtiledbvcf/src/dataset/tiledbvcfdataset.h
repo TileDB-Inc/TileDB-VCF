@@ -47,6 +47,9 @@
 namespace tiledb {
 namespace vcf {
 
+// Forward declare export params
+struct ExportParams;
+
 /* ********************************* */
 /*       AUXILIARY DATATYPES         */
 /* ********************************* */
@@ -105,6 +108,11 @@ struct DeleteParams {
   std::string log_file;
   std::vector<std::string> sample_names;
   std::vector<std::string> tiledb_config;
+
+  // Memory/performance params:
+  uint64_t memory_budget_mb = 2 * 1024;
+  float buffers_percentage = 25;
+  float tile_cache_percentage = 10;
 };
 
 struct UtilsParams {
@@ -332,7 +340,17 @@ class TileDBVCFDataset {
 
   /**
    * @brief Delete samples from the dataset. This removes samples from the
-   * data, vcf_header, and stats arrays.
+   * data, vcf_header, and stats arrays using the given read parameters.
+   *
+   * @param sample_names Sample names to delete
+   * @param params The read parameters to use, including TileDB config values
+   */
+  void delete_samples(
+      const std::vector<std::string>& sample_names, const ExportParams& params);
+
+  /**
+   * @brief Delete samples from the dataset. This removes samples from the
+   * data, vcf_header, and stats arrays using the default export parameters.
    *
    * @param uri TileDB-VCF dataset URI
    * @param sample_names Sample names to delete

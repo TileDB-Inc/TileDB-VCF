@@ -940,9 +940,22 @@ void TileDBVCFDataset::delete_samples(
     const std::string& uri,
     const std::vector<std::string>& sample_names,
     const std::vector<std::string>& tiledb_config) {
+  ExportParams params;
+  params.format = ExportFormat::Delete;
+  params.export_to_disk = true;
+  params.uri = uri;
+  params.tiledb_config = tiledb_config;
+  delete_samples(sample_names, params);
+}
+
+void TileDBVCFDataset::delete_samples(
+    const std::vector<std::string>& sample_names, const ExportParams& params) {
+  assert(params.format == ExportFormat::Delete);
+  assert(params.export_to_disk);
+
   // Open dataset in read mode, required before calling `sample_exists`.
   if (!open_) {
-    open(uri, tiledb_config);
+    open(params.uri, params.tiledb_config);
   }
 
   // Define a function that deletes a sample from an array
@@ -978,16 +991,10 @@ void TileDBVCFDataset::delete_samples(
     // If a stats array exists, read the data with the delete exporter,
     // which adds negative counts to the stats arrays
     if (stats_array_exists) {
-      ExportParams args;
-      args.tiledb_config = tiledb_config;
-      args.uri = uri;
-      args.sample_names = sample_names;
-      args.format = ExportFormat::Delete;
-      args.export_to_disk = true;
-
       Reader reader;
-      reader.set_all_params(args);
-      reader.open_dataset(uri);
+      reader.set_all_params(params);
+      reader.set_samples(sample);
+      reader.open_dataset(params.uri);
       reader.read();
     }
 
