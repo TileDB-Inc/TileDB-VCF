@@ -176,10 +176,6 @@ TEST_CASE("TileDB-VCF: Test delete stats", "[tiledbvcf][delete]") {
 TEST_CASE("TileDB-VCF: Test multi sample delete", "[tiledbvcf][delete]") {
   // LOG_CONFIG("debug");
 
-  auto enable_ac = GENERATE(false, true);
-  auto enable_vs = GENERATE(false, true);
-  auto enable_ss = GENERATE(false, true);
-
   tiledb::Context ctx;
   tiledb::VFS vfs(ctx);
 
@@ -192,15 +188,12 @@ TEST_CASE("TileDB-VCF: Test multi sample delete", "[tiledbvcf][delete]") {
     vfs.remove_dir(dataset_uri);
   }
 
-  // Create and enable stats arrays
+  // Create dataset
   {
     CreationParams create_args;
     create_args.uri = dataset_uri;
     create_args.tile_capacity = 10000;
     create_args.allow_duplicates = false;
-    create_args.enable_allele_count = enable_ac;
-    create_args.enable_variant_stats = enable_vs;
-    create_args.enable_sample_stats = enable_ss;
     TileDBVCFDataset::create(create_args);
   }
 
