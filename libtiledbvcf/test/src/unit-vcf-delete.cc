@@ -69,7 +69,7 @@ auto sum(
   return sum[0];
 }
 
-TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
+TEST_CASE("TileDB-VCF: Test delete stats", "[tiledbvcf][delete]") {
   // LOG_CONFIG("debug");
 
   auto enable_ac = GENERATE(false, true);
@@ -166,6 +166,85 @@ TEST_CASE("TileDB-VCF: Test delete", "[tiledbvcf][delete]") {
   if (enable_ss) {
     std::string array_uri = dataset_uri + "/sample_stats";
     REQUIRE(sum<uint64_t>(ctx, array_uri, "n_records") == 0);
+  }
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+}
+
+TEST_CASE("TileDB-VCF: Test multi sample delete", "[tiledbvcf][delete]") {
+  // LOG_CONFIG("debug");
+
+  auto enable_ac = GENERATE(false, true);
+  auto enable_vs = GENERATE(false, true);
+  auto enable_ss = GENERATE(false, true);
+
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  std::vector<std::string> sample_names;
+  std::vector<std::string> sample_uris;
+  std::string last_sample;
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+
+  // Create and enable stats arrays
+  {
+    CreationParams create_args;
+    create_args.uri = dataset_uri;
+    create_args.tile_capacity = 10000;
+    create_args.allow_duplicates = false;
+    create_args.enable_allele_count = enable_ac;
+    create_args.enable_variant_stats = enable_vs;
+    create_args.enable_sample_stats = enable_ss;
+    TileDBVCFDataset::create(create_args);
+  }
+
+  // Ingest
+  {
+    for (unsigned i = 1; i <= 10; i++) {
+      std::string name = "G" + std::to_string(i);
+      std::string uri = input_dir + "/random_synthetic/" + name + ".bcf";
+      sample_names.push_back(name);
+      sample_uris.push_back(uri);
+    }
+
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = sample_uris;
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Check samples are present
+  {
+    TileDBVCFDataset dataset(std::make_shared<Context>(ctx));
+    dataset.open(dataset_uri);
+    REQUIRE(dataset.sample_names().size() == 10);
+  }
+
+  // Delete all but one sample
+  {
+    last_sample = sample_names.back();
+    sample_names.pop_back();
+    Config cfg;
+    TileDBVCFDataset dataset(cfg);
+    dataset.delete_samples(dataset_uri, sample_names);
+  }
+
+  // Check the samples were deleted
+  {
+    auto ctx = std::make_shared<Context>();
+    TileDBVCFDataset dataset(ctx);
+    dataset.open(dataset_uri);
+    REQUIRE(dataset.sample_names().size() == 1);
+    std::string sample_str(dataset.sample_names().at(0).data());
+    REQUIRE(sample_str == last_sample);
   }
 
   if (vfs.is_dir(dataset_uri)) {
