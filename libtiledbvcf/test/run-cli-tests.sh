@@ -27,6 +27,7 @@ function clean_up {
            ingested_capacity HG01762.vcf HG00280.vcf tmp.bed tmp1.vcf tmp2.vcf \
            region-map.txt pfx.tsv \
            export_test G1.bcf \
+           deletion_test \
            create_test \
            combine-test \
            tmp
@@ -419,6 +420,23 @@ $tilevcf create -u export_test
 $tilevcf store -u export_test ${input_dir}/random_synthetic/G1.bcf
 $tilevcf export -u export_test -Ob -s G1
 diff -u <(bcftools view -H G1.bcf | sort -k1,1 -k2,2n) <(bcftools view -H ${input_dir}/random_synthetic/G1.bcf | sort -k1,1 -k2,2n) || exit 1
+
+# check deletion
+$tilevcf create -u deletion_test || exit 1
+for i in {1..10}; do
+  $tilevcf store -u deletion_test ${input_dir}/random_synthetic/G$i.bcf || exit 1
+done
+$tilevcf delete -u deletion_test -s G1,G2,G3,G4,G5,G6,G7,G8,G9
+diff -u <($tilevcf list -u deletion_test) <(
+cat <<EOF
+G10
+EOF
+) || exit 1
+$tilevcf delete -u deletion_test -s G10
+diff -u <($tilevcf list -u deletion_test) <(
+cat <<EOF
+EOF
+) || exit 1
 
 # check create from vcf
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
