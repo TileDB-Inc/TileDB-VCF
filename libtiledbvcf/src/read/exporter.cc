@@ -35,12 +35,26 @@ void Exporter::recover_record(
     uint64_t cell_idx,
     const std::string& contig_name,
     uint32_t contig_offset,
-    bcf1_t* dst) const {
+    bcf1_t* dst,
+    const field_filter* info_fields,
+    const field_filter* format_fields) const {
   // First things first, clear the record.
   bcf_clear(dst);
 
   const auto& results = query_results;
   const auto* buffers = results.buffers();
+
+  // Create a filter for materialized fields
+  field_filter attr_fields;
+  field_filter* attr_fields_ptr = nullptr;
+  if (info_fields != nullptr) {
+    attr_fields.insert(info_fields->cbegin(), info_fields->cend());
+    attr_fields_ptr = &attr_fields;
+  }
+  if (format_fields != nullptr) {
+    attr_fields.insert(format_fields->cbegin(), format_fields->cend());
+    attr_fields_ptr = &attr_fields;
+  }
 
   dst->rid = bcf_hdr_name2id(hdr, contig_name.c_str());
   if (dst->rid < 0)
@@ -104,138 +118,153 @@ void Exporter::recover_record(
     throw std::runtime_error(
         "Record recovery error; Error adding ID, " + std::to_string(st));
 
-  const uint64_t info_offset = buffers->info().offsets()[cell_idx];
-  const char* info_ptr = buffers->info().data<char>() + info_offset;
-  unsigned num_info_fields = *(uint32_t*)info_ptr;
-  info_ptr += sizeof(uint32_t);
   // Reusable buffer for string-valued fields.
   std::string str_buffer;
-  for (unsigned i = 0; i < num_info_fields; ++i) {
-    const char* key = info_ptr;
-    size_t key_nbytes = strlen(key) + 1;
-    info_ptr += key_nbytes;
+  if (info_fields == nullptr || !info_fields->empty()) {
+    const uint64_t info_offset = buffers->info().offsets()[cell_idx];
+    const char* info_ptr = buffers->info().data<char>() + info_offset;
+    unsigned num_info_fields = *(uint32_t*)info_ptr;
+    info_ptr += sizeof(uint32_t);
+    for (unsigned i = 0; i < num_info_fields; ++i) {
+      const char* key = info_ptr;
+      size_t key_nbytes = strlen(key) + 1;
+      info_ptr += key_nbytes;
 
-    int type = *(int*)(info_ptr);
-    info_ptr += sizeof(int);
-    int nvalues = *(int*)(info_ptr);
-    info_ptr += sizeof(int);
+      int type = *(int*)(info_ptr);
+      info_ptr += sizeof(int);
+      int nvalues = *(int*)(info_ptr);
+      info_ptr += sizeof(int);
 
-    // For string types, bcf_update_info requires null-termination.
-    if (type == BCF_HT_STR) {
-      str_buffer.clear();
-      str_buffer.reserve(nvalues + 1);
-      str_buffer.append(info_ptr, nvalues);
-      str_buffer.push_back('\0');
-      st = bcf_update_info(
-          hdr, dst, key, str_buffer.data(), str_buffer.size(), type);
-    } else if (type == BCF_HT_FLAG) {
-      st = bcf_update_info(hdr, dst, key, NULL, nvalues, type);
-    } else {
-      st = bcf_update_info(hdr, dst, key, info_ptr, nvalues, type);
+      // Only proceed if the field is being recovered
+      if (info_fields == nullptr || info_fields->contains(key)) {
+        // For string types, bcf_update_info requires null-termination.
+        if (type == BCF_HT_STR) {
+          str_buffer.clear();
+          str_buffer.reserve(nvalues + 1);
+          str_buffer.append(info_ptr, nvalues);
+          str_buffer.push_back('\0');
+          st = bcf_update_info(
+              hdr, dst, key, str_buffer.data(), str_buffer.size(), type);
+        } else if (type == BCF_HT_FLAG) {
+          st = bcf_update_info(hdr, dst, key, NULL, nvalues, type);
+        } else {
+          st = bcf_update_info(hdr, dst, key, info_ptr, nvalues, type);
+        }
+
+        if (st < 0)
+          throw std::runtime_error(
+              "Record recovery error; Error adding INFO field '" +
+              std::string(key) + "', " + std::to_string(st));
+      }
+
+      info_ptr += nvalues * utils::bcf_type_size(type);
     }
-
-    if (st < 0)
-      throw std::runtime_error(
-          "Record recovery error; Error adding INFO field '" +
-          std::string(key) + "', " + std::to_string(st));
-
-    info_ptr += nvalues * utils::bcf_type_size(type);
   }
 
-  const uint64_t fmt_offset = buffers->fmt().offsets()[cell_idx];
-  const char* fmt_ptr = buffers->fmt().data<char>() + fmt_offset;
-  unsigned num_fmt_fields = *(uint32_t*)fmt_ptr;
-  fmt_ptr += sizeof(uint32_t);
-  for (unsigned i = 0; i < num_fmt_fields; ++i) {
-    const char* key = fmt_ptr;
-    size_t key_nbytes = strlen(key) + 1;
-    fmt_ptr += key_nbytes;
+  if (format_fields == nullptr || !format_fields->empty()) {
+    const uint64_t fmt_offset = buffers->fmt().offsets()[cell_idx];
+    const char* fmt_ptr = buffers->fmt().data<char>() + fmt_offset;
+    unsigned num_fmt_fields = *(uint32_t*)fmt_ptr;
+    fmt_ptr += sizeof(uint32_t);
+    for (unsigned i = 0; i < num_fmt_fields; ++i) {
+      const char* key = fmt_ptr;
+      size_t key_nbytes = strlen(key) + 1;
+      fmt_ptr += key_nbytes;
 
-    int type = *(int*)(fmt_ptr);
-    fmt_ptr += sizeof(int);
-    int nvalues = *(int*)(fmt_ptr);
-    fmt_ptr += sizeof(int);
+      int type = *(int*)(fmt_ptr);
+      fmt_ptr += sizeof(int);
+      int nvalues = *(int*)(fmt_ptr);
+      fmt_ptr += sizeof(int);
 
-    // For string types, bcf_update_format requires null-termination.
-    if (type == BCF_HT_STR) {
-      str_buffer.clear();
-      str_buffer.reserve(nvalues + 1);
-      str_buffer.append(fmt_ptr, nvalues);
-      str_buffer.push_back('\0');
-      st = bcf_update_format(
-          hdr, dst, key, str_buffer.data(), str_buffer.size(), type);
-    } else {
-      st = bcf_update_format(hdr, dst, key, fmt_ptr, nvalues, type);
+      // Only proceed if the field is being recovered
+      if (format_fields == nullptr || format_fields->contains(key)) {
+        // For string types, bcf_update_format requires null-termination.
+        if (type == BCF_HT_STR) {
+          str_buffer.clear();
+          str_buffer.reserve(nvalues + 1);
+          str_buffer.append(fmt_ptr, nvalues);
+          str_buffer.push_back('\0');
+          st = bcf_update_format(
+              hdr, dst, key, str_buffer.data(), str_buffer.size(), type);
+        } else {
+          st = bcf_update_format(hdr, dst, key, fmt_ptr, nvalues, type);
+        }
+
+        if (st < 0)
+          throw std::runtime_error(
+              "Record recovery error; Error adding FMT field '" +
+              std::string(key) + "', " + std::to_string(st));
+      }
+
+      fmt_ptr += nvalues * utils::bcf_type_size(type);
     }
-
-    if (st < 0)
-      throw std::runtime_error(
-          "Record recovery error; Error adding FMT field '" + std::string(key) +
-          "', " + std::to_string(st));
-
-    fmt_ptr += nvalues * utils::bcf_type_size(type);
   }
 
-  for (auto& attr : buffers->extra_attrs()) {
-    auto parts = TileDBVCFDataset::split_info_fmt_attr_name(attr.first);
-    if ((parts.first != "info" && parts.first != "fmt"))
-      throw std::runtime_error(
-          "Record recovery error; improper attribute name '" + attr.first +
-          "'.");
-    const bool is_info = parts.first == "info";
-    const auto& field_name = parts.second;
-
-    auto sizes_iter = results.extra_attrs_size().find(attr.first);
-    if (sizes_iter == results.extra_attrs_size().end())
-      throw std::runtime_error(
-          "Could not find size for extra attribute" + attr.first +
-          " in recover_record");
-
-    auto sizes = results.extra_attrs_size().at(attr.first);
-    const char* field_ptr =
-        attr.second.data<char>() + attr.second.offsets()[cell_idx];
-    size_t field_nbytes =
-        (cell_idx == sizes.first - 1 ? sizes.second :
-                                       attr.second.offsets()[cell_idx + 1]) -
-        attr.second.offsets()[cell_idx];
-
-    // Check if field exists for this record (check for dummy value).
-    if (field_nbytes == 1 && *field_ptr == 0)
-      continue;
-
-    int type = *(int*)(field_ptr);
-    field_ptr += sizeof(int);
-    int nvalues = *(int*)(field_ptr);
-    field_ptr += sizeof(int);
-
-    const char* values_ptr = field_ptr;
-
-    // For string types, bcf_update_info/format requires null-termination.
-    if (type == BCF_HT_STR) {
-      str_buffer.clear();
-      str_buffer.reserve(nvalues + 1);
-      str_buffer.append(field_ptr, nvalues);
-      str_buffer.push_back('\0');
-      nvalues = str_buffer.size();
-      values_ptr = str_buffer.data();
-    }
-
-    if (is_info) {
-      st = bcf_update_info(
-          hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
-      if (st < 0)
+  if (attr_fields_ptr == nullptr || !attr_fields.empty()) {
+    for (auto& attr : buffers->extra_attrs()) {
+      auto parts = TileDBVCFDataset::split_info_fmt_attr_name(attr.first);
+      if ((parts.first != "info" && parts.first != "fmt"))
         throw std::runtime_error(
-            "Record recovery error; Error adding INFO field '" +
-            std::string(field_name) + "', " + std::to_string(st));
-      num_info_fields++;
-    } else {
-      st = bcf_update_format(
-          hdr, dst, field_name.c_str(), values_ptr, nvalues, type);
-      if (st < 0)
+            "Record recovery error; improper attribute name '" + attr.first +
+            "'.");
+      const bool is_info = parts.first == "info";
+      const auto& field_name = parts.second;
+      const char* field_name_cstr = field_name.c_str();
+
+      // Only proceed if the field is being recovered
+      if (attr_fields_ptr != nullptr && !attr_fields.contains(field_name_cstr))
+        continue;
+
+      auto sizes_iter = results.extra_attrs_size().find(attr.first);
+      if (sizes_iter == results.extra_attrs_size().end())
         throw std::runtime_error(
-            "Record recovery error; Error adding FMT field '" +
-            std::string(field_name) + "', " + std::to_string(st));
-      num_fmt_fields++;
+            "Could not find size for extra attribute" + attr.first +
+            " in recover_record");
+
+      auto sizes = results.extra_attrs_size().at(attr.first);
+      const char* field_ptr =
+          attr.second.data<char>() + attr.second.offsets()[cell_idx];
+      size_t field_nbytes =
+          (cell_idx == sizes.first - 1 ? sizes.second :
+                                         attr.second.offsets()[cell_idx + 1]) -
+          attr.second.offsets()[cell_idx];
+
+      // Check if field exists for this record (check for dummy value).
+      if (field_nbytes == 1 && *field_ptr == 0)
+        continue;
+
+      int type = *(int*)(field_ptr);
+      field_ptr += sizeof(int);
+      int nvalues = *(int*)(field_ptr);
+      field_ptr += sizeof(int);
+
+      const char* values_ptr = field_ptr;
+
+      // For string types, bcf_update_info/format requires null-termination.
+      if (type == BCF_HT_STR) {
+        str_buffer.clear();
+        str_buffer.reserve(nvalues + 1);
+        str_buffer.append(field_ptr, nvalues);
+        str_buffer.push_back('\0');
+        nvalues = str_buffer.size();
+        values_ptr = str_buffer.data();
+      }
+
+      if (is_info) {
+        st = bcf_update_info(
+            hdr, dst, field_name_cstr, values_ptr, nvalues, type);
+        if (st < 0)
+          throw std::runtime_error(
+              "Record recovery error; Error adding INFO field '" +
+              std::string(field_name) + "', " + std::to_string(st));
+      } else {
+        st = bcf_update_format(
+            hdr, dst, field_name_cstr, values_ptr, nvalues, type);
+        if (st < 0)
+          throw std::runtime_error(
+              "Record recovery error; Error adding FMT field '" +
+              std::string(field_name) + "', " + std::to_string(st));
+      }
     }
   }
 }

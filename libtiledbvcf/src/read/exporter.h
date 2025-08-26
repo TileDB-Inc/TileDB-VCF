@@ -27,6 +27,8 @@
 #ifndef TILEDB_VCF_EXPORTER_H
 #define TILEDB_VCF_EXPORTER_H
 
+#include <unordered_set>
+
 #include "dataset/tiledbvcfdataset.h"
 #include "read/export_format.h"
 #include "read_query_results.h"
@@ -38,6 +40,9 @@ namespace vcf {
 /** Abstract interface for exporting extracted records to disk or in-memory. */
 class Exporter {
  public:
+  typedef std::unordered_set<std::string_view, std::hash<std::string_view>>
+      field_filter;
+
   /** Constructor */
   Exporter();
 
@@ -130,6 +135,8 @@ class Exporter {
    * @param contig_name Name of contig of record
    * @param contig_offset Global offset of contig of record
    * @param dst Record instance to be populated.
+   * @param info_fields Specific set of info fields to recover
+   * @param format_fields Specific set of format fields to recover
    */
   void recover_record(
       const bcf_hdr_t* hdr,
@@ -137,7 +144,9 @@ class Exporter {
       uint64_t cell_idx,
       const std::string& contig_name,
       uint32_t contig_offset,
-      bcf1_t* dst) const;
+      bcf1_t* dst,
+      const field_filter* info_fields = nullptr,
+      const field_filter* format_fields = nullptr) const;
 
   bool add_iaf = false;
 };

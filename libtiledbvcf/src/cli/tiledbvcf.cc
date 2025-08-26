@@ -117,8 +117,21 @@ void do_delete(const DeleteParams& args, const CLI::App& cmd) {
   tiledb::Config cfg;
   utils::set_tiledb_config(args.tiledb_config, &cfg);
 
+  // Instantiate the dataset with the same memory budget as the reader
+  cfg["sm.mem.total_budget"] = args.memory_budget_mb << 20;
   TileDBVCFDataset dataset(cfg);
-  dataset.delete_samples(args.uri, args.sample_names, args.tiledb_config);
+
+  // Delete with explicit export params to configure memory
+  ExportParams params;
+  params.format = ExportFormat::Delete;
+  params.export_to_disk = true;
+  params.uri = args.uri;
+  params.tiledb_config = args.tiledb_config;
+  params.memory_budget_mb = args.memory_budget_mb;
+  params.memory_budget_breakdown.buffers_percentage = args.buffers_percentage;
+  params.memory_budget_breakdown.tile_cache_percentage =
+      args.tile_cache_percentage;
+  dataset.delete_samples(args.sample_names, params);
   LOG_TRACE("Finished delete command.");
 }
 
@@ -691,7 +704,24 @@ void add_delete(CLI::App& app) {
          args->sample_names,
          "CSV list of sample names to delete")
       ->delimiter(',');
+
+  cmd->option_defaults()->group("TileDB options");
   add_tiledb_options(cmd, args->tiledb_config);
+  cmd->add_option(
+      "-b,--mem-budget-mb",
+      args->memory_budget_mb,
+      "The memory budget (MB) used when submitting TileDB "
+      "queries.");
+  cmd->add_option(
+      "--mem-budget-buffer-percentage",
+      args->buffers_percentage,
+      "The percentage of the memory budget to use for TileDB "
+      "query buffers.");
+  cmd->add_option(
+      "--mem-budget-tile-cache-percentage",
+      args->tile_cache_percentage,
+      "The percentage of the memory budget to use for TileDB tile "
+      "cache.");
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command
