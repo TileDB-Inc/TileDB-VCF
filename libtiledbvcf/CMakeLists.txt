@@ -134,6 +134,13 @@ endif()
 project(TileDB-VCF)
 message(STATUS "Starting TileDB-VCF regular build.")
 
+# Avoid false positive dangling reference errors when compiling with GCC 14
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-dangling-reference")
+endif()
+
 # Paths to locate the installed external projects.
 set(EP_SOURCE_DIR "${EP_BASE}/src")
 set(EP_INSTALL_PREFIX "${EP_BASE}/install")
