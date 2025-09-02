@@ -82,7 +82,7 @@ venv:
 .PHONY: docker
 docker:
 	docker build -t tiledbvcf-cli:dev -f docker/Dockerfile-cli . && \
-	docker run --rm -t tiledbvcf-cli:dev version && \
+	docker run --rm -t tiledbvcf-cli:dev tiledbvcf version && \
 	docker build -t tiledbvcf-py:dev -f docker/Dockerfile-py . && \
 	docker run --rm -t tiledbvcf-py:dev -c "import tiledbvcf; print(tiledbvcf.version)"
 

@@ -55,14 +55,14 @@ You can use the `tiledbvcf-cli` image to run any of the CLI's [available command
 List all samples in the dataset:
 
 ```sh
-docker run --rm tiledb/tiledbvcf-cli list \
+docker run --rm tiledb/tiledbvcf-cli tiledbvcf list \
   --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20
 ```
 
 Create a table of all variants within a region of interest for sample `v2-WpXCYApL`
 
 ```sh
-docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli export \
+docker run --rm -v $PWD:/data tiledb/tiledbvcf-cli tiledbvcf export \
   --uri s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20 \
   -Ot --tsv-fields "CHR,POS,REF,S:GT"
   --regions chr7:144000320-144008793 \
@@ -76,7 +76,7 @@ docker run --rm \
   -v $PWD:/data \
   -u "$(id -u):$(id -g)" \
   tiledb/tiledbvcf-cli \
-  create -u test-array
+  tiledbvcf create -u test-array
 ```
 
 User and group IDs should also be specified when ingesting data:
@@ -89,7 +89,7 @@ docker run --rm \
   -v $PWD:/data \
   -u "$(id -u):$(id -g)" \
   tiledb/tiledbvcf-cli \
-  store -u test-array -f samples.txt --scratch-mb 10 --verbose
+  tiledbvcf store -u test-array -f samples.txt --scratch-mb 10 --verbose
 ```
 
 ### Python
