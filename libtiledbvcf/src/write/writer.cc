@@ -522,6 +522,264 @@ void Writer::ingest_samples() {
   }
 }
 
+void Writer::liftover_samples() {
+  auto start_all = std::chrono::steady_clock::now();
+
+  // If the user requests stats, enable them on read
+  // Multiple calls to enable stats has no effect
+  if (ingestion_params_.tiledb_stats_enabled) {
+    tiledb::Stats::enable();
+  } else {
+    // Else we will make sure they are disable and reset
+    tiledb::Stats::disable();
+    tiledb::Stats::reset();
+  }
+
+  // TODO: implement liftover-specific resume
+  //if (ingestion_params_.resume_sample_partial_ingestion) {
+  //  ingestion_params_.load_data_array_fragment_info = true;
+  //}
+
+  // Reset expected total record count
+  total_records_expected_ = 0;
+
+#if !defined _MSC_VER
+  // Set open file soft limit to hard limit
+  struct rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+    LOG_WARN("Unable to read open file limit");
+  } else {
+    LOG_DEBUG("Open file limit = {}", limit.rlim_cur);
+    limit.rlim_cur = limit.rlim_max;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+      LOG_WARN("Unable to set open file limit");
+    } else {
+      if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        LOG_WARN("Unable to read new open file limit");
+      } else {
+        LOG_DEBUG("New open file limit = {}", limit.rlim_cur);
+      }
+    }
+  }
+#endif
+
+  // NOTE: use ingestion_params_.input_recored_buffer_mb for querying source
+  // dataset
+  update_params(ingestion_params_);
+  init(ingestion_params_);
+  // TODO: need to similarly init for source dataset
+
+  // TODO: implement liftover-specific resume
+  //if (ingestion_params_.resume_sample_partial_ingestion &&
+  //    (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+  //     dataset_->metadata().version == TileDBVCFDataset::Version::V3)) {
+  //  throw std::runtime_error(
+  //      "Resume support only support for v4 or higher datasets");
+  //}
+
+  std::unordered_map<
+      std::pair<std::string, std::string>,
+      std::vector<std::pair<std::string, std::string>>,
+      tiledb::vcf::pair_hash>
+      existing_fragments;
+  // TODO: implement liftover-specific resume
+  //if (ingestion_params_.resume_sample_partial_ingestion) {
+  //  LOG_DEBUG(
+  //      "Starting fetching of contig to sample list for resumption checking");
+  //  existing_fragments = dataset_->fragment_sample_contig_list();
+  //  LOG_DEBUG(
+  //      "Finished fetching of contig sample list for resumption checking");
+  //}
+
+  // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
+  std::vector<SampleAndIndex> samples;
+  // TODO: use ingestion_params_.liftover_sample_names or load from source
+  // dataset if no sample name given
+  //if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+  //    dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+  //  samples = prepare_sample_list(ingestion_params_);
+  //else
+  //  samples = prepare_sample_list_v4(ingestion_params_);
+
+  // Get a list of regions to ingest, covering the whole genome. The list of
+  // disjoint region is used to divvy up work across ingestion threads.
+  // TODO: confirm that leaving this unchanged is OK since we want regions in
+  // the target dataset
+  auto regions = prepare_region_list(ingestion_params_);
+
+  // Batch the list of samples per space tile.
+  std::vector<std::vector<SampleAndIndex>> batches;
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    batches = batch_elements_by_tile(
+        samples, dataset_->metadata().ingestion_sample_batch_size);
+  else
+    batches =
+        batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
+
+  std::vector<SampleAndIndex> local_samples;
+  //ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
+  //ScratchSpaceInfo scratch_space_b = ingestion_params_.scratch_space;
+  //std::future<std::vector<tiledb::vcf::SampleAndIndex>> future_paths;
+  //uint64_t scratch_size_mb = 0;
+
+  // TODO: remove because samples are loaded from the source dataset
+  //bool download_samples = !ingestion_params_.scratch_space.path.empty();
+  //if (download_samples) {
+  //  // Set up parameters for two scratch spaces.
+  //  scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
+  //  scratch_space_a.size_mb = scratch_size_mb;
+  //  scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
+  //  if (!vfs_->is_dir(scratch_space_a.path))
+  //    vfs_->create_dir(scratch_space_a.path);
+  //  scratch_space_b.size_mb = scratch_size_mb;
+  //  scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
+  //  if (!vfs_->is_dir(scratch_space_b.path))
+  //    vfs_->create_dir(scratch_space_b.path);
+  //}
+
+  // TODO: remove because samples are loaded from the source dataset
+  // Start fetching first batch, either downloading of using remote vfs plugin
+  // if no scratch space.
+  //TRY_CATCH_THROW(
+  //    future_paths = std::async(
+  //        std::launch::async,
+  //        SampleUtils::get_samples,
+  //        *vfs_,
+  //        batches[0],
+  //        &scratch_space_a));
+
+  LOG_DEBUG(
+      "Initialization completed in {:.3f} seconds.",
+      utils::chrono_duration(start_all));
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+  uint64_t samples_ingested = 0;
+  for (unsigned i = 1; i < batches.size(); i++) {
+    // TODO: remove because samples are loaded from the source dataset
+    // Block until current batch is fetched.
+    //TRY_CATCH_THROW(local_samples = future_paths.get());
+
+    // TODO: remove because samples are loaded from the source dataset
+    // Start the next batch fetching.
+    //TRY_CATCH_THROW(
+    //    future_paths = std::async(
+    //        std::launch::async,
+    //        SampleUtils::get_samples,
+    //        *vfs_,
+    //        batches[i],
+    //        &scratch_space_b));
+
+    // Ingest the batch.
+    // TODO: implement liftover ingestors, i.e. liftover_samples(...) and
+    // liftover_samples_v4(...)
+    auto start_batch = std::chrono::steady_clock::now();
+    std::pair<uint64_t, uint64_t> result;
+    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+        dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+      result = ingest_samples(ingestion_params_, local_samples, regions);
+    } else {
+      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+      result = ingest_samples_v4(
+          ingestion_params_, local_samples, regions, existing_fragments);
+    }
+    records_ingested += result.first;
+    anchors_ingested += result.second;
+    samples_ingested += local_samples.size();
+
+    LOG_INFO(
+        "Finished ingesting {} / {} samples ({} sec)...",
+        samples_ingested,
+        samples.size(),
+        utils::chrono_duration(start_batch));
+
+    // TODO: remove because samples are loaded from the source dataset
+    //if (download_samples) {
+    //  // Reset current scratch space and swap.
+    //  if (vfs_->is_dir(scratch_space_a.path))
+    //    vfs_->remove_dir(scratch_space_a.path);
+    //  vfs_->create_dir(scratch_space_a.path);
+    //  scratch_space_a.size_mb = scratch_size_mb;
+    //  std::swap(scratch_space_a, scratch_space_b);
+    //}
+  }
+
+  // Ingest the last batch
+  // TODO: remove because samples are loaded from the source dataset
+  //TRY_CATCH_THROW(local_samples = future_paths.get());
+  std::pair<uint64_t, uint64_t> result;
+  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
+    result = ingest_samples(ingestion_params_, local_samples, regions);
+
+    // Make sure to finalize for v2/v3
+    query_->finalize();
+  } else {
+    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+    result = ingest_samples_v4(
+        ingestion_params_, local_samples, regions, existing_fragments);
+  }
+  records_ingested += result.first;
+  anchors_ingested += result.second;
+
+  auto t0 = std::chrono::steady_clock::now();
+  LOG_DEBUG("Making sure all finalize tasks completed...");
+  for (auto& finalize_task : finalize_tasks_) {
+    if (finalize_task.valid()) {
+      TRY_CATCH_THROW(finalize_task.get());
+    }
+  }
+  LOG_DEBUG(
+      "All finalize tasks successfully completed. Waited for {} sec.",
+      utils::chrono_duration(t0));
+
+  AlleleCount::close();
+  VariantStats::close();
+  SampleStats::close();
+  array_->close();
+
+  // TODO: remove because samples are loaded from the source dataset
+  // Clean up
+  //if (download_samples) {
+  //  if (vfs_->is_dir(scratch_space_a.path))
+  //    vfs_->remove_dir(scratch_space_a.path);
+  //  if (vfs_->is_dir(scratch_space_b.path))
+  //    vfs_->remove_dir(scratch_space_b.path);
+  //}
+  //if (ingestion_params_.remove_samples_file &&
+  //    vfs_->is_file(ingestion_params_.samples_file_uri))
+  //  vfs_->remove_file(ingestion_params_.samples_file_uri);
+
+  auto time_sec = utils::chrono_duration(start_all);
+  LOG_INFO(fmt::format(
+      std::locale(""),
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+      "{:.3f} seconds = {:.1f} records/sec",
+      records_ingested,
+      anchors_ingested,
+      samples.size(),
+      time_sec,
+      records_ingested / time_sec));
+
+  // Check if records ingested matches the expected total record count.
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
+    if (records_ingested != total_records_expected_) {
+      std::string message = fmt::format(
+          "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+      LOG_ERROR(message);
+      throw std::runtime_error(message);
+    } else {
+      LOG_INFO(
+          "QACheck: [PASS] Total records ingested ({}) == total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+    }
+  }
+}
+
 std::pair<uint64_t, uint64_t> Writer::ingest_samples(
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples,

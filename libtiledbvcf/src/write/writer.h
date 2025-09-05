@@ -58,13 +58,23 @@ struct IngestionParams {
   std::string uri;
   std::string log_level;
   std::string log_file;
+  bool verbose = false;
+
+  // Ingestion params
   std::string samples_file_uri;
   std::vector<std::string> sample_uris;
-  unsigned num_threads = std::thread::hardware_concurrency();
-  unsigned part_size_mb = 50;
-  bool verbose = false;
   ScratchSpaceInfo scratch_space;
   bool remove_samples_file = false;
+
+  // Liftover params
+  std::string liftover_uri = "";
+  std::string liftover_alignments_uri = "";
+  std::string liftover_reference_uri = "";
+  std::vector<std::string> liftover_sample_names;
+
+  // Common params
+  unsigned num_threads = std::thread::hardware_concurrency();
+  unsigned part_size_mb = 50;
   // Max number of VCF records to read into memory
   uint32_t max_record_buffer_size = 50000;         // legacy option
   bool use_legacy_max_record_buffer_size = false;  // if true, use legacy option
@@ -273,6 +283,9 @@ class Writer {
 
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
+
+  /** Liftover samples based on parameters that have been set. */
+  void liftover_samples();
 
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
