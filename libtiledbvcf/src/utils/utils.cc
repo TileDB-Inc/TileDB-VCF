@@ -29,11 +29,15 @@
 #if !defined _MSC_VER
 #include <unistd.h>
 #endif
+#include <algorithm>
 #include <cerrno>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <mutex>
+#include <numeric>
 #include <random>
+#include <sstream>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/logger_public.h"
@@ -63,6 +67,18 @@ std::vector<std::string> split(
         }
       });
   return output;
+}
+
+std::string join(
+  std::vector<std::string> const &strings, const std::string& delim) {
+  if (strings.empty()) {
+    return std::string();
+  }
+  return std::accumulate(strings.begin() + 1, strings.end(), strings[0],
+    [&delim](std::string a, std::string b) {
+      return a + delim + b;
+    }
+  );
 }
 
 void enable_pretty_print_numbers(std::ostream& os) {
