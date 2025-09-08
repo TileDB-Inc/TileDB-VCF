@@ -523,7 +523,7 @@ void Writer::ingest_samples() {
   }
 }
 
-void Writer::liftover_samples(Datasource& datasource) {
+void Writer::ingest_samples(Datasource& datasource) {
   auto start_all = std::chrono::steady_clock::now();
 
   // If the user requests stats, enable them on read

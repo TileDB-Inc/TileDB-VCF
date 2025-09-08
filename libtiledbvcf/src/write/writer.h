@@ -286,10 +286,10 @@ class Writer {
   void ingest_samples();
 
   /**
-   * Liftover samples based on parameters that have been set.
+   * Ingest samples from a generic datasource.
    * @param datasource The datasource to load samples from.
    */
-  void liftover_samples(Datasource& datasource);
+  void ingest_samples(Datasource& datasource);
 
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
