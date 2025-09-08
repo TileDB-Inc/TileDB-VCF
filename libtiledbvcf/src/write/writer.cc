@@ -492,15 +492,16 @@ void Writer::ingest_samples() {
     vfs_->remove_file(ingestion_params_.samples_file_uri);
 
   auto time_sec = utils::chrono_duration(start_all);
-  LOG_INFO(fmt::format(
-      std::locale(""),
-      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
-      "{:.3f} seconds = {:.1f} records/sec",
-      records_ingested,
-      anchors_ingested,
-      samples.size(),
-      time_sec,
-      records_ingested / time_sec));
+  LOG_INFO(
+      fmt::format(
+          std::locale(""),
+          "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+          "{:.3f} seconds = {:.1f} records/sec",
+          records_ingested,
+          anchors_ingested,
+          samples.size(),
+          time_sec,
+          records_ingested / time_sec));
 
   // Check if records ingested matches the expected total record count.
   if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
@@ -522,7 +523,7 @@ void Writer::ingest_samples() {
   }
 }
 
-void Writer::liftover_samples() {
+void Writer::liftover_samples(Datasource& datasource) {
   auto start_all = std::chrono::steady_clock::now();
 
   // If the user requests stats, enable them on read
@@ -535,10 +536,9 @@ void Writer::liftover_samples() {
     tiledb::Stats::reset();
   }
 
-  // TODO: implement liftover-specific resume
-  //if (ingestion_params_.resume_sample_partial_ingestion) {
-  //  ingestion_params_.load_data_array_fragment_info = true;
-  //}
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    ingestion_params_.load_data_array_fragment_info = true;
+  }
 
   // Reset expected total record count
   total_records_expected_ = 0;
@@ -567,44 +567,37 @@ void Writer::liftover_samples() {
   // dataset
   update_params(ingestion_params_);
   init(ingestion_params_);
-  // TODO: need to similarly init for source dataset
 
-  // TODO: implement liftover-specific resume
-  //if (ingestion_params_.resume_sample_partial_ingestion &&
-  //    (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-  //     dataset_->metadata().version == TileDBVCFDataset::Version::V3)) {
-  //  throw std::runtime_error(
-  //      "Resume support only support for v4 or higher datasets");
-  //}
+  if (ingestion_params_.resume_sample_partial_ingestion &&
+      (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+       dataset_->metadata().version == TileDBVCFDataset::Version::V3)) {
+    throw std::runtime_error(
+        "Resume support only support for v4 or higher datasets");
+  }
 
   std::unordered_map<
       std::pair<std::string, std::string>,
       std::vector<std::pair<std::string, std::string>>,
       tiledb::vcf::pair_hash>
       existing_fragments;
-  // TODO: implement liftover-specific resume
-  //if (ingestion_params_.resume_sample_partial_ingestion) {
-  //  LOG_DEBUG(
-  //      "Starting fetching of contig to sample list for resumption checking");
-  //  existing_fragments = dataset_->fragment_sample_contig_list();
-  //  LOG_DEBUG(
-  //      "Finished fetching of contig sample list for resumption checking");
-  //}
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    LOG_DEBUG(
+        "Starting fetching of contig to sample list for resumption checking");
+    existing_fragments = dataset_->fragment_sample_contig_list();
+    LOG_DEBUG(
+        "Finished fetching of contig sample list for resumption checking");
+  }
 
   // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
   std::vector<SampleAndIndex> samples;
-  // TODO: use ingestion_params_.liftover_sample_names or load from source
-  // dataset if no sample name given
-  //if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-  //    dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-  //  samples = prepare_sample_list(ingestion_params_);
-  //else
-  //  samples = prepare_sample_list_v4(ingestion_params_);
+  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
+      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
+    samples = datasource.get_sample_list(dataset_.get());
+  else
+    samples = datasource.get_sample_list_v4(dataset_.get());
 
   // Get a list of regions to ingest, covering the whole genome. The list of
   // disjoint region is used to divvy up work across ingestion threads.
-  // TODO: confirm that leaving this unchanged is OK since we want regions in
-  // the target dataset
   auto regions = prepare_region_list(ingestion_params_);
 
   // Batch the list of samples per space tile.
@@ -617,57 +610,28 @@ void Writer::liftover_samples() {
     batches =
         batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
 
-  std::vector<SampleAndIndex> local_samples;
-  //ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
-  //ScratchSpaceInfo scratch_space_b = ingestion_params_.scratch_space;
-  //std::future<std::vector<tiledb::vcf::SampleAndIndex>> future_paths;
-  //uint64_t scratch_size_mb = 0;
-
-  // TODO: remove because samples are loaded from the source dataset
-  //bool download_samples = !ingestion_params_.scratch_space.path.empty();
-  //if (download_samples) {
-  //  // Set up parameters for two scratch spaces.
-  //  scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
-  //  scratch_space_a.size_mb = scratch_size_mb;
-  //  scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
-  //  if (!vfs_->is_dir(scratch_space_a.path))
-  //    vfs_->create_dir(scratch_space_a.path);
-  //  scratch_space_b.size_mb = scratch_size_mb;
-  //  scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
-  //  if (!vfs_->is_dir(scratch_space_b.path))
-  //    vfs_->create_dir(scratch_space_b.path);
-  //}
-
-  // TODO: remove because samples are loaded from the source dataset
-  // Start fetching first batch, either downloading of using remote vfs plugin
-  // if no scratch space.
-  //TRY_CATCH_THROW(
-  //    future_paths = std::async(
-  //        std::launch::async,
-  //        SampleUtils::get_samples,
-  //        *vfs_,
-  //        batches[0],
-  //        &scratch_space_a));
+  // Start preparing the first batch
+  std::future<std::vector<SampleAndIndex>> future_paths;
+  TRY_CATCH_THROW(
+      future_paths = std::async(
+          std::launch::async,
+          std::bind(&Datasource::prepare_samples, &datasource, batches[0])));
 
   LOG_DEBUG(
       "Initialization completed in {:.3f} seconds.",
       utils::chrono_duration(start_all));
+  std::vector<SampleAndIndex> local_samples;
   uint64_t records_ingested = 0, anchors_ingested = 0;
   uint64_t samples_ingested = 0;
   for (unsigned i = 1; i < batches.size(); i++) {
-    // TODO: remove because samples are loaded from the source dataset
     // Block until current batch is fetched.
-    //TRY_CATCH_THROW(local_samples = future_paths.get());
+    TRY_CATCH_THROW(local_samples = future_paths.get());
 
-    // TODO: remove because samples are loaded from the source dataset
-    // Start the next batch fetching.
-    //TRY_CATCH_THROW(
-    //    future_paths = std::async(
-    //        std::launch::async,
-    //        SampleUtils::get_samples,
-    //        *vfs_,
-    //        batches[i],
-    //        &scratch_space_b));
+    // Start preparing the next batch
+    TRY_CATCH_THROW(
+        future_paths = std::async(
+            std::launch::async,
+            std::bind(&Datasource::prepare_samples, &datasource, batches[i])));
 
     // Ingest the batch.
     // TODO: implement liftover ingestors, i.e. liftover_samples(...) and
@@ -691,21 +655,12 @@ void Writer::liftover_samples() {
         samples_ingested,
         samples.size(),
         utils::chrono_duration(start_batch));
-
-    // TODO: remove because samples are loaded from the source dataset
-    //if (download_samples) {
-    //  // Reset current scratch space and swap.
-    //  if (vfs_->is_dir(scratch_space_a.path))
-    //    vfs_->remove_dir(scratch_space_a.path);
-    //  vfs_->create_dir(scratch_space_a.path);
-    //  scratch_space_a.size_mb = scratch_size_mb;
-    //  std::swap(scratch_space_a, scratch_space_b);
-    //}
   }
 
   // Ingest the last batch
-  // TODO: remove because samples are loaded from the source dataset
-  //TRY_CATCH_THROW(local_samples = future_paths.get());
+  TRY_CATCH_THROW(local_samples = future_paths.get());
+  // TODO: implement liftover ingestors, i.e. liftover_samples(...) and
+  // liftover_samples_v4(...)
   std::pair<uint64_t, uint64_t> result;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
@@ -737,28 +692,20 @@ void Writer::liftover_samples() {
   SampleStats::close();
   array_->close();
 
-  // TODO: remove because samples are loaded from the source dataset
   // Clean up
-  //if (download_samples) {
-  //  if (vfs_->is_dir(scratch_space_a.path))
-  //    vfs_->remove_dir(scratch_space_a.path);
-  //  if (vfs_->is_dir(scratch_space_b.path))
-  //    vfs_->remove_dir(scratch_space_b.path);
-  //}
-  //if (ingestion_params_.remove_samples_file &&
-  //    vfs_->is_file(ingestion_params_.samples_file_uri))
-  //  vfs_->remove_file(ingestion_params_.samples_file_uri);
+  datasource.cleanup();
 
   auto time_sec = utils::chrono_duration(start_all);
-  LOG_INFO(fmt::format(
-      std::locale(""),
-      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
-      "{:.3f} seconds = {:.1f} records/sec",
-      records_ingested,
-      anchors_ingested,
-      samples.size(),
-      time_sec,
-      records_ingested / time_sec));
+  LOG_INFO(
+      fmt::format(
+          std::locale(""),
+          "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+          "{:.3f} seconds = {:.1f} records/sec",
+          records_ingested,
+          anchors_ingested,
+          samples.size(),
+          time_sec,
+          records_ingested / time_sec));
 
   // Check if records ingested matches the expected total record count.
   if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
@@ -1001,13 +948,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         continue;
       }
 
-      LOG_TRACE(fmt::format(
-          std::locale(""),
-          "Sample {} contig {}: {:L} positions {:L} records",
-          sample_name,
-          contig_region.seq_name,
-          contig_region.max + 1,
-          vcf.record_count(contig_region.seq_name)));
+      LOG_TRACE(
+          fmt::format(
+              std::locale(""),
+              "Sample {} contig {}: {:L} positions {:L} records",
+              sample_name,
+              contig_region.seq_name,
+              contig_region.max + 1,
+              vcf.record_count(contig_region.seq_name)));
 
       total_contig_records[contig_region.seq_name] +=
           vcf.record_count(contig_region.seq_name);
@@ -1258,8 +1206,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // NOTE: Finalize after the stats arrays and anchor fragment
                 // are finalized to ensure a valid data fragment will have
                 // corresponding valid stats and anchor fragments.
-                TRY_CATCH_THROW(finalize_tasks_.emplace_back(std::async(
-                    std::launch::async, finalize_query, std::move(query_))));
+                TRY_CATCH_THROW(finalize_tasks_.emplace_back(
+                    std::async(
+                        std::launch::async,
+                        finalize_query,
+                        std::move(query_))));
 
                 // End finalize of previous contig.
                 //=================================================================
@@ -1534,12 +1485,13 @@ std::vector<Region> Writer::prepare_region_list(
     const uint32_t task_size = contig_task_size.at(r.seq_name);
     const uint32_t contig_len = r.max - r.min + 1;
     const uint32_t ntasks = utils::ceil(contig_len, task_size);
-    LOG_DEBUG(fmt::format(
-        std::locale(""),
-        "Contig {}: task size = {:L} tasks = {:L}",
-        r.seq_name,
-        task_size,
-        ntasks));
+    LOG_DEBUG(
+        fmt::format(
+            std::locale(""),
+            "Contig {}: task size = {:L} tasks = {:L}",
+            r.seq_name,
+            task_size,
+            ntasks));
     for (uint32_t i = 0; i < ntasks; i++) {
       uint32_t task_min = r.min + i * task_size;
       uint32_t task_max = std::min(task_min + task_size - 1, r.max);

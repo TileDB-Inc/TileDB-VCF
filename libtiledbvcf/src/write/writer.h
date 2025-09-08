@@ -41,6 +41,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
+#include "write/datasources/datasource.h"
 #include "write/writer_worker_v4.h"
 
 namespace tiledb {
@@ -284,8 +285,11 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
-  /** Liftover samples based on parameters that have been set. */
-  void liftover_samples();
+  /**
+   * Liftover samples based on parameters that have been set.
+   * @param datasource The datasource to load samples from.
+   */
+  void liftover_samples(Datasource& datasource);
 
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
