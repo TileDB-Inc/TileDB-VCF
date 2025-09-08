@@ -1,0 +1,71 @@
+/**
+ * @section LICENSE
+ *
+ * The MIT License
+ *
+ * @copyright Copyright (c) 2025 TileDB, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef TILEDB_VCF_DATASET_DATASOURCE_H
+#define TILEDB_VCF_DATASET_DATASOURCE_H
+
+#include "write/datasources/datasource.h"
+
+namespace tiledb {
+namespace vcf {
+
+/**
+ * An implementation of the Datasource abstract class that loads samples from a
+ * TileDB-VCF dataset.
+ */
+class DatasetDatasource : public Datasource {
+ public:
+  struct Config {
+    // TODO: memory params
+  };
+
+  DatasetDatasource(
+      const std::string& uri,
+      const std::vector<std::string>& sample_names,
+      const Config& config);
+
+  ~DatasetDatasource();
+
+  std::vector<SampleAndIndex> get_sample_list(
+      const TileDBVCFDataset* dataset) const;
+
+  std::vector<SampleAndIndex> get_sample_list_v4(
+      const TileDBVCFDataset* dataset) const;
+
+  std::vector<SampleAndIndex> prepare_samples(
+      const std::vector<SampleAndIndex>& samples);
+
+  void cleanup();
+
+ private:
+  std::string uri;
+  std::vector<std::string> sample_names;
+};
+
+}  // namespace vcf
+}  // namespace tiledb
+
+#endif  // TILEDB_VCF_DATASET_DATASOURCE_H

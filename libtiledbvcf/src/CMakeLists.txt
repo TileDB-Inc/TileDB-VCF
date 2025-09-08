@@ -78,6 +78,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v4.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/datasources/dataset_datasource.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/datasources/vcf_datasource.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v3.cc
