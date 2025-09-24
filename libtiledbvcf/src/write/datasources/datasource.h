@@ -29,9 +29,13 @@
 
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/sample_utils.h"
+#include "write/writer.h"
 
 namespace tiledb {
 namespace vcf {
+
+// Forward declaration
+enum class ContigMode;
 
 /**
  * The Datasource class is an abstract class that defines the API a source of
@@ -39,6 +43,8 @@ namespace vcf {
  */
 class Datasource {
  public:
+  virtual ~Datasource() = default;
+
   /**
    * Prepares the samples list to be ingested, using the given dataset to
    * assign and sort by sample IDs.
@@ -65,6 +71,40 @@ class Datasource {
    */
   virtual std::vector<SampleAndIndex> prepare_samples(
       const std::vector<SampleAndIndex>& samples) = 0;
+
+  /**
+   * Given a set of samples and contigs, creates a set containing all of the
+   * contigs that are non-empty in at least one sample.
+   * @param samples The samples to get non-empty contigs for.
+   * @param contigs The contigs to check are non-empty.
+   * @param version The dataset version the set should be compatible with.
+   * @return The set of non-empty contigs for the given samples.
+   */
+  virtual std::set<std::string> get_nonempty_contigs(
+      const std::vector<SampleAndIndex>& samples,
+      const std::vector<std::string>& contigs,
+      const unsigned version) const = 0;
+
+  /**
+   * Given a set of samples and contigs to be ingested, creates a set containing
+   * all of the contigs that are non-empty in at least one sample.
+   * @param samples The samples to get non-empty contigs for.
+   * @param contig_mode Which contigs should be ingested.
+   * @param contigs_to_keep_separate Set of contigs that should not be merged.
+   * @param sample_headers Outputs the headers for the given samples.
+   * @param total_contig_records Outputs the number of records per contig.
+   * @param total_records_expected Outputs the total number of records.
+   * @param regions_v4 Outputs the regions on the contigs.
+   * @return The set of non-empty contigs for the given samples.
+   */
+  virtual std::set<std::string> get_nonempty_contigs_v4(
+      const std::vector<SampleAndIndex>& samples,
+      const ContigMode contig_mode,
+      const std::set<std::string>& contigs_to_keep_separate,
+      std::map<std::string, std::string>& sample_headers,
+      std::map<std::string, uint32_t>& total_contig_records,
+      size_t& total_records_expected,
+      std::vector<Region>& regions_v4) const = 0;
 
   /**
    * Called after an ingestion completes. This is different from a teardown

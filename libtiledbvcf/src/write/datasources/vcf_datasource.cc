@@ -24,8 +24,11 @@
  * THE SOFTWARE.
  */
 
-#include "write/datasources/vcf_datasource.h"
 #include "utils/logger_public.h"
+#include "vcf/vcf_v2.h"
+#include "vcf/vcf_v3.h"
+#include "vcf/vcf_v4.h"
+#include "write/datasources/vcf_datasource.h"
 
 namespace tiledb {
 namespace vcf {
@@ -45,9 +48,6 @@ VCFDatasource::VCFDatasource(
     : sample_uris(sample_uris) {
   init_scratch_space(config.scratch_space);
   init_vfs(config.tiledb_config);
-}
-
-VCFDatasource::~VCFDatasource() {
 }
 
 std::vector<SampleAndIndex> VCFDatasource::get_sample_list(
@@ -175,6 +175,118 @@ std::vector<SampleAndIndex> VCFDatasource::prepare_samples(
   }
   // Fetch the samples
   return SampleUtils::get_samples(*vfs_, samples, &scratch_space_b);
+}
+
+std::set<std::string> VCFDatasource::get_nonempty_contigs(
+    const std::vector<SampleAndIndex>& samples,
+    const std::vector<std::string>& contigs,
+    const unsigned version) const {
+  std::set<std::string> nonempty_contigs;
+  for (const auto& s : samples) {
+    if (version == TileDBVCFDataset::Version::V2) {
+      VCFV2 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& c : contigs) {
+        if (vcf.contig_has_records(c))
+          nonempty_contigs.insert(c);
+      }
+    } else {
+      assert(version == TileDBVCFDataset::Version::V3);
+      VCFV3 vcf;
+      vcf.open(s.sample_uri, s.index_uri);
+      for (const auto& c : contigs) {
+        if (vcf.contig_has_records(c))
+          nonempty_contigs.insert(c);
+      }
+    }
+  }
+  return nonempty_contigs;
+}
+
+std::set<std::string> VCFDatasource::get_nonempty_contigs_v4(
+    const std::vector<SampleAndIndex>& samples,
+    const ContigMode contig_mode,
+    const std::set<std::string>& contigs_to_keep_separate,
+    std::map<std::string, std::string>& sample_headers,
+    std::map<std::string, uint32_t>& total_contig_records,
+    size_t& total_records_expected,
+    std::vector<Region>& regions_v4) const {
+  std::set<std::string> nonempty_contigs;
+  for (const auto& s : samples) {
+    VCFV4 vcf;
+    vcf.open(s.sample_uri, s.index_uri);
+    // For V4 we also need to check the header, collect and write them
+
+    // Allocate a header struct and try to parse from the local file.
+    SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
+
+    std::vector<std::string> hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
+    // Initially set sample_name to empty string to support annoated vcf's
+    // without sample in the header
+    std::string sample_name;
+    if (hdr_samples.size() > 1)
+      throw std::invalid_argument(
+          "Error registering samples; a file has more than 1 sample. "
+          "Ingestion "
+          "from cVCF is not supported.");
+    else if (hdr_samples.size() == 1)
+      sample_name = hdr_samples[0];
+    sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
+
+    // Loop over all contigs in the header, store the nonempty and also the
+    // regions
+    for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      // Skip empty contigs
+      if (!vcf.contig_has_records(contig_region.seq_name))
+        continue;
+
+      // Ingesting MERGED contigs, skip contigs in the
+      // contigs_to_keep_separate list
+      if (contig_mode == ContigMode::MERGED &&
+          contigs_to_keep_separate.find(contig_region.seq_name) !=
+            contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      // Ingesting SEPARATE contigs, skip contigs not in the
+      // contigs_to_keep_separate list
+      if (contig_mode == ContigMode::SEPARATE &&
+          contigs_to_keep_separate.find(contig_region.seq_name) ==
+            contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      LOG_TRACE(
+          fmt::format(
+              std::locale(""),
+              "Sample {} contig {}: {:L} positions {:L} records",
+              sample_name,
+              contig_region.seq_name,
+              contig_region.max + 1,
+              vcf.record_count(contig_region.seq_name)));
+
+      total_contig_records[contig_region.seq_name] +=
+          vcf.record_count(contig_region.seq_name);
+
+      total_records_expected += vcf.record_count(contig_region.seq_name);
+
+      nonempty_contigs.emplace(contig_region.seq_name);
+
+      // regions
+      bool region_found = false;
+      for (auto& region : regions_v4) {
+        if (region.seq_name == contig_region.seq_name) {
+          region.max = std::max(region.max, contig_region.max);
+          region_found = true;
+          break;
+        }
+      }
+
+      if (!region_found)
+        regions_v4.emplace_back(contig_region);
+    }
+  }
+  return nonempty_contigs;
 }
 
 void VCFDatasource::cleanup() {

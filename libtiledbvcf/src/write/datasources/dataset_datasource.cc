@@ -38,9 +38,6 @@ DatasetDatasource::DatasetDatasource(
   // TODO: instantiate Reader, including memory budget
 }
 
-DatasetDatasource::~DatasetDatasource() {
-}
-
 std::vector<SampleAndIndex> DatasetDatasource::get_sample_list(
     const TileDBVCFDataset* dataset) const {
   // TODO
@@ -59,6 +56,28 @@ std::vector<SampleAndIndex> DatasetDatasource::prepare_samples(
     const std::vector<SampleAndIndex>& samples) {
   // TODO: no-op?
   return samples;
+}
+
+std::set<std::string> DatasetDatasource::get_nonempty_contigs(
+    const std::vector<SampleAndIndex>& samples,
+    const std::vector<std::string>& contigs,
+    const unsigned version) const {
+  // TODO
+  std::set<std::string> nonempty_contigs;
+  return nonempty_contigs;
+}
+
+std::set<std::string> DatasetDatasource::get_nonempty_contigs_v4(
+    const std::vector<SampleAndIndex>& samples,
+    const ContigMode contig_mode,
+    const std::set<std::string>& contigs_to_keep_separate,
+    std::map<std::string, std::string>& sample_headers,
+    std::map<std::string, uint32_t>& total_contig_records,
+    size_t& total_records_expected,
+    std::vector<Region>& regions_v4) const {
+  // TODO
+  std::set<std::string> nonempty_contigs;
+  return nonempty_contigs;
 }
 
 void DatasetDatasource::cleanup() {

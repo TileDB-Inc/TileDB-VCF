@@ -47,8 +47,6 @@ class DatasetDatasource : public Datasource {
       const std::vector<std::string>& sample_names,
       const Config& config);
 
-  ~DatasetDatasource();
-
   std::vector<SampleAndIndex> get_sample_list(
       const TileDBVCFDataset* dataset) const;
 
@@ -57,6 +55,20 @@ class DatasetDatasource : public Datasource {
 
   std::vector<SampleAndIndex> prepare_samples(
       const std::vector<SampleAndIndex>& samples);
+
+  std::set<std::string> get_nonempty_contigs(
+      const std::vector<SampleAndIndex>& samples,
+      const std::vector<std::string>& contigs,
+      const unsigned version) const;
+
+  std::set<std::string> get_nonempty_contigs_v4(
+      const std::vector<SampleAndIndex>& samples,
+      const ContigMode contig_mode,
+      const std::set<std::string>& contigs_to_keep_separate,
+      std::map<std::string, std::string>& sample_headers,
+      std::map<std::string, uint32_t>& total_contig_records,
+      size_t& total_records_expected,
+      std::vector<Region>& regions_v4) const;
 
   void cleanup();
 
