@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -58,7 +58,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -70,14 +70,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../documentation/assets/tiledb.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-3b6d7f0029ff23e39023144690a7e156.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-42eb6e39e69a8afc2d8cae2b257cfeff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -105,7 +106,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
@@ -121,7 +122,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="../index.html" class="navbar-brand navbar-brand-logo">
-    <img src="../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo">
+    <img src="../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo light-content">
+    <img src="../quarto-materials/tiledb-logo.png" alt="" class="navbar-logo dark-content">
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -167,6 +169,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+      <a href="../index.html" class="sidebar-logo-link">
+      </a>
+      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -378,34 +384,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>This notebook uses the <a href="https://cloud.tiledb.com/groups/TileDB-Inc/190da730-acba-42cb-bc0a-85515d01a7b1/overview">TileDB-Inc/vcf-1kghicov-dragen-v376</a> version of the 1000 genome project.</p>
 <div id="51217c55-4e47-4ed2-a40a-39fdf9902364" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:09.693046Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:09.692884Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:10.030762Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:10.030292Z&quot;}}" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledbvcf</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiledb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="57f75ad1-dfec-41f3-be37-3ce659bf74e6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:10.033176Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:10.033030Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:10.035088Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:10.034734Z&quot;}}" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>uri <span class="op">=</span> <span class="st">"tiledb://TileDB-Inc/vcf-1kghicov-dragen-v376"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>uri <span class="op">=</span> <span class="st">"tiledb://TileDB-Inc/vcf-1kghicov-dragen-v376"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="including-allele-frequency-field" class="level2">
 <h2 class="anchored" data-anchor-id="including-allele-frequency-field">Including Allele Frequency Field</h2>
 <p>The computed allele frequency can be included in results with the <code>info_TILEDB_IAF</code> attribute</p>
 <div id="485dae0d-dcba-45d5-a5c6-9a80da1caa5d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:10.036712Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:10.036393Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:13.240055Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:13.239353Z&quot;}}" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>attributes <span class="op">=</span> [<span class="st">"sample_name"</span>, <span class="st">"contig"</span>, <span class="st">"pos_start"</span>, <span class="st">"pos_end"</span>, <span class="st">"alleles"</span>, <span class="st">"fmt_GT"</span>, <span class="st">"info_TILEDB_IAF"</span>]</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>attributes <span class="op">=</span> [<span class="st">"sample_name"</span>, <span class="st">"contig"</span>, <span class="st">"pos_start"</span>, <span class="st">"pos_end"</span>, <span class="st">"alleles"</span>, <span class="st">"fmt_GT"</span>, <span class="st">"info_TILEDB_IAF"</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode<span class="op">=</span><span class="st">"r"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> tiledbvcf.Dataset(uri, mode<span class="op">=</span><span class="st">"r"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="31cd016a-d79e-4858-8939-bdfa197556b4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:13.241733Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:13.241629Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:36.095813Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:36.095018Z&quot;}}" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query for BTD across all 3404 samples</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query for BTD across all 3404 samples</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    attrs<span class="op">=</span>attributes,</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    regions<span class="op">=</span>[<span class="st">"chr3:15601341-15722311"</span>],</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="5cca473c-2f37-4c74-b250-4d97523836dc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:36.097567Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:36.097466Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:36.106463Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:36.106241Z&quot;}}" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -420,7 +426,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>HG00096</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -430,7 +436,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>HG00097</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -440,7 +446,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>HG00099</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -450,7 +456,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>HG00100</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -460,7 +466,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>HG00101</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -470,7 +476,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">...</td>
+<th data-quarto-table-cell-role="th">...</th>
 <td>...</td>
 <td>...</td>
 <td>...</td>
@@ -480,7 +486,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>...</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">606391</td>
+<th data-quarto-table-cell-role="th">606391</th>
 <td>NA21143</td>
 <td>chr3</td>
 <td>15721413</td>
@@ -490,7 +496,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">606392</td>
+<th data-quarto-table-cell-role="th">606392</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15721413</td>
@@ -500,7 +506,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">606393</td>
+<th data-quarto-table-cell-role="th">606393</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15721470</td>
@@ -510,7 +516,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">606394</td>
+<th data-quarto-table-cell-role="th">606394</th>
 <td>NA21143</td>
 <td>chr3</td>
 <td>15721933</td>
@@ -520,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>None</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">606395</td>
+<th data-quarto-table-cell-role="th">606395</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15722066</td>
@@ -541,20 +547,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="filtering-on-iaf">Filtering on IAF</h2>
 <p>Filters for allele frequency can also be included by using the <code>set_af_filter</code> parameter.</p>
 <div id="f26dddcf-c0ed-41e1-a6a9-cd31a193ade1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:36.107878Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:36.107786Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:51.303595Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:51.302792Z&quot;}}" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query for BTD across all 3404 samples</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query for BTD across all 3404 samples</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> ds.read(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    attrs<span class="op">=</span>attributes,</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    regions<span class="op">=</span>[<span class="st">"chr3:15601341-15722311"</span>],</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    set_af_filter<span class="op">=</span><span class="st">"&lt;0.5"</span>,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="ff65c9ef-a724-4689-b2cc-826f2bb44134" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:51.305452Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:51.305350Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:51.314313Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:51.313798Z&quot;}}" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -569,7 +575,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>HG00101</td>
 <td>chr3</td>
 <td>15601536</td>
@@ -579,7 +585,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.027682202, 0.9723178]</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>HG00100</td>
 <td>chr3</td>
 <td>15601668</td>
@@ -589,7 +595,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.43612567, 0.56387436]</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>HG00100</td>
 <td>chr3</td>
 <td>15602568</td>
@@ -599,7 +605,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.42662117, 0.57337886]</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>HG00100</td>
 <td>chr3</td>
 <td>15602688</td>
@@ -609,7 +615,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.47108433, 0.52891564]</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>HG00096</td>
 <td>chr3</td>
 <td>15603161</td>
@@ -619,7 +625,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.44444445, 0.5555556]</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">...</td>
+<th data-quarto-table-cell-role="th">...</th>
 <td>...</td>
 <td>...</td>
 <td>...</td>
@@ -629,7 +635,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>...</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">370583</td>
+<th data-quarto-table-cell-role="th">370583</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15721189</td>
@@ -639,7 +645,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.43555242, 0.5644476]</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">370584</td>
+<th data-quarto-table-cell-role="th">370584</th>
 <td>NA21143</td>
 <td>chr3</td>
 <td>15721340</td>
@@ -649,7 +655,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.3335806, 0.6664194]</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">370585</td>
+<th data-quarto-table-cell-role="th">370585</th>
 <td>NA21143</td>
 <td>chr3</td>
 <td>15721413</td>
@@ -659,7 +665,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.33333334, 0.6666667]</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">370586</td>
+<th data-quarto-table-cell-role="th">370586</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15721470</td>
@@ -669,7 +675,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[0.4868421, 0.5131579]</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">370587</td>
+<th data-quarto-table-cell-role="th">370587</th>
 <td>NA21144</td>
 <td>chr3</td>
 <td>15722066</td>
@@ -690,23 +696,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="accessing-allele-frequencies-directly">Accessing Allele Frequencies Directly</h2>
 <p>Allele frequencies can also be queried directly in addition to as part of the variant query</p>
 <div id="1b206992-f3ba-4c8c-a6f0-ed334fdf0dd9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:51.315883Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:51.315783Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:51.729593Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:51.728949Z&quot;}}" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the variant stats ur</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the variant stats ur</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tiledb.Group(uri) <span class="im">as</span> g:</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    alleles_uri  <span class="op">=</span> g[<span class="st">"variant_stats"</span>].uri</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    alleles_uri  <span class="op">=</span> g[<span class="st">"variant_stats"</span>].uri</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="7c2af624-6f01-4784-be4f-b42f27e75145" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:51.731364Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:51.731264Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:39:51.733857Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:39:51.733277Z&quot;}}" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BRCA1 from https://www.ncbi.nlm.nih.gov/gene/672</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BRCA1 from https://www.ncbi.nlm.nih.gov/gene/672</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>contig <span class="op">=</span> <span class="st">'chr17'</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> <span class="bu">slice</span>(<span class="dv">43_036_174</span>, <span class="dv">43_133_600</span>)  <span class="co"># pos is 0 based</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> <span class="bu">slice</span>(<span class="dv">43_036_174</span>, <span class="dv">43_133_600</span>)  <span class="co"># pos is 0 based</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="26542ce8-2091-4d39-a88b-d2467afd48d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:39:51.735333Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:39:51.735243Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:40:02.347537Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:40:02.346812Z&quot;}}" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query allele frequencies and get results as a pandas dataframe</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Query allele frequencies and get results as a pandas dataframe</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tiledb.<span class="bu">open</span>(alleles_uri) <span class="im">as</span> A:</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> A.query(attrs<span class="op">=</span>[<span class="st">"ac"</span>, <span class="st">"allele"</span>], dims<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"contig"</span>]).df[contig, region]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> A.query(attrs<span class="op">=</span>[<span class="st">"ac"</span>, <span class="st">"allele"</span>], dims<span class="op">=</span>[<span class="st">"pos"</span>, <span class="st">"contig"</span>]).df[contig, region]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="845095b0-760d-4408-944e-7649238fcb15" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2023-04-30T22:40:02.349569Z&quot;,&quot;iopub.status.busy&quot;:&quot;2023-04-30T22:40:02.349460Z&quot;,&quot;iopub.status.idle&quot;:&quot;2023-04-30T22:40:02.372842Z&quot;,&quot;shell.execute_reply&quot;:&quot;2023-04-30T22:40:02.372304Z&quot;}}" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize frequencies</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize frequencies</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calc_af(df):</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Consolidate AC and compute AN, AF"""</span></span>
@@ -722,12 +728,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">"af"</span>] <span class="op">=</span> df.ac <span class="op">/</span> df.an</span>
 <span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
 <span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>calc_af(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>calc_af(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -746,73 +752,73 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43036179</td>
-<td data-quarto-table-cell-role="th">A</td>
+<th rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43036179</th>
+<th data-quarto-table-cell-role="th">A</th>
 <td>33</td>
 <td>66</td>
 <td>0.500000</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">G</td>
+<th data-quarto-table-cell-role="th">G</th>
 <td>33</td>
 <td>66</td>
 <td>0.500000</td>
 </tr>
 <tr class="odd">
-<td rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43036181</td>
-<td data-quarto-table-cell-role="th">A</td>
+<th rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43036181</th>
+<th data-quarto-table-cell-role="th">A</th>
 <td>1</td>
 <td>2</td>
 <td>0.500000</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">G</td>
+<th data-quarto-table-cell-role="th">G</th>
 <td>1</td>
 <td>2</td>
 <td>0.500000</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">43036308</td>
-<td data-quarto-table-cell-role="th">C</td>
+<th data-quarto-table-cell-role="th">43036308</th>
+<th data-quarto-table-cell-role="th">C</th>
 <td>238</td>
 <td>528</td>
 <td>0.450758</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">...</td>
-<td data-quarto-table-cell-role="th">...</td>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">...</th>
 <td>...</td>
 <td>...</td>
 <td>...</td>
 </tr>
 <tr class="odd">
-<td rowspan="3" data-quarto-table-cell-role="th" data-valign="top">43133528</td>
-<td data-quarto-table-cell-role="th">C</td>
+<th rowspan="3" data-quarto-table-cell-role="th" data-valign="top">43133528</th>
+<th data-quarto-table-cell-role="th">C</th>
 <td>5</td>
 <td>12</td>
 <td>0.416667</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">T</td>
+<th data-quarto-table-cell-role="th">T</th>
 <td>6</td>
 <td>12</td>
 <td>0.500000</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">TC</td>
+<th data-quarto-table-cell-role="th">TC</th>
 <td>1</td>
 <td>12</td>
 <td>0.083333</td>
 </tr>
 <tr class="even">
-<td rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43133556</td>
-<td data-quarto-table-cell-role="th">C</td>
+<th rowspan="2" data-quarto-table-cell-role="th" data-valign="top">43133556</th>
+<th data-quarto-table-cell-role="th">C</th>
 <td>1</td>
 <td>2</td>
 <td>0.500000</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">T</td>
+<th data-quarto-table-cell-role="th">T</th>
 <td>1</td>
 <td>2</td>
 <td>0.500000</td>
@@ -880,13 +886,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
