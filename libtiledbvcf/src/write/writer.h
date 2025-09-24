@@ -52,9 +52,11 @@ namespace vcf {
 /* ********************************* */
 
 // Forward declaration
+class Datasource;
 class WriterWorkerV4;
 
 /** Arguments/params for dataset ingestion. */
+enum class ContigMode { ALL, SEPARATE, MERGED };
 struct IngestionParams {
   std::string uri;
   std::string log_level;
@@ -153,8 +155,6 @@ struct IngestionParams {
   // fragments By default we use the blacklist since usually there are less
   // non-mergeable contigs
   std::set<std::string> contigs_to_allow_merging = {};
-
-  enum class ContigMode { ALL, SEPARATE, MERGED };
 
   // Controls which contigs are ingested:
   //  ALL = all contigs
@@ -489,6 +489,21 @@ class Writer {
    * @param params Ingestion parameters
    * @param samples List of samples to ingest with this call
    * @param regions List of regions covering the whole genome
+   * @param datasource The datasource samples will be ingested from
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples(
+    const IngestionParams& params,
+    const std::vector<SampleAndIndex>& samples,
+    std::vector<Region>& regions,
+    Datasource& datasource);
+
+  /**
+   * Ingests a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
    * @return A pair (num_records_ingested, num_anchors_ingested)
    */
   std::pair<uint64_t, uint64_t> ingest_samples_v4(
@@ -499,6 +514,25 @@ class Writer {
           std::pair<std::string, std::string>,
           std::vector<std::pair<std::string, std::string>>,
           pair_hash> map);
+
+  /**
+   * Ingests a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
+   * @param datasource The datasource samples will be ingested from
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples_v4(
+      const IngestionParams& params,
+      const std::vector<SampleAndIndex>& samples,
+      std::vector<Region>& regions,
+      std::unordered_map<
+          std::pair<std::string, std::string>,
+          std::vector<std::pair<std::string, std::string>>,
+          pair_hash> map,
+      Datasource& datasource);
 
   static void finalize_query(std::unique_ptr<tiledb::Query> query);
 
