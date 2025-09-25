@@ -46,6 +46,9 @@ jobs:
         with:
           path: TileDB-VCF
           fetch-depth: 0 # fetch everything for python setuptools_scm
+      - name: Define SDKROOT (macOS)
+        if: runner.os == 'macOS'
+        run: echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
       - name: Build libtiledb
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
       - name: Setup to build htslib from source (Linux)
@@ -97,6 +100,6 @@ jobs:
         with:
           name: nightly build
           label: nightly-failure
-          assignee: awenocur,gspowley,ihnorton,Shelnutt2,jdblischak
+          assignee: alancleary,ihnorton,Shelnutt2,jdblischak
         env:
           TZ: "America/New_York"
