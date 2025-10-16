@@ -1295,6 +1295,10 @@ def test_ingest_with_stats_v3(
         == 0.9375
     )
     df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
+    print(df)
+    assert df.shape == (13, 5)
+    df = test_stats_v3_ingestion.read_variant_stats_arrow("chr1:1-10000")
+    print(df)
     assert df.shape == (13, 5)
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
@@ -1304,7 +1308,6 @@ def test_ingest_with_stats_v3(
     assert df.an_check.equals(df.an)
     df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
     assert df.shape == (13, 5)
-    df = df.to_pandas()
     df = test_stats_v3_ingestion.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()
@@ -1405,7 +1408,6 @@ def test_ingest_with_stats_v2(tmp_path):
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
     assert df.shape == (13, 5)
-    df = df.to_pandas()
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()

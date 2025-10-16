@@ -306,6 +306,23 @@ class Dataset(object):
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
         self.reader.set_regions(region)
+        return self.reader.get_variant_stats_results().to_pandas()
+
+    def read_variant_stats_arrow(
+        self,
+        region: str = None,
+    ) -> pa.Table:
+        """
+        Read variant stats from the dataset into a Pandas DataFrame
+
+        Parameters
+        ----------
+        region
+            Genomic region to be queried.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+        self.reader.set_regions(region)
         return self.reader.get_variant_stats_results()
 
     def read_allele_count(
