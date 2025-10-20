@@ -294,36 +294,67 @@ class Dataset(object):
     def read_variant_stats(
         self,
         region: str = None,
+        regions: List[str] = None,
     ) -> pd.DataFrame:
         """
         Read variant stats from the dataset into a Pandas DataFrame
 
         Parameters
         ----------
+        regions
+            Genomic regions to be queried.
         region
-            Genomic region to be queried.
+            **DEPRECATED** - Genomic region to be queried.
         """
-        if self.mode != "r":
-            raise Exception("Dataset not open in read mode")
-        self.reader.set_regions(region)
-        return self.reader.get_variant_stats_results().to_pandas()
+        if not (region or regions):
+            raise Exception("\"region\" or \"regions\" parameter is required")
+        if region and regions:
+            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+        if region:
+            warnings.warn(
+                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+            )
+            regions = [region]
+
+        return self.read_variant_stats_arrow(regions=regions).to_pandas()
 
     def read_variant_stats_arrow(
         self,
         region: str = None,
+        regions: List[str] = None,
     ) -> pa.Table:
         """
-        Read variant stats from the dataset into a Pandas DataFrame
+        Read variant stats from the dataset into a PyArrow Table
 
         Parameters
         ----------
+        regions
+            Genomic regions to be queried.
         region
-            Genomic region to be queried.
+            **DEPRECATED** - Genomic region to be queried.
         """
+        if not (region or regions):
+            raise Exception("\"region\" or \"regions\" parameter is required")
+        if region and regions:
+            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+        if region:
+            warnings.warn(
+                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+            )
+            regions = [region]
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
-        self.reader.set_regions(region)
-        return self.reader.get_variant_stats_results()
+
+        def variant_stats_generator(regions):
+            for r in regions:
+                self.reader.set_regions(r)
+                stats = self.reader.get_variant_stats_results()
+                n = stats.num_rows
+                contig, *interval = r.split(":")
+                contig_col = [contig] * n
+                yield stats.add_column(0, "contig", [contig_col])
+
+        return pa.concat_tables(variant_stats_generator(regions))
 
     def read_allele_count(
         self,

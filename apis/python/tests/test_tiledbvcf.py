@@ -3,6 +3,7 @@ import numpy as np
 import subprocess
 import os
 import pandas as pd
+import pyarrow as pa
 import re
 import glob
 import shutil
@@ -1294,21 +1295,44 @@ def test_ingest_with_stats_v3(
         ]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
-    df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
-    print(df)
-    assert df.shape == (13, 5)
-    df = test_stats_v3_ingestion.read_variant_stats_arrow("chr1:1-10000")
-    print(df)
-    assert df.shape == (13, 5)
+
+    region1 = "chr1:1-10000"
+    df = test_stats_v3_ingestion.read_variant_stats(region1)
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape == (13, 6)
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
+    assert df.shape == (13, 6)
+    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(region1)
+    assert isinstance(tbl, pa.Table)
+    assert tbl.shape == (13, 6)
+    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region1])
+    assert tbl.shape == (13, 6)
+
+    region2 = "chr2:1-10000"
+    df = test_stats_v3_ingestion.read_variant_stats(region2)
+    assert df.shape == (2, 6)
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region2])
+    assert df.shape == (2, 6)
+    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(region2)
+    assert tbl.shape == (2, 6)
+    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region2])
+    assert tbl.shape == (2, 6)
+
+    regions = [region1, region2]
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    assert df.shape == (15, 6)
+    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=regions)
+    assert tbl.shape == (15, 6)
+
     df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
+        os.path.join(tmp_path, "stats_test"), region1
     )
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    df = test_stats_v3_ingestion.read_variant_stats("chr1:1-10000")
-    assert df.shape == (13, 5)
-    df = test_stats_v3_ingestion.read_allele_count("chr1:1-10000")
+    df = test_stats_v3_ingestion.read_variant_stats(region1)
+    assert df.shape == (13, 6)
+    df = test_stats_v3_ingestion.read_allele_count(region1)
     assert df.shape == (7, 6)
     df = df.to_pandas()
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
@@ -1399,7 +1423,7 @@ def test_ingest_with_stats_v2(tmp_path):
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (13, 5)
+    assert df.shape == (13, 6)
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
     )
@@ -1407,7 +1431,7 @@ def test_ingest_with_stats_v2(tmp_path):
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
     df = ds.read_variant_stats("chr1:1-10000")
-    assert df.shape == (13, 5)
+    assert df.shape == (13, 6)
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
     df = df.to_pandas()
