@@ -229,6 +229,16 @@ std::set<std::string> split_set(const std::string& s, char delim);
 std::vector<std::string> split(const std::string& s, char delim);
 
 /**
+ * @brief
+ * Joins a vector into a string given some string delimiter.
+ * @param strings The vector of strings to join
+ * @param delim The string to use as the delimiter
+ * @return The string resluting from the join
+ */
+std::string join(
+  std::vector<std::string> const &strings, const std::string& delim);
+
+/**
  * @tparam T
  * @param start_time
  * @return Time between start time and now.
