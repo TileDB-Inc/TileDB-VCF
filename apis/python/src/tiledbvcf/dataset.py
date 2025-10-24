@@ -100,6 +100,42 @@ class Dataset(object):
         TileDB configuration, alternative to `cfg.tiledb_config`.
     """
 
+    class Region(object):
+        """
+        Represents a 1-based inclusive region.
+
+        Parameters
+        ----------
+        region
+            A string in the form "<contig>:<start>-<end>".
+        """
+
+        def __init__(self, region: str):
+            try:
+                contig, interval = region.split(":")
+                start, end = map(int, interval.split("-"))
+            except Exception:
+                raise Exception(
+                    "\"region\" parameter must have format \"<contig>:<start>-<end>\"")
+            if contig == "":
+                raise Exception("Region contig cannot be empty")
+            if start <= 0:
+                raise Exception("Regions must be 1-based")
+            if end < start:
+                raise Exception(f"\"{interval}\" is not a valid region interval")
+            self.contig = contig
+            self.start = start
+            self.end = end
+
+        def __lt__(self, region):
+            return self.to_tuple() < region.to_tuple()
+
+        def __str__(self):
+            return f"{self.contig}:{self.start}-{self.end}"
+
+        def to_tuple(self):
+            return (self.contig, self.start, self.end)
+
     def __init__(
         self,
         uri: str,
@@ -345,16 +381,30 @@ class Dataset(object):
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
 
+        # parse, sort, and consolidate regions
+        prev_region, *parsed_regions = sorted(map(self.Region, regions))
+        consolidated_regions = []
+        for r in parsed_regions:
+            if prev_region.contig != r.contig:
+                consolidated_regions.append(prev_region)
+                prev_region = r
+            elif r.start <= prev_region.end + 1:
+                prev_region.end = max(r.end, prev_region.end)
+            else: # the regions are non-overlapping
+                consolidated_regions.append(prev_region)
+                prev_region = r
+        consolidated_regions.append(prev_region)
+
+        # generates stats and adds contig column one region at a time
         def variant_stats_generator(regions):
             for r in regions:
-                self.reader.set_regions(r)
+                self.reader.set_regions(str(r))
                 stats = self.reader.get_variant_stats_results()
                 n = stats.num_rows
-                contig, *interval = r.split(":")
-                contig_col = [contig] * n
+                contig_col = [r.contig] * n
                 yield stats.add_column(0, "contig", [contig_col])
 
-        return pa.concat_tables(variant_stats_generator(regions))
+        return pa.concat_tables(variant_stats_generator(consolidated_regions))
 
     def read_allele_count(
         self,

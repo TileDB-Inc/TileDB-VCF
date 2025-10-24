@@ -1296,43 +1296,118 @@ def test_ingest_with_stats_v3(
         == 0.9375
     )
 
+    # test errors
+    no_parameter_error = "\"region\" or \"regions\" parameter is required"
+    exclusive_parameter_error = "\"region\" and \"regions\" parameters are mutually exclusive"
+    format_error = "\"region\" parameter must have format \"<contig>:<start>-<end>\""
+    empty_contig_error = "Region contig cannot be empty"
+    base_1_error = "Regions must be 1-based"
+    interval_error = "\"100-1\" is not a valid region interval"
+    with pytest.raises(Exception, match=no_parameter_error):
+        test_stats_v3_ingestion.read_variant_stats()
+    with pytest.raises(Exception, match=exclusive_parameter_error):
+        test_stats_v3_ingestion.read_variant_stats("chr1:1-100", regions=["chr1:1-100"])
+    with pytest.raises(Exception, match=format_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=[""])
+    with pytest.raises(Exception, match=format_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=["chr1"])
+    with pytest.raises(Exception, match=format_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:-"])
+    with pytest.raises(Exception, match=empty_contig_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=[":1-100"])
+    with pytest.raises(Exception, match=base_1_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:0-100"])
+    with pytest.raises(Exception, match=interval_error):
+        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:100-1"])
+
+    # test types and deprecated region parameter
     region1 = "chr1:1-10000"
     df = test_stats_v3_ingestion.read_variant_stats(region1)
-    assert isinstance(df, pd.DataFrame)
-    assert df.shape == (13, 6)
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
-    assert df.shape == (13, 6)
     tbl = test_stats_v3_ingestion.read_variant_stats_arrow(region1)
+    assert isinstance(df, pd.DataFrame)
     assert isinstance(tbl, pa.Table)
-    assert tbl.shape == (13, 6)
+    assert df.shape == (13, 6)
+    assert df.equals(tbl.to_pandas())
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
     tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region1])
-    assert tbl.shape == (13, 6)
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(tbl, pa.Table)
+    assert df.shape == (13, 6)
+    assert df.equals(tbl.to_pandas())
 
+    # test a region on a different contig
     region2 = "chr2:1-10000"
-    df = test_stats_v3_ingestion.read_variant_stats(region2)
-    assert df.shape == (2, 6)
     df = test_stats_v3_ingestion.read_variant_stats(regions=[region2])
-    assert df.shape == (2, 6)
-    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(region2)
-    assert tbl.shape == (2, 6)
     tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region2])
-    assert tbl.shape == (2, 6)
+    assert df.shape == (2, 6)
+    assert df.equals(tbl.to_pandas())
 
+    # test multiple regions from different contigs and their ordering
     regions = [region1, region2]
+    contigs = ["chr1"] * 13 + ["chr2"] * 2
     df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
     assert df.shape == (15, 6)
+    assert contigs == list(df["contig"].values)
+    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    assert df.equals(df2)
     tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=regions)
-    assert tbl.shape == (15, 6)
+    tbl2 = test_stats_v3_ingestion.read_variant_stats_arrow(regions=reversed(regions))
+    assert tbl.equals(tbl2)
+    assert df.equals(tbl.to_pandas())
+    assert df2.equals(tbl2.to_pandas())
 
+    # test overlapping regions on different contigs and their order
+    region1 = "chr1:1-1"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
+    assert df.shape == (2, 6)
+    region2 = "chr1:1-2"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region2])
+    assert df.shape == (5, 6)
+    region3 = "chr1:3-4"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region3])
+    assert df.shape == (6, 6)
+    region4 = "chr1:2-5"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region4])
+    assert df.shape == (11, 6)
+    regions_chr1 = [region1, region2, region3, region4]
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions_chr1)
+    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions_chr1))
+    assert df.shape == (13, 6)
+    assert df.equals(df2)
+    region5 = "chr2:1-1"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region5])
+    assert df.shape == (1, 6)
+    region6 = "chr2:3-3"
+    df = test_stats_v3_ingestion.read_variant_stats(regions=[region6])
+    assert df.shape == (1, 6)
+    regions_chr2 = [region5, region6]
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions_chr2)
+    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions_chr2))
+    assert df.shape == (2, 6)
+    assert df.equals(df2)
+    regions = regions_chr1 + regions_chr2
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    assert df.shape == (15, 6)
+    assert contigs == list(df["contig"].values)
+    assert df.equals(df2)
+    regions = regions_chr2 + regions_chr1
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    assert df.shape == (15, 6)
+    assert contigs == list(df["contig"].values)
+    assert df.equals(df2)
+
+    region = "chr1:1-10000"
     df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), region1
+        os.path.join(tmp_path, "stats_test"), region
     )
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    df = test_stats_v3_ingestion.read_variant_stats(region1)
+    df = test_stats_v3_ingestion.read_variant_stats(region)
     assert df.shape == (13, 6)
-    df = test_stats_v3_ingestion.read_allele_count(region1)
+    df = test_stats_v3_ingestion.read_allele_count(region)
     assert df.shape == (7, 6)
     df = df.to_pandas()
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
