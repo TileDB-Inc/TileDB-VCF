@@ -331,6 +331,7 @@ class Dataset(object):
         self,
         region: str = None,
         regions: List[str] = None,
+        scan_all_samples: bool = False,
     ) -> pd.DataFrame:
         """
         Read variant stats from the dataset into a Pandas DataFrame
@@ -339,6 +340,8 @@ class Dataset(object):
         ----------
         regions
             Genomic regions to be queried.
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
         region
             **DEPRECATED** - Genomic region to be queried.
         """
@@ -352,12 +355,14 @@ class Dataset(object):
             )
             regions = [region]
 
-        return self.read_variant_stats_arrow(regions=regions).to_pandas()
+        kwargs = {"regions": regions, "scan_all_samples": scan_all_samples}
+        return self.read_variant_stats_arrow(**kwargs).to_pandas()
 
     def read_variant_stats_arrow(
         self,
         region: str = None,
         regions: List[str] = None,
+        scan_all_samples: bool = False,
     ) -> pa.Table:
         """
         Read variant stats from the dataset into a PyArrow Table
@@ -366,6 +371,8 @@ class Dataset(object):
         ----------
         regions
             Genomic regions to be queried.
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
         region
             **DEPRECATED** - Genomic region to be queried.
         """
@@ -380,6 +387,9 @@ class Dataset(object):
             regions = [region]
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        self.reader.reset()
+        self.reader.set_scan_all_samples(scan_all_samples)
 
         # parse, sort, and consolidate regions
         prev_region, *parsed_regions = sorted(map(self.Region, regions))

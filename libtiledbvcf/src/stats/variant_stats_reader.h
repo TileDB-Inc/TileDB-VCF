@@ -41,10 +41,177 @@ namespace tiledb::vcf {
 
 /**
  * @brief A class to store allele counts and compute allele frequency.
- *
  */
 class AFMap {
  public:
+  // allele frequency type: <AF, AC, AN>
+  typedef std::tuple<float, uint32_t, uint32_t> af_t;
+
+  /**
+   * An abstract class that defines the interface for computing allele frequency stats.
+   */
+  class AFComputer {
+   public:
+    /**
+     * @param map The AFMap allele frequencies are being computed for
+     */
+    AFComputer(const AFMap* map): af_map_(map) {
+      // use a function pointer to avoid a branch point when computing AF
+      if (map->array_version <= 2) af_ptr = &AFComputer::af_v2;
+      else af_ptr = &AFComputer::af_v3;
+    }
+
+    virtual ~AFComputer() = default;
+
+    /**
+     * Computes the allele frequency for an allele at the given position.
+     *
+     * @param pos Position of the allele
+     * @param allele Allele value
+     * @return Allele frequency
+     */
+    af_t af(const uint32_t pos, const std::string& allele) const {
+      return (this->*af_ptr)(pos, allele);
+    }
+
+   protected:
+    const AFMap* af_map_;
+
+   private:
+    /** A pointer to the member function actually used to compute allele frequency. */
+    af_t (AFComputer::*af_ptr)(const uint32_t pos, const std::string& allele) const;
+
+    /** Computes the allele frequency for version 1 and 2 stats arrays. */
+    virtual af_t af_v2(const uint32_t pos, const std::string& allele) const = 0;
+
+    /** Computes the allele frequency for version 3+ stats arrays. */
+    virtual af_t af_v3(const uint32_t pos, const std::string& allele) const = 0;
+  };
+
+  /**
+   * A class for computing allele frequency stats for single alleles.
+   */
+  class AFComputerSingle : public AFComputer {
+   public:
+    /**
+     * @param map The AFMap allele frequencies are being computed for
+     */
+    AFComputerSingle(const AFMap* map): AFComputer(map) { }
+
+   private:
+
+    inline float compute_af_v3(const int ac, const int an) const {
+      return 1.0 * ac / an;
+    }
+
+    /** Computes the allele frequency for version 1 and 2 stats arrays. */
+    af_t af_v2(const uint32_t pos, const std::string& allele) const {
+      // Return -1.0 if the allele was not called
+      pos_stats_map_t::const_iterator pos_map_itr = af_map_->stats_map_.find(pos);
+      if (pos_map_itr == af_map_->stats_map_.end()) {
+        return {-1.0, 0, 0};
+      }
+      // Get the allele count
+      const auto& [allele_an, ac_map] = pos_map_itr->second;
+      const ac_map_t::const_iterator& ac_itr = ac_map.find(allele);
+      // Compute AF, substituting 0 for the AF and AC values if allele not in pos's an_ac
+      if (ac_itr == ac_map.end()) {
+        return {0, 0, allele_an};
+      }
+      const int allele_ac = ac_itr->second;
+      const float af = 1.0 * allele_ac / allele_an;
+      return {af, allele_ac, allele_an};
+    }
+
+    /** Computes the allele frequency for version 3+ stats arrays. */
+    af_t af_v3(const uint32_t pos, const std::string& allele) const {
+      // Return -1.0 if the allele was not called
+      pos_stats_map_t::const_iterator pos_map_itr = af_map_->stats_map_.find(pos);
+      if (pos_map_itr == af_map_->stats_map_.end()) {
+        return {-1.0, 0, 0};
+      }
+      // Get the allele count
+      const auto& [allele_an, ac_map] = pos_map_itr->second;
+      const ac_map_t::const_iterator& ac_itr = ac_map.find(allele);
+      bool is_ref = allele == "ref";
+      // Compute AF
+      uint32_t ac = is_ref ? af_map_->ac_sum_ : 0;
+      uint32_t an = allele_an + af_map_->an_sum_;
+      if (ac_itr == ac_map.end()) {
+        float af = is_ref ? compute_af_v3(af_map_->ac_sum_, an) : 0;
+        uint32_t unmapped_an = allele_an + af_map_->an_sum_;
+        return {af, ac, unmapped_an};
+      }
+      const int allele_ac = ac + ac_itr->second;
+      float af = compute_af_v3(allele_ac, an);
+      return {af, allele_ac, an};
+    }
+  };
+
+  /**
+   * A class for computing allelel frequencies stats relativekto all samples in the dataset.
+   */
+  class AFComputerAll : public AFComputer {
+   public:
+    /**
+     * @param map The AFMap allele frequencies are being computed for
+     * @param n The total number of samples in the dataset
+     */
+    AFComputerAll(const AFMap* map, const size_t n)
+    : AFComputer(map), num_samples(n) { }
+
+   private:
+    const size_t num_samples;
+
+    inline float compute_af_v3(const int ac, const int an) const {
+      return 1.0 * ac / an;
+    }
+
+    /** Computes the allele frequency for version 1 and 2 stats arrays. */
+    af_t af_v2(const uint32_t pos, const std::string& allele) const {
+      // Return -1.0 if the allele was not called
+      pos_stats_map_t::const_iterator pos_map_itr = af_map_->stats_map_.find(pos);
+      if (pos_map_itr == af_map_->stats_map_.end()) {
+        return {-1.0, 0, 0};
+      }
+      // Get the allele count
+      const auto& [allele_an, ac_map] = pos_map_itr->second;
+      const ac_map_t::const_iterator& ac_itr = ac_map.find(allele);
+      // Compute AF, substituting 0 for the AF and AC values if allele not in pos's an_ac
+      const uint32_t an = num_samples * 2;
+      if (ac_itr == ac_map.end()) {
+        return {0, 0, an};
+      }
+      const int allele_ac = ac_itr->second;
+      const float af = 1.0 * allele_ac / num_samples / 2;
+      return {af, allele_ac, an};
+    }
+
+    /** Computes the allele frequency for version 3+ stats arrays. */
+    af_t af_v3(const uint32_t pos, const std::string& allele) const {
+      // Return -1.0 if the allele was not called
+      pos_stats_map_t::const_iterator pos_map_itr = af_map_->stats_map_.find(pos);
+      if (pos_map_itr == af_map_->stats_map_.end()) {
+        return {-1.0, 0, 0};
+      }
+      // Get the allele count
+      const auto& [allele_an, ac_map] = pos_map_itr->second;
+      const ac_map_t::const_iterator& ac_itr = ac_map.find(allele);
+      bool is_ref = allele == "ref";
+      // Compute AF
+      uint32_t ac = is_ref ? af_map_->ac_sum_ : 0;
+      uint32_t an = num_samples * 2 + af_map_->an_sum_;
+      if (ac_itr == ac_map.end()) {
+        float af = is_ref ? compute_af_v3(af_map_->ac_sum_, an) : 0;
+        uint32_t unmapped_an = num_samples / 2 + af_map_->an_sum_;
+        return {af, ac, unmapped_an};
+      }
+      const int allele_ac = ac + ac_itr->second;
+      float af = compute_af_v3(allele_ac, an);
+      return {af, allele_ac, an};
+    }
+  };
+
   /**
    * @brief Insert an Allele Count into the map.
    *
@@ -66,12 +233,12 @@ class AFMap {
         // Should this insertion be tallied for contributing to transport
         // (Arrow)  buffer size?
         bool should_tally =
-            !ac_map_.contains(pos) || !ac_map_[pos].second.contains(allele);
+            !stats_map_.contains(pos) || !stats_map_[pos].second.contains(allele);
         // add ac to the an for this position
-        ac_map_[pos].first += ac;
+        stats_map_[pos].first += ac;
 
         // add ac to the ac for this position, allele
-        ac_map_[pos].second[allele] += ac;
+        stats_map_[pos].second[allele] += ac;
 
         if (false) {
           LOG_TRACE(
@@ -79,8 +246,8 @@ class AFMap {
               pos,
               allele,
               ac,
-              ac_map_[pos].second[allele],
-              ac_map_[pos].first);
+              stats_map_[pos].second[allele],
+              stats_map_[pos].first);
         }
         if (should_tally) {
           allele_aggregate_size_ += allele.length();
@@ -115,55 +282,11 @@ class AFMap {
   }
 
   /**
-   * @brief Compute the Allele Frequency for an allele at the given position.
-   *
-   * @param pos Position of the allele
-   * @param allele Allele value
-   * @return float Allele Frequency
-   */
-  inline std::tuple<float, uint32_t, uint32_t> af(
-      uint32_t pos, const std::string& allele);
-
-  /**
-   * @brief Compute the Allele Frequency for an allele at the given position,
-   * accounting for the full population of the dataset
-   *
-   * @param pos Position of the allele
-   * @param allele Allele value
-   * @param num_samples Number of samples in the entire dataset
-   * @return float Allele Frequency
-   */
-  inline std::tuple<float, uint32_t, uint32_t> af(
-      uint32_t pos, const std::string& allele, size_t num_samples);
-
-  /**
-   * @brief Compute the Allele Frequency for an allele at the given position.
-   *
-   * @param pos Position of the allele
-   * @param allele Allele value
-   * @return float Allele Frequency
-   */
-  inline std::tuple<float, uint32_t, uint32_t> af_v3(
-      uint32_t pos, const std::string& allele);
-
-  /**
-   * @brief Compute the Allele Frequency for an allele at the given position,
-   * accounting for the full population of the dataset
-   *
-   * @param pos Position of the allele
-   * @param allele Allele value
-   * @param num_samples Number of samples in the entire dataset
-   * @return float Allele Frequency
-   */
-  inline std::tuple<float, uint32_t, uint32_t> af_v3(
-      uint32_t pos, const std::string& allele, size_t num_samples);
-
-  /**
    * @brief Clear the map.
    *
    */
   void clear() {
-    ac_map_.clear();
+    stats_map_.clear();
     ref_block_cache_.clear();
     ac_sum_ = 0;
     an_sum_ = 0;
@@ -171,22 +294,25 @@ class AFMap {
   }
 
   /**
-   * @brief Populate buffers
+   * @brief Populates variant stats buffers using the given AFComputer to
+   * compute allele frequencies
    *
-   * @param pos buffer of int representing position
-   * @param allele variable buffer of char representing allele
-   * @param allele_offsets allele offsets
-   * @param ac buffer of int representing allele count
-   * @param an buffer of int representing allele number
-   * @param af buffer of float representing internal allele frequency
+   * @param af_computer The AFComputer to use when computing allele frequencies
+   * @param pos_buffer buffer of int representing position
+   * @param allele_buffer variable buffer of char representing allele
+   * @param allele_offsets buffer of offsets for allele_buffer
+   * @param ac_buffer buffer of int representing allele count
+   * @param an_buffer buffer of int representing allele number
+   * @param af_buffer buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
-      uint32_t* pos,
-      char* allele,
+      const AFComputer& af_computer,
+      uint32_t* pos_buffer,
+      char* allele_buffer,
       int32_t* allele_offsets,
-      int* ac,
-      int* an,
-      float_t* af);
+      int* ac_buffer,
+      int* an_buffer,
+      float_t* af_buffer);
 
   uint32_t array_version = 2;
 
@@ -194,6 +320,11 @@ class AFMap {
   uint32_t min_pos = 0;
 
  private:
+  /** position stats map: pos -> (an, map: allele -> ac) */
+  typedef std::unordered_map<std::string, int> ac_map_t;
+  typedef std::pair<int, ac_map_t> an_ac_t;
+  typedef std::unordered_map<uint32_t, an_ac_t> pos_stats_map_t;
+
   struct RefBlock {
     uint32_t start;
     uint32_t end;
@@ -202,30 +333,23 @@ class AFMap {
   };
 
   /**
-   * @brief The RefBlockComp class serves as a comparator for RefBlocks to be
-   * sorted.
-   *
+   * The RefBlockComp class serves as a comparator for RefBlocks to be sorted.
    */
   class RefBlockComp {
    public:
     /**
-     * @brief sort ref blocks directly in the cache, ascending by start
-     *
+     * Sort ref blocks directly in the cache, ascending by start
      */
     bool operator()(const RefBlock& a, const RefBlock& b) const;
 
     /**
-     * @brief sort ref block pointers to the cache, ascending by end
-     *
+     * Sort ref block pointers to the cache, ascending by end
      */
     bool operator()(const RefBlock* a, const RefBlock* b) const;
   };
 
-  /** Allele Count map: pos -> (an, map: allele -> ac) */
-  std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>
-      ac_map_;
+  /** allele Count map */
+  pos_stats_map_t stats_map_;
 
   /** track running sum of AC when computing IAF for GVCF */
   uint64_t ac_sum_ = 0;
@@ -303,22 +427,44 @@ class VariantStatsReader {
   }
 
   /**
-   * @brief Populate buffers
+   * @brief Populates variant stats buffers
    *
-   * @param pos buffer of int representing position
-   * @param allele variable buffer of char representing allele
-   * @param allele_offsets allele offsets
-   * @param ac buffer of int representing allele count
-   * @param an buffer of int representing allele number
-   * @param af buffer of float representing internal allele frequency
+   * @param num_samples Number of samples in the entire dataset
+   * @param pos_buffer buffer of int representing position
+   * @param allele_buffer variable buffer of char representing allele
+   * @param allele_offsets buffer of offsets for allele_buffer
+   * @param ac_buffer buffer of int representing allele count
+   * @param an_buffer buffer of int representing allele number
+   * @param af_buffer buffer of float representing internal allele frequency
    */
   void retrieve_variant_stats(
-      uint32_t* pos,
-      char* allele,
+      uint32_t* pos_buffer,
+      char* allele_buffer,
       int32_t* allele_offsets,
-      int* ac,
-      int* an,
-      float_t* af);
+      int* ac_buffer,
+      int* an_buffer,
+      float_t* af_buffer);
+
+  /**
+   * @brief Scans all samples when computing internal allele frequency and
+   * populates variant stats buffers
+   *
+   * @param num_samples Number of samples in the entire dataset
+   * @param pos_buffer buffer of int representing position
+   * @param allele_buffer variable buffer of char representing allele
+   * @param allele_offsets buffer of offsets for allele_buffer
+   * @param ac_buffer buffer of int representing allele count
+   * @param an_buffer buffer of int representing allele number
+   * @param af_buffer buffer of float representing internal allele frequency
+   */
+  void retrieve_variant_stats(
+      const size_t num_samples,
+      uint32_t* pos_buffer,
+      char* allele_buffer,
+      int32_t* allele_offsets,
+      int* ac_buffer,
+      int* an_buffer,
+      float_t* af_buffer);
 
   /**
    * @brief Accessor for buffer size metrics when retrieving variant stats
@@ -362,6 +508,8 @@ class VariantStatsReader {
    *
    * @param pos Position of the allele
    * @param allele Allele value
+   * @param scan_all_samples Scan all samples when computing internal allele frequency
+   * @param num_samples Number of samples in the entire dataset
    * @return std::pair<bool, float> (Allele passed the filter, AF value)
    */
   std::tuple<bool, float, uint32_t, uint32_t> pass(

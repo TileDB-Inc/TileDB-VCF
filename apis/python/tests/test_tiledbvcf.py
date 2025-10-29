@@ -1398,6 +1398,57 @@ def test_ingest_with_stats_v3(
     assert contigs == list(df["contig"].values)
     assert df.equals(df2)
 
+    # test scan_all_samples
+    ac = [8, 8, 5, 5, 6, 4, 4, 4, 4, 1, 15, 2, 1, 2, 2]
+    an = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 3, 3, 2, 2]
+    af = [
+        0.5,
+        0.5,
+        0.3125,
+        0.3125,
+        0.375,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.0625,
+        0.9375,
+        0.6666667,
+        0.33333334,
+        1.0,
+        1.0,
+    ]
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    assert ac == list(df["ac"].values)
+    assert an == list(df["an"].values)
+    assert af == list(df["af"].values)
+    ac = [8, 8, 5, 5, 6, 4, 4, 4, 4, 1, 15, 2, 1, 2, 2]
+    an = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16]
+    af = [
+        0.5,
+        0.5,
+        0.3125,
+        0.3125,
+        0.375,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.0625,
+        0.9375,
+        0.125,
+        0.0625,
+        0.125,
+        0.125,
+    ]
+    df = test_stats_v3_ingestion.read_variant_stats(
+        regions=regions,
+        scan_all_samples=True,
+    )
+    assert ac == list(df["ac"].values)
+    assert an == list(df["an"].values)
+    assert af == list(df["af"].values)
+
     region = "chr1:1-10000"
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), region
