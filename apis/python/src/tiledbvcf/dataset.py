@@ -324,6 +324,11 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
+
         if isinstance(samples, str):
             samples = [samples]
 
@@ -331,7 +336,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
@@ -365,6 +369,7 @@ class Dataset(object):
         region
             **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
         if not (region or regions):
             raise Exception("\"region\" or \"regions\" parameter is required")
         if region and regions:
@@ -403,6 +408,7 @@ class Dataset(object):
         region
             **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
         if not (region or regions):
             raise Exception("\"region\" or \"regions\" parameter is required")
         if region and regions:
@@ -450,6 +456,7 @@ class Dataset(object):
         region
             **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
         if not (region or regions):
             raise Exception("\"region\" or \"regions\" parameter is required")
         if region and regions:
@@ -479,6 +486,7 @@ class Dataset(object):
         region
             **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
         if not (region or regions):
             raise Exception("\"region\" or \"regions\" parameter is required")
         if region and regions:
@@ -555,6 +563,10 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
@@ -562,7 +574,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
@@ -624,6 +635,10 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
@@ -631,7 +646,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(True)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
@@ -679,13 +693,17 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
         self.reader.reset()
 
         if not self.read_completed():
-            yield self.read(attrs, samples, regions, samples_file, bed_file)
+            yield self.read(attrs, samples, list(regions), samples_file, bed_file)
         while not self.read_completed():
             yield self.continue_read()
 
@@ -771,14 +789,18 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
+        elif samples is None:
+            samples = ""
 
         self.reader.reset()
         self.reader.set_export_to_disk(False)
 
-        samples = "" if samples is None else samples
-        regions = "" if regions is None else regions
         self.reader.set_samples(",".join(samples))
         self.reader.set_regions(",".join(regions))
 
