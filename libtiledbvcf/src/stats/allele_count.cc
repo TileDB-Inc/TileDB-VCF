@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include "allele_count.h"
 #include "managed_query.h"
 #include "utils/logger_public.h"
+#include "utils/uri.h"
 #include "utils/utils.h"
 
 namespace tiledb::vcf {
