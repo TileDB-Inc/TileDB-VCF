@@ -1487,6 +1487,7 @@ def test_ingest_with_stats_v3(
     )
     assert alleles == list(df["alleles"].values)
 
+    # test allele frequency
     region = "chr1:1-10000"
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), region
@@ -1496,9 +1497,14 @@ def test_ingest_with_stats_v3(
     assert df.an_check.equals(df.an)
     df = test_stats_v3_ingestion.read_variant_stats(region)
     assert df.shape == (13, 6)
+
+    # test allele count
     df = test_stats_v3_ingestion.read_allele_count(region)
+    tbl = test_stats_v3_ingestion.read_allele_count_arrow(region)
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(tbl, pa.Table)
     assert df.shape == (7, 6)
-    df = df.to_pandas()
+    assert df.equals(tbl.to_pandas())
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
     assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
 
@@ -1598,7 +1604,6 @@ def test_ingest_with_stats_v2(tmp_path):
     assert df.shape == (13, 6)
     df = ds.read_allele_count("chr1:1-10000")
     assert df.shape == (7, 6)
-    df = df.to_pandas()
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
     assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
 

@@ -446,7 +446,25 @@ class Dataset(object):
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
+
+        return self.read_allele_count_arrow(region).to_pandas()
+
+    def read_allele_count_arrow(
+        self,
+        region: str = None,
+    ) -> pa.Table:
+        """
+        Read allele count from the dataset into a Pandas DataFrame
+
+        Parameters
+        ----------
+        region
+            Genomic region to be queried.
+        """
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
         self.reader.set_regions(region)
+
         return self.reader.get_allele_count_results()
 
     def read(
