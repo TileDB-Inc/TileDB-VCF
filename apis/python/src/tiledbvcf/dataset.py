@@ -6,6 +6,7 @@ from typing import List
 
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 
 from . import libtiledbvcf
 
@@ -330,6 +331,7 @@ class Dataset(object):
     def read_variant_stats(
         self,
         region: str = None,
+        drop_ref: bool = False,
         regions: List[str] = None,
         scan_all_samples: bool = False,
     ) -> pd.DataFrame:
@@ -338,6 +340,8 @@ class Dataset(object):
 
         Parameters
         ----------
+        drop_ref
+            Omit "ref" alleles from the results
         regions
             Genomic regions to be queried.
         scan_all_samples
@@ -355,12 +359,17 @@ class Dataset(object):
             )
             regions = [region]
 
-        kwargs = {"regions": regions, "scan_all_samples": scan_all_samples}
+        kwargs = {
+            "drop_ref": drop_ref,
+            "regions": regions,
+            "scan_all_samples": scan_all_samples,
+        }
         return self.read_variant_stats_arrow(**kwargs).to_pandas()
 
     def read_variant_stats_arrow(
         self,
         region: str = None,
+        drop_ref: bool = False,
         regions: List[str] = None,
         scan_all_samples: bool = False,
     ) -> pa.Table:
@@ -369,6 +378,8 @@ class Dataset(object):
 
         Parameters
         ----------
+        drop_ref
+            Omit "ref" alleles from the results
         regions
             Genomic regions to be queried.
         scan_all_samples
@@ -414,7 +425,12 @@ class Dataset(object):
                 contig_col = [r.contig] * n
                 yield stats.add_column(0, "contig", [contig_col])
 
-        return pa.concat_tables(variant_stats_generator(consolidated_regions))
+        # drop reference alleles from results
+        stats_tbl = pa.concat_tables(variant_stats_generator(consolidated_regions))
+        if drop_ref:
+            expr = pc.field("alleles") != "ref"
+            return stats_tbl.filter(expr)
+        return stats_tbl
 
     def read_allele_count(
         self,

@@ -1449,6 +1449,44 @@ def test_ingest_with_stats_v3(
     assert an == list(df["an"].values)
     assert af == list(df["af"].values)
 
+    # test drop_ref
+    alleles = [
+        "ref",
+        "T,C",
+        "ref",
+        "G,GTTTA",
+        "G,T",
+        "C,G",
+        "ref",
+        "C,T",
+        "C,A",
+        "G,GTTTA",
+        "ref",
+        "ref",
+        "C,T",
+        "G,GTTTA",
+        "G,GTTTA",
+    ]
+    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    assert alleles == list(df["alleles"].values)
+    alleles = [
+        "T,C",
+        "G,GTTTA",
+        "G,T",
+        "C,G",
+        "C,T",
+        "C,A",
+        "G,GTTTA",
+        "C,T",
+        "G,GTTTA",
+        "G,GTTTA",
+    ]
+    df = test_stats_v3_ingestion.read_variant_stats(
+        regions=regions,
+        drop_ref=True,
+    )
+    assert alleles == list(df["alleles"].values)
+
     region = "chr1:1-10000"
     df = tiledbvcf.allele_frequency.read_allele_frequency(
         os.path.join(tmp_path, "stats_test"), region
