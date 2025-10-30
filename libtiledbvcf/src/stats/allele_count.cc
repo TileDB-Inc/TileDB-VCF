@@ -583,7 +583,7 @@ std::string AlleleCountReader::get_uri(
 
 AlleleCountReader::AlleleCountReader(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = AlleleCountReader::get_uri(group, "allele_count");
+  auto uri = AlleleCountReader::get_uri(group, AlleleCount::ALLELE_COUNT_ARRAY);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
 }
 
