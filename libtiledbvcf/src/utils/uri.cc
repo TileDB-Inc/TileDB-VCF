@@ -80,7 +80,8 @@ std::string group_uri(const Group& group, const std::string& array) {
   }
 }
 
-std::string root_uri(const std::string& root_uri, const std::string& array, bool relative) {
+std::string root_uri(
+    const std::string& root_uri, const std::string& array, bool relative) {
   auto root = relative ? "" : root_uri;
   return utils::uri_join(root, array);
 }

@@ -217,7 +217,8 @@ class SampleStats {
   }
 
   // Get the URI for the array from the root URI
-  static std::string root_uri(const std::string& root_uri, bool relative = false) {
+  static std::string root_uri(
+      const std::string& root_uri, bool relative = false) {
     return utils::root_uri(root_uri, SAMPLE_STATS_ARRAY, relative);
   }
 };

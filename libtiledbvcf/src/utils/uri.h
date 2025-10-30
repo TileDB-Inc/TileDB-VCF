@@ -79,7 +79,10 @@ std::string group_uri(const Group& group, const std::string& array);
  * @param relative Whether or not the URI is relative to the root
  * @return std::string The array URI
  */
-std::string root_uri(const std::string& root_uri, const std::string& array, bool relative = false);
+std::string root_uri(
+    const std::string& root_uri,
+    const std::string& array,
+    bool relative = false);
 
 }  // namespace utils
 }  // namespace vcf
