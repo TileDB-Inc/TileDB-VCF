@@ -145,9 +145,7 @@ inline void AFMap::retrieve_variant_stats(
       an_buffer[row] = an;
       af_buffer[row] = af;
       std::memcpy(
-          allele_buffer + allele_offsets[row],
-          allele.c_str(),
-          allele.size());
+          allele_buffer + allele_offsets[row], allele.c_str(), allele.size());
       allele_offsets[row + 1] = allele_offsets[row] + allele.size();
       row++;
     }
@@ -214,8 +212,13 @@ void VariantStatsReader::retrieve_variant_stats(
   }
   AFMap::AFComputerSingle af_computer(&af_map_);
   af_map_.retrieve_variant_stats(
-    af_computer, pos_buffer, allele_buffer, allele_offsets, ac_buffer, an_buffer, af_buffer
-  );
+      af_computer,
+      pos_buffer,
+      allele_buffer,
+      allele_offsets,
+      ac_buffer,
+      an_buffer,
+      af_buffer);
 }
 
 void VariantStatsReader::retrieve_variant_stats(
@@ -234,8 +237,13 @@ void VariantStatsReader::retrieve_variant_stats(
   }
   AFMap::AFComputerAll af_computer(&af_map_, num_samples);
   af_map_.retrieve_variant_stats(
-    af_computer, pos_buffer, allele_buffer, allele_offsets, ac_buffer, an_buffer, af_buffer
-  );
+      af_computer,
+      pos_buffer,
+      allele_buffer,
+      allele_offsets,
+      ac_buffer,
+      an_buffer,
+      af_buffer);
 }
 
 void VariantStatsReader::compute_af() {
@@ -364,8 +372,9 @@ void VariantStatsReader::parse_condition_() {
         threshold_);
 
   } else {
-    throw std::runtime_error(fmt::format(
-        "Cannot parse the provided IAF condition: '{}'", condition_));
+    throw std::runtime_error(
+        fmt::format(
+            "Cannot parse the provided IAF condition: '{}'", condition_));
   }
 }
 
