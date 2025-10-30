@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,8 @@
 
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
-#include <tiledb/tiledb_experimental>  // for the new group api
+
+#include "utils/uri.h"
 
 namespace tiledb::vcf {
 
@@ -74,13 +75,16 @@ class VariantStats {
    * @param version the version to write
    */
   static void set_array_version(uint32_t version);
+
   /**
    * @brief Get the URI from TileDB-VCF dataset group
    *
    * @param group TileDB-VCF dataset group
    * @return std::string Array URI
    */
-  static std::string get_uri(const Group& group);
+  static std::string group_uri(const Group& group) {
+    return utils::group_uri(group, VARIANT_STATS_ARRAY);
+  }
 
   /**
    * @brief Create the array.
@@ -205,8 +209,10 @@ class VariantStats {
    * @param root_uri TileDB-VCF dataset URI
    * @return std::string Array URI
    */
-  static std::string get_uri(
-      const std::string& root_uri, bool relative = false);
+  static std::string root_uri(
+      const std::string& root_uri, bool relative = false) {
+    return utils::root_uri(root_uri, VARIANT_STATS_ARRAY, relative);
+  }
 
   // Array URI basename
   inline static const std::string VARIANT_STATS_ARRAY = "variant_stats";

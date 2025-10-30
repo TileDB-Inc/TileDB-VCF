@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,8 @@
 
 #include <htslib/vcf.h>
 #include <tiledb/tiledb>
-#include <tiledb/tiledb_experimental>  // for the new group api
 
+#include "utils/uri.h"
 #include "vcf/region.h"
 
 namespace tiledb::vcf {
@@ -76,7 +76,9 @@ class AlleleCount {
    * @param group TileDB-VCF dataset group
    * @return std::string Array URI
    */
-  static std::string get_uri(const Group& group);
+  static std::string group_uri(const Group& group) {
+    return utils::group_uri(group, ALLELE_COUNT_ARRAY);
+  }
 
   /**
    * @brief Create the array.
@@ -202,8 +204,10 @@ class AlleleCount {
    * @param root_uri TileDB-VCF dataset URI
    * @return std::string Array URI
    */
-  static std::string get_uri(
-      const std::string& root_uri, bool relative = false);
+  static std::string root_uri(
+      const std::string& root_uri, bool relative = false) {
+    return utils::root_uri(root_uri, ALLELE_COUNT_ARRAY, relative);
+  }
 
   // Array URI basename
   inline static const std::string ALLELE_COUNT_ARRAY = "allele_count";
@@ -384,16 +388,6 @@ class AlleleCountReader {
    */
   std::tuple<size_t, size_t, size_t, size_t, size_t>
   allele_count_buffer_sizes();
-
-  // TODO: move this utils and unite with implementation in variant_stats
-  /**
-   * @brief Get the URI from TileDB-VCF dataset group
-   *
-   * @param group TileDB-VCF dataset group
-   * @param array_name name of array to be opened
-   * @return std::string Array URI
-   */
-  static std::string get_uri(const Group& group, std::string array_name);
 
   AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group);
 
