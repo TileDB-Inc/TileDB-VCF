@@ -71,6 +71,20 @@ bool is_local_uri(const std::string& uri) {
   return true;
 }
 
+std::string group_uri(const Group& group, const std::string& array) {
+  try {
+    auto member = group.member(array);
+    return member.uri();
+  } catch (const TileDBError& ex) {
+    return "";
+  }
+}
+
+std::string root_uri(const std::string& root_uri, const std::string& array, bool relative) {
+  auto root = relative ? "" : root_uri;
+  return utils::uri_join(root, array);
+}
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

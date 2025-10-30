@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2024 TileDB, Inc.
+ * @copyright Copyright (c) 2024-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,10 +33,10 @@
 #include <vector>
 
 #include <tiledb/tiledb>
-#include <tiledb/tiledb_experimental>
 
 #include "stats/array_buffers.h"
 #include "tiledbvcf_export.h"
+#include "utils/uri.h"
 
 // Forward declarations for htslib
 struct bcf1_t;
@@ -212,11 +212,14 @@ class SampleStats {
   std::map<std::string, std::unordered_map<std::string, uint64_t>> stats_;
 
   // Get the URI for the array from the root group
-  static std::string get_uri_(const Group& group);
+  static std::string group_uri(const Group& group) {
+    return utils::group_uri(group, SAMPLE_STATS_ARRAY);
+  }
 
   // Get the URI for the array from the root URI
-  static std::string get_uri_(
-      const std::string& root_uri, bool relative = false);
+  static std::string root_uri(const std::string& root_uri, bool relative = false) {
+    return utils::root_uri(root_uri, SAMPLE_STATS_ARRAY, relative);
+  }
 };
 
 }  // namespace tiledb::vcf

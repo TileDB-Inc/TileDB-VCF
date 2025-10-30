@@ -319,7 +319,7 @@ inline void AFMap::retrieve_variant_stats(
 VariantStatsReader::VariantStatsReader(
     std::shared_ptr<Context> ctx, const Group& group, bool async_query)
     : async_query_(async_query) {
-  auto uri = VariantStats::get_uri(group);
+  auto uri = VariantStats::group_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
   const void* alt_max = 0;

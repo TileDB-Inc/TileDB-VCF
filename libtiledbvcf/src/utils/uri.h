@@ -29,6 +29,8 @@
 
 #include <string>
 
+#include <tiledb/tiledb>
+
 namespace tiledb {
 namespace vcf {
 
@@ -59,6 +61,25 @@ std::string uri_join(
  * @return true if file is local path (file:// or no prefix), else false
  */
 bool is_local_uri(const std::string& uri);
+
+/**
+ * Get the array URI from TileDB-VCF dataset group
+ *
+ * @param group TileDB-VCF dataset group
+ * @param array The array the URI is for
+ * @return std::string The array URI
+ */
+std::string group_uri(const Group& group, const std::string& array);
+
+/**
+ * Get the URI for the array from the root URI
+ *
+ * @param root_uri TileDB-VCF dataset URI
+ * @param array The array the URI is for
+ * @param relative Whether or not the URI is relative to the root
+ * @return std::string The array URI
+ */
+std::string root_uri(const std::string& root_uri, const std::string& array, bool relative = false);
 
 }  // namespace utils
 }  // namespace vcf

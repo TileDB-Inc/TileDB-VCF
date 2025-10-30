@@ -30,7 +30,6 @@
 #include "array_buffers.h"
 #include "managed_query.h"
 #include "sample_stats.h"
-#include "utils/uri.h"
 #include "utils/utils.h"
 
 namespace tiledb::vcf {
@@ -46,20 +45,6 @@ SampleStats::~SampleStats() {
   if (dst_ != nullptr) {
     hts_free(dst_);
   }
-}
-
-std::string SampleStats::get_uri_(const Group& group) {
-  try {
-    auto member = group.member(SAMPLE_STATS_ARRAY);
-    return member.uri();
-  } catch (const TileDBError& ex) {
-    return "";
-  }
-}
-
-std::string SampleStats::get_uri_(const std::string& root_uri, bool relative) {
-  auto root = relative ? "" : root_uri;
-  return utils::uri_join(root, SAMPLE_STATS_ARRAY);
 }
 
 void SampleStats::create(
@@ -148,7 +133,7 @@ void SampleStats::create(
 
   // Create array
   LOG_DEBUG("[SampleStats] create array");
-  auto uri = get_uri_(root_uri);
+  auto uri = SampleStats::root_uri(root_uri);
   Array::create(uri, schema);
 
   // Write metadata
@@ -158,7 +143,7 @@ void SampleStats::create(
   // Add array to root group
   // Group assets use full paths for tiledb cloud, relative paths otherwise
   auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = get_uri_(root_uri, relative);
+  auto array_uri = SampleStats::root_uri(root_uri, relative);
   LOG_DEBUG(
       "[SampleStats] Adding array '{}' to group '{}'", array_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
@@ -166,13 +151,13 @@ void SampleStats::create(
 }
 
 bool SampleStats::exists(const Group& group) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
   return !uri.empty();
 }
 
 void SampleStats::init(
     std::shared_ptr<Context> ctx, const Group& group, bool delete_mode) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
 
   if (uri.empty()) {
     LOG_DEBUG("[SampleStats] Ingestion task disabled");
@@ -447,7 +432,7 @@ void SampleStats::close() {
 
 void SampleStats::consolidate_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -461,7 +446,7 @@ void SampleStats::consolidate_commits(
 
 void SampleStats::consolidate_fragment_metadata(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -475,7 +460,7 @@ void SampleStats::consolidate_fragment_metadata(
 
 void SampleStats::vacuum_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -489,7 +474,7 @@ void SampleStats::vacuum_commits(
 
 void SampleStats::vacuum_fragment_metadata(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri_(group);
+  auto uri = SampleStats::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
