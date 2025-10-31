@@ -427,11 +427,12 @@ class Dataset(object):
         self.reader.reset()
         self.reader.set_scan_all_samples(scan_all_samples)
 
-        # generates stats and adds contig column one region at a time
+        # generates stats, sorts the results, and adds contig column one region at a time
         def variant_stats_generator(regions):
             for r in regions:
                 self.reader.set_regions(str(r))
                 stats = self.reader.get_variant_stats_results()
+                stats.sort_by([("pos", "ascending"), ("alleles", "ascending")])
                 n = stats.num_rows
                 contig_col = [r.contig] * n
                 yield stats.add_column(0, "contig", [contig_col])
@@ -509,6 +510,9 @@ class Dataset(object):
             for r in regions:
                 self.reader.set_regions(str(r))
                 counts = self.reader.get_allele_count_results()
+                counts.sort_by(
+                    [("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")]
+                )
                 n = counts.num_rows
                 contig_col = [r.contig] * n
                 yield counts.add_column(0, "contig", [contig_col])
