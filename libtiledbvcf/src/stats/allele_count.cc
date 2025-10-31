@@ -546,19 +546,8 @@ AlleleCountReader::allele_count_buffer_sizes() {
 }
 
 void AlleleCountReader::prepare_allele_count(Region region) {
-  // TODO: fix this ALLELE_COUNT_ARRAY so it links against the static singleton
-  // defined in allele_count.h
-  const std::string ALLELE_COUNT_ARRAY = "allele_count";
-
-  // TODO: fix this COLUMN_NAME so it links against the static singleton defined
-  // in allele_count.h
-  std::vector<std::string> COLUMN_NAME = {
-      "pos", "ref", "alt", "filter", "gt", "count"};
-  // TODO: likewise with this enum
-  enum Columns { POS, REF, ALT, FILTER, GT, COUNT };
-
-  ManagedQuery mq(array_, ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
-  mq.select_columns(COLUMN_NAME);
+  ManagedQuery mq(array_, AlleleCount::ALLELE_COUNT_ARRAY, TILEDB_UNORDERED);
+  mq.select_columns(AlleleCount::COLUMN_NAME);
   mq.select_point<std::string>("contig", region.seq_name);
   mq.select_ranges<uint32_t>("pos", {{region.min, region.max}});
   // TODO: use regions set in reader to assign subarray
@@ -594,7 +583,7 @@ std::string AlleleCountReader::get_uri(
 
 AlleleCountReader::AlleleCountReader(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = AlleleCountReader::get_uri(group, "allele_count");
+  auto uri = AlleleCountReader::get_uri(group, AlleleCount::ALLELE_COUNT_ARRAY);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
 }
 
