@@ -5,7 +5,7 @@ repos:
     - id: clang-format
       types_or: [c++, c]
       files: 'libtiledbvcf/.*|apis/java/src/main/java/io/tiledb/libvcfnative/.*|apis/python/src/.*'
-      exclude: 'libtiledbvcf/src/external/.*'
+      exclude: 'libtiledbvcf/external/.*'
   - repo: https://github.com/psf/black
     rev: 25.9.0
     hooks:
