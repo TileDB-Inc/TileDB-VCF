@@ -1301,12 +1301,14 @@ def test_ingest_with_stats_v3(
     ######################
 
     # test errors
-    no_parameter_error = "\"region\" or \"regions\" parameter is required"
-    exclusive_parameter_error = "\"region\" and \"regions\" parameters are mutually exclusive"
-    format_error = "\"region\" parameter must have format \"<contig>:<start>-<end>\""
+    no_parameter_error = '"region" or "regions" parameter is required'
+    exclusive_parameter_error = (
+        '"region" and "regions" parameters are mutually exclusive'
+    )
+    format_error = '"region" parameter must have format "<contig>:<start>-<end>"'
     empty_contig_error = "Region contig cannot be empty"
     base_1_error = "Regions must be 1-based"
-    interval_error = "\"100-1\" is not a valid region interval"
+    interval_error = '"100-1" is not a valid region interval'
     with pytest.raises(Exception, match=no_parameter_error):
         test_stats_v3_ingestion.read_variant_stats()
     with pytest.raises(Exception, match=no_parameter_error):
@@ -1314,7 +1316,9 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=exclusive_parameter_error):
         test_stats_v3_ingestion.read_variant_stats("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow("chr1:1-100", regions=["chr1:1-100"])
+        test_stats_v3_ingestion.read_variant_stats_arrow(
+            "chr1:1-100", regions=["chr1:1-100"]
+        )
     with pytest.raises(Exception, match=format_error):
         test_stats_v3_ingestion.read_variant_stats(regions=[""])
     with pytest.raises(Exception, match=format_error):
@@ -1519,7 +1523,9 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=exclusive_parameter_error):
         test_stats_v3_ingestion.read_allele_count("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_allele_count_arrow("chr1:1-100", regions=["chr1:1-100"])
+        test_stats_v3_ingestion.read_allele_count_arrow(
+            "chr1:1-100", regions=["chr1:1-100"]
+        )
     with pytest.raises(Exception, match=format_error):
         test_stats_v3_ingestion.read_allele_count(regions=[""])
     with pytest.raises(Exception, match=format_error):

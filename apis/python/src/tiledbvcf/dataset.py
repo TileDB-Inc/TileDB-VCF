@@ -117,13 +117,14 @@ class Dataset(object):
                 start, end = map(int, interval.split("-"))
             except Exception:
                 raise Exception(
-                    "\"region\" parameter must have format \"<contig>:<start>-<end>\"")
+                    '"region" parameter must have format "<contig>:<start>-<end>"'
+                )
             if contig == "":
                 raise Exception("Region contig cannot be empty")
             if start <= 0:
                 raise Exception("Regions must be 1-based")
             if end < start:
-                raise Exception(f"\"{interval}\" is not a valid region interval")
+                raise Exception(f'"{interval}" is not a valid region interval')
             self.contig = contig
             self.start = start
             self.end = end
@@ -267,7 +268,7 @@ class Dataset(object):
                 prev_region = r
             elif r.start <= prev_region.end + 1:
                 prev_region.end = max(r.end, prev_region.end)
-            else: # the regions are non-overlapping
+            else:  # the regions are non-overlapping
                 yield prev_region
                 prev_region = r
         yield prev_region
@@ -371,12 +372,13 @@ class Dataset(object):
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
-            raise Exception("\"region\" or \"regions\" parameter is required")
+            raise Exception('"region" or "regions" parameter is required')
         if region and regions:
-            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
         if region:
             warnings.warn(
-                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
             )
             regions = [region]
 
@@ -410,12 +412,13 @@ class Dataset(object):
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
-            raise Exception("\"region\" or \"regions\" parameter is required")
+            raise Exception('"region" or "regions" parameter is required')
         if region and regions:
-            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
         if region:
             warnings.warn(
-                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
             )
             regions = [region]
         if self.mode != "r":
@@ -458,12 +461,13 @@ class Dataset(object):
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
-            raise Exception("\"region\" or \"regions\" parameter is required")
+            raise Exception('"region" or "regions" parameter is required')
         if region and regions:
-            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
         if region:
             warnings.warn(
-                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
             )
             regions = [region]
         if self.mode != "r":
@@ -488,12 +492,13 @@ class Dataset(object):
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
-            raise Exception("\"region\" or \"regions\" parameter is required")
+            raise Exception('"region" or "regions" parameter is required')
         if region and regions:
-            raise Exception("\"region\" and \"regions\" parameters are mutually exclusive")
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
         if region:
             warnings.warn(
-                "\"region\" parameter is deprecated, use \"regions\" instead", DeprecationWarning
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
             )
             regions = [region]
         if self.mode != "r":
