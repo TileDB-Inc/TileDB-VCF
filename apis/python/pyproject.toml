@@ -44,7 +44,7 @@ dependencies = ["pandas", "pyarrow>=14.0.1", "numpy"]
 
 [project.optional-dependencies]
 test = ["pytest", "tiledb"]
-dev = ["black", "tiledb-cloud", "pybind11[global]"]
+dev = ["tiledb-cloud", "pybind11[global]"]
 
 [project.urls]
 homepage = "https://tiledb.com"

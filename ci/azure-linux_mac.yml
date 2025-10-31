@@ -6,34 +6,6 @@ steps:
       addToPath: true
     displayName: 'Set Python Version'
 
-  - script: python -m pip install --upgrade black pylint
-    displayName: 'Install black (formatter) and pylint (linter)'
-
-  - script: black --check .
-    displayName: 'Test Formatting'
-
-  # pylint cannot lint all files in a directory, it requires an __init__.py file (https://github.com/PyCQA/pylint/issues/352)
-  # run pylint on all directories with an __init__.py file
-  - bash: |
-      set -eux pipefail
-      find . -name __init__.py | xargs dirname | xargs pylint --disable=all --enable=E1101
-    displayName: 'Check function name/signature mismatches'
-
-  - bash: |
-      set -e pipefail
-      sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
-      sudo add-apt-repository 'deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main'
-      sudo apt-get install -y clang-format-15
-      src=$BUILD_REPOSITORY_LOCALPATH/libtiledbvcf
-      cd $BUILD_REPOSITORY_LOCALPATH
-      ci/run-clang-format.sh $src clang-format-15 0 \
-        $(find $src/src $src/test -name "*.cc" -or -name "*.c" -or -name "*.h")
-      apis=$BUILD_REPOSITORY_LOCALPATH/apis
-      ci/run-clang-format.sh $apis clang-format-15 0 \
-        $(find $apis -name "*.cc" -or -name "*.c" -or -name "*.h")
-    condition: eq(variables['Agent.OS'], 'Linux')
-    displayName: 'Check formatting (Linux only)'
-
   - bash: |
       set -e pipefail
 

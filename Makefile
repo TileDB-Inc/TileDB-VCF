@@ -51,22 +51,6 @@ docs:
 	@rm tiledbvcf
 	quarto render --fail-if-warnings
 
-# format
-# -------------------------------------------------------------------
-.PHONY: check-format
-check-format:
-	@./ci/run-clang-format.sh . clang-format 0 \
-		`find libtiledbvcf/src -name "*.cc" -or -name "*.h"`
-	@./ci/run-clang-format.sh . clang-format 0 \
-		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
-
-.PHONY: format
-format:
-	 @./ci/run-clang-format.sh . clang-format 1 \
-		`find libtiledbvcf/src -name "*.cc" -or -name "*.h"`
-	 @./ci/run-clang-format.sh . clang-format 1 \
-		`find libtiledbvcf/test -name "*.cc" -or -name "*.h"`
-
 # venv
 # -------------------------------------------------------------------
 .PHONY: venv
@@ -116,8 +100,6 @@ Rules:
   notebooks           Execute notebooks and update cell outputs
   docs                Render the documentation
   docker              Build and test docker images
-  check-format        Run C++ format check
-  format              Run C++ format
   venv                Create a virtual environment
   wheel               Build python wheel
   clean               Remove build artifacts
