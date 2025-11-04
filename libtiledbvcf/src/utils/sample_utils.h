@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 TileDB, Inc.
+ * @copyright Copyright (c) 2019-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,7 @@
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/buffer.h"
+#include "utils/uri.h"
 #include "utils/utils.h"
 #include "vcf/vcf_utils.h"
 

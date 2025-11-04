@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2022 TileDB, Inc.
+ * @copyright Copyright (c) 2022-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,15 +34,6 @@ namespace tiledb::vcf {
 //===================================================================
 //= public static functions
 //===================================================================
-
-std::string AlleleCount::get_uri(const Group& group) {
-  try {
-    auto member = group.member(ALLELE_COUNT_ARRAY);
-    return member.uri();
-  } catch (const tiledb::TileDBError& ex) {
-    return "";
-  }
-}
 
 void AlleleCount::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
@@ -108,7 +99,7 @@ void AlleleCount::create(
   schema.add_attributes(count);
 
   // Create array
-  auto uri = get_uri(root_uri);
+  auto uri = AlleleCount::root_uri(root_uri);
   Array::create(uri, schema);
 
   // Write metadata
@@ -118,19 +109,19 @@ void AlleleCount::create(
   // Add array to root group
   // Group assets use full paths for tiledb cloud, relative paths otherwise
   auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = get_uri(root_uri, relative);
+  auto array_uri = AlleleCount::root_uri(root_uri, relative);
   LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
   Group root_group(ctx, root_uri, TILEDB_WRITE);
   root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
 }
 
 bool AlleleCount::exists(const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
   return !uri.empty();
 }
 
 void AlleleCount::init(std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
 
   if (uri.empty()) {
     LOG_DEBUG("[AlleleCount] Ingestion task disabled");
@@ -219,7 +210,7 @@ void AlleleCount::close() {
 
 void AlleleCount::consolidate_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -233,7 +224,7 @@ void AlleleCount::consolidate_commits(
 
 void AlleleCount::consolidate_fragment_metadata(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -247,7 +238,7 @@ void AlleleCount::consolidate_fragment_metadata(
 
 void AlleleCount::vacuum_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -261,7 +252,7 @@ void AlleleCount::vacuum_commits(
 
 void AlleleCount::vacuum_fragment_metadata(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = get_uri(group);
+  auto uri = AlleleCount::group_uri(group);
 
   // Return if the array does not exist
   if (uri.empty()) {
@@ -505,11 +496,6 @@ void AlleleCount::process(
 //= private functions
 //===================================================================
 
-std::string AlleleCount::get_uri(const std::string& root_uri, bool relative) {
-  auto root = relative ? "" : root_uri;
-  return utils::uri_join(root, ALLELE_COUNT_ARRAY);
-}
-
 void AlleleCount::update_results() {
   if (count_.size() > 0) {
     for (auto& [key, count] : count_) {
@@ -570,20 +556,9 @@ void AlleleCountReader::prepare_allele_count(Region region) {
   }
 }
 
-// TODO: move this utils and unite with implementation in variant_stats
-std::string AlleleCountReader::get_uri(
-    const Group& group, std::string array_name) {
-  try {
-    auto member = group.member(array_name);
-    return member.uri();
-  } catch (const tiledb::TileDBError& ex) {
-    return "";
-  }
-}
-
 AlleleCountReader::AlleleCountReader(
     std::shared_ptr<Context> ctx, const Group& group) {
-  auto uri = AlleleCountReader::get_uri(group, AlleleCount::ALLELE_COUNT_ARRAY);
+  auto uri = AlleleCount::group_uri(group);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
 }
 

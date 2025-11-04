@@ -70,6 +70,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/logger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/normalize.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/sample_utils.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/uri.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/bed_file.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/region.cc
