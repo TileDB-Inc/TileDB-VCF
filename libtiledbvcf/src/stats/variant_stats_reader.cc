@@ -502,9 +502,8 @@ void VariantStatsReader::parse_condition_() {
         threshold_);
 
   } else {
-    throw std::runtime_error(
-        fmt::format(
-            "Cannot parse the provided IAF condition: '{}'", condition_));
+    throw std::runtime_error(fmt::format(
+        "Cannot parse the provided IAF condition: '{}'", condition_));
   }
 }
 
