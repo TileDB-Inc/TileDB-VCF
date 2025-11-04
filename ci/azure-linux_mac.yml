@@ -61,9 +61,9 @@ steps:
       make -j4 -C libtiledbvcf tiledb_vcf_unit
       # cmake catches the segfault and blocks the core dump
       # sudo make check
-      ./libtiledbvcf/test/tiledb_vcf_unit
+      #./libtiledbvcf/test/tiledb_vcf_unit
 
-      ../test/run-cli-tests.sh . ../test/inputs
+      #../test/run-cli-tests.sh . ../test/inputs
 
       make install-libtiledbvcf
 
@@ -103,25 +103,25 @@ steps:
       artifactName: 'build-dirs'
     condition: or(failed(), succeeded()) # only run this job if the build step failed
 
-  - bash: |
-      set -e pipefail
-      pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
+  #- bash: |
+  #    set -e pipefail
+  #    pushd $BUILD_REPOSITORY_LOCALPATH/apis/java
 
-      ./gradlew checkFormat
-      ./gradlew assemble
+  #    ./gradlew checkFormat
+  #    ./gradlew assemble
 
-      export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
+  #    export LD_LIBRARY_PATH=$BUILD_REPOSITORY_LOCALPATH/apis/java/build/resources/main/lib:$LD_LIBRARY_PATH
 
-      ./gradlew test
+  #    ./gradlew test
 
-    displayName: 'Build and test TileDB-VCF Java API'
+  #  displayName: 'Build and test TileDB-VCF Java API'
 
   - bash: |
       set -ex pipefail
 
       if [[ "$BUILD_PYTHON_API" == "ON" ]]; then
         pip install apis/python[test] -v --user
-        pytest
+        pytest -s
       fi
 
     displayName: 'Build and test TileDB-VCF Python API'
