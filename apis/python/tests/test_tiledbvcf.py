@@ -1423,22 +1423,22 @@ def test_ingest_with_stats_v3(
     assert df.equals(df2)
 
     # test scan_all_samples
-    ac = [8, 8, 5, 5, 6, 4, 4, 4, 4, 1, 15, 2, 1, 2, 2]
+    ac = [8, 8, 5, 6, 5, 4, 4, 4, 4, 1, 15, 1, 2, 2, 2]
     an = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 3, 3, 2, 2]
     af = [
         0.5,
         0.5,
         0.3125,
-        0.3125,
         0.375,
+        0.3125,
         0.25,
         0.25,
         0.25,
         0.25,
         0.0625,
         0.9375,
-        0.6666667,
         0.33333334,
+        0.6666667,
         1.0,
         1.0,
     ]
@@ -1446,22 +1446,22 @@ def test_ingest_with_stats_v3(
     assert ac == list(df["ac"].values)
     assert an == list(df["an"].values)
     assert af == list(df["af"].values)
-    ac = [8, 8, 5, 5, 6, 4, 4, 4, 4, 1, 15, 2, 1, 2, 2]
+    ac = [8, 8, 5, 6, 5, 4, 4, 4, 4, 1, 15, 1, 2, 2, 2]
     an = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16]
     af = [
         0.5,
         0.5,
         0.3125,
-        0.3125,
         0.375,
+        0.3125,
         0.25,
         0.25,
         0.25,
         0.25,
         0.0625,
         0.9375,
-        0.125,
         0.0625,
+        0.125,
         0.125,
         0.125,
     ]
@@ -1475,19 +1475,19 @@ def test_ingest_with_stats_v3(
 
     # test drop_ref
     alleles = [
-        "ref",
         "T,C",
         "ref",
         "G,GTTTA",
         "G,T",
-        "C,G",
         "ref",
-        "C,T",
         "C,A",
+        "C,G",
+        "C,T",
+        "ref",
         "G,GTTTA",
         "ref",
-        "ref",
         "C,T",
+        "ref",
         "G,GTTTA",
         "G,GTTTA",
     ]
@@ -1497,9 +1497,9 @@ def test_ingest_with_stats_v3(
         "T,C",
         "G,GTTTA",
         "G,T",
+        "C,A",
         "C,G",
         "C,T",
-        "C,A",
         "G,GTTTA",
         "C,T",
         "G,GTTTA",
