@@ -1492,6 +1492,7 @@ def test_ingest_with_stats_v3(
         "G,GTTTA",
     ]
     df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    print(df)
     assert alleles == list(df["alleles"].values)
     alleles = [
         "T,C",
