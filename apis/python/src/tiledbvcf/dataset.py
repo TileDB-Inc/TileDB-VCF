@@ -432,7 +432,7 @@ class Dataset(object):
             for r in regions:
                 self.reader.set_regions(str(r))
                 stats = self.reader.get_variant_stats_results()
-                stats.sort_by([("pos", "ascending"), ("alleles", "ascending")])
+                stats = stats.sort_by([("pos", "ascending"), ("alleles", "ascending")])
                 n = stats.num_rows
                 contig_col = [r.contig] * n
                 yield stats.add_column(0, "contig", [contig_col])
@@ -510,7 +510,7 @@ class Dataset(object):
             for r in regions:
                 self.reader.set_regions(str(r))
                 counts = self.reader.get_allele_count_results()
-                counts.sort_by(
+                contigs = counts.sort_by(
                     [("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")]
                 )
                 n = counts.num_rows
