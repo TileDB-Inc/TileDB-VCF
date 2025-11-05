@@ -387,7 +387,9 @@ class Dataset(object):
             "regions": regions,
             "scan_all_samples": scan_all_samples,
         }
-        return self.read_variant_stats_arrow(**kwargs).to_pandas()
+        return self.read_variant_stats_arrow(**kwargs).to_pandas(
+            split_blocks=True, self_destruct=True
+        )
 
     def read_variant_stats_arrow(
         self,
@@ -474,7 +476,9 @@ class Dataset(object):
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
 
-        return self.read_allele_count_arrow(regions=regions).to_pandas()
+        return self.read_allele_count_arrow(regions=regions).to_pandas(
+            split_blocks=True, self_destruct=True
+        )
 
     def read_allele_count_arrow(
         self,
@@ -732,7 +736,7 @@ class Dataset(object):
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
 
-        return table.to_pandas()
+        return table.to_pandas(split_blocks=True, self_destruct=True)
 
     def continue_read_arrow(self, release_buffers: bool = True) -> pa.Table:
         """
