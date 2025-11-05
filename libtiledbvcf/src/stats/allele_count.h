@@ -188,6 +188,9 @@ class AlleleCount {
   void flush(bool finalize = false);
 
  private:
+  // give the AlleleCountReader access to AlleleCount's private members
+  friend class AlleleCountReader;
+
   //===================================================================
   //= private static
   //===================================================================
