@@ -2,98 +2,98 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/examples/overview.html</loc>
-    <lastmod>2025-11-04T15:41:46.468Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.656Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/examples/tutorial_tiledbvcf_allele_frequencies.html</loc>
-    <lastmod>2025-11-04T15:41:46.468Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.656Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/api-reference/cli.html</loc>
-    <lastmod>2025-11-04T15:41:46.464Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.652Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/python.html</loc>
-    <lastmod>2025-11-04T15:41:46.467Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.655Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/distributed-ingestion.html</loc>
-    <lastmod>2025-11-04T15:41:46.467Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/the-solution.html</loc>
-    <lastmod>2025-11-04T15:41:46.467Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.655Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/reference/config_logging.html</loc>
-    <lastmod>2025-11-04T15:42:05.361Z</lastmod>
+    <lastmod>2025-11-05T22:13:06.060Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/reference/index.html</loc>
-    <lastmod>2025-11-04T15:42:05.270Z</lastmod>
+    <lastmod>2025-11-05T22:13:05.960Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/create-a-dataset.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/export-to-vcf.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/perform-distributed-queries-with-tiledb-cloud.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/work-with-cloud-object-stores.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/index.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/read-from-the-dataset.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/handle-large-queries.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/ingest-samples.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/how-to/overview.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/reference/ReadConfig.html</loc>
-    <lastmod>2025-11-04T15:42:05.358Z</lastmod>
+    <lastmod>2025-11-05T22:13:06.058Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/reference/Dataset.html</loc>
-    <lastmod>2025-11-04T15:42:05.355Z</lastmod>
+    <lastmod>2025-11-05T22:13:06.055Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/data-model.html</loc>
-    <lastmod>2025-11-04T15:41:46.466Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/cli.html</loc>
-    <lastmod>2025-11-04T15:41:46.467Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/documentation/ingestion/overview.html</loc>
-    <lastmod>2025-11-04T15:41:46.467Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.654Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/examples/tutorial_tiledbvcf_basics.html</loc>
-    <lastmod>2025-11-04T15:41:46.470Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.658Z</lastmod>
   </url>
   <url>
     <loc>https://tiledb-inc.github.io/TileDB-VCF/examples/tutorial_tiledbvcf_gwas.html</loc>
-    <lastmod>2025-11-04T15:41:46.470Z</lastmod>
+    <lastmod>2025-11-05T22:12:38.658Z</lastmod>
   </url>
 </urlset>
