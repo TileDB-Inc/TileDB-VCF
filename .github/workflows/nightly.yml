@@ -5,13 +5,7 @@ name: Nightly
 #   the shared objects in ./install/
 on:
   push:
-    paths:
-      - '.github/workflows/nightly.yml'
-      - 'ci/nightly/**'
   pull_request:
-    paths:
-      - '.github/workflows/nightly.yml'
-      - 'ci/nightly/**'
 jobs:
   nightly:
     runs-on: ${{ matrix.os }}
