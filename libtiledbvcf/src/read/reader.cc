@@ -980,7 +980,13 @@ void Reader::read_from_variant_stats(
     int* ac,
     int* an,
     float_t* af) {
-  af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
+  if (params_.scan_all_samples) {
+    size_t n = dataset_->sample_names().size();
+    af_filter_->retrieve_variant_stats(
+        n, pos, allele, allele_offsets, ac, an, af);
+  } else {
+    af_filter_->retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
+  }
 }
 
 void Reader::read_from_allele_count(

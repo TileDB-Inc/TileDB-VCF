@@ -2,10 +2,11 @@ import os
 import shutil
 import warnings
 from collections import namedtuple
-from typing import List
+from typing import Generator, List
 
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 
 from . import libtiledbvcf
 
@@ -99,6 +100,43 @@ class Dataset(object):
     tiledb_config
         TileDB configuration, alternative to `cfg.tiledb_config`.
     """
+
+    class Region(object):
+        """
+        Represents a 1-based inclusive region.
+
+        Parameters
+        ----------
+        region
+            A string in the form "<contig>:<start>-<end>".
+        """
+
+        def __init__(self, region: str):
+            try:
+                contig, interval = region.split(":")
+                start, end = map(int, interval.split("-"))
+            except Exception:
+                raise Exception(
+                    '"region" parameter must have format "<contig>:<start>-<end>"'
+                )
+            if contig == "":
+                raise Exception("Region contig cannot be empty")
+            if start <= 0:
+                raise Exception("Regions must be 1-based")
+            if end < start:
+                raise Exception(f'"{interval}" is not a valid region interval')
+            self.contig = contig
+            self.start = start
+            self.end = end
+
+        def __lt__(self, region):
+            return self.to_tuple() < region.to_tuple()
+
+        def __str__(self):
+            return f"{self.contig}:{self.start}-{self.end}"
+
+        def to_tuple(self):
+            return (self.contig, self.start, self.end)
 
     def __init__(
         self,
@@ -219,6 +257,22 @@ class Dataset(object):
                     pass
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
 
+    # parses and sorts regions, then generates consolidated regions one at a time
+    def _prepare_regions(self, regions: List[str]) -> Generator[Region, None, None]:
+        if not regions:
+            return
+        prev_region, *parsed_regions = sorted(map(self.Region, regions))
+        for r in parsed_regions:
+            if prev_region.contig != r.contig:
+                yield prev_region
+                prev_region = r
+            elif r.start <= prev_region.end + 1:
+                prev_region.end = max(r.end, prev_region.end)
+            else:  # the regions are non-overlapping
+                yield prev_region
+                prev_region = r
+        yield prev_region
+
     def read_arrow(
         self,
         attrs: List[str] = DEFAULT_ATTRS,
@@ -271,6 +325,11 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
+
         if isinstance(samples, str):
             samples = [samples]
 
@@ -278,7 +337,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
@@ -294,36 +352,177 @@ class Dataset(object):
     def read_variant_stats(
         self,
         region: str = None,
+        drop_ref: bool = False,
+        regions: List[str] = None,
+        scan_all_samples: bool = False,
     ) -> pd.DataFrame:
         """
         Read variant stats from the dataset into a Pandas DataFrame
 
         Parameters
         ----------
+        drop_ref
+            Omit "ref" alleles from the results
+        regions
+            Genomic regions to be queried.
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
         region
-            Genomic region to be queried.
+            **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
+        if not (region or regions):
+            raise Exception('"region" or "regions" parameter is required')
+        if region and regions:
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
+        if region:
+            warnings.warn(
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
+            )
+            regions = [region]
+
+        kwargs = {
+            "drop_ref": drop_ref,
+            "regions": regions,
+            "scan_all_samples": scan_all_samples,
+        }
+        return self.read_variant_stats_arrow(**kwargs).to_pandas(
+            split_blocks=True, self_destruct=True
+        )
+
+    def read_variant_stats_arrow(
+        self,
+        region: str = None,
+        drop_ref: bool = False,
+        regions: List[str] = None,
+        scan_all_samples: bool = False,
+    ) -> pa.Table:
+        """
+        Read variant stats from the dataset into a PyArrow Table
+
+        Parameters
+        ----------
+        drop_ref
+            Omit "ref" alleles from the results
+        regions
+            Genomic regions to be queried.
+        scan_all_samples
+            Scan all samples when computing internal allele frequency.
+        region
+            **DEPRECATED** - Genomic region to be queried.
+        """
+        # TODO: deprecated region and parse regions like read()
+        if not (region or regions):
+            raise Exception('"region" or "regions" parameter is required')
+        if region and regions:
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
+        if region:
+            warnings.warn(
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
+            )
+            regions = [region]
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
-        self.reader.set_regions(region)
-        return self.reader.get_variant_stats_results()
+
+        self.reader.reset()
+        self.reader.set_scan_all_samples(scan_all_samples)
+
+        # generates stats, sorts the results, and adds contig column one region at a time
+        def variant_stats_generator(regions):
+            for r in regions:
+                self.reader.set_regions(str(r))
+                stats = self.reader.get_variant_stats_results()
+                stats = stats.sort_by([("pos", "ascending"), ("alleles", "ascending")])
+                n = stats.num_rows
+                contig_col = [r.contig] * n
+                yield stats.add_column(0, "contig", [contig_col])
+
+        # drop reference alleles from results
+        consolidated_regions = self._prepare_regions(regions)
+        stats_tbl = pa.concat_tables(variant_stats_generator(consolidated_regions))
+        if drop_ref:
+            expr = pc.field("alleles") != "ref"
+            return stats_tbl.filter(expr)
+        return stats_tbl
 
     def read_allele_count(
         self,
         region: str = None,
+        regions: List[str] = None,
     ) -> pd.DataFrame:
         """
         Read allele count from the dataset into a Pandas DataFrame
 
         Parameters
         ----------
+        regions
+            Genomic regions to be queried.
         region
-            Genomic region to be queried.
+            **DEPRECATED** - Genomic region to be queried.
         """
+        # TODO: deprecated region and parse regions like read()
+        if not (region or regions):
+            raise Exception('"region" or "regions" parameter is required')
+        if region and regions:
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
+        if region:
+            warnings.warn(
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
+            )
+            regions = [region]
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
-        self.reader.set_regions(region)
-        return self.reader.get_allele_count_results()
+
+        return self.read_allele_count_arrow(regions=regions).to_pandas(
+            split_blocks=True, self_destruct=True
+        )
+
+    def read_allele_count_arrow(
+        self,
+        region: str = None,
+        regions: List[str] = None,
+    ) -> pa.Table:
+        """
+        Read allele count from the dataset into a Pandas DataFrame
+
+        Parameters
+        ----------
+        regions
+            Genomic regions to be queried.
+        region
+            **DEPRECATED** - Genomic region to be queried.
+        """
+        # TODO: deprecated region and parse regions like read()
+        if not (region or regions):
+            raise Exception('"region" or "regions" parameter is required')
+        if region and regions:
+            raise Exception('"region" and "regions" parameters are mutually exclusive')
+        if region:
+            warnings.warn(
+                '"region" parameter is deprecated, use "regions" instead',
+                DeprecationWarning,
+            )
+            regions = [region]
+        if self.mode != "r":
+            raise Exception("Dataset not open in read mode")
+
+        # generates counts and adds contig column one region at a time
+        def allele_count_generator(regions):
+            for r in regions:
+                self.reader.set_regions(str(r))
+                counts = self.reader.get_allele_count_results()
+                contigs = counts.sort_by(
+                    [("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")]
+                )
+                n = counts.num_rows
+                contig_col = [r.contig] * n
+                yield counts.add_column(0, "contig", [contig_col])
+
+        consolidated_regions = self._prepare_regions(regions)
+        return pa.concat_tables(allele_count_generator(consolidated_regions))
 
     def read(
         self,
@@ -377,6 +576,10 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
@@ -384,7 +587,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(False)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_attributes(attrs)
         self.reader.set_check_samples_exist(not skip_check_samples)
@@ -446,6 +648,10 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
@@ -453,7 +659,6 @@ class Dataset(object):
         self.reader.set_export_to_disk(True)
         self._set_samples(samples, samples_file)
 
-        regions = "" if regions is None else regions
         self.reader.set_regions(",".join(regions))
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_enable_progress_estimation(enable_progress_estimation)
@@ -501,13 +706,17 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
 
         self.reader.reset()
 
         if not self.read_completed():
-            yield self.read(attrs, samples, regions, samples_file, bed_file)
+            yield self.read(attrs, samples, list(regions), samples_file, bed_file)
         while not self.read_completed():
             yield self.continue_read()
 
@@ -527,7 +736,7 @@ class Dataset(object):
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
 
-        return table.to_pandas()
+        return table.to_pandas(split_blocks=True, self_destruct=True)
 
     def continue_read_arrow(self, release_buffers: bool = True) -> pa.Table:
         """
@@ -593,14 +802,18 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        if isinstance(regions, list):
+            regions = map(str, self._prepare_regions(regions))
+        else:
+            regions = ""
         if isinstance(samples, str):
             samples = [samples]
+        elif samples is None:
+            samples = ""
 
         self.reader.reset()
         self.reader.set_export_to_disk(False)
 
-        samples = "" if samples is None else samples
-        regions = "" if regions is None else regions
         self.reader.set_samples(",".join(samples))
         self.reader.set_regions(",".join(regions))
 

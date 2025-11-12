@@ -3,7 +3,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2017-2018 TileDB, Inc.
+ * @copyright Copyright (c) 2017-2025 TileDB, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -262,25 +262,6 @@ bool ends_with(std::string const& full_string, std::string const& ending);
 /** Trims leading and trailing whitespace in-place. */
 void trim(std::string* s);
 
-/** Ensure URI ends in / if a dir */
-void normalize_uri(std::string& uri, bool is_dir);
-
-/**
- * Returns the filename (path after last trailing '/') from the given URI.
- *
- * If the URI ends in '/', empty string is returned as URI refers to a
- * directory.
- */
-std::string uri_filename(const std::string& uri);
-
-/**
- * Joins a filename to a directory URI (adds a '/' between them).
- */
-std::string uri_join(
-    const std::string& dir,
-    const std::string& filename,
-    const char delimiter = '/');
-
 /**
  * Downloads a file to local storage.
  *
@@ -414,13 +395,6 @@ void init_htslib();
  * @return true is identical, false otherwise
  */
 bool compare_configs(const tiledb::Config& rhs, const tiledb::Config& lhs);
-
-/**
- * Checks if a file path is local or remote
- * @param uri to check
- * @return true if file is local path (file:// or no prefix), else false
- */
-bool is_local_uri(const std::string& uri);
 
 /**
  * Returns TileDB-VCF and TileDB version information in string form.

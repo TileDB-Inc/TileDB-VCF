@@ -18,3 +18,12 @@ Thanks for your interest in TileDB-VCF. The notes below give some pointers for f
 - Make changes locally, then rebuild as appropriate for the level of changes (e.g.: `make` for `libtilebvcf` or `python setup.py develop` for `apis/python`).
 - Make sure to run `make check`, or `pytest` to verify changes against tests (add new tests where applicable).
 - Please submit [pull requests](https://help.github.com/en/desktop/contributing-to-projects/creating-a-pull-request) against the default [`main` branch of TileDB-VCF](https://github.com/TileDB-Inc/TileDB-VCF/tree/main).
+- If you edit the Python files, please run the pre-commit hooks
+
+  ```sh
+  python -m venv ./pre-commit
+  source ./pre-commit/bin/activate
+  python -m pip -v install pre-commit
+  pre-commit run -a -v
+  deactivate
+  ```
