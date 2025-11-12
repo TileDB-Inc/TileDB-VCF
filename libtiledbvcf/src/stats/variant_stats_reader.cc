@@ -96,144 +96,6 @@ inline void AFMap::advance_to_ref_block(uint32_t pos) {
   }
 }
 
-std::tuple<float, uint32_t, uint32_t> AFMap::af(
-    uint32_t pos, const std::string& allele) {
-  // calculate af = ac / an
-  std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-      pos_map_iterator = ac_map_.find(pos);
-
-  // Return -1.0 if the allele was not called
-  if (pos_map_iterator == ac_map_.end()) {
-    return {-1.0, 0, 0};
-  }
-
-  const auto pos_map = pos_map_iterator->second;
-
-  // We don't know that allele was called in this sample. Ask nicely for the
-  // allele count.
-  auto next_allele = pos_map.second.find(allele);
-
-  // First multiply by 1.0 to force a float type, then look up AC from the
-  // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-  // Divide by AN (pos_map.first) to get AF.
-  if (next_allele == pos_map.second.end()) {
-    return {0, 0, pos_map.first};
-  }
-  return {
-      1.0 * next_allele->second / pos_map.first,
-      next_allele->second,
-      pos_map.first};
-}
-
-std::tuple<float, uint32_t, uint32_t> AFMap::af(
-    uint32_t pos, const std::string& allele, size_t num_samples) {
-  // calculate af = ac / an
-  std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-      pos_map_iterator = ac_map_.find(pos);
-
-  // Return -1.0 if the allele was not called
-  if (pos_map_iterator == ac_map_.end()) {
-    return {-1.0, 0, 0};
-  }
-
-  const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
-      pos_map_iterator->second;
-
-  // We don't know that allele was called in this sample. Ask nicely for the
-  // allele count.
-  auto next_allele = pos_map.second.find(allele);
-
-  // First multiply by 1.0 to force a float type, then look up AC from the
-  // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-  // Divide by AN (pos_map.first) to get AF.
-  if (next_allele == pos_map.second.end()) {
-    return {0, 0, num_samples * 2};
-  }
-  return {
-      1.0 * next_allele->second / num_samples / 2,
-      next_allele->second,
-      num_samples * 2};
-}
-
-std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
-    uint32_t pos, const std::string& allele) {
-  // calculate af = ac / an
-  std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-      pos_map_iterator = ac_map_.find(pos);
-
-  // Return -1.0 if the allele was not called
-  if (pos_map_iterator == ac_map_.end()) {
-    return {-1.0, 0, 0};
-  }
-
-  const auto pos_map = pos_map_iterator->second;
-
-  // We don't know that allele was called in this sample. Ask nicely for the
-  // allele count.
-  auto next_allele = pos_map.second.find(allele);
-  bool is_ref = allele == "ref";
-
-  // First multiply by 1.0 to force a float type, then look up AC from the
-  // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-  // Divide by AN (pos_map.first) to get AF.
-  if (next_allele == pos_map.second.end()) {
-    return {
-        is_ref ? 1.0 * ac_sum_ / (pos_map.first + an_sum_) : 0,
-        is_ref ? ac_sum_ : 0,
-        pos_map.first + an_sum_};
-  }
-  return {
-      1.0 * (next_allele->second + (is_ref ? ac_sum_ : 0)) /
-          (pos_map.first + an_sum_),
-      next_allele->second + (is_ref ? ac_sum_ : 0),
-      (pos_map.first + an_sum_)};
-}
-
-std::tuple<float, uint32_t, uint32_t> AFMap::af_v3(
-    uint32_t pos, const std::string& allele, size_t num_samples) {
-  // calculate af = ac / an
-  std::unordered_map<
-      uint32_t,
-      std::pair<int, std::unordered_map<std::string, int>>>::const_iterator
-      pos_map_iterator = ac_map_.find(pos);
-
-  // Return -1.0 if the allele was not called
-  if (pos_map_iterator == ac_map_.end()) {
-    return {-1.0, 0, 0};
-  }
-
-  const std::pair<int, std::unordered_map<std::string, int>>& pos_map =
-      pos_map_iterator->second;
-
-  // We don't know that allele was called in this sample. Ask nicely for the
-  // allele count.
-  decltype(pos_map.second)::const_iterator next_allele =
-      pos_map.second.find(allele);
-
-  bool is_ref = allele == "ref";
-
-  // First multiply by 1.0 to force a float type, then look up AC from the
-  // above iterator. Substitute 0 for the AC value if it is absent in pos_map.
-  // Divide by AN (pos_map.first) to get AF.
-  if (next_allele == pos_map.second.end()) {
-    return {
-        is_ref ? 1.0 * ac_sum_ / (num_samples * 2 + an_sum_) : 0,
-        is_ref ? ac_sum_ : 0,
-        num_samples / 2 + an_sum_};
-  }
-  return {
-      1.0 * (next_allele->second + (is_ref ? ac_sum_ : 0)) /
-          (num_samples * 2 + an_sum_),
-      next_allele->second + (is_ref ? ac_sum_ : 0),
-      num_samples * 2 + an_sum_};
-}
-
 void AFMap::finalize_ref_block_cache() {
   std::sort(ref_block_cache_.begin(), ref_block_cache_.end(), RefBlockComp());
   ref_block_by_end_.clear();
@@ -245,72 +107,46 @@ void AFMap::finalize_ref_block_cache() {
   selected_ref_block_end_ = ref_block_by_end_.begin();
 }
 
-// The following two methods are declared to eliminate a branchpoint in a loop
-// where they're called: instead of wrapping the AF version in an if statement,
-// use indirection or generate per-version code paths for the loop.
-static inline std::tuple<float, uint32_t, uint32_t> call_af_v2(
-    AFMap* map, uint32_t& pos, const std::string& allele) {
-  return map->af(pos, allele);
-}
-
-static inline std::tuple<float, uint32_t, uint32_t> call_af_v3(
-    AFMap* map, uint32_t& pos, const std::string& allele) {
-  map->advance_to_ref_block(pos);
-  return map->af_v3(pos, allele);
-}
-
 inline void AFMap::retrieve_variant_stats(
-    uint32_t* pos,
-    char* allele,
+    const AFComputer& af_computer,
+    uint32_t* pos_buffer,
+    char* allele_buffer,
     int32_t* allele_offsets,
-    int* ac,
-    int* an,
-    float_t* afb) {
-  std::tuple<float, uint32_t, uint32_t> (&call_af)(
-      AFMap*, uint32_t&, const std::string&) =
-      array_version > 2 ? call_af_v3 : call_af_v2;
-  {
-    size_t row = 0;
-    for (std::pair<
-             uint32_t,
-             std::pair<int, std::unordered_map<std::string, int>>>
-             position_to_allele : ac_map_) {
-      for (size_t remaining_to_insert = position_to_allele.second.second.size();
-           remaining_to_insert > 0;
-           remaining_to_insert--) {
-        pos[row] = position_to_allele.first;
-        row++;
-        if (row > allele_cardinality_) {
-          throw std::runtime_error(
-              "[VariantStatsReader] export buffer size computed incorrectly: "
-              "too low");
-        }
+    int* ac_buffer,
+    int* an_buffer,
+    float_t* af_buffer) {
+  size_t row = 0;
+  for (const auto& [pos, an_ac] : stats_map_) {
+    for (size_t remaining_to_insert = an_ac.second.size();
+         remaining_to_insert > 0;
+         remaining_to_insert--) {
+      pos_buffer[row] = pos;
+      row++;
+      if (row > allele_cardinality_) {
+        throw std::runtime_error(
+            "[VariantStatsReader] export buffer size computed incorrectly: "
+            "too low");
       }
     }
-    if (row < allele_cardinality_) {
-      throw std::runtime_error(
-          "[VariantStatsReader] export buffer size computed incorrectly: too "
-          "high");
-    }
+  }
+  if (row < allele_cardinality_) {
+    throw std::runtime_error(
+        "[VariantStatsReader] export buffer size computed incorrectly: too "
+        "high");
   }
 
-  qsort(pos, allele_cardinality_, sizeof(uint32_t), pos_comparator);
+  qsort(pos_buffer, allele_cardinality_, sizeof(uint32_t), pos_comparator);
   allele_offsets[0] = 0;
-  for (size_t row = 0; row < allele_cardinality_;) {
-    std::pair<int, std::unordered_map<std::string, int>> an_to_allele =
-        ac_map_[pos[row]];
-    for (std::pair<std::string, int> allele_to_count : an_to_allele.second) {
-      auto [this_af, this_ac, this_an] =
-          call_af(this, pos[row], allele_to_count.first);
-      ac[row] = this_ac;
-      an[row] = this_an;
-      afb[row] = this_af;
+  for (row = 0; row < allele_cardinality_;) {
+    ac_map_t& ac_map = stats_map_[pos_buffer[row]].second;
+    for (auto& [allele, _] : ac_map) {
+      auto [af, ac, an] = af_computer.af(pos_buffer[row], allele);
+      ac_buffer[row] = ac;
+      an_buffer[row] = an;
+      af_buffer[row] = af;
       std::memcpy(
-          allele + allele_offsets[row],
-          allele_to_count.first.c_str(),
-          allele_to_count.first.size());
-      allele_offsets[row + 1] =
-          allele_offsets[row] + allele_to_count.first.size();
+          allele_buffer + allele_offsets[row], allele.c_str(), allele.size());
+      allele_offsets[row + 1] = allele_offsets[row] + allele.size();
       row++;
     }
   }
@@ -319,7 +155,7 @@ inline void AFMap::retrieve_variant_stats(
 VariantStatsReader::VariantStatsReader(
     std::shared_ptr<Context> ctx, const Group& group, bool async_query)
     : async_query_(async_query) {
-  auto uri = VariantStats::get_uri(group);
+  auto uri = VariantStats::group_uri(group);
   LOG_DEBUG("[VariantStatsReader] Opening array {}", uri);
   array_ = std::make_shared<Array>(*ctx, uri, TILEDB_READ);
   const void* alt_max = 0;
@@ -362,19 +198,52 @@ uint32_t VariantStatsReader::array_version() {
 }
 
 void VariantStatsReader::retrieve_variant_stats(
-    uint32_t* pos,
-    char* allele,
+    uint32_t* pos_buffer,
+    char* allele_buffer,
     int32_t* allele_offsets,
-    int* ac,
-    int* an,
-    float_t* af) {
+    int* ac_buffer,
+    int* an_buffer,
+    float_t* af_buffer) {
   // there is no thread-safe implementation of this yet
   if (async_query_) {
     throw std::runtime_error(
         "[VariantStatsReader] can not retrieve variant stats when async quries "
         "are enabled");
   }
-  af_map_.retrieve_variant_stats(pos, allele, allele_offsets, ac, an, af);
+  AFMap::AFComputerSingle af_computer(&af_map_);
+  af_map_.retrieve_variant_stats(
+      af_computer,
+      pos_buffer,
+      allele_buffer,
+      allele_offsets,
+      ac_buffer,
+      an_buffer,
+      af_buffer);
+}
+
+void VariantStatsReader::retrieve_variant_stats(
+    const size_t num_samples,
+    uint32_t* pos_buffer,
+    char* allele_buffer,
+    int32_t* allele_offsets,
+    int* ac_buffer,
+    int* an_buffer,
+    float_t* af_buffer) {
+  // there is no thread-safe implementation of this yet
+  if (async_query_) {
+    throw std::runtime_error(
+        "[VariantStatsReader] can not retrieve variant stats when async quries "
+        "are enabled");
+  }
+  AFMap::AFComputerAll af_computer(&af_map_, num_samples);
+  af_map_.retrieve_variant_stats(
+      af_computer,
+      pos_buffer,
+      allele_buffer,
+      allele_offsets,
+      ac_buffer,
+      an_buffer,
+      af_buffer);
 }
 
 void VariantStatsReader::compute_af() {
@@ -416,12 +285,13 @@ std::tuple<bool, float, uint32_t, uint32_t> VariantStatsReader::pass(
     // TODO: replace placeholder return values if necessary
     return {false, 0.0, 0, 0};
   }
-  auto [af, ac, an] =
-      (array_version() > 2) ?
-          (scan_all_samples ? af_map_.af_v3(pos, allele, num_samples) :
-                              af_map_.af_v3(pos, allele)) :
-          (scan_all_samples ? af_map_.af(pos, allele, num_samples) :
-                              af_map_.af(pos, allele));
+  std::unique_ptr<AFMap::AFComputer> af_computer;
+  if (scan_all_samples) {
+    af_computer = std::make_unique<AFMap::AFComputerAll>(&af_map_, num_samples);
+  } else {
+    af_computer = std::make_unique<AFMap::AFComputerSingle>(&af_map_);
+  }
+  auto [af, ac, an] = af_computer->af(pos, allele);
 
   // Fail the filter if allele was not called
   if (af < 0.0) {
