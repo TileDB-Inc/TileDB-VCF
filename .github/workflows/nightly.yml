@@ -15,15 +15,15 @@ jobs:
       matrix:
         os: [macos-15, ubuntu-24.04]
         branches:
-          - {libtiledb: release-2.29, tiledb-py: 0.35.0}
-          - {libtiledb: 32b9739f166f23396525755e960bcbb9ccf54595, tiledb-py: main}
+          - {libtiledb: main, tiledb-py: main}
+          - {libtiledb: aws-sdk-regression, tiledb-py: main}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v4
         with:
-          repository: TileDB-Inc/TileDB
+          repository: alancleary/TileDB
           ref: ${{ matrix.branches.libtiledb }}
           path: TileDB
       - name: Clone TileDB-Py
