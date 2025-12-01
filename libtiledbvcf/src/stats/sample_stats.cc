@@ -49,6 +49,8 @@ SampleStats::~SampleStats() {
 
 void SampleStats::create(
     Context& ctx, const std::string& root_uri, int compression_level) {
+  utils::DataProtocol protocol = utils::detect_data_protocol(root_uri, ctx);
+
   // Create filter lists
   FilterList int_fl(ctx);
   FilterList float_fl(ctx);
@@ -140,14 +142,17 @@ void SampleStats::create(
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_INT32, 1, &SAMPLE_STATS_VERSION);
 
-  // Add array to root group
-  // Group assets use full paths for tiledb cloud, relative paths otherwise
-  auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = SampleStats::root_uri(root_uri, relative);
-  LOG_DEBUG(
-      "[SampleStats] Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(array_uri, relative, SAMPLE_STATS_ARRAY);
+  if (protocol == utils::DataProtocol::TILEDBV2) {
+    // Add array to root group
+    // Group assets use full paths for tiledb cloud, relative paths otherwise
+    auto relative = !utils::starts_with(root_uri, "tiledb://");
+    auto array_uri = SampleStats::root_uri(root_uri, relative);
+    LOG_DEBUG(
+        "[SampleStats] Adding array '{}' to group '{}'", array_uri, root_uri);
+
+    Group root_group(ctx, root_uri, TILEDB_WRITE);
+    root_group.add_member(array_uri, relative, SAMPLE_STATS_ARRAY);
+  }
 }
 
 bool SampleStats::exists(const Group& group) {

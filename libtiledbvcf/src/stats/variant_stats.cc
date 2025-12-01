@@ -57,6 +57,8 @@ void VariantStats::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("[VariantStats] Create array");
 
+  utils::DataProtocol protocol = utils::detect_data_protocol(root_uri, ctx);
+
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
@@ -157,13 +159,16 @@ void VariantStats::create(
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_UINT32, 1, &array_version_);
 
-  // Add array to root group
-  // Group assests use full paths for tiledb cloud, relative paths otherwise
-  auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = VariantStats::root_uri(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
+  if (protocol == utils::DataProtocol::TILEDBV2) {
+    // Add array to root group
+    // Group assests use full paths for tiledb cloud, relative paths otherwise
+    auto relative = !utils::starts_with(root_uri, "tiledb://");
+    auto array_uri = VariantStats::root_uri(root_uri, relative);
+    LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+    Group root_group(ctx, root_uri, TILEDB_WRITE);
+
+    root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
+  }
 }
 
 bool VariantStats::exists(const Group& group) {
