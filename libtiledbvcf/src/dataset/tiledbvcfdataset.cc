@@ -332,7 +332,7 @@ void TileDBVCFDataset::create_empty_metadata(
     Group root_group(ctx, root_uri, TILEDB_WRITE);
     Group metadata_group(ctx, metadata_group_uri(root_uri), TILEDB_WRITE);
 
-    auto array_uri = vcf_headers_uri(root_uri, relative);
+    auto array_uri = vcf_headers_uri_v2(root_uri, relative);
     LOG_DEBUG(
         "Adding array name='{}' uri='{}' to group uri='{}'",
         VCF_HEADER_ARRAY,
@@ -542,8 +542,6 @@ void TileDBVCFDataset::open(
 
   if (prefetch_data_array_fragment_info)
     preload_data_array_fragment_info();
-
-  vcf_header_array_ = open_vcf_array(TILEDB_READ);
 
   // Open the data and vcf_header arrays in parallel
   auto data_array_async = std::async(std::launch::async, [this]() {
@@ -2163,6 +2161,12 @@ std::string TileDBVCFDataset::vcf_headers_uri(
   auto root = relative ? "" : root_uri;
   auto group = metadata_group_uri(root, relative, legacy);
   return utils::uri_join(group, VCF_HEADER_ARRAY, delimiter);
+}
+
+std::string TileDBVCFDataset::vcf_headers_uri_v2(
+    const std::string& root_uri, bool relative) {
+  auto root = relative ? "" : metadata_group_uri(root_uri, relative, false);
+  return utils::uri_join(root, VCF_HEADER_ARRAY, '/');
 }
 
 bool TileDBVCFDataset::cloud_dataset(const std::string& root_uri) {
