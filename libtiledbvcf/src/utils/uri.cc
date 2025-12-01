@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include <regex>
+
 #include "utils/uri.h"
 #include "utils/utils.h"
 
@@ -84,6 +86,38 @@ std::string root_uri(
     const std::string& root_uri, const std::string& array, bool relative) {
   auto root = relative ? "" : root_uri;
   return utils::uri_join(root, array);
+}
+
+DataProtocol detect_data_protocol(std::string_view uri, const Context& ctx) {
+  if (!uri.starts_with("tiledb")) {
+    return DataProtocol::TILEDBV2;
+  }
+
+  if (ctx.config().contains("rest.server_address")) {
+    auto rest_server = ctx.config().get("rest.server_address");
+
+    if (rest_server == "https://api.tiledb.com" ||
+        rest_server == "https://api.dev.tiledb.io") {
+      return DataProtocol::TILEDBV2;
+    }
+  }
+
+  return DataProtocol::TILEDBV3;
+}
+
+void validate_uri(std::string_view uri, const Context& ctx) {
+  if (detect_data_protocol(uri, ctx) == DataProtocol::TILEDBV2) {
+    return;
+  }
+
+  std::regex storage_uri_regex(
+      "^tiledb://.*/.*://.*$", std::regex_constants::ECMAScript);
+
+  if (std::regex_match(uri.data(), storage_uri_regex)) {
+    throw std::runtime_error(
+        "Unsupported URI format - storage URI specification not supported on "
+        "Carrara.");
+  }
 }
 
 }  // namespace utils

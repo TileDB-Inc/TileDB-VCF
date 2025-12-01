@@ -28,13 +28,15 @@
 #define TILEDB_VCF_URI_H
 
 #include <string>
-
+#include <string_view>
 #include <tiledb/tiledb>
 
 namespace tiledb {
 namespace vcf {
 
 namespace utils {
+
+enum class DataProtocol { TILEDBV2, TILEDBV3 };
 
 /** Ensure URI ends in / if a dir */
 void normalize_uri(std::string& uri, bool is_dir);
@@ -83,6 +85,12 @@ std::string root_uri(
     const std::string& root_uri,
     const std::string& array,
     bool relative = false);
+
+DataProtocol detect_data_protocol(std::string_view uri, const Context& ctx);
+
+/** Checks whether or not the passed in URI contains illegal characters based on
+ * the selected DataProtocol */
+void validate_uri(std::string_view uri, const Context& ctx);
 
 }  // namespace utils
 }  // namespace vcf
