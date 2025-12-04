@@ -1088,14 +1088,14 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
 
 std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
     tiledb_query_type_t query_type) {
-  // Until 0.38.1 `vcf_headers` array was registered under the root group.
-  // Now it is registered under `metadata` group in which physically exist.
-
   std::string array_uri;
-  Group root_group(*ctx_, root_uri_, TILEDB_READ);
-
-  // First check if `vcf_headers` is under `metadata` group
   try {
+    // Until 0.38.1 `vcf_headers` array was registered under the root group.
+    // Now it is registered under `metadata` group in which physically exist.
+    Group root_group(*ctx_, root_uri_, TILEDB_READ);
+
+    // First check if `vcf_headers` is under `metadata` group
+
     std::string metadata_uri;
 
     // If the group member uri is a cloud uri and the root uri is not,
