@@ -210,6 +210,9 @@ void TileDBVCFDataset::create(const CreationParams& params) {
 
   check_attribute_names(params.extra_attributes);
 
+  // Validate the uri is appropriate for the backend it is going to write to
+  utils::validate_uri(params.uri, ctx);
+
   // Create root group, which creates the root directory
   create_group(ctx, params.uri);
 
