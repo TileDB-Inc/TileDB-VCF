@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <ranges>
 #include <regex>
 
 #include "utils/uri.h"
@@ -43,39 +44,46 @@ void normalize_uri(std::string& uri, bool is_dir) {
   }
 }
 
-std::string uri_filename(const std::string& uri) {
-  if (ends_with(uri, "/"))
+std::string uri_filename(std::string_view uri) {
+  if (uri.ends_with("/"))
     return "";
-  auto path_parts = split(uri, "/");
+
+  std::vector<std::string_view> path_parts;
+  std::ranges::copy(
+      uri | std::views::split('s') | std::views::transform([](auto v) {
+        return std::string_view(v.data(), v.size());
+      }),
+      std::back_inserter(path_parts));
+
   assert(!path_parts.empty());
-  return path_parts.back();
+  return std::string(path_parts.back());
 }
 
 std::string uri_join(
-    const std::string& dir, const std::string& filename, const char delimiter) {
-  std::string result = dir;
-  if (!ends_with(result, std::string(1, delimiter)) && !result.empty())
+    std::string_view dir, std::string_view filename, const char delimiter) {
+  std::string result = std::string(dir);
+  if (!result.ends_with(delimiter) && !result.empty())
     result += delimiter;
   result += filename;
   return result;
 }
 
-bool is_local_uri(const std::string& uri) {
-  if (starts_with(uri, "s3://"))
+bool is_local_uri(std::string_view uri) {
+  if (uri.starts_with("s3://"))
     return false;
-  if (starts_with(uri, "azure://"))
+  if (uri.starts_with("azure://"))
     return false;
-  if (starts_with(uri, "gcs://"))
+  if (uri.starts_with("gcs://"))
     return false;
-  if (starts_with(uri, "hdfs://"))
+  if (uri.starts_with("hdfs://"))
     return false;
 
   return true;
 }
 
-std::string group_uri(const Group& group, const std::string& array) {
+std::string group_uri(const Group& group, std::string_view array) {
   try {
-    auto member = group.member(array);
+    auto member = group.member(array.data());
     return member.uri();
   } catch (const TileDBError& ex) {
     return "";
@@ -83,14 +91,15 @@ std::string group_uri(const Group& group, const std::string& array) {
 }
 
 std::string root_uri(
-    const std::string& root_uri, const std::string& array, bool relative) {
+    std::string_view root_uri, std::string_view array, bool relative) {
   auto root = relative ? "" : root_uri;
   return utils::uri_join(root, array);
 }
 
-DataProtocol detect_data_protocol(std::string_view uri, const Context& ctx) {
+TileDBDataProtocol detect_tiledb_data_protocol(
+    std::string_view uri, const Context& ctx) {
   if (!uri.starts_with("tiledb")) {
-    return DataProtocol::TILEDBV2;
+    return TileDBDataProtocol::TILEDBV2;
   }
 
   if (ctx.config().contains("rest.server_address")) {
@@ -98,15 +107,18 @@ DataProtocol detect_data_protocol(std::string_view uri, const Context& ctx) {
 
     if (rest_server == "https://api.tiledb.com" ||
         rest_server == "https://api.dev.tiledb.io") {
-      return DataProtocol::TILEDBV2;
+      return TileDBDataProtocol::TILEDBV2;
     }
+
+    return TileDBDataProtocol::TILEDBV3;
   }
 
-  return DataProtocol::TILEDBV3;
+  throw std::runtime_error(
+      "Unknown TileDB Data Protocol. Missing rest server address.");
 }
 
 void validate_uri(std::string_view uri, const Context& ctx) {
-  if (detect_data_protocol(uri, ctx) == DataProtocol::TILEDBV2) {
+  if (detect_tiledb_data_protocol(uri, ctx) == TileDBDataProtocol::TILEDBV2) {
     return;
   }
 
