@@ -317,12 +317,13 @@ void TileDBVCFDataset::create_empty_metadata(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum) {
-  utils::DataProtocol protocol = utils::detect_data_protocol(root_uri, ctx);
+  utils::TileDBDataProtocol protocol =
+      utils::detect_tiledb_data_protocol(root_uri, ctx);
 
   create_group(ctx, metadata_group_uri(root_uri));
   create_sample_header_array(ctx, root_uri, checksum);
 
-  if (protocol == utils::DataProtocol::TILEDBV2) {
+  if (protocol == utils::TileDBDataProtocol::TILEDBV2) {
     // Group assets use full paths for tiledb cloud, relative paths otherwise
     bool relative = !cloud_dataset(root_uri);
 
@@ -363,7 +364,8 @@ void TileDBVCFDataset::create_empty_data_array(
     const bool allow_duplicates,
     const bool compress_sample_dim,
     const int compression_level) {
-  utils::DataProtocol protocol = utils::detect_data_protocol(root_uri, ctx);
+  utils::TileDBDataProtocol protocol =
+      utils::detect_tiledb_data_protocol(root_uri, ctx);
 
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
@@ -473,7 +475,7 @@ void TileDBVCFDataset::create_empty_data_array(
 
   Array::create(data_array_uri(root_uri), schema);
 
-  if (protocol == utils::DataProtocol::TILEDBV2) {
+  if (protocol == utils::TileDBDataProtocol::TILEDBV2) {
     // Add the array to the root group
     // Group assests use full paths for tiledb cloud, relative paths otherwise
     bool relative = !cloud_dataset(root_uri);
@@ -1092,13 +1094,32 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_array(
 std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
     tiledb_query_type_t query_type) {
   std::string array_uri;
-  try {
-    // Until 0.38.1 `vcf_headers` array was registered under the root group.
-    // Now it is registered under `metadata` group in which physically exist.
-    Group root_group(*ctx_, root_uri_, TILEDB_READ);
 
-    // First check if `vcf_headers` is under `metadata` group
+  // Until 0.38.1 `vcf_headers` array was registered under the root group.
+  // Now it is registered under `metadata` group in which physically exist.
+  Group root_group(*ctx_, root_uri_, TILEDB_READ);
 
+  // We are opening a legacy dataset where the `vcf_headers` array is
+  // registered under the root group
+  if (utils::has_member(root_group, VCF_HEADER_ARRAY)) {
+    if (utils::detect_tiledb_data_protocol(root_uri_, *ctx_) ==
+        utils::TileDBDataProtocol::TILEDBV3) {
+      // This is an legacy dataset registered under TileDB Carrara
+      throw std::runtime_error(
+          "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
+          "' data format is not supported by Carrara. To migrate it remove "
+          "the `vcf_headers` array from the root group and add it to the "
+          "`metadata` group using the physical path of the dataset.");
+    }
+
+    LOG_DEBUG("Fallback to '{}' registered under root group", VCF_HEADER_ARRAY);
+    return open_array(
+        query_type,
+        VCF_HEADER_ARRAY,
+        vcf_headers_uri(root_uri_),
+        vcf_headers_uri(root_uri_, false, true));
+  } else {
+    // Load the `metadata` group
     std::string metadata_uri;
 
     // If the group member uri is a cloud uri and the root uri is not,
@@ -1132,13 +1153,6 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
       array_uri = metadata_group.member(VCF_HEADER_ARRAY).uri();
       LOG_DEBUG("Open '{}' using array uri '{}'", VCF_HEADER_ARRAY, array_uri);
     }
-  } catch (const tiledb::TileDBError& ex) {
-    LOG_DEBUG("Fallback to '{}' registered under root group", VCF_HEADER_ARRAY);
-    return open_array(
-        query_type,
-        VCF_HEADER_ARRAY,
-        vcf_headers_uri(root_uri_),
-        vcf_headers_uri(root_uri_, false, true));
   }
 
   try {
