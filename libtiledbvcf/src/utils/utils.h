@@ -35,6 +35,7 @@
 #include <vector>
 
 #include <tiledb/vfs.h>
+#include <tiledb/tiledb>
 
 #include "utils/buffer.h"
 
@@ -493,6 +494,8 @@ bool query_buffers_set(tiledb::Query* query);
  * @return std::string full path to temporary file
  */
 std::string temp_filename(const std::string& extension = "");
+
+bool has_member(const tiledb::Group& group, const std::string& member);
 
 }  // namespace utils
 }  // namespace vcf
