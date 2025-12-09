@@ -1120,6 +1120,10 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
           "`metadata` group using the physical path of the dataset.");
     }
 
+    LOG_WARN(
+        "**DEPRECATED** Accessing {} registered under root group. To migrate "
+        "see https://github.com/TileDB-Inc/TileDB-VCF/pull/862",
+        VCF_HEADER_ARRAY);
     LOG_DEBUG("Fallback to '{}' registered under root group", VCF_HEADER_ARRAY);
     return open_array(
         query_type,
