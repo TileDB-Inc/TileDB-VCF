@@ -36,8 +36,6 @@ namespace vcf {
 
 namespace utils {
 
-enum class TileDBDataProtocol { TILEDBV2, TILEDBV3 };
-
 /** Ensure URI ends in / if a dir */
 void normalize_uri(std::string& uri, bool is_dir);
 
@@ -83,19 +81,6 @@ std::string group_uri(const Group& group, std::string_view array);
  */
 std::string root_uri(
     std::string_view root_uri, std::string_view array, bool relative = false);
-
-/**
- * Detect the TileDB DataProtocol (legacy or TileDB 3.0+) based on the rest
- * server parameter in the TileDB config
- *
- * @param uri URI to to check
- * @param ctx TileDB context
- * @return The DataProtocol to be be used
- *
- * @remark This is a temprorary solution until a new API is available in 2.30
- */
-TileDBDataProtocol detect_tiledb_data_protocol(
-    std::string_view uri, const Context& ctx);
 
 /**
  * Checks whether or not the passed in URI contains illegal characters based on

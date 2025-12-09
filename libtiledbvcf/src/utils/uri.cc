@@ -91,29 +91,8 @@ std::string root_uri(
   return utils::uri_join(root, array);
 }
 
-TileDBDataProtocol detect_tiledb_data_protocol(
-    std::string_view uri, const Context& ctx) {
-  if (!uri.starts_with("tiledb")) {
-    return TileDBDataProtocol::TILEDBV2;
-  }
-
-  if (ctx.config().contains("rest.server_address")) {
-    auto rest_server = ctx.config().get("rest.server_address");
-
-    if (rest_server == "https://api.tiledb.com" ||
-        rest_server == "https://api.dev.tiledb.io") {
-      return TileDBDataProtocol::TILEDBV2;
-    }
-
-    return TileDBDataProtocol::TILEDBV3;
-  }
-
-  throw std::runtime_error(
-      "Unknown TileDB Data Protocol. Missing rest server address.");
-}
-
 void validate_uri(std::string_view uri, const Context& ctx) {
-  if (detect_tiledb_data_protocol(uri, ctx) == TileDBDataProtocol::TILEDBV2) {
+  if (ctx.data_protocol(uri.data()) == tiledb::Context::DataProtocol::v2) {
     return;
   }
 

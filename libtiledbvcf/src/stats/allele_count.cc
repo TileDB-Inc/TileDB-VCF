@@ -39,9 +39,6 @@ void AlleleCount::create(
     Context& ctx, const std::string& root_uri, tiledb_filter_type_t checksum) {
   LOG_DEBUG("[AlleleCount] Create array");
 
-  utils::TileDBDataProtocol protocol =
-      utils::detect_tiledb_data_protocol(root_uri, ctx);
-
   // Create filter lists
   FilterList rle_coord_filters(ctx);
   FilterList int_coord_filters(ctx);
@@ -109,7 +106,7 @@ void AlleleCount::create(
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_UINT32, 1, &ALLELE_COUNT_VERSION);
 
-  if (protocol == utils::TileDBDataProtocol::TILEDBV2) {
+  if (ctx.data_protocol(root_uri) == tiledb::Context::DataProtocol::v2) {
     // Add array to root group
     // Group assets use full paths for tiledb cloud, relative paths otherwise
     auto relative = !utils::starts_with(root_uri, "tiledb://");

@@ -317,13 +317,10 @@ void TileDBVCFDataset::create_empty_metadata(
     const std::string& root_uri,
     const Metadata& metadata,
     const tiledb_filter_type_t& checksum) {
-  utils::TileDBDataProtocol protocol =
-      utils::detect_tiledb_data_protocol(root_uri, ctx);
-
   create_group(ctx, metadata_group_uri(root_uri));
   create_sample_header_array(ctx, root_uri, checksum);
 
-  if (protocol == utils::TileDBDataProtocol::TILEDBV2) {
+  if (ctx.data_protocol(root_uri) == tiledb::Context::DataProtocol::v2) {
     // Group assets use full paths for tiledb cloud, relative paths otherwise
     bool relative = !cloud_dataset(root_uri);
 
@@ -364,9 +361,6 @@ void TileDBVCFDataset::create_empty_data_array(
     const bool allow_duplicates,
     const bool compress_sample_dim,
     const int compression_level) {
-  utils::TileDBDataProtocol protocol =
-      utils::detect_tiledb_data_protocol(root_uri, ctx);
-
   ArraySchema schema(ctx, TILEDB_SPARSE);
   schema.set_capacity(metadata.tile_capacity);
   schema.set_order({{TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR}});
@@ -475,7 +469,7 @@ void TileDBVCFDataset::create_empty_data_array(
 
   Array::create(data_array_uri(root_uri), schema);
 
-  if (protocol == utils::TileDBDataProtocol::TILEDBV2) {
+  if (ctx.data_protocol(root_uri) == tiledb::Context::DataProtocol::v2) {
     // Add the array to the root group
     // Group assests use full paths for tiledb cloud, relative paths otherwise
     bool relative = !cloud_dataset(root_uri);
@@ -1110,8 +1104,7 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
   // We are opening a legacy dataset where the `vcf_headers` array is
   // registered under the root group
   if (utils::has_member(*root_group, VCF_HEADER_ARRAY)) {
-    if (utils::detect_tiledb_data_protocol(root_uri_, *ctx_) ==
-        utils::TileDBDataProtocol::TILEDBV3) {
+    if (ctx_->data_protocol(root_uri_) == tiledb::Context::DataProtocol::v3) {
       // This is an legacy dataset registered under TileDB Carrara
       throw std::runtime_error(
           "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
