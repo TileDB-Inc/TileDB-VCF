@@ -1151,33 +1151,57 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
 
     Group metadata_group(*ctx_, metadata_uri, TILEDB_READ);
 
-    // If the group member uri is a cloud uri and the root uri is not,
-    // use the uri_path instead of the group member uri
-    if (!cloud_dataset(root_uri_) &&
-        cloud_dataset(metadata_group.member(VCF_HEADER_ARRAY).uri())) {
+    if (utils::has_member(metadata_group, VCF_HEADER_ARRAY)) {
+      // If the group member uri is a cloud uri and the root uri is not,
+      // use the uri_path instead of the group member uri
+      if (!cloud_dataset(root_uri_) &&
+          cloud_dataset(metadata_group.member(VCF_HEADER_ARRAY).uri())) {
+        array_uri = vcf_headers_uri(root_uri_);
+        LOG_DEBUG(
+            "Override group uri '{}'. Open '{}' using uri path '{}'",
+            metadata_group.member(VCF_HEADER_ARRAY).uri(),
+            VCF_HEADER_ARRAY,
+            array_uri);
+      } else {
+        array_uri = metadata_group.member(VCF_HEADER_ARRAY).uri();
+        LOG_DEBUG(
+            "Open '{}' using array uri '{}'", VCF_HEADER_ARRAY, array_uri);
+      }
+    } else {
       array_uri = vcf_headers_uri(root_uri_);
       LOG_DEBUG(
-          "Override group uri '{}'. Open '{}' using uri path '{}'",
-          metadata_group.member(VCF_HEADER_ARRAY).uri(),
+          "'{}' is not registered under '{}'. Open '{}' using array uri '{}'",
+          VCF_HEADER_ARRAY,
+          METADATA_GROUP,
           VCF_HEADER_ARRAY,
           array_uri);
-    } else {
-      array_uri = metadata_group.member(VCF_HEADER_ARRAY).uri();
-      LOG_DEBUG("Open '{}' using array uri '{}'", VCF_HEADER_ARRAY, array_uri);
     }
   } else {
     // The group seems to have to member added. Fallback to absolute path
     array_uri = vcf_headers_uri(root_uri_);
+    LOG_DEBUG(
+        "'{}' and '{}' not registered under root group. Open '{}' using array "
+        "uri '{}'",
+        VCF_HEADER_ARRAY,
+        METADATA_GROUP,
+        VCF_HEADER_ARRAY,
+        array_uri);
   }
 
   try {
     // Open the array with the uri detemined above
     return std::unique_ptr<Array>(new Array(*ctx_, array_uri, query_type));
   } catch (const tiledb::TileDBError& ex) {
-    throw std::runtime_error(
-        "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
-        "' or its metadata does not exist. TileDB error message: " +
-        std::string(ex.what()));
+    try {
+      // Last chance, try the legacy uri to support legacy cloud arrays
+      return std::unique_ptr<Array>(new Array(
+          *ctx_, vcf_headers_uri(root_uri_, false, true), query_type));
+    } catch (const tiledb::TileDBError& ex) {
+      throw std::runtime_error(
+          "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
+          "' or its metadata does not exist. TileDB error message: " +
+          std::string(ex.what()));
+    }
   }
 }
 
