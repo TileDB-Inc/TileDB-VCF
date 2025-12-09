@@ -1097,11 +1097,19 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
 
   // Until 0.38.1 `vcf_headers` array was registered under the root group.
   // Now it is registered under `metadata` group in which physically exist.
-  Group root_group(*ctx_, root_uri_, TILEDB_READ);
+  std::unique_ptr<tiledb::Group> root_group;
+  try {
+    root_group = std::make_unique<tiledb::Group>(*ctx_, root_uri_, TILEDB_READ);
+  } catch (const tiledb::TileDBError& ex) {
+    throw std::runtime_error(
+        "Cannot open TileDB-VCF dataset; dataset '" + root_uri_ +
+        "' or its metadata does not exist. TileDB error message: " +
+        std::string(ex.what()));
+  }
 
   // We are opening a legacy dataset where the `vcf_headers` array is
   // registered under the root group
-  if (utils::has_member(root_group, VCF_HEADER_ARRAY)) {
+  if (utils::has_member(*root_group, VCF_HEADER_ARRAY)) {
     if (utils::detect_tiledb_data_protocol(root_uri_, *ctx_) ==
         utils::TileDBDataProtocol::TILEDBV3) {
       // This is an legacy dataset registered under TileDB Carrara
@@ -1118,22 +1126,22 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
         VCF_HEADER_ARRAY,
         vcf_headers_uri(root_uri_),
         vcf_headers_uri(root_uri_, false, true));
-  } else {
+  } else if (utils::has_member(*root_group, METADATA_GROUP)) {
     // Load the `metadata` group
     std::string metadata_uri;
 
     // If the group member uri is a cloud uri and the root uri is not,
     // use the non cloud uri instead of the group member uri
     if (!cloud_dataset(root_uri_) &&
-        cloud_dataset(root_group.member(METADATA_GROUP).uri())) {
+        cloud_dataset(root_group->member(METADATA_GROUP).uri())) {
       metadata_uri = metadata_group_uri(root_uri_);
       LOG_DEBUG(
           "Override group uri '{}'. Open '{}' using uri path '{}'",
-          root_group.member(METADATA_GROUP).uri(),
+          root_group->member(METADATA_GROUP).uri(),
           METADATA_GROUP,
           metadata_uri);
     } else {
-      metadata_uri = root_group.member(METADATA_GROUP).uri();
+      metadata_uri = root_group->member(METADATA_GROUP).uri();
       LOG_DEBUG("Open '{}' using group uri '{}'", METADATA_GROUP, metadata_uri);
     }
 
@@ -1153,6 +1161,9 @@ std::unique_ptr<tiledb::Array> TileDBVCFDataset::open_vcf_array(
       array_uri = metadata_group.member(VCF_HEADER_ARRAY).uri();
       LOG_DEBUG("Open '{}' using array uri '{}'", VCF_HEADER_ARRAY, array_uri);
     }
+  } else {
+    // The group seems to have to member added. Fallback to absolute path
+    array_uri = vcf_headers_uri(root_uri_);
   }
 
   try {
