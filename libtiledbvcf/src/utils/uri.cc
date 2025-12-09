@@ -48,12 +48,7 @@ std::string uri_filename(std::string_view uri) {
   if (uri.ends_with("/"))
     return "";
 
-  std::vector<std::string_view> path_parts;
-  std::ranges::copy(
-      uri | std::views::split('/') | std::views::transform([](auto v) {
-        return std::string_view(v.data(), v.size());
-      }),
-      std::back_inserter(path_parts));
+  auto path_parts = split(std::string(uri), '/');
 
   assert(!path_parts.empty());
   return std::string(path_parts.back());
