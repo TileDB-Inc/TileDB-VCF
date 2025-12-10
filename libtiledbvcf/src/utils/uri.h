@@ -28,7 +28,7 @@
 #define TILEDB_VCF_URI_H
 
 #include <string>
-
+#include <string_view>
 #include <tiledb/tiledb>
 
 namespace tiledb {
@@ -45,14 +45,14 @@ void normalize_uri(std::string& uri, bool is_dir);
  * If the URI ends in '/', empty string is returned as URI refers to a
  * directory.
  */
-std::string uri_filename(const std::string& uri);
+std::string uri_filename(std::string_view uri);
 
 /**
  * Joins a filename to a directory URI (adds a '/' between them).
  */
 std::string uri_join(
-    const std::string& dir,
-    const std::string& filename,
+    std::string_view dir,
+    std::string_view filename,
     const char delimiter = '/');
 
 /**
@@ -60,7 +60,7 @@ std::string uri_join(
  * @param uri to check
  * @return true if file is local path (file:// or no prefix), else false
  */
-bool is_local_uri(const std::string& uri);
+bool is_local_uri(std::string_view uri);
 
 /**
  * Get the array URI from TileDB-VCF dataset group
@@ -69,7 +69,7 @@ bool is_local_uri(const std::string& uri);
  * @param array The array the URI is for
  * @return std::string The array URI
  */
-std::string group_uri(const Group& group, const std::string& array);
+std::string group_uri(const Group& group, std::string_view array);
 
 /**
  * Get the URI for the array from the root URI
@@ -80,9 +80,16 @@ std::string group_uri(const Group& group, const std::string& array);
  * @return std::string The array URI
  */
 std::string root_uri(
-    const std::string& root_uri,
-    const std::string& array,
-    bool relative = false);
+    std::string_view root_uri, std::string_view array, bool relative = false);
+
+/**
+ * Checks whether or not the passed in URI contains illegal characters based on
+ * the selected DataProtocol
+ *
+ * @param uri URI to to check
+ * @param ctx TileDB context
+ */
+void validate_uri(std::string_view uri, const Context& ctx);
 
 }  // namespace utils
 }  // namespace vcf

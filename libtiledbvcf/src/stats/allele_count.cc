@@ -106,13 +106,16 @@ void AlleleCount::create(
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_UINT32, 1, &ALLELE_COUNT_VERSION);
 
-  // Add array to root group
-  // Group assets use full paths for tiledb cloud, relative paths otherwise
-  auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = AlleleCount::root_uri(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
+  if (ctx.data_protocol(root_uri) == tiledb::Context::DataProtocol::v2) {
+    // Add array to root group
+    // Group assets use full paths for tiledb cloud, relative paths otherwise
+    auto relative = !utils::starts_with(root_uri, "tiledb://");
+    auto array_uri = AlleleCount::root_uri(root_uri, relative);
+    LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+    Group root_group(ctx, root_uri, TILEDB_WRITE);
+
+    root_group.add_member(array_uri, relative, ALLELE_COUNT_ARRAY);
+  }
 }
 
 bool AlleleCount::exists(const Group& group) {

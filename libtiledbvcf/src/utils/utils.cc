@@ -601,6 +601,15 @@ std::string temp_filename(const std::string& extension) {
   return path.string();
 }
 
+bool has_member(const tiledb::Group& group, const std::string& member) {
+  try {
+    group.member(member);
+  } catch (const TileDBError& e) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace utils
 }  // namespace vcf
 }  // namespace tiledb

@@ -24,6 +24,9 @@
  * THE SOFTWARE.
  */
 
+#include <ranges>
+#include <regex>
+
 #include "utils/uri.h"
 #include "utils/utils.h"
 
@@ -41,39 +44,41 @@ void normalize_uri(std::string& uri, bool is_dir) {
   }
 }
 
-std::string uri_filename(const std::string& uri) {
-  if (ends_with(uri, "/"))
+std::string uri_filename(std::string_view uri) {
+  if (uri.ends_with("/"))
     return "";
-  auto path_parts = split(uri, "/");
+
+  auto path_parts = split(std::string(uri), '/');
+
   assert(!path_parts.empty());
-  return path_parts.back();
+  return std::string(path_parts.back());
 }
 
 std::string uri_join(
-    const std::string& dir, const std::string& filename, const char delimiter) {
-  std::string result = dir;
-  if (!ends_with(result, std::string(1, delimiter)) && !result.empty())
+    std::string_view dir, std::string_view filename, const char delimiter) {
+  std::string result = std::string(dir);
+  if (!result.ends_with(delimiter) && !result.empty())
     result += delimiter;
   result += filename;
   return result;
 }
 
-bool is_local_uri(const std::string& uri) {
-  if (starts_with(uri, "s3://"))
+bool is_local_uri(std::string_view uri) {
+  if (uri.starts_with("s3://"))
     return false;
-  if (starts_with(uri, "azure://"))
+  if (uri.starts_with("azure://"))
     return false;
-  if (starts_with(uri, "gcs://"))
+  if (uri.starts_with("gcs://"))
     return false;
-  if (starts_with(uri, "hdfs://"))
+  if (uri.starts_with("hdfs://"))
     return false;
 
   return true;
 }
 
-std::string group_uri(const Group& group, const std::string& array) {
+std::string group_uri(const Group& group, std::string_view array) {
   try {
-    auto member = group.member(array);
+    auto member = group.member(array.data());
     return member.uri();
   } catch (const TileDBError& ex) {
     return "";
@@ -81,9 +86,24 @@ std::string group_uri(const Group& group, const std::string& array) {
 }
 
 std::string root_uri(
-    const std::string& root_uri, const std::string& array, bool relative) {
+    std::string_view root_uri, std::string_view array, bool relative) {
   auto root = relative ? "" : root_uri;
   return utils::uri_join(root, array);
+}
+
+void validate_uri(std::string_view uri, const Context& ctx) {
+  if (ctx.data_protocol(uri.data()) == tiledb::Context::DataProtocol::v2) {
+    return;
+  }
+
+  std::regex storage_uri_regex(
+      "^tiledb://.*/.*://.*$", std::regex_constants::ECMAScript);
+
+  if (std::regex_match(uri.data(), storage_uri_regex)) {
+    throw std::runtime_error(
+        "Unsupported URI format - storage URI specification not supported on "
+        "Carrara.");
+  }
 }
 
 }  // namespace utils

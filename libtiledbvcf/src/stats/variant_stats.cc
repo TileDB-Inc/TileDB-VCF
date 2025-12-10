@@ -157,13 +157,16 @@ void VariantStats::create(
   Array array(ctx, uri, TILEDB_WRITE);
   array.put_metadata("version", TILEDB_UINT32, 1, &array_version_);
 
-  // Add array to root group
-  // Group assests use full paths for tiledb cloud, relative paths otherwise
-  auto relative = !utils::starts_with(root_uri, "tiledb://");
-  auto array_uri = VariantStats::root_uri(root_uri, relative);
-  LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
-  Group root_group(ctx, root_uri, TILEDB_WRITE);
-  root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
+  if (ctx.data_protocol(root_uri) == tiledb::Context::DataProtocol::v2) {
+    // Add array to root group
+    // Group assests use full paths for tiledb cloud, relative paths otherwise
+    auto relative = !utils::starts_with(root_uri, "tiledb://");
+    auto array_uri = VariantStats::root_uri(root_uri, relative);
+    LOG_DEBUG("Adding array '{}' to group '{}'", array_uri, root_uri);
+    Group root_group(ctx, root_uri, TILEDB_WRITE);
+
+    root_group.add_member(array_uri, relative, VARIANT_STATS_ARRAY);
+  }
 }
 
 bool VariantStats::exists(const Group& group) {

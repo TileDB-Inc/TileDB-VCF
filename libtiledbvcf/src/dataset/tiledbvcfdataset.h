@@ -989,6 +989,10 @@ class TileDBVCFDataset {
   static std::string vcf_headers_uri(
       const std::string& root_uri, bool relative = false, bool legacy = false);
 
+  /** Returns the URI of the VCF header data array for the dataset. */
+  static std::string vcf_headers_uri_v2(
+      const std::string& root_uri, bool relative = false);
+
   /** Returns true if the array starts with the tiledb:// URI **/
   static bool cloud_dataset(const std::string& root_uri);
 

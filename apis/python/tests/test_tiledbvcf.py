@@ -2457,3 +2457,11 @@ def test_delete_dataset(tmp_path):
 
     # Check that the dataset does not exist
     assert not os.path.exists(uri)
+
+def test_equality_old_new_format():
+    old_ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/old_format"))
+    new_ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/new_format"))
+
+    assert old_ds.count() == new_ds.count()
+    assert old_ds.samples() == new_ds.samples()
+    assert old_ds.read().equals(new_ds.read())
