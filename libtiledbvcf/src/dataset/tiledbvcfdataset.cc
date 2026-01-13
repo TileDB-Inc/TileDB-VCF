@@ -25,13 +25,17 @@
  */
 
 #include <algorithm>
+#include <cstdint>
 #include <future>
 #include <map>
+#include <ranges>
 #include <string>
 #include <vector>
 
+#include <htslib/vcf.h>
 #include "base64/base64.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "md5/md5.h"
 #include "read/export_format.h"
 #include "read/reader.h"
 #include "stats/allele_count.h"
@@ -723,16 +727,15 @@ void TileDBVCFDataset::load_field_type_maps() const {
   uint32_t first_sample_id = metadata_.sample_ids.at(first_sample_name);
   SampleAndId first_sample = {first_sample_name, first_sample_id};
 
-  std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
-  hdrs = fetch_vcf_headers({first_sample});
+  SampleHeaders hdrs = fetch_vcf_headers({first_sample});
   if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
 
-  const auto& hdr_ptr = hdrs.at(first_sample_id);
-  bcf_hdr_t* hdr = hdr_ptr.get();
-  for (int i = 0; i < hdr->n[BCF_DT_ID]; i++) {
-    bcf_idpair_t* idpair = hdr->id[BCF_DT_ID] + i;
+  SafeBCFHdr hdr = hdrs.get_sample_header(first_sample_name);
+  bcf_hdr_t* hdr_ptr = hdr.release();
+  for (int i = 0; i < hdr_ptr->n[BCF_DT_ID]; i++) {
+    bcf_idpair_t* idpair = hdr_ptr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
       throw std::runtime_error(
           "Error loading dataset field types; null idpair.");
@@ -745,12 +748,12 @@ void TileDBVCFDataset::load_field_type_maps() const {
     bool is_fmt = idpair->val->hrec[2] != nullptr;
 
     if (is_info) {
-      int type = bcf_hdr_id2type(hdr, idpair->val->hrec[1]->type, i);
+      int type = bcf_hdr_id2type(hdr_ptr, idpair->val->hrec[1]->type, i);
       info_field_types_[name] = type;
     }
 
     if (is_fmt) {
-      int type = bcf_hdr_id2type(hdr, idpair->val->hrec[2]->type, i);
+      int type = bcf_hdr_id2type(hdr_ptr, idpair->val->hrec[2]->type, i);
       fmt_field_types_[name] = type;
     }
   }
@@ -758,31 +761,35 @@ void TileDBVCFDataset::load_field_type_maps() const {
   info_fmt_field_types_loaded_ = true;
 }
 
+void TileDBVCFDataset::load_field_type_maps_v4(bool add_iaf) const {
+  SampleHeaders hdrs = fetch_vcf_headers_v4({}, false, true);
+  if (hdrs.empty())
+    return;
+  else if (hdrs.size() != 1)
+    throw std::runtime_error(
+        "Error loading dataset field types; no headers fetched.");
+  SafeBCFHdr hdr = hdrs.first();
+  TileDBVCFDataset::load_field_type_maps_v4(hdr.release(), add_iaf);
+}
+
 void TileDBVCFDataset::load_field_type_maps_v4(
     const bcf_hdr_t* hdr, bool add_iaf) const {
-  utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
   // After we acquire the write lock we need to check if another thread has
   // loaded the field types
   if (info_fmt_field_types_loaded_ && (!add_iaf || info_iaf_field_type_added_))
     return;
 
-  std::unordered_map<uint32_t, SafeBCFHdr> hdrs;
-  if (hdr == nullptr) {
-    hdrs = fetch_vcf_headers_v4({}, nullptr, false, true);
-
-    if (hdrs.empty())
-      return;
-    else if (hdrs.size() != 1)
-      throw std::runtime_error(
-          "Error loading dataset field types; no headers fetched.");
-
-    hdr = hdrs.begin()->second.get();
+  if (!hdr) {
+    load_field_type_maps_v4(add_iaf);
+    return;
   }
 
+  utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+
+  // TODO: duplicate header and modify duplicate rather than modifying passed
+  // header
   if (add_iaf) {
     int header_appended = bcf_hdr_append(
-        // TODO: do something better than promoting this pointer type;
-        // perhaps the header should be duplicated and later modified
         const_cast<bcf_hdr_t*>(hdr),
         "##INFO=<ID=TILEDB_IAF,Number=R,Type=Float,Description="
         "\"Internal Allele Frequency, computed over dataset by TileDB\">");
@@ -791,8 +798,6 @@ void TileDBVCFDataset::load_field_type_maps_v4(
           "Error appending to header for internal allele frequency.");
     }
     if (bcf_hdr_append(
-            // TODO: do something better than promoting this pointer type;
-            // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
             "##INFO=<ID=TILEDB_IAC,Number=R,Type=Integer,Description="
             "\"Internal Allele Count, computed over dataset by TileDB\">") <
@@ -801,8 +806,6 @@ void TileDBVCFDataset::load_field_type_maps_v4(
           "Error appending to header for internal allele count.");
     }
     if (bcf_hdr_append(
-            // TODO: do something better than promoting this pointer type;
-            // perhaps the header should be duplicated and later modified
             const_cast<bcf_hdr_t*>(hdr),
             "##INFO=<ID=TILEDB_IAN,Number=R,Type=Integer,Description="
             "\"Internal Allele Number, computed over dataset by TileDB\">") <
@@ -1208,9 +1211,24 @@ std::shared_ptr<tiledb::Array> TileDBVCFDataset::open_data_array(
       data_array_uri(root_uri_, false, true));
 }
 
-std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
+size_t TileDBVCFDataset::SampleHeaders::empty() const {
+  return sample_index_lookup.empty();
+}
+
+size_t TileDBVCFDataset::SampleHeaders::size() const {
+  return sample_index_lookup.size();
+}
+
+SafeBCFHdr TileDBVCFDataset::SampleHeaders::first() const {
+  if (empty()) {
+    return SafeBCFHdr(nullptr, bcf_hdr_destroy);
+  }
+  const std::string& first_header_sample = sample_index_lookup.begin()->first;
+  return get_sample_header(first_header_sample);
+}
+
+TileDBVCFDataset::SampleHeaders TileDBVCFDataset::fetch_vcf_headers_v4(
     const std::vector<SampleAndId>& samples,
-    std::unordered_map<std::string, size_t>* lookup_map,
     bool all_samples,
     bool first_sample) const {
   LOG_DEBUG(
@@ -1237,7 +1255,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
         "Cannot set first_sample and samples list in same fetch vcf headers "
         "request");
 
-  std::unordered_map<uint32_t, SafeBCFHdr> result;
+  SampleHeaders headers;
 
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
@@ -1273,7 +1291,7 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
     }
   }
 
-  uint32_t sample_idx = 0;
+  size_t sample_idx = 0;
   while (!mq->is_complete()) {
     mq->submit();
     auto num_rows = mq->results()->num_rows();
@@ -1294,41 +1312,9 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers_v4(
       // Create a string from the string_view to guarantee null termination
       // as required by htslib APIs.
       auto hdr_str = std::string(mq->string_view("header", i));
-      auto sample = std::string(mq->string_view("sample", i));
+      auto sample_name = std::string(mq->string_view("sample", i));
 
-      bcf_hdr_t* hdr = bcf_hdr_init("r");
-      if (!hdr) {
-        throw std::runtime_error(
-            "Error fetching VCF header data; error allocating VCF header.");
-      }
-
-      if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
-        throw std::runtime_error(
-            "TileDBVCFDataset::fetch_vcf_headers_v4: Error parsing the BCF "
-            "header for sample " +
-            sample + ".");
-      }
-
-      if (!sample.empty()) {
-        if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
-          throw std::runtime_error(
-              "TileDBVCFDataset::fetch_vcf_headers_v4: Error adding sample "
-              "to "
-              "BCF header for sample " +
-              sample + ".");
-        }
-      }
-
-      if (bcf_hdr_sync(hdr) < 0) {
-        throw std::runtime_error(
-            "Error in bcftools: failed to update VCF header.");
-      }
-
-      result.emplace(
-          std::make_pair(sample_idx, SafeBCFHdr(hdr, bcf_hdr_destroy)));
-      if (lookup_map != nullptr) {
-        (*lookup_map)[sample] = sample_idx;
-      }
+      headers.set_sample_header(hdr_str.c_str(), sample_name, sample_idx);
 
       ++sample_idx;
 
@@ -1344,10 +1330,108 @@ done:
     tiledb::Stats::enable();
   LOG_DEBUG(
       "[fetch_vcf_headers_v4] done (VmRSS = {})", utils::memory_usage_str());
-  return result;
+  return headers;
 }
 
-std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
+void TileDBVCFDataset::SampleHeaders::set_sample_header(
+    const char* hdr_str, const std::string& sample_name, size_t sample_idx) {
+  // Compute the MD5 checksum for the header
+  // TODO: Can we use the MD5 digest directly as the map's hash rather
+  // than hashing the hex string?
+  md5::md5_string(hdr_str, md5_buffer);
+  std::string hdr_md5 = md5::md5_to_hex(md5_buffer);
+
+  // Get the header's unique index and save the header, if necessary
+  size_t hdr_idx;
+  if (!md5_lookup.contains(hdr_md5)) {
+    hdr_idx = unique_headers.size();
+    md5_lookup[hdr_md5] = hdr_idx;
+    unique_headers.emplace_back(hdr_str);
+  } else {
+    hdr_idx = md5_lookup[hdr_md5];
+    // Check for MD5 collisions
+    const std::string& unique_hdr = unique_headers[hdr_idx];
+    if (unique_hdr.compare(hdr_str)) {
+      auto unique_hdr_filter = [this, hdr_idx](const std::string& sample_name) {
+        Indexes& indexes = sample_index_lookup[sample_name];
+        return indexes.header_idx == hdr_idx;
+      };
+      auto samples_view = std::views::keys(sample_index_lookup);
+      std::vector<std::string> unique_hdr_samples;
+      std::copy_if(
+          samples_view.begin(),
+          samples_view.end(),
+          std::back_inserter(unique_hdr_samples),
+          unique_hdr_filter);
+      std::string unqiue_hdr_samples_str = utils::join(unique_hdr_samples, ',');
+      throw std::runtime_error(
+          "TileDBVCFDataset::SampleHeaders::set_sample_header: MD5 for "
+          "sample " +
+          sample_name +
+          " header exists but header is different. Collision with header for "
+          "samples: " +
+          unqiue_hdr_samples_str);
+    }
+  }
+
+  // Save the sample's unique header index and insertion order
+  sample_index_lookup.emplace(sample_name, Indexes{hdr_idx, sample_idx});
+}
+
+SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
+    const std::string& sample) const {
+  bcf_hdr_t* hdr = bcf_hdr_init("r");
+  if (!hdr) {
+    throw std::runtime_error(
+        "TileDBVCFDataset::SampleHeaders::get_sample_header: Error fetching "
+        "VCF header data; error allocating VCF header.");
+  }
+
+  const size_t hdr_idx = sample_index_lookup.at(sample).header_idx;
+  const std::string& hdr_str = unique_headers[hdr_idx];
+
+  if (0 != bcf_hdr_parse(hdr, const_cast<char*>(hdr_str.c_str()))) {
+    throw std::runtime_error(
+        "TileDBVCFDataset::SampleHeaders::get_sample_header: Error parsing the "
+        "BCF header for sample " +
+        sample + ".");
+  }
+
+  if (!sample.empty()) {
+    if (0 != bcf_hdr_add_sample(hdr, sample.c_str())) {
+      throw std::runtime_error(
+          "TileDBVCFDataset::SampleHeaders::get_sample_header: Error adding "
+          "sample to BCF header for sample " +
+          sample + ".");
+    }
+  }
+
+  if (bcf_hdr_sync(hdr) < 0) {
+    throw std::runtime_error(
+        "TileDBVCFDataset::SampleHeaders::get_sample_header: Error in "
+        "bcftools: failed to update VCF header.");
+  }
+
+  return SafeBCFHdr(hdr, bcf_hdr_destroy);
+}
+
+std::vector<std::string>
+TileDBVCFDataset::SampleHeaders::header_ordered_samples() const {
+  auto samples = std::views::keys(sample_index_lookup);
+  std::vector<std::string> sorted_samples{samples.begin(), samples.end()};
+  std::sort(
+      sorted_samples.begin(),
+      sorted_samples.end(),
+      // sort samples by header array index
+      [this](const auto& sample_a, const auto& sample_b) {
+        SampleHeaders::Indexes indexes_a = sample_index_lookup.at(sample_a);
+        SampleHeaders::Indexes indexes_b = sample_index_lookup.at(sample_b);
+        return indexes_a.header_idx < indexes_b.header_idx;
+      });
+  return sorted_samples;
+}
+
+TileDBVCFDataset::SampleHeaders TileDBVCFDataset::fetch_vcf_headers(
     const std::vector<SampleAndId>& samples) const {
   // Grab a read lock of concurrency so we don't destroy the vcf_header_array
   // during fetching
@@ -1357,11 +1441,12 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
   if (!tiledb_stats_enabled_vcf_header_)
     tiledb::Stats::disable();
 
-  std::unordered_map<uint32_t, SafeBCFHdr> result;
+  SampleHeaders headers;
 
   if (vcf_header_array_ == nullptr)
     throw std::runtime_error(
-        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly null");
+        "Cannot fetch TileDB-VCF vcf headers; Array object unexpectedly "
+        "null");
 
   Query query(*ctx_, *vcf_header_array_);
   Subarray subarray =
@@ -1434,7 +1519,8 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
 
       for (size_t offset_idx = 0; offset_idx < num_offsets; ++offset_idx) {
         // Get sample
-        uint32_t sample = sample_data[offset_idx];
+        size_t sample_idx = sample_data[offset_idx];
+        const std::string& sample_name = metadata_.sample_names_[sample_idx];
 
         char* beg_hdr = data.data() + offsets[offset_idx];
         uint64_t hdr_size =
@@ -1445,38 +1531,16 @@ std::unordered_map<uint32_t, SafeBCFHdr> TileDBVCFDataset::fetch_vcf_headers(
         memcpy(hdr_str, beg_hdr, hdr_size);
         hdr_str[hdr_size] = '\0';
 
-        bcf_hdr_t* hdr = bcf_hdr_init("r");
-        if (!hdr)
-          throw std::runtime_error(
-              "Error fetching VCF header data; error allocating VCF header.");
-
-        if (0 != bcf_hdr_parse(hdr, hdr_str)) {
-          throw std::runtime_error(
-              "TileDBVCFDataset::fetch_vcf_headers: Error parsing the BCF "
-              "header for sample " +
-              std::to_string(sample) + ".");
-        }
+        headers.set_sample_header(hdr_str, sample_name, sample_idx);
         std::free(hdr_str);
-
-        if (0 !=
-            bcf_hdr_add_sample(hdr, metadata_.sample_names_[sample].c_str())) {
-          throw std::runtime_error("Error adding the sample.");
-        }
-
-        if (bcf_hdr_sync(hdr) < 0)
-          throw std::runtime_error(
-              "Error in bcftools: failed to update VCF header.");
-
-        result.emplace(
-            std::make_pair(sample, SafeBCFHdr(hdr, bcf_hdr_destroy)));
       }
     }
   } while (status == Query::Status::INCOMPLETE);
 
   if (tiledb_stats_enabled_)
     tiledb::Stats::enable();
-  return result;
-}  // namespace vcf
+  return headers;
+}
 
 std::vector<Region> TileDBVCFDataset::all_contigs() const {
   std::vector<Region> result;
@@ -1539,18 +1603,14 @@ std::list<Region> TileDBVCFDataset::all_contigs_list() const {
 }
 
 std::vector<Region> TileDBVCFDataset::all_contigs_v4() const {
-  std::unordered_map<uint32_t, SafeBCFHdr> hdrs =
-      fetch_vcf_headers_v4({}, nullptr, false, true);
-
+  SampleHeaders hdrs = fetch_vcf_headers_v4({}, false, true);
   if (hdrs.empty())
     return {};
   else if (hdrs.size() != 1)
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
-
-  const auto& hdr = hdrs.begin()->second;
-
-  return VCFUtils::hdr_get_contigs_regions(hdr.get());
+  SafeBCFHdr hdr = hdrs.first();
+  return VCFUtils::hdr_get_contigs_regions(hdr.release());
 }
 
 std::list<Region> TileDBVCFDataset::all_contigs_list_v4() const {
@@ -2235,7 +2295,7 @@ std::map<std::string, int> TileDBVCFDataset::info_field_types() const {
       load_field_type_maps();
     else {
       assert(metadata_.version == Version::V4);
-      load_field_type_maps_v4(nullptr);
+      load_field_type_maps_v4();
     }
     lck_.lock();
   }
@@ -2250,7 +2310,7 @@ std::map<std::string, int> TileDBVCFDataset::fmt_field_types() const {
       load_field_type_maps();
     else {
       assert(metadata_.version == Version::V4);
-      load_field_type_maps_v4(nullptr);
+      load_field_type_maps_v4();
     }
     lck_.lock();
   }
