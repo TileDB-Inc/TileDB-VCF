@@ -28,7 +28,6 @@
 #include <cstdint>
 #include <future>
 #include <map>
-#include <ranges>
 #include <string>
 #include <vector>
 
@@ -1355,11 +1354,11 @@ void TileDBVCFDataset::SampleHeaders::set_sample_header(
         Indexes& indexes = sample_index_lookup[sample_name];
         return indexes.header_idx == hdr_idx;
       };
-      auto samples_view = std::views::keys(sample_index_lookup);
+      auto samples = samples_view();
       std::vector<std::string> unique_hdr_samples;
       std::copy_if(
-          samples_view.begin(),
-          samples_view.end(),
+          samples.begin(),
+          samples.end(),
           std::back_inserter(unique_hdr_samples),
           unique_hdr_filter);
       std::string unqiue_hdr_samples_str = utils::join(unique_hdr_samples, ',');

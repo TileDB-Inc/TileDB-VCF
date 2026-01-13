@@ -29,6 +29,7 @@
 
 #include <map>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <unordered_set>
@@ -280,6 +281,16 @@ class TileDBVCFDataset {
      * @return The first header
      */
     SafeBCFHdr get_sample_header(const std::string& sample) const;
+
+    /**
+     * Returns the sample names stored as a view of the internal lookup map.
+     *
+     * @param sample The name of the sample to get the header for
+     * @return The first header
+     */
+    auto samples_view() {
+      return std::views::keys(sample_index_lookup);
+    };
 
     /**
      * Gets sample names in the order their heaeders are returned by the
