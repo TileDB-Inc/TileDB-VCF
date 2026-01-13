@@ -1204,9 +1204,7 @@ bool Reader::read_current_batch() {
       // finalize the export
       if (read_state_.query_contig_batch_idx ==
           read_state_.query_regions_v4.size() - 1) {
-        // TODO: Replace with iterator of underlying map to avoid copy
-        for (const auto& s :
-             read_state_.current_hdrs.header_ordered_samples()) {
+        for (const auto& s : read_state_.current_hdrs.samples_view()) {
           SafeBCFHdr hdr = read_state_.current_hdrs.get_sample_header(s);
           exporter_->finalize_export(SampleAndId{s, 0}, hdr.get());
         }
