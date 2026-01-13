@@ -59,15 +59,8 @@ PVCFExporter::PVCFExporter(const std::string& output_uri, ExportFormat fmt)
 PVCFExporter::~PVCFExporter() {
 }
 
-void PVCFExporter::init(
-    const std::unordered_map<std::string, size_t>& hdrs_lookup,
-    const std::unordered_map<uint32_t, SafeBCFHdr>& hdrs) {
-  // sort sample names to match the order returned by tiledb
-  std::vector<std::pair<std::string, size_t>> sorted_hdrs(
-      hdrs_lookup.begin(), hdrs_lookup.end());
-  std::sort(sorted_hdrs.begin(), sorted_hdrs.end());
-
-  merger_.init(sorted_hdrs, hdrs);
+void PVCFExporter::init(const TileDBVCFDataset::SampleHeaders& headers) {
+  merger_.init(headers);
 
   std::string mode = "w" + fmt_code_;
   fp_.reset(bcf_open(uri_.c_str(), mode.c_str()));

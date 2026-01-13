@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <variant>
 
+#include "dataset/tiledbvcfdataset.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -100,9 +101,7 @@ class VCFMerger {
 
   ~VCFMerger();
 
-  void init(
-      const std::vector<std::pair<std::string, size_t>>& sorted_hdrs,
-      const std::unordered_map<uint32_t, SafeBCFHdr>& hdr_map);
+  void init(const TileDBVCFDataset::SampleHeaders& headers);
 
   void reset();
 

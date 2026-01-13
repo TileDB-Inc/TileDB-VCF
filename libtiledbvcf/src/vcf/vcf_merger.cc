@@ -15,22 +15,23 @@ VCFMerger::VCFMerger()
 VCFMerger::~VCFMerger() {
 }
 
-void VCFMerger::init(
-    const std::vector<std::pair<std::string, size_t>>& sorted_hdrs,
-    const std::unordered_map<uint32_t, SafeBCFHdr>& hdr_map) {
+void VCFMerger::init(const TileDBVCFDataset::SampleHeaders& headers) {
   hdr_.reset(bcf_hdr_init("w"));
   hdrs_.clear();
 
-  for (const auto& [name, hdr_key] : sorted_hdrs) {
-    LOG_DEBUG("Adding sample_num {}: {}", hdrs_.size(), name);
-    sample_map_[name] = hdrs_.size();
-    auto hdr = hdr_map.at(hdr_key).get();
+  const std::vector<std::string> sorted_samples =
+      headers.header_ordered_samples();
+  for (const auto& sample : sorted_samples) {
+    LOG_DEBUG("Adding sample_num {}: {}", hdrs_.size(), sample);
+    sample_map_[sample] = hdrs_.size();
+    // TODO: Is release the right thing to do here?
+    bcf_hdr_t* hdr = headers.get_sample_header(sample).release();
     hdrs_.push_back(hdr);
     if (bcf_hdr_merge(hdr_.get(), hdr) == NULL) {
-      LOG_FATAL("Error merging header from sample: {}", name);
+      LOG_FATAL("Error merging header from sample: {}", sample);
     }
-    if (bcf_hdr_add_sample(hdr_.get(), name.c_str()) < 0) {
-      LOG_FATAL("Error adding sample to merged header: {}", name);
+    if (bcf_hdr_add_sample(hdr_.get(), sample.c_str()) < 0) {
+      LOG_FATAL("Error adding sample to merged header: {}", sample);
     }
   }
 
