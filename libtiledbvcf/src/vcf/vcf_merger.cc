@@ -24,15 +24,14 @@ void VCFMerger::init(const TileDBVCFDataset::SampleHeaders& headers) {
   for (const auto& sample : sorted_samples) {
     LOG_DEBUG("Adding sample_num {}: {}", hdrs_.size(), sample);
     sample_map_[sample] = hdrs_.size();
-    // TODO: Is release the right thing to do here?
-    bcf_hdr_t* hdr = headers.get_sample_header(sample).release();
-    hdrs_.push_back(hdr);
-    if (bcf_hdr_merge(hdr_.get(), hdr) == NULL) {
+    SafeBCFHdr hdr = headers.get_sample_header(sample);
+    if (bcf_hdr_merge(hdr_.get(), hdr.get()) == NULL) {
       LOG_FATAL("Error merging header from sample: {}", sample);
     }
     if (bcf_hdr_add_sample(hdr_.get(), sample.c_str()) < 0) {
       LOG_FATAL("Error adding sample to merged header: {}", sample);
     }
+    hdrs_.push_back(std::move(hdr));
   }
 
   if (bcf_hdr_sync(hdr_.get()) < 0) {
@@ -199,7 +198,7 @@ void VCFMerger::merge_alleles(int sample_num, bcf1_t* input) {
 
 std::tuple<int, int, int> VCFMerger::get_number_type_values(
     int id, int hdr_type, int sample_num) {
-  auto hdr = sample_num > 0 ? hdrs_[sample_num] : hdr_.get();
+  bcf_hdr_t* hdr = sample_num > 0 ? hdrs_[sample_num].get() : hdr_.get();
   int number = bcf_hdr_id2length(hdr, hdr_type, id);
   int type = bcf_hdr_id2type(hdr, hdr_type, id);
 
@@ -295,7 +294,7 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
   // merge FORMAT:GT and INFO:AC,AN,DP
   for (const auto& [sample_num, rec] : md_.samples) {
     int values_read =
-        bcf_get_genotypes(hdrs_[sample_num], rec.get(), &dst_, &ndst_);
+        bcf_get_genotypes(hdrs_[sample_num].get(), rec.get(), &dst_, &ndst_);
 
     if (values_read == 1) {
       md_.gts[2 * sample_num + 1] = bcf_int32_vector_end;
@@ -330,8 +329,8 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
     }
 
     // add sample read depth to total depth
-    if (bcf_get_info_int32(hdrs_[sample_num], rec.get(), "DP", &dst_, &ndst_) >
-        0) {
+    if (bcf_get_info_int32(
+            hdrs_[sample_num].get(), rec.get(), "DP", &dst_, &ndst_) > 0) {
       md_.depth_total += *dst_;
     }
   }
@@ -347,7 +346,12 @@ void VCFMerger::finish_info(SafeBCFRec& rec) {
       (void)vector_end;  // unused
 
       uint32_t values_read = bcf_get_info_values(
-          hdrs_[sample_num], rec.get(), key_str, (void**)(&dst_), &ndst_, type);
+          hdrs_[sample_num].get(),
+          rec.get(),
+          key_str,
+          (void**)(&dst_),
+          &ndst_,
+          type);
       int* data = (int*)(dst_);
 
       // set expected values to number of values read
@@ -493,7 +497,7 @@ void VCFMerger::finish_format(SafeBCFRec& rec) {
       int* hts_dst = nullptr;
       int hts_ndst = 0;
       int values_read = bcf_get_format_values(
-          hdrs_[sample_num],
+          hdrs_[sample_num].get(),
           rec_in.get(),
           key_str,
           (void**)(&hts_dst),

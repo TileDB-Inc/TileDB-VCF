@@ -249,8 +249,7 @@ class VCFMerger {
   SafeBCFHdr hdr_;
 
   // vector of sample VCF headers, indexed by sample number
-  // TODO: update ReadState to use shared_ptrs
-  std::vector<bcf_hdr_t*> hdrs_;
+  std::vector<SafeBCFHdr> hdrs_;
 
   // combined VCF record
   SafeBCFRec rec_;

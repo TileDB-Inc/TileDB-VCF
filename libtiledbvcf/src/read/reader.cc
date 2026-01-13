@@ -1195,7 +1195,7 @@ bool Reader::read_current_batch() {
       for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
         SafeBCFHdr hdr =
             read_state_.current_hdrs.get_sample_header(s.sample_name);
-        exporter_->finalize_export(s, hdr.release());
+        exporter_->finalize_export(s, hdr.get());
       }
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
@@ -1208,7 +1208,7 @@ bool Reader::read_current_batch() {
         for (const auto& s :
              read_state_.current_hdrs.header_ordered_samples()) {
           SafeBCFHdr hdr = read_state_.current_hdrs.get_sample_header(s);
-          exporter_->finalize_export(SampleAndId{s, 0}, hdr.release());
+          exporter_->finalize_export(SampleAndId{s, 0}, hdr.get());
         }
       }
     }
@@ -1742,9 +1742,8 @@ bool Reader::report_cell(
   if (read_state_.need_headers) {
     hdr = read_state_.current_hdrs.get_sample_header(sample.sample_name);
   }
-  // TODO: Is releasing the pointer the best thing to do heree?
   if (!exporter_->export_record(
-          sample, hdr.release(), region, contig_offset, results, cell_idx))
+          sample, hdr.get(), region, contig_offset, results, cell_idx))
     return false;
 
   // If no overflow, increment num records count.

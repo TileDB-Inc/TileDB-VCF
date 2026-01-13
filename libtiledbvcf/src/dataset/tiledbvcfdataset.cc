@@ -733,7 +733,7 @@ void TileDBVCFDataset::load_field_type_maps() const {
         "Error loading dataset field types; no headers fetched.");
 
   SafeBCFHdr hdr = hdrs.get_sample_header(first_sample_name);
-  bcf_hdr_t* hdr_ptr = hdr.release();
+  bcf_hdr_t* hdr_ptr = hdr.get();
   for (int i = 0; i < hdr_ptr->n[BCF_DT_ID]; i++) {
     bcf_idpair_t* idpair = hdr_ptr->id[BCF_DT_ID] + i;
     if (idpair == nullptr)
@@ -769,22 +769,21 @@ void TileDBVCFDataset::load_field_type_maps_v4(bool add_iaf) const {
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
   SafeBCFHdr hdr = hdrs.first();
-  TileDBVCFDataset::load_field_type_maps_v4(hdr.release(), add_iaf);
+  TileDBVCFDataset::load_field_type_maps_v4(hdr.get(), add_iaf);
 }
 
 void TileDBVCFDataset::load_field_type_maps_v4(
     const bcf_hdr_t* hdr, bool add_iaf) const {
-  // After we acquire the write lock we need to check if another thread has
-  // loaded the field types
-  if (info_fmt_field_types_loaded_ && (!add_iaf || info_iaf_field_type_added_))
-    return;
-
   if (!hdr) {
     load_field_type_maps_v4(add_iaf);
     return;
   }
 
   utils::UniqueWriteLock lck_(const_cast<utils::RWLock*>(&type_field_rw_lock_));
+  // After we acquire the write lock we need to check if another thread has
+  // loaded the field types
+  if (info_fmt_field_types_loaded_ && (!add_iaf || info_iaf_field_type_added_))
+    return;
 
   // TODO: duplicate header and modify duplicate rather than modifying passed
   // header
@@ -1610,7 +1609,7 @@ std::vector<Region> TileDBVCFDataset::all_contigs_v4() const {
     throw std::runtime_error(
         "Error loading dataset field types; no headers fetched.");
   SafeBCFHdr hdr = hdrs.first();
-  return VCFUtils::hdr_get_contigs_regions(hdr.release());
+  return VCFUtils::hdr_get_contigs_regions(hdr.get());
 }
 
 std::list<Region> TileDBVCFDataset::all_contigs_list_v4() const {
