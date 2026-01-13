@@ -90,6 +90,7 @@ set(TILEDB_VCF_SOURCES
 
 set(TILEDB_VCF_EXTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../external/base64/base64.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/../external/md5/md5.cc
 )
 
 add_library(TILEDB_VCF_OBJECTS OBJECT
