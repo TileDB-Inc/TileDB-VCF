@@ -112,15 +112,14 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
         ds.metadata().sample_names_,
         Catch::Matchers::VectorContains(std::string("HG01762")));
 
-    auto hdrs =
-        ds.fetch_vcf_headers_v4({{"HG01762", 0}}, nullptr, false, false);
+    auto hdrs = ds.fetch_vcf_headers_v4({{"HG01762", 0}}, false, false);
     REQUIRE(hdrs.size() == 1);
-    REQUIRE(bcf_hdr_nsamples(hdrs.at(0)) == 1);
-    REQUIRE(hdrs.at(0)->samples[0] == std::string("HG01762"));
+    auto safe_hdr = hdrs.get_sample_header("HG01762");
+    REQUIRE(bcf_hdr_nsamples(safe_hdr.get()) == 1);
+    REQUIRE(safe_hdr.get()->samples[0] == std::string("HG01762"));
 
-    REQUIRE(ds.fmt_field_type("GQ", hdrs.at(0).get()) == BCF_HT_INT);
-    REQUIRE(
-        ds.info_field_type("BaseQRankSum", hdrs.at(0).get()) == BCF_HT_REAL);
+    REQUIRE(ds.fmt_field_type("GQ", safe_hdr.get()) == BCF_HT_INT);
+    REQUIRE(ds.info_field_type("BaseQRankSum", safe_hdr.get()) == BCF_HT_REAL);
   }
 
   // Ingest the samples
@@ -149,12 +148,14 @@ TEST_CASE("TileDB-VCF: Test register", "[tiledbvcf][ingest]") {
     REQUIRE_THAT(
         ds.metadata().sample_names_, Catch::Matchers::Contains(samples));
 
-    auto hdrs = ds.fetch_vcf_headers_v4(
-        {{"HG01762", 0}, {"HG00280", 1}}, nullptr, false, false);
+    auto hdrs =
+        ds.fetch_vcf_headers_v4({{"HG01762", 0}, {"HG00280", 1}}, false, false);
     REQUIRE(hdrs.size() == 2);
     std::vector<std::string> expected_samples = {"HG01762", "HG00280"};
+    auto safe_hdr1 = hdrs.get_sample_header("HG01762");
+    auto safe_hdr2 = hdrs.get_sample_header("HG00280");
     std::vector<std::string> result_samples = {
-        hdrs.at(1)->samples[0], hdrs.at(0)->samples[0]};
+        safe_hdr1.get()->samples[0], safe_hdr2.get()->samples[0]};
     REQUIRE_THAT(
         expected_samples, Catch::Matchers::UnorderedEquals(result_samples));
   }
