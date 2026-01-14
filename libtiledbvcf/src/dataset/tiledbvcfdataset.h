@@ -293,7 +293,7 @@ class TileDBVCFDataset {
     };
 
     /**
-     * Gets sample names in the order their heaeders are returned by the
+     * Gets sample names in the order their headers are returned by the
      * TileDB header array query.
      *
      * @return A vector containing the ordered sample names

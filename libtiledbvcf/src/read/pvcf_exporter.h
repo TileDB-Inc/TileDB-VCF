@@ -40,7 +40,7 @@ class PVCFExporter : public Exporter {
 
   ~PVCFExporter();
 
-  void init(const TileDBVCFDataset::SampleHeaders& heaeders);
+  void init(const TileDBVCFDataset::SampleHeaders& headers);
 
   void reset() override;
 
