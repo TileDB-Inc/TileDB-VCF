@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <future>
 #include <map>
 #include <string>
@@ -1417,15 +1418,13 @@ std::vector<std::string>
 TileDBVCFDataset::SampleHeaders::header_ordered_samples() const {
   auto samples = samples_view();
   std::vector<std::string> sorted_samples{samples.begin(), samples.end()};
-  std::sort(
-      sorted_samples.begin(),
-      sorted_samples.end(),
-      // sort samples by header array index
-      [this](const auto& sample_a, const auto& sample_b) {
-        SampleHeaders::Indexes indexes_a = sample_index_lookup.at(sample_a);
-        SampleHeaders::Indexes indexes_b = sample_index_lookup.at(sample_b);
-        return indexes_a.header_idx < indexes_b.header_idx;
-      });
+  auto comparison = [this](const auto& sample_a, const auto& sample_b) {
+    const SampleHeaders::Indexes& indexes_a = sample_index_lookup.at(sample_a);
+    const SampleHeaders::Indexes& indexes_b = sample_index_lookup.at(sample_b);
+    return indexes_a.header_idx < indexes_b.header_idx;
+  };
+  // sort samples by header array index
+  std::sort(sorted_samples.begin(), sorted_samples.end(), comparison);
   return sorted_samples;
 }
 
