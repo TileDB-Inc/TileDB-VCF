@@ -206,9 +206,10 @@ void md5_to_hex(const uint8_t* input, char* output) {
 }
 
 std::string md5_to_hex(const uint8_t* input) {
-  char output[32];
+  char output[33];
   md5_to_hex(input, output);
-  return std::string(output, 32);
+  output[32] = '\0';
+  return std::string(output);
 }
 
 }  // namespace md5
