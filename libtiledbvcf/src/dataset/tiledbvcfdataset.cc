@@ -1415,7 +1415,7 @@ SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
 
 std::vector<std::string>
 TileDBVCFDataset::SampleHeaders::header_ordered_samples() const {
-  auto samples = std::views::keys(sample_index_lookup);
+  auto samples = samples_view();
   std::vector<std::string> sorted_samples{samples.begin(), samples.end()};
   std::sort(
       sorted_samples.begin(),

@@ -288,7 +288,7 @@ class TileDBVCFDataset {
      * @param sample The name of the sample to get the header for
      * @return The first header
      */
-    auto samples_view() {
+    auto samples_view() const {
       return std::views::keys(sample_index_lookup);
     };
 
