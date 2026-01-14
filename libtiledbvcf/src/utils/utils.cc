@@ -95,14 +95,19 @@ std::set<std::string> split_set(const std::string& s, char delim) {
 std::string join(
     const std::vector<std::string>& v, char delim, bool skip_empty) {
   auto empty_filter = [skip_empty](const std::string& s) {
-    return skip_empty && s.empty();
+    return (skip_empty && !s.empty()) || !skip_empty;
   };
   auto filtered_v = std::views::filter(v, empty_filter);
+  if (filtered_v.empty())
+    return "";
+  auto operation = [delim](std::string a, std::string b) {
+    return a + delim + b;
+  };
   std::string s = std::accumulate(
       std::next(filtered_v.begin()),
       filtered_v.end(),
-      v.at(0),
-      [delim](std::string a, std::string b) { return a + delim + b; });
+      filtered_v.front(),
+      operation);
   return s;
 }
 

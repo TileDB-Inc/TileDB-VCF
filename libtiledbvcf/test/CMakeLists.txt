@@ -37,6 +37,7 @@ add_executable(tiledb_vcf_unit EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-bitmap.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-reader.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-c-api-writer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-utils.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-export.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-delete.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/unit-vcf-iter.cc
