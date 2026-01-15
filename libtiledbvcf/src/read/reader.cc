@@ -650,6 +650,7 @@ bool Reader::next_read_batch_v2_v3() {
   read_state_.region_idx = 0;
 
   // Headers
+  // TODO: Is the clear necessary?
   read_state_.current_hdrs.clear();
 
   // Sample handles
@@ -798,15 +799,13 @@ bool Reader::next_read_batch_v4() {
 
     // Fetch new headers for new sample batch
     if (read_state_.need_headers) {
+      // TODO: Is the clear necessary?
       read_state_.current_hdrs.clear();
       read_state_.current_hdrs = dataset_->fetch_vcf_headers_v4(
-          read_state_.current_sample_batches,
-          &read_state_.current_hdrs_lookup,
-          read_state_.all_samples,
-          false);
+          read_state_.current_sample_batches, read_state_.all_samples, false);
       if (params_.export_combined_vcf) {
         static_cast<PVCFExporter*>(exporter_.get())
-            ->init(read_state_.current_hdrs_lookup, read_state_.current_hdrs);
+            ->init(read_state_.current_hdrs);
       }
     }
   }
@@ -1194,8 +1193,9 @@ bool Reader::read_current_batch() {
     if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
         dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
       for (const auto& s : read_state_.sample_batches[read_state_.batch_idx]) {
-        bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.sample_id).get();
-        exporter_->finalize_export(s, hdr);
+        SafeBCFHdr hdr =
+            read_state_.current_hdrs.get_sample_header(s.sample_name);
+        exporter_->finalize_export(s, hdr.get());
       }
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
@@ -1204,10 +1204,9 @@ bool Reader::read_current_batch() {
       // finalize the export
       if (read_state_.query_contig_batch_idx ==
           read_state_.query_regions_v4.size() - 1) {
-        for (const auto& s : read_state_.current_hdrs_lookup) {
-          std::string sample_name = s.first;
-          bcf_hdr_t* hdr = read_state_.current_hdrs.at(s.second).get();
-          exporter_->finalize_export(SampleAndId{sample_name, 0}, hdr);
+        for (const auto& s : read_state_.current_hdrs.samples_view()) {
+          SafeBCFHdr hdr = read_state_.current_hdrs.get_sample_header(s);
+          exporter_->finalize_export(SampleAndId{s, 0}, hdr.get());
         }
       }
     }
@@ -1720,40 +1719,29 @@ bool Reader::report_cell(
   }
 
   SampleAndId sample;
-  uint64_t hdr_index = 0;
   const auto& results = read_state_.query_results;
   if (dataset_->metadata().version == TileDBVCFDataset::Version::V2 ||
       dataset_->metadata().version == TileDBVCFDataset::Version::V3) {
     uint32_t samp_idx = results.buffers()->sample().value<uint32_t>(cell_idx);
-
     // Skip this cell if we are not reporting its sample.
     if (read_state_.current_samples.count(samp_idx) == 0) {
       return true;
     }
     sample = read_state_.current_samples[samp_idx];
-    hdr_index = samp_idx;
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
     uint64_t size = 0;
     const char* sample_name =
         results.buffers()->sample_name().value<char>(cell_idx, &size);
     sample = SampleAndId{std::string(sample_name, size)};
-    hdr_index = read_state_.current_hdrs_lookup[sample.sample_name];
   }
 
-  bcf_hdr_t* hdr_ptr = nullptr;
+  SafeBCFHdr hdr(nullptr, bcf_hdr_destroy);
   if (read_state_.need_headers) {
-    auto hdr_iter = read_state_.current_hdrs.find(hdr_index);
-    if (hdr_iter == read_state_.current_hdrs.end())
-      throw std::runtime_error(
-          "Could not find VCF header for " + sample.sample_name +
-          " in report_cell");
-
-    const auto& hdr = read_state_.current_hdrs.at(hdr_index);
-    hdr_ptr = hdr.get();
+    hdr = read_state_.current_hdrs.get_sample_header(sample.sample_name);
   }
   if (!exporter_->export_record(
-          sample, hdr_ptr, region, contig_offset, results, cell_idx))
+          sample, hdr.get(), region, contig_offset, results, cell_idx))
     return false;
 
   // If no overflow, increment num records count.

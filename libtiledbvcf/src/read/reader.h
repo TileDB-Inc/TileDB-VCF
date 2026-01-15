@@ -36,7 +36,6 @@
 #include <vector>
 
 #include <htslib/vcf.h>
-#include <tiledb/tiledb>
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
@@ -603,9 +602,7 @@ class Reader {
     std::unordered_map<uint32_t, SampleAndId> current_samples;
 
     /** Map of current relative sample ID -> VCF header instance. */
-    std::unordered_map<uint32_t, SafeBCFHdr> current_hdrs;
-
-    std::unordered_map<std::string, size_t> current_hdrs_lookup;
+    TileDBVCFDataset::SampleHeaders current_hdrs;
 
     /**
      * Stores the index to a region that was unsuccessfully reported

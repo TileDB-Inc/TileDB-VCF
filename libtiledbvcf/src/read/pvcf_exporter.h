@@ -40,9 +40,7 @@ class PVCFExporter : public Exporter {
 
   ~PVCFExporter();
 
-  void init(
-      const std::unordered_map<std::string, size_t>& hdrs_lookup,
-      const std::unordered_map<uint32_t, SafeBCFHdr>& hdrs);
+  void init(const TileDBVCFDataset::SampleHeaders& headers);
 
   void reset() override;
 

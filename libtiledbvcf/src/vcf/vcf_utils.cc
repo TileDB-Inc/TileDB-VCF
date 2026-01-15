@@ -147,7 +147,8 @@ std::map<std::string, uint32_t> VCFUtils::hdr_get_contig_offsets(
         bcf_hdr_get_hrec(hdr, BCF_HL_CTG, "ID", seqname.c_str(), 0);
     if (!hrec)
       throw std::invalid_argument(
-          "Cannot get contig offsets from header; error reading contig header "
+          "Cannot get contig offsets from header; error reading contig "
+          "header "
           "line " +
           std::to_string(i));
     int j = bcf_hrec_find_key(hrec, "length");
@@ -164,7 +165,7 @@ std::map<std::string, uint32_t> VCFUtils::hdr_get_contig_offsets(
   return offsets;
 }
 
-std::vector<Region> VCFUtils::hdr_get_contigs_regions(bcf_hdr_t* hdr) {
+std::vector<Region> VCFUtils::hdr_get_contigs_regions(const bcf_hdr_t* hdr) {
   std::vector<Region> contigs;
   if (!hdr)
     throw std::invalid_argument(
@@ -178,7 +179,8 @@ std::vector<Region> VCFUtils::hdr_get_contigs_regions(bcf_hdr_t* hdr) {
         bcf_hdr_get_hrec(hdr, BCF_HL_CTG, "ID", seqname.c_str(), 0);
     if (!hrec)
       throw std::invalid_argument(
-          "Cannot get contig offsets from header; error reading contig header "
+          "Cannot get contig offsets from header; error reading contig "
+          "header "
           "line " +
           std::to_string(i));
     int j = bcf_hrec_find_key(hrec, "length");

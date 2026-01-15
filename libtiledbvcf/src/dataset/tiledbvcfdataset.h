@@ -29,6 +29,7 @@
 
 #include <map>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <unordered_set>
@@ -210,6 +211,97 @@ class TileDBVCFDataset {
   /* ********************************* */
 
   /**
+   * This class stores headers and associates samples with them in a memory
+   * efficient manner.
+   */
+  class SampleHeaders {
+   private:
+    // Saves indexes for each sample
+    struct Indexes {
+      size_t header_idx;  // index in unique_headers
+      size_t tiledb_idx;  // index in TileDB header array
+    };
+    // Save unique headers as strings for on-demand bcf_hdr_t parsing
+    std::vector<std::string> unique_headers;
+    // Use the same buffer for all MD5s to avoid reallocations
+    uint8_t md5_buffer[16];
+    // Maps MD5s to indexes in unqiue_headers
+    std::unordered_map<std::string, size_t> md5_lookup;
+    // Maps sample names to their indexes
+    std::unordered_map<std::string, Indexes> sample_index_lookup;
+
+    /**
+     * Sets the header for a particular sample.
+     *
+     * @param hdr_str The header to be set
+     * @param sample_name The name of the sample the header is being set for
+     * @param sample_idx The TileDB index of the sample being set
+     */
+    void set_sample_header(
+        const char* hdr_str, const std::string& sample_name, size_t sample_idx);
+
+   public:
+    friend class TileDBVCFDataset;
+
+    /**
+     * Clears the instantiated data structures.
+     */
+    void clear() {
+      unique_headers.clear();
+      md5_lookup.clear();
+      sample_index_lookup.clear();
+    }
+
+    /**
+     * Checks if no headers are loaded.
+     *
+     * @return True if no headers are loaded
+     */
+    size_t empty() const;
+
+    /**
+     * Gets the number of headers loaded.
+     *
+     * @return The number of headers loaded
+     */
+    size_t size() const;
+
+    /**
+     * Gets the "first" header via the internal lookup map's begin()
+     * iterator.
+     *
+     * @return The first header
+     */
+    SafeBCFHdr first() const;
+
+    /**
+     * Gets the header for the given sample name.
+     *
+     * @param sample The name of the sample to get the header for
+     * @return The first header
+     */
+    SafeBCFHdr get_sample_header(const std::string& sample) const;
+
+    /**
+     * Returns the sample names stored as a view of the internal lookup map.
+     *
+     * @param sample The name of the sample to get the header for
+     * @return The first header
+     */
+    auto samples_view() const {
+      return std::views::keys(sample_index_lookup);
+    };
+
+    /**
+     * Gets sample names in the order their headers are returned by the
+     * TileDB header array query.
+     *
+     * @return A vector containing the ordered sample names
+     */
+    std::vector<std::string> header_ordered_samples() const;
+  };
+
+  /**
    * The format version.
    */
   enum Version { V2 = 2, V3, V4 };
@@ -367,7 +459,7 @@ class TileDBVCFDataset {
 
   std::string root_uri() const;
 
-  std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers(
+  SampleHeaders fetch_vcf_headers(
       const std::vector<SampleAndId>& samples) const;
 
   /**
@@ -376,9 +468,8 @@ class TileDBVCFDataset {
    * @param lookup_map
    * @return
    */
-  std::unordered_map<uint32_t, SafeBCFHdr> fetch_vcf_headers_v4(
+  SampleHeaders fetch_vcf_headers_v4(
       const std::vector<SampleAndId>& samples,
-      std::unordered_map<std::string, size_t>* lookup_map,
       bool all_samples,
       bool first_sample) const;
 
@@ -1014,6 +1105,7 @@ class TileDBVCFDataset {
   /**
    * Populate the metadata maps of info/fmt field name -> htslib types.
    */
+  void load_field_type_maps_v4(bool add_iaf = false) const;
   void load_field_type_maps_v4(
       const bcf_hdr_t* hdr, bool add_iaf = false) const;
 

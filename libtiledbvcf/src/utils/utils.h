@@ -230,6 +230,17 @@ std::set<std::string> split_set(const std::string& s, char delim);
 std::vector<std::string> split(const std::string& s, char delim);
 
 /**
+ * @brief
+ * Joins a vector of strings into a string given some character delimiter.
+ * @param v Vector to join
+ * @param delim The character to join the vector string with
+ * @param skip_empty Skip empty elements
+ * @return vector to store results in
+ */
+std::string join(
+    const std::vector<std::string>& v, char delim, bool skip_empty = true);
+
+/**
  * @tparam T
  * @param start_time
  * @return Time between start time and now.

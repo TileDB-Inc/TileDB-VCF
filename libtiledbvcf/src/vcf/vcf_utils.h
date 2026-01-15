@@ -134,7 +134,7 @@ class VCFUtils {
    * @return Vector of contig regions
    */
   static std::vector<tiledb::vcf::Region> hdr_get_contigs_regions(
-      bcf_hdr_t* hdr);
+      const bcf_hdr_t* hdr);
 
   /**
    * Helper function that normalizes a sample name:

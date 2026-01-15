@@ -33,7 +33,9 @@
 #include <filesystem>
 #include <fstream>
 #include <mutex>
+#include <numeric>
 #include <random>
+#include <ranges>
 
 #include "htslib_plugin/hfile_tiledb_vfs.h"
 #include "utils/logger_public.h"
@@ -88,6 +90,25 @@ std::set<std::string> split_set(const std::string& s, char delim) {
   }
 
   return results;
+}
+
+std::string join(
+    const std::vector<std::string>& v, char delim, bool skip_empty) {
+  auto empty_filter = [skip_empty](const std::string& s) {
+    return (skip_empty && !s.empty()) || !skip_empty;
+  };
+  auto filtered_v = std::views::filter(v, empty_filter);
+  if (filtered_v.empty())
+    return "";
+  auto operation = [delim](std::string a, std::string b) {
+    return a + delim + b;
+  };
+  std::string s = std::accumulate(
+      std::next(filtered_v.begin()),
+      filtered_v.end(),
+      filtered_v.front(),
+      operation);
+  return s;
 }
 
 bool starts_with(const std::string& value, const std::string& prefix) {

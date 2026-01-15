@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <variant>
 
+#include "dataset/tiledbvcfdataset.h"
 #include "utils/logger_public.h"
 #include "utils/utils.h"
 
@@ -100,9 +101,7 @@ class VCFMerger {
 
   ~VCFMerger();
 
-  void init(
-      const std::vector<std::pair<std::string, size_t>>& sorted_hdrs,
-      const std::unordered_map<uint32_t, SafeBCFHdr>& hdr_map);
+  void init(const TileDBVCFDataset::SampleHeaders& headers);
 
   void reset();
 
@@ -250,8 +249,7 @@ class VCFMerger {
   SafeBCFHdr hdr_;
 
   // vector of sample VCF headers, indexed by sample number
-  // TODO: update ReadState to use shared_ptrs
-  std::vector<bcf_hdr_t*> hdrs_;
+  std::vector<SafeBCFHdr> hdrs_;
 
   // combined VCF record
   SafeBCFRec rec_;
