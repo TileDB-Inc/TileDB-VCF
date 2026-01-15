@@ -123,11 +123,6 @@ struct ExportParams {
   // because we have to fetch the list of samples from the VCF header array
   bool check_samples_exist = true;
 
-  // Should we skip trying to estimate the number of records and percent
-  // complete? This is useful when you want verbose but not the performance
-  // impact.
-  bool enable_progress_estimation = false;
-
   // Debug parameters for optional debug information
   struct DebugParams debug_params;
 
@@ -520,12 +515,6 @@ class Reader {
    * @param af_filter setting
    */
   void set_scan_all_samples(bool scan_all_samples);
-
-  /**
-   * Sets disabling of progress estimation in verbose mode
-   * @param enable_progress_estimation setting
-   */
-  void set_enable_progress_estimation(const bool& enable_progress_estimation);
 
   /**
    * Percentage of buffer size to tiledb memory budget
