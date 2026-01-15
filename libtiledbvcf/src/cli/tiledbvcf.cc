@@ -862,12 +862,6 @@ void add_export(CLI::App& app) {
   cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
   cmd->add_flag(
-      "--enable-progress-estimation",
-      args->enable_progress_estimation,
-      "Enable progress estimation in verbose mode. Progress estimation "
-      "can sometimes cause a performance impact, so enable this with "
-      "consideration.");
-  cmd->add_flag(
       "--debug-print-vcf-regions",
       args->debug_params.print_vcf_regions,
       "Enable debug printing of vcf region passed by user or bed file. "
