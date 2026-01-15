@@ -283,7 +283,6 @@ class Dataset(object):
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
-        enable_progress_estimation: bool = False,
     ) -> pa.Table:
         """
         Read data from the dataset into a PyArrow Table.
@@ -312,8 +311,6 @@ class Dataset(object):
             variants with AF > 0.1, set this to ">0.1".
         scan_all_samples
             Scan all samples when computing internal allele frequency.
-        enable_progress_estimation
-            **DEPRECATED** - This parameter will be removed in a future release.
 
         Returns
         -------
@@ -342,7 +339,6 @@ class Dataset(object):
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_af_filter(set_af_filter)
         self.reader.set_scan_all_samples(scan_all_samples)
-        self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -534,7 +530,6 @@ class Dataset(object):
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
-        enable_progress_estimation: bool = False,
     ) -> pd.DataFrame:
         """
         Read data from the dataset into a Pandas DataFrame.
@@ -563,8 +558,6 @@ class Dataset(object):
         set_af_filter
             Filter variants by internal allele frequency. For example, to include
             variants with AF > 0.1, set this to ">0.1".
-        enable_progress_estimation
-            **DEPRECATED** - This parameter will be removed in a future release.
 
         Returns
         -------
@@ -592,7 +585,6 @@ class Dataset(object):
         self.reader.set_check_samples_exist(not skip_check_samples)
         self.reader.set_af_filter(set_af_filter)
         self.reader.set_scan_all_samples(scan_all_samples)
-        self.reader.set_enable_progress_estimation(enable_progress_estimation)
 
         if bed_file is not None:
             self.reader.set_bed_file(bed_file)
@@ -606,7 +598,6 @@ class Dataset(object):
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
-        enable_progress_estimation: bool = False,
         merge: bool = False,
         output_format: str = "z",
         output_path: str = "",
@@ -632,8 +623,6 @@ class Dataset(object):
             variants with AF > 0.1, set this to ">0.1".
         scan_all_samples
             Scan all samples when computing internal allele frequency.
-        enable_progress_estimation
-            **DEPRECATED** - This parameter will be removed in a future release.
         merge
             Merge samples to create a combined VCF file.
         output_format
@@ -661,7 +650,6 @@ class Dataset(object):
 
         self.reader.set_regions(",".join(regions))
         self.reader.set_check_samples_exist(not skip_check_samples)
-        self.reader.set_enable_progress_estimation(enable_progress_estimation)
         self.reader.set_merge(merge)
         self.reader.set_output_format(output_format)
         self.reader.set_output_path(output_path)

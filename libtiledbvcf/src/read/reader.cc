@@ -706,29 +706,6 @@ bool Reader::next_read_batch_v2_v3() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-  if (params_.enable_progress_estimation) {
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
-      read_state_.query_estimated_num_records =
-          read_state_.query->est_result_size(
-              TileDBVCFDataset::DimensionNames::V2::end_pos) /
-          tiledb_datatype_size(
-              dataset_->data_array()
-                  ->schema()
-                  .domain()
-                  .dimension(TileDBVCFDataset::DimensionNames::V2::end_pos)
-                  .type());
-    } else {
-      read_state_.query_estimated_num_records =
-          read_state_.query->est_result_size(
-              TileDBVCFDataset::DimensionNames::V3::start_pos) /
-          tiledb_datatype_size(
-              dataset_->data_array()
-                  ->schema()
-                  .domain()
-                  .dimension(TileDBVCFDataset::DimensionNames::V3::start_pos)
-                  .type());
-    }
-  }
 
   return true;
 }
@@ -934,18 +911,6 @@ bool Reader::next_read_batch_v4() {
   // Get estimated records for verbose output
   read_state_.total_query_records_processed = 0;
   read_state_.query_estimated_num_records = 1;
-
-  if (params_.enable_progress_estimation) {
-    read_state_.query_estimated_num_records =
-        read_state_.query->est_result_size(
-            TileDBVCFDataset::DimensionNames::V4::start_pos) /
-        tiledb_datatype_size(
-            dataset_->data_array()
-                ->schema()
-                .domain()
-                .dimension(TileDBVCFDataset::DimensionNames::V4::start_pos)
-                .type());
-  }
 
   return true;
 }
@@ -1154,26 +1119,11 @@ bool Reader::read_current_batch() {
       complete = process_query_results_v2();
     }
 
-    if (params_.enable_progress_estimation &&
-        read_state_.query_estimated_num_records > 0) {
-      LOG_INFO(
-          "Processed {} cells in {:.3f} sec. Reported {} cells. Approximately "
-          "{:.1f}% completed with query cells.",
-          read_state_.query_results.num_cells(),
-          utils::chrono_duration(processing_start_timer),
-          read_state_.last_num_records_exported - old_num_exported,
-          std::min(
-              100.0,
-              read_state_.total_query_records_processed /
-                  static_cast<double>(read_state_.query_estimated_num_records) *
-                  100.0));
-    } else {
-      LOG_INFO(
-          "Processed {} cells in {:.3f} sec. Reported {} cells.",
-          read_state_.query_results.num_cells(),
-          utils::chrono_duration(processing_start_timer),
-          read_state_.last_num_records_exported - old_num_exported);
-    }
+    LOG_INFO(
+        "Processed {} cells in {:.3f} sec. Reported {} cells.",
+        read_state_.query_results.num_cells(),
+        utils::chrono_duration(processing_start_timer),
+        read_state_.last_num_records_exported - old_num_exported);
 
     // Return early if we couldn't process all the results.
     if (!complete)
@@ -2806,13 +2756,6 @@ void Reader::set_tiledb_tile_cache_percentage(
 
 void Reader::set_check_samples_exist(const bool check_samples_exist) {
   params_.check_samples_exist = check_samples_exist;
-}
-
-void Reader::set_enable_progress_estimation(
-    const bool& enable_progress_estimation) {
-  LOG_DEBUG(
-      "setting enable_progress_estimation to {}", enable_progress_estimation);
-  params_.enable_progress_estimation = enable_progress_estimation;
 }
 
 void Reader::set_debug_print_vcf_regions(const bool print_vcf_regions) {

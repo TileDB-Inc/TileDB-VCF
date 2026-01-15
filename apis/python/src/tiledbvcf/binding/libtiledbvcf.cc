@@ -94,9 +94,6 @@ PYBIND11_MODULE(libtiledbvcf, m) {
           &Reader::set_tiledb_tile_cache_percentage)
       .def("set_check_samples_exist", &Reader::set_check_samples_exist)
       .def("version", &Reader::version)
-      .def(
-          "set_enable_progress_estimation",
-          &Reader::set_enable_progress_estimation)
       .def("set_debug_print_vcf_regions", &Reader::set_debug_print_vcf_regions)
       .def("set_debug_print_sample_list", &Reader::set_debug_print_sample_list)
       .def(

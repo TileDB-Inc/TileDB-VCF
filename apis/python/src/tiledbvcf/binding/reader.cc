@@ -616,15 +616,6 @@ std::string Reader::version() {
   return version_str;
 }
 
-void Reader::set_enable_progress_estimation(
-    const bool& enable_progress_estimation) {
-  auto reader = ptr.get();
-  check_error(
-      reader,
-      tiledb_vcf_reader_set_enable_progress_estimation(
-          reader, enable_progress_estimation));
-}
-
 void Reader::set_debug_print_vcf_regions(const bool& print_vcf_regions) {
   auto reader = ptr.get();
   check_error(

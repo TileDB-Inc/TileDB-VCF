@@ -1014,14 +1014,6 @@ TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_output_dir(
     tiledb_vcf_reader_t* reader, const char* output_dir);
 
 /**
- * Sets verbose mode on or off
- * @param reader VCF reader object
- * @param verbose setting
- */
-TILEDBVCF_EXPORT int32_t tiledb_vcf_reader_set_enable_progress_estimation(
-    tiledb_vcf_reader_t* reader, bool enable_progress_estimation);
-
-/**
  * Sets the percentage of buffer size to tiledb memory budget
  * @param reader VCF reader object
  * @param buffer_percentage setting

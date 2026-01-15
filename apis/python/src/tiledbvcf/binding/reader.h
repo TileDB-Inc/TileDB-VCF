@@ -172,9 +172,6 @@ class Reader {
   /** Get Version info for TileDB VCF and TileDB. */
   std::string version();
 
-  /** Set disable progress estimation */
-  void set_enable_progress_estimation(const bool& enable_progress_estimation);
-
   /** Set print vcf regions in verbose mode */
   void set_debug_print_vcf_regions(const bool& print_vcf_regions);
 
