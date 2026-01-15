@@ -366,15 +366,6 @@ Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1version(JNIEnv*, jclass);
 
 /*
  * Class:     io_tiledb_libvcfnative_LibVCFNative
- * Method:    tiledb_vcf_reader_set_enable_progress_estimation
- * Signature: (JZ)I
- */
-JNIEXPORT jint JNICALL
-Java_io_tiledb_libvcfnative_LibVCFNative_tiledb_1vcf_1reader_1set_1enable_1progress_1estimation(
-    JNIEnv*, jclass, jlong, jboolean);
-
-/*
- * Class:     io_tiledb_libvcfnative_LibVCFNative
  * Method:    tiledb_vcf_reader_set_debug_print_vcf_regions
  * Signature: (JZ)I
  */
