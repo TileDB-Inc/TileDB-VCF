@@ -48,10 +48,10 @@ limit : int
     Max number of records (rows) to read
 region_partition : tuple
     Region partition tuple (idx, num_partitions) partitions regions into
-    num_partitions partitions and only reads regions from partition idx
+    num_partitions partitions and only reads regions from partition idx (0-based)
 sample_partition : tuple
     Samples partition tuple (idx, num_partitions) partitions samples into
-    num_partitions partitions and only reads samples from partition idx
+    num_partitions partitions and only reads samples from partition idx (0-based)
 sort_regions : bool
     Whether or not to sort the regions to be read, default True
 memory_budget_mb : int
