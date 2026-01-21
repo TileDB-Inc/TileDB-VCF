@@ -141,13 +141,11 @@ static std::pair<ArrowSchema*, ArrowArray*> arrow_string_array(
   schema->release = &release_schema;
   schema->private_data = nullptr;
 
-  int n_buffers = offsets.capacity() ? 3 : 2;
-
   auto array = (struct ArrowArray*)malloc(sizeof(struct ArrowArray));
   array->length = length;
   array->null_count = 0;
   array->offset = 0;
-  array->n_buffers = n_buffers;
+  array->n_buffers = 3;
   array->n_children = 0;
   array->buffers = nullptr;
   array->children = nullptr;
@@ -155,18 +153,20 @@ static std::pair<ArrowSchema*, ArrowArray*> arrow_string_array(
   array->release = &release_array;
   array->private_data = (void*)new ArrowBuffer(buffer);
 
-  array->buffers = (const void**)malloc(n_buffers * sizeof(void*));
-  array->buffers[0] = nullptr;                  // validity
-  array->buffers[n_buffers - 1] = data.data();  // data
-  if (n_buffers == 3) {
-    array->buffers[1] = offsets.data();  // offsets
-  }
-
+  array->buffers = (const void**)malloc(3 * sizeof(void*));
   if (bitmap.capacity()) {
     schema->flags |= ARROW_FLAG_NULLABLE;
     array->null_count = -1;
     array->buffers[0] = bitmap.data();
+  } else {
+    array->buffers[0] = nullptr;  // validity
   }
+  //  Edge case: empty results should still have a single 0 offset
+  if (!length && !offsets.size()) {
+    offsets.push_back(0);
+  }
+  array->buffers[1] = offsets.data();  // offsets
+  array->buffers[2] = data.data();     // data
 
   return std::make_pair(schema, array);
 }
@@ -205,7 +205,11 @@ static std::pair<ArrowSchema*, ArrowArray*> arrow_list_array(
   array->private_data = nullptr;  // Buffers will be deleted by the child array
 
   array->buffers = (const void**)malloc(array->n_buffers * sizeof(void*));
-  array->buffers[0] = nullptr;               // validity
+  array->buffers[0] = nullptr;  // validity
+  // Edge case: empty results should still have a single 0 offset
+  if (!length && !value_offsets.size()) {
+    value_offsets.push_back(0);
+  }
   array->buffers[1] = value_offsets.data();  // data
 
   if (bitmap.capacity()) {
@@ -234,12 +238,12 @@ void build_arrow_array(
       auto [values_schema, values_array] =
           arrow_data_array(buffer, num_data_elements, buffer->data());
 
+      // Edge case: only subtract if there's offsets to avoid underflow
+      if (num_offsets) {
+        num_offsets -= 1;
+      }
       std::tie(array_schema, array_array) = arrow_list_array(
-          buffer,
-          num_offsets - 1,
-          buffer->offsets(),
-          values_schema,
-          values_array);
+          buffer, num_offsets, buffer->offsets(), values_schema, values_array);
     } else {
       std::tie(array_schema, array_array) =
           arrow_data_array(buffer, num_data_elements, buffer->data());
@@ -278,9 +282,13 @@ void build_arrow_array_from_buffer(
     uint64_t num_data_elements) {
   if (buffer->datatype() == TILEDB_VCF_CHAR) {
     if (buffer->list_offsets().capacity() > 0) {
+      // Edge case: only subtract if there's offsets to avoid underflow
+      if (num_offsets) {
+        num_offsets -= 1;
+      }
       // Array of strings
       auto [values_schema, values_array] = arrow_string_array(
-          buffer, num_offsets - 1, buffer->offsets(), buffer->data());
+          buffer, num_offsets, buffer->offsets(), buffer->data());
 
       // Array of lists of strings
       auto [arrow_schema, arrow_array] = arrow_list_array(
