@@ -40,7 +40,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-dependencies = ["pandas", "pyarrow>=14.0.1", "numpy"]
+dependencies = ["pandas<3", "pyarrow>=14.0.1", "numpy"]
 
 [project.optional-dependencies]
 test = ["pytest", "tiledb"]
