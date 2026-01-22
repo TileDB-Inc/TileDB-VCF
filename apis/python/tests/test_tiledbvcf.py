@@ -1344,6 +1344,9 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=interval_error):
         test_stats_v3_ingestion.read_variant_stats_arrow(regions=["chr1:100-1"])
 
+    # test empty region
+    assert test_stats_v3_ingestion.read_variant_stats(regions=["chr3:1-10000"]).empty
+
     # test types and deprecated region parameter
     region1 = "chr1:1-10000"
     df = test_stats_v3_ingestion.read_variant_stats(region1)
@@ -1551,7 +1554,8 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=interval_error):
         test_stats_v3_ingestion.read_allele_count_arrow(regions=["chr1:100-1"])
 
-    # test allele count
+    # test empty region
+    assert test_stats_v3_ingestion.read_allele_count(regions=["chr3:1-10000"]).empty
 
     # test types and deprecated region parameter
     region1 = "chr1:1-10000"
@@ -2457,6 +2461,7 @@ def test_delete_dataset(tmp_path):
 
     # Check that the dataset does not exist
     assert not os.path.exists(uri)
+
 
 def test_equality_old_new_format():
     old_ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/old_format"))
