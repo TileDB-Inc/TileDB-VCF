@@ -441,20 +441,22 @@ void VariantStats::flush(bool finalize) {
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
 
-    // Clear buffers
-    contig_buffer_.clear();
-    contig_offsets_.clear();
-    pos_buffer_.clear();
-    sample_buffer_.clear();
-    sample_offsets_.clear();
-    allele_buffer_.clear();
-    allele_offsets_.clear();
-    ac_buffer_.clear();
-    an_buffer_.clear();
-    n_hom_buffer_.clear();
+    // Shrink buffers to zero size but keep storage (resize(0)) so REST async
+    // upload can still read from the same memory if submit() returned before
+    // the server finished copying; avoids data corruption from buffer reuse.
+    contig_buffer_.resize(0);
+    contig_offsets_.resize(0);
+    pos_buffer_.resize(0);
+    sample_buffer_.resize(0);
+    sample_offsets_.resize(0);
+    allele_buffer_.resize(0);
+    allele_offsets_.resize(0);
+    ac_buffer_.resize(0);
+    an_buffer_.resize(0);
+    n_hom_buffer_.resize(0);
     if (array_version_ >= 3) {
-      max_length_buffer_.clear();
-      end_buffer_.clear();
+      max_length_buffer_.resize(0);
+      end_buffer_.resize(0);
     }
   }
 

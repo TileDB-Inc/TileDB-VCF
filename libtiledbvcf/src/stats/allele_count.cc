@@ -336,19 +336,20 @@ void AlleleCount::flush(bool finalize) {
     fragment_sample_names_.insert(sample_names_.begin(), sample_names_.end());
     sample_names_.clear();
 
-    // Clear buffers
-    contig_buffer_.clear();
-    contig_offsets_.clear();
-    pos_buffer_.clear();
-    ref_buffer_.clear();
-    ref_offsets_.clear();
-    alt_buffer_.clear();
-    alt_offsets_.clear();
-    filter_buffer_.clear();
-    filter_offsets_.clear();
-    gt_buffer_.clear();
-    gt_offsets_.clear();
-    count_buffer_.clear();
+    // Shrink buffers to zero size but keep storage (resize(0)) so REST/client
+    // can still read from the same memory if submit response or finalize uses it.
+    contig_buffer_.resize(0);
+    contig_offsets_.resize(0);
+    pos_buffer_.resize(0);
+    ref_buffer_.resize(0);
+    ref_offsets_.resize(0);
+    alt_buffer_.resize(0);
+    alt_offsets_.resize(0);
+    filter_buffer_.resize(0);
+    filter_offsets_.resize(0);
+    gt_buffer_.resize(0);
+    gt_offsets_.resize(0);
+    count_buffer_.resize(0);
   }
 
   if (finalize) {

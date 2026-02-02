@@ -96,7 +96,9 @@ void Buffer::append(const void* data, size_t bytes) {
 }
 
 void Buffer::clear() {
-  offsets_.clear();
+  // Use resize(0) so storage is preserved; REST async upload may still read
+  // from these buffers after submit() returns, avoiding S3 BadDigest.
+  offsets_.resize(0);
   data_size_ = 0;
   offset_nelts_ = 0;
   data_effective_size_ = 0;

@@ -993,6 +993,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                 // Write and finalize anchors stored in the anchor worker.
                 anchors_ingested += write_anchors(anchor_worker);
 
+                // Unset buffer sizes on the query (same ptrs, size 0). The Query
+                // must retain the submit response for finalize; do not discard
+                // the query or its state until submit_and_finalize() completes.
                 worker->buffers().clear_query_buffers(
                     query_.get(), dataset_->metadata().version);
                 // Finalize fragment for this contig async
@@ -1104,8 +1107,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         }
       }
 
-      // When an ingestion worker is finished, clear its query buffers
-      // only if the query buffers are not empty.
+      // When an ingestion worker is finished, unset buffer sizes on the query
+      // (Query retains submit response for finalize). Only do so if set.
       if (finished && utils::query_buffers_set(query_.get())) {
         worker->buffers().clear_query_buffers(
             query_.get(), dataset_->metadata().version);
@@ -1389,6 +1392,12 @@ void Writer::dataset_version(int32_t* version) const {
   *version = dataset_->metadata().version;
 }
 
+// REST write protocol: Submit (WRITE) returns serialized query state in the
+// response. The client must retain that exact state and send it as the
+// finalize request body. If the client discards the submit response before
+// calling finalize, the server cannot deserialize the query correctly. The
+// TileDB Query object must hold the submit response until submit_and_finalize()
+// completes, which sends the submit response.
 void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
   if (utils::query_buffers_set(query.get())) {
     LOG_FATAL("Cannot submit_and_finalize query with buffers set.");
