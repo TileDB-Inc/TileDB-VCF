@@ -324,9 +324,9 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
-        if isinstance(regions, list):
+        elif isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
-        else:
+        elif regions is None:
             regions = ""
 
         if isinstance(samples, str):
