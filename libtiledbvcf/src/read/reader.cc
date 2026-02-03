@@ -1890,7 +1890,8 @@ void Reader::prepare_regions_v4(
   // Use a linked list for pre-partition regions to allow for parallel parsing
   // of BED file
   std::list<Region> pre_partition_regions_list;
-  LOG_DEBUG("[Reader] Preparing regions: {}", params_.regions.size());
+  LOG_DEBUG("[Reader] Preparing regions: {}", regions->size());
+  LOG_DEBUG("[Reader] Preparing regions with params: {}", params_.regions.size());
 
   // Add manually-specified regions (-r) which are 1-indexed and inclusive
   // and spark generated regions, which are 0-indexed and inclusive
