@@ -76,13 +76,13 @@ struct MemoryBudgetBreakdown {
 
 struct DebugParams {
   // Print out tiledb query range
-  bool print_tiledb_query_ranges = false;
+  bool print_tiledb_query_ranges = true;
 
   // Print regions from bedfile or user passed
-  bool print_vcf_regions = false;
+  bool print_vcf_regions = true;
 
   // Print user set sample list
-  bool print_sample_list = false;
+  bool print_sample_list = true;
 };
 
 /** Arguments/params for export. */
