@@ -95,7 +95,8 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
 
   Writer writer;
   writer.set_all_params(args);
-  writer.ingest_samples();
+  // writer.ingest_samples();
+  writer.ingest_samples_refactor();
 
   if (args.tiledb_stats_enabled) {
     char* stats;

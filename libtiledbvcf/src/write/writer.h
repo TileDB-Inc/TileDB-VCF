@@ -274,6 +274,9 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+  /** Ingests samples based on parameters that have been set. */
+  void ingest_samples_refactor();
+
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
 
@@ -398,6 +401,7 @@ class Writer {
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;
+  std::vector<std::unique_ptr<Query>> queries_;
   /** Handle on the dataset being written to. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
   /** Vector of futures from async query finalizes. */
@@ -482,6 +486,18 @@ class Writer {
           std::pair<std::string, std::string>,
           std::vector<std::pair<std::string, std::string>>,
           pair_hash> map);
+
+  /**
+   * Ingests a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples_v4_refactor(
+      const IngestionParams& params,
+      const std::vector<SampleAndIndex>& samples);
 
   static void finalize_query(std::unique_ptr<tiledb::Query> query);
 

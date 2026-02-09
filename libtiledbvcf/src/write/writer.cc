@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <cstdint>
 #if !defined _MSC_VER
 #include <sys/resource.h>
 #endif
@@ -60,6 +61,9 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
 
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
+  for (auto& q : queries_) {
+    q.reset(nullptr);
+  }
   array_.reset(nullptr);
 
   if (tiledb_config_ != nullptr) {
@@ -88,6 +92,7 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
 void Writer::init(const IngestionParams& params) {
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
+  queries_.clear();
   array_.reset(nullptr);
 
   tiledb_config_.reset(new Config);
@@ -129,6 +134,10 @@ void Writer::init(const IngestionParams& params) {
   array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
+  for (int i = 0; i < params.num_threads; i++) {
+    queries_.emplace_back(new Query(*ctx_, *array_));
+    queries_[i]->set_layout(TILEDB_GLOBAL_ORDER);
+  }
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
@@ -463,6 +472,198 @@ void Writer::ingest_samples() {
   }
   records_ingested += result.first;
   anchors_ingested += result.second;
+
+  auto t0 = std::chrono::steady_clock::now();
+  LOG_DEBUG("Making sure all finalize tasks completed...");
+  for (auto& finalize_task : finalize_tasks_) {
+    if (finalize_task.valid()) {
+      TRY_CATCH_THROW(finalize_task.get());
+    }
+  }
+  LOG_DEBUG(
+      "All finalize tasks successfully completed. Waited for {} sec.",
+      utils::chrono_duration(t0));
+
+  AlleleCount::close();
+  VariantStats::close();
+  SampleStats::close();
+  array_->close();
+
+  // Clean up
+  if (download_samples) {
+    if (vfs_->is_dir(scratch_space_a.path))
+      vfs_->remove_dir(scratch_space_a.path);
+    if (vfs_->is_dir(scratch_space_b.path))
+      vfs_->remove_dir(scratch_space_b.path);
+  }
+  if (ingestion_params_.remove_samples_file &&
+      vfs_->is_file(ingestion_params_.samples_file_uri))
+    vfs_->remove_file(ingestion_params_.samples_file_uri);
+
+  auto time_sec = utils::chrono_duration(start_all);
+  LOG_INFO(fmt::format(
+      std::locale(""),
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+      "{:.3f} seconds = {:.1f} records/sec",
+      records_ingested,
+      anchors_ingested,
+      samples.size(),
+      time_sec,
+      records_ingested / time_sec));
+
+  // Check if records ingested matches the expected total record count.
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
+    if (records_ingested != total_records_expected_) {
+      std::string message = fmt::format(
+          "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+      LOG_ERROR(message);
+      throw std::runtime_error(message);
+    } else {
+      LOG_INFO(
+          "QACheck: [PASS] Total records ingested ({}) == total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+    }
+  }
+}
+
+void Writer::ingest_samples_refactor() {
+  auto start_all = std::chrono::steady_clock::now();
+
+  // If the user requests stats, enable them on read
+  // Multiple calls to enable stats has no effect
+  if (ingestion_params_.tiledb_stats_enabled) {
+    tiledb::Stats::enable();
+  } else {
+    // Else we will make sure they are disable and reset
+    tiledb::Stats::disable();
+    tiledb::Stats::reset();
+  }
+
+  // Reset expected total record count
+  total_records_expected_ = 0;
+
+#if !defined _MSC_VER
+  // Set open file soft limit to hard limit
+  struct rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+    LOG_WARN("Unable to read open file limit");
+  } else {
+    LOG_DEBUG("Open file limit = {}", limit.rlim_cur);
+    limit.rlim_cur = limit.rlim_max;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+      LOG_WARN("Unable to set open file limit");
+    } else {
+      if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        LOG_WARN("Unable to read new open file limit");
+      } else {
+        LOG_DEBUG("New open file limit = {}", limit.rlim_cur);
+      }
+    }
+  }
+#endif
+
+  update_params(ingestion_params_);
+  init(ingestion_params_);
+
+  if (dataset_->metadata().version != TileDBVCFDataset::V4) {
+    std::string message =
+        "Refactored ingestion is currently only supported by V4 datasets";
+    LOG_ERROR(message);
+    throw std::runtime_error(message);
+  }
+
+  // Get the list of samples to ingest, sorted on name (v4)
+  std::vector<SampleAndIndex> samples =
+      prepare_sample_list_v4(ingestion_params_);
+
+  // Batch the list of samples per space tile.
+  std::vector<std::vector<SampleAndIndex>> batches =
+      batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
+
+  std::vector<SampleAndIndex> local_samples;
+  ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
+  ScratchSpaceInfo scratch_space_b = ingestion_params_.scratch_space;
+  std::future<std::vector<tiledb::vcf::SampleAndIndex>> future_paths;
+  uint64_t scratch_size_mb = 0;
+
+  bool download_samples = !ingestion_params_.scratch_space.path.empty();
+  if (download_samples) {
+    // Set up parameters for two scratch spaces.
+    scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
+    scratch_space_a.size_mb = scratch_size_mb;
+    scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
+    if (!vfs_->is_dir(scratch_space_a.path))
+      vfs_->create_dir(scratch_space_a.path);
+    scratch_space_b.size_mb = scratch_size_mb;
+    scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
+    if (!vfs_->is_dir(scratch_space_b.path))
+      vfs_->create_dir(scratch_space_b.path);
+  }
+
+  // Start fetching first batch, either downloading of using remote vfs plugin
+  // if no scratch space.
+  TRY_CATCH_THROW(
+      future_paths = std::async(
+          std::launch::async,
+          SampleUtils::get_samples,
+          *vfs_,
+          batches[0],
+          &scratch_space_a));
+
+  LOG_DEBUG(
+      "Initialization completed in {:.3f} seconds.",
+      utils::chrono_duration(start_all));
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+  uint64_t samples_ingested = 0;
+  for (unsigned i = 1; i < batches.size(); i++) {
+    // Block until current batch is fetched.
+    TRY_CATCH_THROW(local_samples = future_paths.get());
+
+    // Start the next batch fetching.
+    TRY_CATCH_THROW(
+        future_paths = std::async(
+            std::launch::async,
+            SampleUtils::get_samples,
+            *vfs_,
+            batches[i],
+            &scratch_space_b));
+
+    // Ingest the batch.
+    auto start_batch = std::chrono::steady_clock::now();
+    std::pair<uint64_t, uint64_t> result =
+        ingest_samples_v4_refactor(ingestion_params_, local_samples);
+    records_ingested += result.first;
+    anchors_ingested += result.second;
+    samples_ingested += local_samples.size();
+
+    LOG_INFO(
+        "Finished ingesting {} / {} samples ({} sec)...",
+        samples_ingested,
+        samples.size(),
+        utils::chrono_duration(start_batch));
+
+    if (download_samples) {
+      // Reset current scratch space and swap.
+      if (vfs_->is_dir(scratch_space_a.path))
+        vfs_->remove_dir(scratch_space_a.path);
+      vfs_->create_dir(scratch_space_a.path);
+      scratch_space_a.size_mb = scratch_size_mb;
+      std::swap(scratch_space_a, scratch_space_b);
+    }
+  }
+
+  // Ingest the last batch
+  TRY_CATCH_THROW(local_samples = future_paths.get());
+  std::pair<uint64_t, uint64_t> result =
+      ingest_samples_v4_refactor(ingestion_params_, local_samples);
+  records_ingested += result.first;
+  anchors_ingested += result.second;
+  samples_ingested += local_samples.size();
 
   auto t0 = std::chrono::steady_clock::now();
   LOG_DEBUG("Making sure all finalize tasks completed...");
@@ -1148,6 +1349,349 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Start new query for new fragment for next contig
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+  return {records_ingested, anchors_ingested};
+}
+
+std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
+    const IngestionParams& params, const std::vector<SampleAndIndex>& samples) {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+
+  if (ingestion_params_.contig_mode != IngestionParams::ContigMode::ALL &&
+      ingestion_params_.contigs_to_allow_merging.size()) {
+    LOG_FATAL("Cannot set contigs_to_allow_merging with contig_mode != all");
+  }
+
+  // TODO: workers can be reused across space tiles
+  // TODO: use multiple threads for vcf open, currenly serial with num_threads *
+  // samples.size() vcf open calls
+  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  for (size_t i = 0; i < workers.size(); ++i) {
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
+
+    workers[i]->init(*dataset_, params, samples);
+    workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+  }
+
+  // Create a worker for buffering anchors
+  // TODO: Each chromosome will need its own anchor buffer (worker?)
+  // WriterWorkerV4 anchor_worker(params.num_threads);
+  // anchor_worker.init(*dataset_, params, samples);
+  // anchor_worker.set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+
+  // First compose the set of contigs that are nonempty.
+  // This can significantly speed things up in the common case that the sample
+  // headers list many contigs that do not actually have any records.
+  std::set<std::string> nonempty_contigs;
+  std::map<std::string, std::string> sample_headers;
+  std::vector<Region> regions;
+
+  // Total number of records in each contig for all samples.
+  std::map<std::string, uint32_t> total_contig_records;
+  for (const auto& s : samples) {
+    VCFV4 vcf;
+    vcf.open(s.sample_uri, s.index_uri);
+    // For V4 we also need to check the header, collect and write them
+
+    // Allocate a header struct and try to parse from the local file.
+    SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
+
+    std::vector<std::string> hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
+    // Initially set sample_name to empty string to support annoated vcf's
+    // without sample in the header
+    std::string sample_name;
+    if (hdr_samples.size() > 1)
+      throw std::invalid_argument(
+          "Error registering samples; a file has more than 1 sample. "
+          "Ingestion "
+          "from cVCF is not supported.");
+    else if (hdr_samples.size() == 1)
+      sample_name = hdr_samples[0];
+    sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
+
+    // Loop over all contigs in the header, store the nonempty and also the
+    // regions
+    for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      // Skip empty contigs
+      if (!vcf.contig_has_records(contig_region.seq_name))
+        continue;
+
+      // Ingesting MERGED contigs, skip contigs in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) !=
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      // Ingesting SEPARATE contigs, skip contigs not in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::SEPARATE &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) ==
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      LOG_TRACE(fmt::format(
+          std::locale(""),
+          "Sample {} contig {}: {:L} positions {:L} records",
+          sample_name,
+          contig_region.seq_name,
+          contig_region.max + 1,
+          vcf.record_count(contig_region.seq_name)));
+
+      total_contig_records[contig_region.seq_name] +=
+          vcf.record_count(contig_region.seq_name);
+
+      total_records_expected_ += vcf.record_count(contig_region.seq_name);
+
+      nonempty_contigs.emplace(contig_region.seq_name);
+
+      // regions
+      bool region_found = false;
+      for (auto& region : regions) {
+        if (region.seq_name == contig_region.seq_name) {
+          region.max = std::max(region.max, contig_region.max);
+          region_found = true;
+          break;
+        }
+      }
+
+      if (!region_found)
+        regions.emplace_back(contig_region);
+    }
+  }
+
+  // If there were no regions in the VCF files return early
+  if (regions.empty())
+    return {0, 0};
+
+  // Estimate the number of records that will fill the output buffer
+  float output_buffer_records = 1024.0 * 1024.0 *
+                                params.max_tiledb_buffer_size_mb /
+                                params.avg_vcf_record_size;
+
+  LOG_DEBUG("Output buffer records = {}", output_buffer_records);
+  assert(
+      output_buffer_records > 0 &&
+      output_buffer_records < static_cast<float>(UINT32_MAX));
+
+  // Set worker task size for each contig
+  // NOTE: This creates one region per chromosome, a critical difference from
+  // the non-refactored implmenetation
+  std::map<std::string, uint32_t> contig_task_size;
+  for (auto& region : regions) {
+    // convert total records to task size
+    uint32_t total_records = total_contig_records[region.seq_name];
+    uint32_t task_size = region.max + 1;
+    if (total_records > output_buffer_records) {
+      task_size = params.ratio_task_size * region.max * output_buffer_records /
+                  total_records;
+    }
+    contig_task_size[region.seq_name] = params.use_legacy_thread_task_size ?
+                                            params.thread_task_size :
+                                            task_size;
+  }
+
+  // TODO: Do we even need to sort since regions are now per-contig?
+  std::sort(regions.begin(), regions.end());
+
+  // For V4 lets write the headers for this batch and also prepare the region
+  // list specific to this batch
+  dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
+
+  const size_t nregions = regions.size();
+  size_t region_idx = 0;
+  std::vector<std::future<bool>> tasks;
+
+  // Create a task for each worker, i.e. one-to-one correspondence
+  std::vector<uint32_t> last_start_positions;
+  for (unsigned i = 0; i < workers.size(); i++) {
+    WriterWorker* worker = workers[i].get();
+    while (region_idx < nregions) {
+      Region reg = regions[region_idx++];
+      if (nonempty_contigs.count(reg.seq_name) > 0) {
+        TRY_CATCH_THROW(
+            tasks.push_back(std::async(std::launch::async, [worker, reg]() {
+              return worker->parse(reg);
+            })));
+        last_start_positions.push_back(0);
+        break;
+      }
+    }
+  }
+
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+  // uint32_t last_start_pos = 0;
+  // int last_merged_fragment_index = 0;
+  // std::string last_region_contig = regions[0].seq_name;
+  // std::string starting_region_contig_for_merge = regions[0].seq_name;
+  // bool finished = tasks.empty();
+  int active_workers = tasks.size();
+  // WriterWorker* last_worker = nullptr;
+  while (active_workers > 0) {
+    auto start = std::chrono::steady_clock::now();
+    size_t prev_records = records_ingested;
+    // Iterate tasks and their workers
+    for (unsigned i = 0; i < tasks.size(); i++) {
+      if (!tasks[i].valid())
+        continue;
+
+      // TODO: Merge individual contigs after implementing multithreaded
+      // chromosomes
+      //       and ONLY IF contig_mode is not MERGED
+      // TODO: Implement MERGED contig_mode after all threads complete
+
+      WriterWorker* worker = workers[i].get();
+      std::unique_ptr<Query>& query = queries_[i];
+      uint32_t& last_start_pos = last_start_positions[i];
+      // const std::string& current_region_contig = worker->region().seq_name;
+
+      // last_worker = worker;
+
+      // Check if the task is complete prior to writing the buffers in case more
+      // data is buffered between the buffer write and the subsequent finalize
+      // block
+      bool task_complete = false;
+      TRY_CATCH_THROW(task_complete = tasks[i].get());
+
+      // Write worker buffers, if any data.
+      if (worker->records_buffered() > 0) {
+        const std::string& contig = worker->region().seq_name;
+
+        worker->buffers().set_buffers(
+            query.get(), dataset_->metadata().version);
+
+        auto status = query->submit();
+        if (status == Query::Status::FAILED) {
+          LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+        }
+
+        {
+          auto first = worker->buffers().start_pos().value<uint32_t>(0);
+          auto nelts = worker->buffers().start_pos().nelts<uint32_t>();
+          auto last = worker->buffers().start_pos().value<uint32_t>(nelts - 1);
+          LOG_DEBUG(
+              "Recorded {:L} cells from {}:{}-{} (task {} / {})",
+              worker->records_buffered(),
+              contig,
+              first,
+              last,
+              i + 1,
+              tasks.size());
+
+          if (last_start_pos > first) {
+            LOG_FATAL(
+                "VCF global order check failed: {} > {}",
+                last_start_pos,
+                first);
+          }
+          last_start_pos = last;
+        }
+
+        // Flush stats arrays without finalizing the query.
+        worker->flush_ingestion_tasks();
+      } else {
+        LOG_DEBUG(
+            "Worker {}: no records found for {}",
+            i + 1,
+            worker->region().seq_name);
+      }
+      records_ingested += worker->records_buffered();
+
+      // Drain anchors from the worker into the anchor_worker
+      // dynamic_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
+
+      // Resume the same worker where it left off until it is able to complete.
+      // Then flush, finalize, and begin another region.
+      if (!task_complete) {
+        TRY_CATCH_THROW(tasks[i] = std::async(std::launch::async, [worker]() {
+                          return worker->resume();
+                        }));
+        LOG_DEBUG("Work for {} not complete, resuming", i);
+      } else {
+        // Finalize the stats arrays if we are moving to a new contig
+        // and the current or next contig is not mergeable.
+        // TODO: implement merging
+        // if (current_region_contig != next_region_contig &&
+        //    (!check_contig_mergeable(next_region_contig) ||
+        //     !check_contig_mergeable(current_region_contig))) {
+        worker->flush_ingestion_tasks(true);
+        //}
+
+        // Start next region parsing using the same worker.
+        bool finished = true;
+        while (region_idx < nregions) {
+          Region reg = regions[region_idx++];
+          if (nonempty_contigs.count(reg.seq_name) > 0) {
+            TRY_CATCH_THROW(
+                tasks[i] = std::async(std::launch::async, [worker, reg]() {
+                  return worker->parse(reg);
+                }));
+            finished = false;
+            // Reset the global order checker moving to a new contig
+            last_start_positions[i] = 0;
+            break;
+          }
+        }
+
+        // When an ingestion worker is finished, clear its query buffers
+        // only if the query buffers are not empty.
+        if (finished) {
+          active_workers -= 1;
+          if (utils::query_buffers_set(query.get())) {
+            worker->buffers().clear_query_buffers(
+                query.get(), dataset_->metadata().version);
+          }
+        }
+      }
+    }
+
+    if (records_ingested > prev_records) {
+      LOG_INFO(
+          "Ingestion rate = {:.3f} records/sec (VmRSS = {})",
+          (records_ingested - prev_records) / utils::chrono_duration(start),
+          utils::memory_usage_str());
+    }
+  }
+
+  // LOG_DEBUG(
+  //     "Finalizing last contig batch of [{}, {}]",
+  //     starting_region_contig_for_merge,
+  //     last_region_contig);
+
+  //=================================================================
+  // Start finalize of last contig.
+
+  // Finalize stats arrays.
+  // TODO: Current not necessary because we're not merging, i.e. all workers
+  // are finalized when they complete their contig
+  // if (last_worker) {
+  //  last_worker->flush_ingestion_tasks(true);
+  //}
+
+  // Write and finalize anchors stored in the anchor worker.
+  // anchors_ingested += write_anchors(anchor_worker);
+
+  // Finalize fragment for this contig.
+  // NOTE: Finalize after the stats arrays and anchor fragment
+  // are finalized to ensure a valid data fragment will have
+  // corresponding valid stats and anchor fragments.
+  // TRY_CATCH_THROW(finalize_tasks_.emplace_back(
+  //    std::async(std::launch::async, finalize_query, std::move(query_))));
+
+  // End finalize of last contig.
+  //=================================================================
+
+  // Start new query for new fragment for next contig
+  for (auto& q : queries_) {
+    q.reset(new Query(*ctx_, *array_));
+    q->set_layout(TILEDB_GLOBAL_ORDER);
+  }
 
   return {records_ingested, anchors_ingested};
 }
