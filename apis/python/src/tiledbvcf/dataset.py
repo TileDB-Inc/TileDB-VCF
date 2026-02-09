@@ -4,6 +4,7 @@ import warnings
 from collections import namedtuple
 from typing import Generator, List
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -279,7 +280,7 @@ class Dataset(object):
         self,
         attrs: List[str] = DEFAULT_ATTRS,
         samples: (str, List[str]) = None,
-        regions: (str, List[str]) = None,
+        regions: (str, List[str], np.ndarray) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -324,10 +325,18 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        elif isinstance(regions, np.ndarray):
+            if regions.ndim != 1:
+                raise Exception(
+                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
+                )
+            regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
-        else:
+        elif regions is None:
             regions = ""
+        else:
+            raise Exception(f'"regions" parameter cannot have type: {type(regions)}')
 
         if isinstance(samples, str):
             samples = [samples]
@@ -526,7 +535,7 @@ class Dataset(object):
         self,
         attrs: List[str] = DEFAULT_ATTRS,
         samples: (str, List[str]) = None,
-        regions: (str, List[str]) = None,
+        regions: (str, List[str], np.ndarray) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -571,10 +580,19 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        elif isinstance(regions, np.ndarray):
+            if regions.ndim != 1:
+                raise Exception(
+                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
+                )
+            regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
-        else:
+        elif regions is None:
             regions = ""
+        else:
+            raise Exception(f'"regions" parameter cannot have type: {type(regions)}')
+
         if isinstance(samples, str):
             samples = [samples]
 
@@ -596,7 +614,7 @@ class Dataset(object):
     def export(
         self,
         samples: (str, List[str]) = None,
-        regions: (str, List[str]) = None,
+        regions: (str, List[str], np.ndarray) = None,
         samples_file: str = None,
         bed_file: str = None,
         skip_check_samples: bool = False,
@@ -639,10 +657,19 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        elif isinstance(regions, np.ndarray):
+            if regions.ndim != 1:
+                raise Exception(
+                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
+                )
+            regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
-        else:
+        elif regions is None:
             regions = ""
+        else:
+            raise Exception(f'"regions" parameter cannot have type: {type(regions)}')
+
         if isinstance(samples, str):
             samples = [samples]
 
@@ -671,7 +698,7 @@ class Dataset(object):
         self,
         attrs: List[str] = DEFAULT_ATTRS,
         samples: (str, List[str]) = None,
-        regions: (str, List[str]) = None,
+        regions: (str, List[str], np.ndarray) = None,
         samples_file: str = None,
         bed_file: str = None,
     ):
@@ -696,10 +723,19 @@ class Dataset(object):
 
         if isinstance(regions, str):
             regions = [regions]
+        elif isinstance(regions, np.ndarray):
+            if regions.ndim != 1:
+                raise Exception(
+                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
+                )
+            regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
-        else:
+        elif regions is None:
             regions = ""
+        else:
+            raise Exception(f'"regions" parameter cannot have type: {type(regions)}')
+
         if isinstance(samples, str):
             samples = [samples]
 
