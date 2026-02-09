@@ -125,6 +125,27 @@ def test_retrieve_samples(test_ds):
     assert test_ds.samples() == ["HG00280", "HG01762"]
 
 
+def test_read_unsupported_regions_type(test_ds):
+    unsupported_region = 3.14
+    unsupported_type_error = f'"regions" parameter cannot have type: {type(unsupported_region)}'
+    wrong_dimension_region = np.array([["1:12700-13400"], ["1:12700-13400"]])
+    ndarray_wrong_dimension_error = f'"regions" parameter of type {type(wrong_dimension_region)} must be 1-dimensional'
+    with pytest.raises(Exception, match=unsupported_type_error):
+        test_ds.read(regions=unsupported_region)
+    with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
+        test_ds.read(regions=wrong_dimension_region)
+    with pytest.raises(Exception, match=unsupported_type_error):
+        test_ds.read_arrow(regions=unsupported_region)
+    with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
+        test_ds.read_arrow(regions=wrong_dimension_region)
+    with pytest.raises(Exception, match=unsupported_type_error):
+        for variant in test_ds.read_iter(regions=unsupported_region):
+            print(variant)
+    with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
+        for variant in test_ds.read_iter(regions=wrong_dimension_region):
+            print(variant)
+
+
 def test_read_attrs(test_ds_attrs):
     attrs = ["sample_name"]
     df = test_ds_attrs.read(attrs=attrs)
@@ -230,6 +251,40 @@ def test_basic_reads(test_ds):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+    df = test_ds.read_arrow(
+        attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]
+    ).to_pandas()
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+
+    # Regions as string
+    df = test_ds.read(
+        attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
+    )
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+    df = test_ds.read_arrow(
+        attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
+    ).to_pandas()
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+
+    # Regions as numpy.ndarray
+    df = test_ds.read(
+        attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
+    )
+    _check_dfs(
+        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    )
+    df = test_ds.read_arrow(
+        attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
+    ).to_pandas()
     _check_dfs(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
@@ -382,41 +437,39 @@ def test_incomplete_read_generator():
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-
-    dfs = []
-    for df in test_ds.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
-        dfs.append(df)
-    overall_df = pd.concat(dfs, ignore_index=True)
-
-    assert len(overall_df) == 6
-    _check_dfs(
-        pd.DataFrame.from_dict(
+    expected_df = pd.DataFrame.from_dict(
             {
                 "pos_end": np.array(
                     [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
                 )
             }
-        ),
-        overall_df,
-    )
+        )
 
-    # Test that the iterator can be used again
+    # NOTE: Running multiple test shows that the iterator can be reused
+
+    # Regions as string
+    dfs = []
+    for df in test_ds.read_iter(attrs=["pos_end"], regions="1:12700-13400"):
+        dfs.append(df)
+    overall_df = pd.concat(dfs, ignore_index=True)
+    assert len(overall_df) == 6
+    _check_dfs(expected_df, overall_df)
+
+    # Regions as list
     dfs = []
     for df in test_ds.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
         dfs.append(df)
     overall_df = pd.concat(dfs, ignore_index=True)
-
     assert len(overall_df) == 6
-    _check_dfs(
-        pd.DataFrame.from_dict(
-            {
-                "pos_end": np.array(
-                    [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
-                )
-            }
-        ),
-        overall_df,
-    )
+    _check_dfs(expected_df, overall_df)
+
+    # Regions as numpy.ndarray
+    dfs = []
+    for df in test_ds.read_iter(attrs=["pos_end"], regions=np.array(["1:12700-13400"])):
+        dfs.append(df)
+    overall_df = pd.concat(dfs, ignore_index=True)
+    assert len(overall_df) == 6
+    _check_dfs(expected_df, overall_df)
 
 
 def test_read_filters(test_ds):
