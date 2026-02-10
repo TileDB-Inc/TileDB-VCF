@@ -34,7 +34,8 @@ WriterWorkerV4::WriterWorkerV4(int id)
     : id_(id)
     , dataset_(nullptr)
     , records_buffered_(0)
-    , anchors_buffered_(0) {
+    , anchors_buffered_(0)
+    , records_written_(0) {
 }
 
 void WriterWorkerV4::init(
@@ -66,6 +67,10 @@ uint64_t WriterWorkerV4::anchors_buffered() const {
   return anchors_buffered_;
 }
 
+uint64_t WriterWorkerV4::records_written() const {
+  return records_written_;
+}
+
 void WriterWorkerV4::insert_record(
     const SafeSharedBCFRec& record,
     std::shared_ptr<VCFV4> vcf,
@@ -86,6 +91,62 @@ void WriterWorkerV4::insert_record(
       start_pos,
       end_pos,
       sample_name);
+}
+
+void WriterWorkerV4::write_buffer(const std::unique_ptr<Query>& query) {
+  // Write worker buffers, if any data.
+  if (records_buffered() > 0) {
+    const std::string& contig = region().seq_name;
+
+    buffers().set_buffers(query.get(), dataset_->metadata().version);
+
+    auto status = query->submit();
+    if (status == Query::Status::FAILED) {
+      LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+    }
+
+    {
+      auto first = buffers().start_pos().value<uint32_t>(0);
+      auto nelts = buffers().start_pos().nelts<uint32_t>();
+      auto last = buffers().start_pos().value<uint32_t>(nelts - 1);
+      LOG_DEBUG(
+          "Recorded {:L} cells from {}:{}-{} (task {})",
+          records_buffered(),
+          contig,
+          first,
+          last,
+          id_ + 1);
+
+      if (last_start_pos_ > first) {
+        LOG_FATAL(
+            "VCF global order check failed: {} > {}", last_start_pos_, first);
+      }
+      last_start_pos_ = last;
+    }
+    records_written_ += records_buffered();
+
+    // Flush stats arrays without finalizing the query.
+    flush_ingestion_tasks();
+  } else {
+    LOG_DEBUG("Worker {}: no records found for {}", id_ + 1, region().seq_name);
+  }
+}
+
+void WriterWorkerV4::parse_and_write(
+    const Region& region,
+    const std::unique_ptr<Query>& query,
+    bool finalize_stats) {
+  records_written_ = 0;
+  last_start_pos_ = 0;
+  bool complete = parse(region);
+  write_buffer(query);
+  while (!complete) {
+    complete = resume();
+    write_buffer(query);
+  }
+  if (finalize_stats) {
+    flush_ingestion_tasks(true);
+  }
 }
 
 bool WriterWorkerV4::parse(const Region& region) {

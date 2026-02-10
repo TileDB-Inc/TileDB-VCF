@@ -84,6 +84,21 @@ class WriterWorkerV4 : public WriterWorker {
   bool parse(const Region& region);
 
   /**
+   * Parse the given region from all samples into the attribute buffers and
+   * automatically write the buffers when they are full and after the parse
+   * completes.
+   *
+   * @param region Genomic region to read
+   * @param query The Query used for writing
+   * @param finalize_stats If the stats arrays should be finalized after the
+   * parse completes
+   */
+  void parse_and_write(
+      const Region& region,
+      const std::unique_ptr<Query>& query,
+      bool finalize_stats);
+
+  /**
    * Resumes parsing from the current state. This is used if the buffers are too
    * small to fit all records in the genomic region in memory.
    *
@@ -100,6 +115,9 @@ class WriterWorkerV4 : public WriterWorker {
 
   /** Returns the number of anchors buffered by the last parse operation. */
   uint64_t anchors_buffered() const;
+
+  /** Returns the number of records written by the last parse operation. */
+  uint64_t records_written() const;
 
   /** Initialize ingestion tasks, like allele count ingestion. */
   void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
@@ -130,11 +148,17 @@ class WriterWorkerV4 : public WriterWorker {
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
 
+  /** The last start position parsed */
+  uint32_t last_start_pos_;
+
   /** Current number of records buffered. */
   uint64_t records_buffered_;
 
   /** Current number of anchors buffered. */
   uint64_t anchors_buffered_;
+
+  /** Number of records written by the worker during the current parse. */
+  uint64_t records_written_;
 
   /** Record heap for sorting records across samples. */
   RecordHeapV4 record_heap_;
@@ -150,6 +174,13 @@ class WriterWorkerV4 : public WriterWorker {
 
   // Sample stats ingestion task object
   SampleStats ss_;
+
+  /**
+   * Uses a write Query to write the contents of the worker's buffers.
+   *
+   * @param query The Query used for writing
+   */
+  void write_buffer(const std::unique_ptr<Query>& query);
 
   /**
    * Inserts a record (non-anchor) into the heap if it fits

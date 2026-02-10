@@ -1365,9 +1365,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
   // TODO: workers can be reused across space tiles
   // TODO: use multiple threads for vcf open, currenly serial with num_threads *
   // samples.size() vcf open calls
-  std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
+  std::vector<std::unique_ptr<WriterWorkerV4>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
+    workers[i] = std::unique_ptr<WriterWorkerV4>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
@@ -1506,33 +1506,32 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
 
   const size_t nregions = regions.size();
   size_t region_idx = 0;
-  std::vector<std::future<bool>> tasks;
+  std::vector<std::future<void>> tasks;
 
   // Create a task for each worker, i.e. one-to-one correspondence
-  std::vector<uint32_t> last_start_positions;
   for (unsigned i = 0; i < workers.size(); i++) {
-    WriterWorker* worker = workers[i].get();
+    WriterWorkerV4* worker = workers[i].get();
     while (region_idx < nregions) {
       Region reg = regions[region_idx++];
+      std::unique_ptr<Query>& query = queries_[i];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
-        TRY_CATCH_THROW(
-            tasks.push_back(std::async(std::launch::async, [worker, reg]() {
-              return worker->parse(reg);
-            })));
-        last_start_positions.push_back(0);
+        TRY_CATCH_THROW(tasks.push_back(std::async(
+            std::launch::async,
+            &WriterWorkerV4::parse_and_write,
+            worker,
+            reg,
+            std::ref(query),
+            true)));
         break;
       }
     }
   }
 
   uint64_t records_ingested = 0, anchors_ingested = 0;
-  // uint32_t last_start_pos = 0;
   // int last_merged_fragment_index = 0;
   // std::string last_region_contig = regions[0].seq_name;
   // std::string starting_region_contig_for_merge = regions[0].seq_name;
-  // bool finished = tasks.empty();
   int active_workers = tasks.size();
-  // WriterWorker* last_worker = nullptr;
   while (active_workers > 0) {
     auto start = std::chrono::steady_clock::now();
     size_t prev_records = records_ingested;
@@ -1546,95 +1545,25 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
       //       and ONLY IF contig_mode is not MERGED
       // TODO: Implement MERGED contig_mode after all threads complete
 
-      WriterWorker* worker = workers[i].get();
+      WriterWorkerV4* worker = workers[i].get();
       std::unique_ptr<Query>& query = queries_[i];
-      uint32_t& last_start_pos = last_start_positions[i];
-      // const std::string& current_region_contig = worker->region().seq_name;
-
-      // last_worker = worker;
-
-      // Check if the task is complete prior to writing the buffers in case more
-      // data is buffered between the buffer write and the subsequent finalize
-      // block
-      bool task_complete = false;
-      TRY_CATCH_THROW(task_complete = tasks[i].get());
-
-      // Write worker buffers, if any data.
-      if (worker->records_buffered() > 0) {
-        const std::string& contig = worker->region().seq_name;
-
-        worker->buffers().set_buffers(
-            query.get(), dataset_->metadata().version);
-
-        auto status = query->submit();
-        if (status == Query::Status::FAILED) {
-          LOG_FATAL("Error submitting TileDB write query: status = FAILED");
-        }
-
-        {
-          auto first = worker->buffers().start_pos().value<uint32_t>(0);
-          auto nelts = worker->buffers().start_pos().nelts<uint32_t>();
-          auto last = worker->buffers().start_pos().value<uint32_t>(nelts - 1);
-          LOG_DEBUG(
-              "Recorded {:L} cells from {}:{}-{} (task {} / {})",
-              worker->records_buffered(),
-              contig,
-              first,
-              last,
-              i + 1,
-              tasks.size());
-
-          if (last_start_pos > first) {
-            LOG_FATAL(
-                "VCF global order check failed: {} > {}",
-                last_start_pos,
-                first);
-          }
-          last_start_pos = last;
-        }
-
-        // Flush stats arrays without finalizing the query.
-        worker->flush_ingestion_tasks();
-      } else {
-        LOG_DEBUG(
-            "Worker {}: no records found for {}",
-            i + 1,
-            worker->region().seq_name);
-      }
-      records_ingested += worker->records_buffered();
-
-      // Drain anchors from the worker into the anchor_worker
-      // dynamic_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
-
-      // Resume the same worker where it left off until it is able to complete.
-      // Then flush, finalize, and begin another region.
-      if (!task_complete) {
-        TRY_CATCH_THROW(tasks[i] = std::async(std::launch::async, [worker]() {
-                          return worker->resume();
-                        }));
-        LOG_DEBUG("Work for {} not complete, resuming", i);
-      } else {
-        // Finalize the stats arrays if we are moving to a new contig
-        // and the current or next contig is not mergeable.
-        // TODO: implement merging
-        // if (current_region_contig != next_region_contig &&
-        //    (!check_contig_mergeable(next_region_contig) ||
-        //     !check_contig_mergeable(current_region_contig))) {
-        worker->flush_ingestion_tasks(true);
-        //}
-
+      std::future_status status = tasks[i].wait_for(std::chrono::seconds(0));
+      if (status == std::future_status::ready) {
+        records_ingested += worker->records_written();
         // Start next region parsing using the same worker.
         bool finished = true;
         while (region_idx < nregions) {
           Region reg = regions[region_idx++];
           if (nonempty_contigs.count(reg.seq_name) > 0) {
             TRY_CATCH_THROW(
-                tasks[i] = std::async(std::launch::async, [worker, reg]() {
-                  return worker->parse(reg);
-                }));
+                tasks[i] = std::async(
+                    std::launch::async,
+                    &WriterWorkerV4::parse_and_write,
+                    worker,
+                    reg,
+                    std::ref(query),
+                    true));
             finished = false;
-            // Reset the global order checker moving to a new contig
-            last_start_positions[i] = 0;
             break;
           }
         }
