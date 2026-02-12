@@ -90,12 +90,15 @@ class WriterWorkerV4 : public WriterWorker {
    *
    * @param region Genomic region to read
    * @param query The Query used for writing
+   * @param finalize_query If the query's fragment should be finalized after
+   * the parse completes
    * @param finalize_stats If the stats arrays should be finalized after the
    * parse completes
    */
   void parse_and_write(
       const Region& region,
       const std::unique_ptr<Query>& query,
+      bool finalize_query,
       bool finalize_stats);
 
   /**
@@ -133,6 +136,9 @@ class WriterWorkerV4 : public WriterWorker {
   size_t buffer_anchors();
 
  private:
+  // Mutex to protect query_ and fragment_sample_names_
+  // inline static std::mutex query_lock_;
+
   /** Worker id */
   int id_;
 

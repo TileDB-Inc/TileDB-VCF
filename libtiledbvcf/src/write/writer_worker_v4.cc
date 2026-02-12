@@ -100,6 +100,8 @@ void WriterWorkerV4::write_buffer(const std::unique_ptr<Query>& query) {
 
     buffers().set_buffers(query.get(), dataset_->metadata().version);
 
+    // std::lock_guard<std::mutex> lock(query_lock_);
+
     auto status = query->submit();
     if (status == Query::Status::FAILED) {
       LOG_FATAL("Error submitting TileDB write query: status = FAILED");
@@ -125,6 +127,11 @@ void WriterWorkerV4::write_buffer(const std::unique_ptr<Query>& query) {
     }
     records_written_ += records_buffered();
 
+    // HACK: drain the currentl unused anchor heap to prevent it from ballooning
+    while (!anchor_heap_.empty()) {
+      anchor_heap_.pop();
+    }
+
     // Flush stats arrays without finalizing the query.
     flush_ingestion_tasks();
   } else {
@@ -135,17 +142,40 @@ void WriterWorkerV4::write_buffer(const std::unique_ptr<Query>& query) {
 void WriterWorkerV4::parse_and_write(
     const Region& region,
     const std::unique_ptr<Query>& query,
+    bool finalize_query,
     bool finalize_stats) {
   records_written_ = 0;
   last_start_pos_ = 0;
   bool complete = parse(region);
   write_buffer(query);
   while (!complete) {
+    LOG_DEBUG(
+        "Resuming parse of {}:{}-{} (task {})",
+        region_.seq_name,
+        region_.min,
+        region_.max,
+        id_ + 1);
     complete = resume();
     write_buffer(query);
   }
+  // Finalize the stats array
   if (finalize_stats) {
     flush_ingestion_tasks(true);
+  }
+  // TODO: Write and finalize anchors stored in the anchor worker.
+  // anchors_ingested += write_anchors(anchor_worker);
+
+  // Finalize fragment for this query
+  if (finalize_query) {
+    // Clear the query buffers if they're not empty
+    if (utils::query_buffers_set(query.get())) {
+      buffers().clear_query_buffers(query.get(), dataset_->metadata().version);
+    }
+    // std::lock_guard<std::mutex> lock(query_lock_);
+    query->submit_and_finalize();
+    if (query->query_status() == Query::Status::FAILED) {
+      LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+    }
   }
 }
 

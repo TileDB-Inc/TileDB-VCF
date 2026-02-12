@@ -64,6 +64,12 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
   for (auto& q : queries_) {
     q.reset(nullptr);
   }
+  for (auto& a : arrays_) {
+    a.reset(nullptr);
+  }
+  for (auto& c : contexts_) {
+    c.reset(nullptr);
+  }
   array_.reset(nullptr);
 
   if (tiledb_config_ != nullptr) {
@@ -93,6 +99,8 @@ void Writer::init(const IngestionParams& params) {
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
   queries_.clear();
+  arrays_.clear();
+  contexts_.clear();
   array_.reset(nullptr);
 
   tiledb_config_.reset(new Config);
@@ -104,6 +112,14 @@ void Writer::init(const IngestionParams& params) {
 
   // User overrides
   utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
+
+  query_config_.reset(new Config);
+  (*query_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
+  (*query_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
+                                            << 20;
+  utils::set_tiledb_config(params.tiledb_config, query_config_.get());
+  (*query_config_)["sm.compute_concurrency_level"] = 1;
+  (*query_config_)["sm.io_concurrency_level"] = 1;
 
   ctx_.reset(new Context(*tiledb_config_));
   dataset_.reset(new TileDBVCFDataset(ctx_));
@@ -132,10 +148,18 @@ void Writer::init(const IngestionParams& params) {
 
   vfs_.reset(new VFS(*ctx_, *vfs_config_));
   array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
-  query_.reset(new Query(*ctx_, *array_));
-  query_->set_layout(TILEDB_GLOBAL_ORDER);
+  // query_.reset(new Query(*ctx_, *array_));
+  // query_->set_layout(TILEDB_GLOBAL_ORDER);
   for (int i = 0; i < params.num_threads; i++) {
-    queries_.emplace_back(new Query(*ctx_, *array_));
+    if (query_config_ != nullptr) {
+      contexts_.emplace_back(new Context(*query_config_));
+    } else {
+      contexts_.emplace_back(new Context);
+    }
+    arrays_.emplace_back(
+        new Array(*contexts_[i], dataset_->data_uri(), TILEDB_WRITE));
+    queries_.emplace_back(new Query(*contexts_[i], *arrays_[i]));
+    // queries_.emplace_back(new Query(*ctx_, *array_));
     queries_[i]->set_layout(TILEDB_GLOBAL_ORDER);
   }
 
@@ -680,6 +704,9 @@ void Writer::ingest_samples_refactor() {
   VariantStats::close();
   SampleStats::close();
   array_->close();
+  for (auto& a : arrays_) {
+    a->close();
+  }
 
   // Clean up
   if (download_samples) {
@@ -1366,11 +1393,13 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
   // TODO: use multiple threads for vcf open, currenly serial with num_threads *
   // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorkerV4>> workers(params.num_threads);
+  std::vector<bool> complete(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
     workers[i] = std::unique_ptr<WriterWorkerV4>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
+    complete[i] = true;
   }
 
   // Create a worker for buffering anchors
@@ -1515,13 +1544,16 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
       Region reg = regions[region_idx++];
       std::unique_ptr<Query>& query = queries_[i];
       if (nonempty_contigs.count(reg.seq_name) > 0) {
+        LOG_DEBUG("Parse {} of {}:{}-{}", i, reg.seq_name, reg.min, reg.max);
         TRY_CATCH_THROW(tasks.push_back(std::async(
             std::launch::async,
             &WriterWorkerV4::parse_and_write,
             worker,
             reg,
             std::ref(query),
+            true,
             true)));
+        complete[i] = false;
         break;
       }
     }
@@ -1537,24 +1569,30 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
     size_t prev_records = records_ingested;
     // Iterate tasks and their workers
     for (unsigned i = 0; i < tasks.size(); i++) {
-      if (!tasks[i].valid())
+      if (!tasks[i].valid() || complete[i])
         continue;
 
       // TODO: Merge individual contigs after implementing multithreaded
-      // chromosomes
-      //       and ONLY IF contig_mode is not MERGED
+      // chromosomes and ONLY IF contig_mode is not MERGED
       // TODO: Implement MERGED contig_mode after all threads complete
 
       WriterWorkerV4* worker = workers[i].get();
       std::unique_ptr<Query>& query = queries_[i];
       std::future_status status = tasks[i].wait_for(std::chrono::seconds(0));
       if (status == std::future_status::ready) {
+        LOG_DEBUG("Parse {} complete", i);
         records_ingested += worker->records_written();
+        // Start new query for new fragment for next contig
+        query.reset(new Query(*contexts_[i], *arrays_[i]));
+        // query.reset(new Query(*ctx_, *array_));
+        query->set_layout(TILEDB_GLOBAL_ORDER);
         // Start next region parsing using the same worker.
-        bool finished = true;
+        complete[i] = true;
         while (region_idx < nregions) {
           Region reg = regions[region_idx++];
           if (nonempty_contigs.count(reg.seq_name) > 0) {
+            LOG_DEBUG(
+                "Parse {} of {}:{}-{}", i, reg.seq_name, reg.min, reg.max);
             TRY_CATCH_THROW(
                 tasks[i] = std::async(
                     std::launch::async,
@@ -1562,20 +1600,21 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
                     worker,
                     reg,
                     std::ref(query),
+                    true,
                     true));
-            finished = false;
+            complete[i] = false;
             break;
           }
         }
 
         // When an ingestion worker is finished, clear its query buffers
         // only if the query buffers are not empty.
-        if (finished) {
+        if (complete[i]) {
           active_workers -= 1;
-          if (utils::query_buffers_set(query.get())) {
-            worker->buffers().clear_query_buffers(
-                query.get(), dataset_->metadata().version);
-          }
+          // if (utils::query_buffers_set(query.get())) {
+          //   worker->buffers().clear_query_buffers(
+          //       query.get(), dataset_->metadata().version);
+          // }
         }
       }
     }
@@ -1617,9 +1656,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_refactor(
   //=================================================================
 
   // Start new query for new fragment for next contig
-  for (auto& q : queries_) {
-    q.reset(new Query(*ctx_, *array_));
-    q->set_layout(TILEDB_GLOBAL_ORDER);
+  // for (auto& q : queries_) {
+  //  q.reset(new Query(*ctx_, *array_));
+  //  q->set_layout(TILEDB_GLOBAL_ORDER);
+  //}
+  for (size_t i = 0; i < queries_.size(); i++) {
+    queries_[i].reset(new Query(*contexts_[i], *arrays_[i]));
+    // queries_[i].reset(new Query(*ctx_, *array_));
+    queries_[i]->set_layout(TILEDB_GLOBAL_ORDER);
   }
 
   return {records_ingested, anchors_ingested};

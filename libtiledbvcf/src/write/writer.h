@@ -397,10 +397,13 @@ class Writer {
 
   std::unique_ptr<Config> tiledb_config_;
   std::unique_ptr<Config> vfs_config_;
+  std::unique_ptr<Config> query_config_;
   std::shared_ptr<Context> ctx_;
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;
+  std::vector<std::unique_ptr<Context>> contexts_;
+  std::vector<std::unique_ptr<Array>> arrays_;
   std::vector<std::unique_ptr<Query>> queries_;
   /** Handle on the dataset being written to. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
