@@ -139,6 +139,60 @@ void Writer::init(const IngestionParams& params) {
   SampleStats::init(ctx_, group);
 }
 
+void Writer::init_legacy(const IngestionParams& params) {
+  // Clean up old query and array objects first, if any.
+  query_.reset(nullptr);
+  array_.reset(nullptr);
+
+  tiledb_config_.reset(new Config);
+  (*tiledb_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
+  (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
+                                             << 20;
+  (*tiledb_config_)["sm.compute_concurrency_level"] = params.num_threads;
+  (*tiledb_config_)["sm.io_concurrency_level"] = params.num_threads;
+
+  // User overrides
+  utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
+
+  ctx_.reset(new Context(*tiledb_config_));
+  dataset_.reset(new TileDBVCFDataset(ctx_));
+
+  dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      params.tiledb_stats_enabled_vcf_header_array);
+
+  dataset_->open(
+      params.uri, params.tiledb_config, params.load_data_array_fragment_info);
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  std::vector<std::string> vfs_config = params.tiledb_config;
+  try {
+    auto vcf_region = tiledb_config_->get("vcf.s3.region");
+    vfs_config.push_back("vfs.s3.region=" + vcf_region);
+    LOG_INFO("VFS and htslib reading data from S3 region: {}", vcf_region);
+  } catch (...) {
+    // tiledb_config_ is not defined in "vcf.s3.region", no action required
+  }
+  utils::set_htslib_tiledb_context(vfs_config);
+
+  vfs_config_.reset(new Config);
+  utils::set_tiledb_config(vfs_config, vfs_config_.get());
+
+  vfs_.reset(new VFS(*ctx_, *vfs_config_));
+  array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
+  query_.reset(new Query(*ctx_, *array_));
+  query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+  creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+  creation_params_.allow_duplicates = true;
+
+  Group group(*ctx_, params.uri, TILEDB_READ);
+  AlleleCount::init(ctx_, group);
+  VariantStats::init(ctx_, group);
+  SampleStats::init(ctx_, group);
+}
+
 void Writer::set_tiledb_config(const std::string& config_str) {
   creation_params_.tiledb_config = utils::split(config_str, ',');
   registration_params_.tiledb_config = utils::split(config_str, ',');
@@ -219,6 +273,71 @@ void Writer::register_samples() {
 }
 
 void Writer::update_params(IngestionParams& params) {
+  // Override total memory budget if total_memory_percentage is provided
+  if (params.total_memory_percentage > 0) {
+    params.total_memory_budget_mb =
+        utils::system_memory_mb() * params.total_memory_percentage;
+  }
+
+  // Distribute memory budget
+  uint32_t total_mb = params.total_memory_budget_mb;
+  uint32_t tiledb_mb = total_mb * params.ratio_tiledb_memory;
+  tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
+  uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
+                      params.sample_batch_size;
+  float output_ratio = 0.5;
+  uint32_t output_mb = (total_mb - tiledb_mb - input_mb) * output_ratio;
+  uint32_t stats_mb = (total_mb - tiledb_mb - input_mb) * (1.0 - output_ratio);
+
+  params.tiledb_memory_budget_mb = tiledb_mb;
+  params.output_memory_budget_mb = output_mb;
+
+  LOG_INFO(
+      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
+      "output={} MiB + stats={} MiB",
+      total_mb,
+      tiledb_mb,
+      input_mb,
+      output_mb,
+      stats_mb);
+
+  // Set per thread, per sample vcf input buffer size
+  if (params.use_legacy_max_record_buffer_size) {
+    LOG_INFO(
+        "Using legacy option: --max-record-buff={}",
+        params.max_record_buffer_size);
+    params.max_record_buffer_size =
+        params.max_record_buffer_size * params.avg_vcf_record_size;
+  } else {
+    params.max_record_buffer_size = params.input_record_buffer_mb << 20;
+  }
+
+  LOG_INFO(
+      "Input buffers = {} threads * {} samples * {} MiB",
+      params.num_threads,
+      params.sample_batch_size,
+      params.max_record_buffer_size >> 20);
+
+  // Set per thread output buffer size
+  if (params.use_legacy_max_tiledb_buffer_size_mb) {
+    LOG_INFO(
+        "Using legacy option: --mem-budget-mb={}",
+        params.max_tiledb_buffer_size_mb);
+    LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
+
+  } else {
+    params.max_tiledb_buffer_size_mb = params.ratio_output_flush *
+                                       params.output_memory_budget_mb /
+                                       params.num_threads;
+    LOG_INFO(
+        "Output buffers = {} threads * {} MiB (flush = {} MiB)",
+        params.num_threads,
+        output_mb / params.num_threads,
+        params.max_tiledb_buffer_size_mb);
+  }
+}
+
+void Writer::update_params_legacy(IngestionParams& params) {
   // Override total memory budget if total_memory_percentage is provided
   if (params.total_memory_percentage > 0) {
     params.total_memory_budget_mb =
@@ -514,8 +633,8 @@ void Writer::ingest_samples_legacy() {
   }
 #endif
 
-  update_params(ingestion_params_);
-  init(ingestion_params_);
+  update_params_legacy(ingestion_params_);
+  init_legacy(ingestion_params_);
 
   if (ingestion_params_.resume_sample_partial_ingestion &&
       (dataset_->metadata().version == TileDBVCFDataset::V2 ||

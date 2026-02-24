@@ -201,6 +201,13 @@ class Writer {
   void update_params(IngestionParams& params);
 
   /**
+   * Update parameters computed from other parameters for legacy ingestion.
+   *
+   * @param params IngesttionParams& Ingestion params (will be modified)
+   */
+  void update_params_legacy(IngestionParams& params);
+
+  /**
    * Set writer tiledb config parameters, these can also be passed directly on
    * the ingestion params
    * @param config_str csv string of tiledb options in key2=value1,key2=value2
@@ -424,6 +431,15 @@ class Writer {
    * @param params Ingestion parameter
    */
   void init(const IngestionParams& params);
+
+  /**
+   * Initializes the writer for storing to the given dataset using the legacy
+   * ingestion. Opens the array, creates the TileDB query, etc.
+   *
+   * @param dataset Dataset where samples will be stored
+   * @param params Ingestion parameter
+   */
+  void init_legacy(const IngestionParams& params);
 
   /**
    * Prepares the samples list to be ingested. This combines the sample URI list
