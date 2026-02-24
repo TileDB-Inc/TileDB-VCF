@@ -876,7 +876,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // headers list many contigs that do not actually have any records.
   std::set<std::string> nonempty_contigs;
   std::map<std::string, std::string> sample_headers;
-  std::vector<Region> regions_v4;
+  std::vector<Region> regions;
 
   // Total number of records in each contig for all samples.
   std::map<std::string, uint32_t> total_contig_records;
@@ -945,7 +945,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
       // regions
       bool region_found = false;
-      for (auto& region : regions_v4) {
+      for (auto& region : regions) {
         if (region.seq_name == contig_region.seq_name) {
           region.max = std::max(region.max, contig_region.max);
           region_found = true;
@@ -954,12 +954,12 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       }
 
       if (!region_found)
-        regions_v4.emplace_back(contig_region);
+        regions.emplace_back(contig_region);
     }
   }
 
   // If there were no regions in the VCF files return early
-  if (regions_v4.empty())
+  if (regions.empty())
     return {0, 0};
 
   // Estimate the number of records that will fill the output buffer
@@ -977,22 +977,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         "Using legacy option: --thread-task-size={}", params.thread_task_size);
   }
 
-  // Set worker task size for each contig
-  std::map<std::string, uint32_t> contig_task_size;
-  for (auto& region : regions_v4) {
-    // convert total records to task size
-    uint32_t total_records = total_contig_records[region.seq_name];
-    uint32_t task_size = region.max + 1;
-    if (total_records > output_buffer_records) {
-      task_size = params.ratio_task_size * region.max * output_buffer_records /
-                  total_records;
-    }
-    contig_task_size[region.seq_name] = params.use_legacy_thread_task_size ?
-                                            params.thread_task_size :
-                                            task_size;
-  }
-
-  regions = prepare_region_list(regions_v4, contig_task_size);
+  // Sort regions to ensure global ordering
+  std::sort(regions.begin(), regions.end());
 
   // For V4 lets write the headers for this batch and also prepare the region
   // list specific to this batch
