@@ -578,10 +578,6 @@ void add_store(CLI::App& app) {
          "Percentage of total system memory used for ingestion "
          "(overrides '--total-memory-budget-mb')")
       ->check(CLI::Range(0.0, 1.0));
-  cmd->add_flag(
-      "--resume",
-      args->resume_sample_partial_ingestion,
-      "Resume incomplete ingestion of sample batch");
 
   cmd->option_defaults()->group("Sample options");
   cmd->add_option(
@@ -723,8 +719,8 @@ void add_store(CLI::App& app) {
 
 void add_store_legacy(CLI::App& app) {
   auto args = std::make_shared<IngestionParams>();
-  auto cmd =
-      app.add_subcommand("store-legacy", "Ingests samples into a TileDB-VCF dataset");
+  auto cmd = app.add_subcommand(
+      "store-legacy", "Ingests samples into a TileDB-VCF dataset");
 
   cmd->set_help_flag("-h,--help")->group("");  // hide from help message
   add_tiledb_uri_option(cmd, args->uri);

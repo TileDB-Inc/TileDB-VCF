@@ -274,7 +274,8 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
-  /** Uses legacy algorithm to ingest samples based on parameters that have been set. */
+  /** Uses legacy algorithm to ingest samples based on parameters that have been
+   * set. */
   void ingest_samples_legacy();
 
   /** Set number of ingestion threads. */
@@ -479,12 +480,7 @@ class Writer {
    */
   std::pair<uint64_t, uint64_t> ingest_samples_v4(
       const IngestionParams& params,
-      const std::vector<SampleAndIndex>& samples,
-      std::vector<Region>& regions,
-      std::unordered_map<
-          std::pair<std::string, std::string>,
-          std::vector<std::pair<std::string, std::string>>,
-          pair_hash> map);
+      const std::vector<SampleAndIndex>& samples);
 
   /**
    * Uses the legacy algoriithm to ingest a batch of samples.

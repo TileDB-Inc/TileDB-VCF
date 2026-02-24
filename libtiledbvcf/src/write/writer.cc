@@ -296,10 +296,6 @@ void Writer::ingest_samples() {
     tiledb::Stats::reset();
   }
 
-  if (ingestion_params_.resume_sample_partial_ingestion) {
-    ingestion_params_.load_data_array_fragment_info = true;
-  }
-
   // Reset expected total record count
   total_records_expected_ = 0;
 
@@ -326,47 +322,19 @@ void Writer::ingest_samples() {
   update_params(ingestion_params_);
   init(ingestion_params_);
 
-  if (ingestion_params_.resume_sample_partial_ingestion &&
-      (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-       dataset_->metadata().version == TileDBVCFDataset::Version::V3)) {
-    throw std::runtime_error(
-        "Resume support only support for v4 or higher datasets");
+  if (dataset_->metadata().version != TileDBVCFDataset::V4) {
+    std::string message = "Use legacy ingestion V2 and V3 datasets";
+    LOG_ERROR(message);
+    throw std::runtime_error(message);
   }
 
-  std::unordered_map<
-      std::pair<std::string, std::string>,
-      std::vector<std::pair<std::string, std::string>>,
-      tiledb::vcf::pair_hash>
-      existing_fragments;
-  if (ingestion_params_.resume_sample_partial_ingestion) {
-    LOG_DEBUG(
-        "Starting fetching of contig to sample list for resumption checking");
-    existing_fragments = dataset_->fragment_sample_contig_list();
-    LOG_DEBUG(
-        "Finished fetching of contig sample list for resumption checking");
-  }
-
-  // Get the list of samples to ingest, sorted on ID (v2/v3) or name (v4)
-  std::vector<SampleAndIndex> samples;
-  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-    samples = prepare_sample_list(ingestion_params_);
-  else
-    samples = prepare_sample_list_v4(ingestion_params_);
-
-  // Get a list of regions to ingest, covering the whole genome. The list of
-  // disjoint region is used to divvy up work across ingestion threads.
-  auto regions = prepare_region_list(ingestion_params_);
+  // Get the list of samples to ingest, sorted on name (v4)
+  std::vector<SampleAndIndex> samples =
+      prepare_sample_list_v4(ingestion_params_);
 
   // Batch the list of samples per space tile.
-  std::vector<std::vector<SampleAndIndex>> batches;
-  if (dataset_->metadata().version == TileDBVCFDataset::V2 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V3)
-    batches = batch_elements_by_tile(
-        samples, dataset_->metadata().ingestion_sample_batch_size);
-  else
-    batches =
-        batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
+  std::vector<std::vector<SampleAndIndex>> batches =
+      batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
 
   std::vector<SampleAndIndex> local_samples;
   ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
@@ -418,15 +386,8 @@ void Writer::ingest_samples() {
 
     // Ingest the batch.
     auto start_batch = std::chrono::steady_clock::now();
-    std::pair<uint64_t, uint64_t> result;
-    if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
-        dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
-      result = ingest_samples(ingestion_params_, local_samples, regions);
-    } else {
-      assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      result = ingest_samples_v4(
-          ingestion_params_, local_samples, regions, existing_fragments);
-    }
+    std::pair<uint64_t, uint64_t> result =
+        ingest_samples_v4(ingestion_params_, local_samples);
     records_ingested += result.first;
     anchors_ingested += result.second;
     samples_ingested += local_samples.size();
@@ -449,20 +410,11 @@ void Writer::ingest_samples() {
 
   // Ingest the last batch
   TRY_CATCH_THROW(local_samples = future_paths.get());
-  std::pair<uint64_t, uint64_t> result;
-  if (dataset_->metadata().version == TileDBVCFDataset::Version::V3 ||
-      dataset_->metadata().version == TileDBVCFDataset::Version::V2) {
-    result = ingest_samples(ingestion_params_, local_samples, regions);
-
-    // Make sure to finalize for v2/v3
-    query_->finalize();
-  } else {
-    assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    result = ingest_samples_v4(
-        ingestion_params_, local_samples, regions, existing_fragments);
-  }
+  std::pair<uint64_t, uint64_t> result =
+      ingest_samples_v4(ingestion_params_, local_samples);
   records_ingested += result.first;
   anchors_ingested += result.second;
+  samples_ingested += local_samples.size();
 
   auto t0 = std::chrono::steady_clock::now();
   LOG_DEBUG("Making sure all finalize tasks completed...");
@@ -663,7 +615,7 @@ void Writer::ingest_samples_legacy() {
       result = ingest_samples(ingestion_params_, local_samples, regions);
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      result = ingest_samples_v4(
+      result = ingest_samples_v4_legacy(
           ingestion_params_, local_samples, regions, existing_fragments);
     }
     records_ingested += result.first;
@@ -697,7 +649,7 @@ void Writer::ingest_samples_legacy() {
     query_->finalize();
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    result = ingest_samples_v4(
+    result = ingest_samples_v4_legacy(
         ingestion_params_, local_samples, regions, existing_fragments);
   }
   records_ingested += result.first;
@@ -894,13 +846,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 }
 
 std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
-    const IngestionParams& params,
-    const std::vector<SampleAndIndex>& samples,
-    std::vector<Region>& regions,
-    std::unordered_map<
-        std::pair<std::string, std::string>,
-        std::vector<std::pair<std::string, std::string>>,
-        pair_hash> existing_sample_contig_fragments) {
+    const IngestionParams& params, const std::vector<SampleAndIndex>& samples) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
   uint64_t records_ingested = 0, anchors_ingested = 0;
 
@@ -1010,72 +956,6 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       if (!region_found)
         regions_v4.emplace_back(contig_region);
     }
-  }
-
-  // If resuming, skip contigs that already exist in the array
-  if (params.resume_sample_partial_ingestion &&
-      !existing_sample_contig_fragments.empty()) {
-    const std::string first_sample_name =
-        VCFUtils::get_sample_name_from_vcf(samples.front().sample_uri).at(0);
-    const std::string last_sample_name =
-        VCFUtils::get_sample_name_from_vcf(samples.back().sample_uri).at(0);
-
-    LOG_INFO("Resume: checking for regions to skip");
-    LOG_DEBUG("Resume: regions before resume check = {}", regions_v4.size());
-
-    // Loop over all regions and check if contig has already been ingested
-    for (auto it = regions_v4.begin(); it != regions_v4.end();) {
-      auto& contig = it->seq_name;
-      bool skip = false;
-
-      LOG_DEBUG(
-          "Resume: Checking sample_range=('{}', '{}') contig={}",
-          first_sample_name,
-          last_sample_name,
-          contig);
-
-      // Check if the batch sample range exactly matches any fragment's sample
-      // non-empty domain
-      bool sample_match = existing_sample_contig_fragments.find(
-                              {first_sample_name, last_sample_name}) !=
-                          existing_sample_contig_fragments.end();
-
-      if (sample_match) {
-        auto frag_contigs = existing_sample_contig_fragments.at(
-            {first_sample_name, last_sample_name});
-
-        LOG_DEBUG(
-            "Resume:   found fragments with sample_range=('{}', '{}')",
-            first_sample_name,
-            last_sample_name);
-        // Loop over contigs for the sample range
-        for (auto& frag_contig : frag_contigs) {
-          LOG_TRACE(
-              "Resume:     check contig {} in fragment ({}, {})",
-              contig,
-              frag_contig.first,
-              frag_contig.second);
-          // If the batch contig is contained in the fragment's contig range,
-          // skip this region
-          if (contig >= frag_contig.first && contig <= frag_contig.second) {
-            skip = true;
-            break;
-          }
-        }
-      }
-
-      // Remove the region if marked to skip
-      if (skip) {
-        LOG_DEBUG("Resume:   skipping contig {}", contig);
-        // Remove records from the total expected record count.
-        total_records_expected_ -= total_contig_records[contig];
-
-        it = regions_v4.erase(it);
-      } else {
-        it++;
-      }
-    }
-    LOG_DEBUG("Resume: regions after resume check = {}", regions_v4.size());
   }
 
   // If there were no regions in the VCF files return early
