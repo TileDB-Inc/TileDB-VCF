@@ -274,6 +274,9 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+  /** Uses legacy algorithm to ingest samples based on parameters that have been set. */
+  void ingest_samples_legacy();
+
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
 
@@ -475,6 +478,23 @@ class Writer {
    * @return A pair (num_records_ingested, num_anchors_ingested)
    */
   std::pair<uint64_t, uint64_t> ingest_samples_v4(
+      const IngestionParams& params,
+      const std::vector<SampleAndIndex>& samples,
+      std::vector<Region>& regions,
+      std::unordered_map<
+          std::pair<std::string, std::string>,
+          std::vector<std::pair<std::string, std::string>>,
+          pair_hash> map);
+
+  /**
+   * Uses the legacy algoriithm to ingest a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples_v4_legacy(
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
       std::vector<Region>& regions,
