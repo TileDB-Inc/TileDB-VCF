@@ -80,6 +80,8 @@ void MergedVCFV4Stream::parse(const Region& region) {
     // Add the next record to the queue; push() will block if the queue is full
     queue_.push(std::move(next));
   }
+  // Signal that the parse is complete by pushing a null pointer
+  queue_.push(nullptr);
 }
 
 std::unique_ptr<RecordHeapV4::Node> MergedVCFV4Stream::pop() {
