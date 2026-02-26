@@ -38,6 +38,7 @@
 #include "write/writer_worker_v2.h"
 #include "write/writer_worker_v3.h"
 #include "write/writer_worker_v4.h"
+#include "write/writer_worker_v4_legacy.h"
 
 namespace tiledb {
 namespace vcf {
@@ -1397,14 +1398,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
   // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4Legacy(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   }
 
   // Create a worker for buffering anchors
-  WriterWorkerV4 anchor_worker(params.num_threads);
+  WriterWorkerV4Legacy anchor_worker(params.num_threads);
   anchor_worker.init(*dataset_, params, samples);
   anchor_worker.set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
 
@@ -1792,7 +1793,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
         records_ingested += worker->records_buffered();
 
         // Drain anchors from the worker into the anchor_worker
-        dynamic_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
+        dynamic_cast<WriterWorkerV4Legacy*>(worker)->drain_anchors(
+            anchor_worker);
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
@@ -1874,7 +1876,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
   return {records_ingested, anchors_ingested};
 }
 
-size_t Writer::write_anchors(WriterWorkerV4& worker) {
+size_t Writer::write_anchors(WriterWorkerV4Legacy& worker) {
   // Buffer anchor records in the anchor worker
   int records = worker.buffer_anchors();
 
