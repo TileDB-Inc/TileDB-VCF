@@ -49,6 +49,8 @@ namespace vcf {
 class MergedVCFV4Stream {
  public:
   /**
+   * Constructs the class and opens the VCF files for reading.
+   *
    * @param samples The VCF files to be parsed
    * @param queue_size The size of the (will be rounded up to the nearest power
    * of 2)
@@ -59,6 +61,9 @@ class MergedVCFV4Stream {
       const std::vector<SampleAndIndex>& samples,
       uint32_t queue_size,
       uint64_t vcf_buffer_size);
+
+  /** Closes the VCF files and detructs the class. */
+  ~MergedVCFV4Stream();
 
   /**
    * Parses the given region in each VCF file and continuously fills the queue

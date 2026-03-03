@@ -43,13 +43,13 @@ MergedVCFV4Stream::MergedVCFV4Stream(
   }
 }
 
-void MergedVCFV4Stream::parse(const Region& region) {
-  LOG_DEBUG(
-      "MergedVCFV4Stream: parse {}:{}-{}",
-      region.seq_name,
-      region.min,
-      region.max);
+MergedVCFV4Stream::~MergedVCFV4Stream() {
+  for (auto& vcf : vcfs_) {
+    vcf->close();
+  }
+}
 
+void MergedVCFV4Stream::parse(const Region& region) {
   if (!queue_.was_empty())
     throw std::runtime_error(
         "Error in parsing; record queue was unexpectedly not empty.");
@@ -57,12 +57,14 @@ void MergedVCFV4Stream::parse(const Region& region) {
   // Initialize the head list with the first record from each sample
   for (auto& vcf : vcfs_) {
     // If seek returns false there is no records for this contig
-    if (!vcf->seek(region.seq_name, region.min))
+    if (!vcf->seek(region.seq_name, region.min)) {
       continue;
+    }
     SafeSharedBCFRec r = vcf->front_record();
     // Sample has no records at this region, skip it
-    if (r == nullptr)
+    if (r == nullptr) {
       continue;
+    }
     insert_head(r, vcf, region.seq_name, vcf->sample_name());
   }
 
