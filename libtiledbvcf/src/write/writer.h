@@ -410,6 +410,7 @@ class Writer {
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;
+  std::unique_ptr<Query> anchor_query_;
   /** Handle on the dataset being written to. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
   /** Vector of futures from async query finalizes. */
