@@ -371,6 +371,16 @@ void AlleleCount::flush(bool finalize) {
   }
 }
 
+size_t AlleleCount::total_size() const {
+  return contig_buffer_.size() + sizeof(uint64_t) * contig_offsets_.size() +
+         sizeof(uint32_t) * pos_buffer_.size() + ref_buffer_.size() +
+         sizeof(uint64_t) * ref_offsets_.size() + alt_buffer_.size() +
+         sizeof(uint64_t) * alt_offsets_.size() + filter_buffer_.size() +
+         sizeof(uint64_t) * filter_offsets_.size() + gt_buffer_.size() +
+         sizeof(uint64_t) * gt_offsets_.size() +
+         sizeof(int32_t) * count_buffer_.size();
+}
+
 void AlleleCount::process(
     const bcf_hdr_t* hdr,
     const std::string& sample_name,
