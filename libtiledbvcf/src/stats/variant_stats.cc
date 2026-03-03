@@ -485,6 +485,18 @@ void VariantStats::flush(bool finalize) {
   }
 }
 
+size_t VariantStats::total_size() const {
+  return contig_buffer_.size() + sizeof(uint64_t) * contig_offsets_.size() +
+         sizeof(uint32_t) * pos_buffer_.size() + sample_buffer_.size() +
+         sizeof(uint64_t) * sample_offsets_.size() + allele_buffer_.size() +
+         sizeof(uint64_t) * allele_offsets_.size() +
+         sizeof(int32_t) * ac_buffer_.size() +
+         sizeof(int32_t) * an_buffer_.size() +
+         sizeof(int32_t) * n_hom_buffer_.size() +
+         sizeof(uint32_t) * max_length_buffer_.size() +
+         sizeof(uint32_t) * end_buffer_.size();
+}
+
 void VariantStats::process(
     const bcf_hdr_t* hdr,
     const std::string& sample_name,

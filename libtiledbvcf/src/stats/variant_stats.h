@@ -192,6 +192,11 @@ class VariantStats {
    */
   void flush(bool clear = false);
 
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
+
  private:
   //===================================================================
   //= private static

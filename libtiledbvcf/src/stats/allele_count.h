@@ -187,6 +187,11 @@ class AlleleCount {
    */
   void flush(bool finalize = false);
 
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
+
  private:
   // give the AlleleCountReader access to AlleleCount's private members
   friend class AlleleCountReader;
