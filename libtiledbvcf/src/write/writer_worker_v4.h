@@ -43,6 +43,7 @@
 #include "stats/variant_stats.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
+#include "write/merged_vcf_v4_stream.h"
 #include "write/record_heap_v4.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
@@ -61,12 +62,22 @@ namespace vcf {
  */
 class WriterWorkerV4 : public WriterWorker {
  public:
-  /** Constructor. */
-  WriterWorkerV4(int id = 0);
+  /**
+   * Constructor.
+   *
+   * @param id The ID the worker will use when logging
+   * @param num_vcf_streams The number of VCF streams/threads the worker should
+   * use
+   */
+  WriterWorkerV4(int id = 0, int num_vcf_streams = 0);
 
   /**
    * Initializes: opens the specified VCF files and allocates empty attribute
    * buffers.
+   *
+   * @param dataset The dataset variants are being parsed for
+   * @param params The ingestion params to use when parsing
+   * @param samples The VCFs to parse
    */
   void init(
       const TileDBVCFDataset& dataset,
@@ -74,9 +85,9 @@ class WriterWorkerV4 : public WriterWorker {
       const std::vector<SampleAndIndex>& samples);
 
   /**
-   * Parse the given region from all samples into the attribute buffers.
+   * Parse the given region from all samples into the worker's buffers.
    *
-   * @param region Genomic region to read
+   * @param region Genomic region to parse
    * @return True if all records from all samples were loaded into the buffers.
    *    False if the buffers ran out of space, and there are more records
    *    to be read.
@@ -92,40 +103,79 @@ class WriterWorkerV4 : public WriterWorker {
    */
   bool resume();
 
-  /** Return a handle to the attribute buffers */
+  /**
+   * Returns a handle to the attribute buffers of the parsed records.
+   *
+   * @return The attribute buffers
+   */
   const AttributeBufferSet& buffers() const;
 
-  /** Returns the number of records buffered by the last parse operation. */
+  /**
+   * Returns the number of records buffered by the last parse operation.
+   *
+   * @return The number of records buffered
+   */
   uint64_t records_buffered() const;
 
-  /** Returns the number of anchors buffered by the last parse operation. */
+  /**
+   * Returns the number of anchors buffered by the last parse operation.
+   *
+   * @return The number of anchors buffered
+   */
   uint64_t anchors_buffered() const;
 
-  /** Initialize ingestion tasks, like allele count ingestion. */
-  void init_ingestion_tasks(std::shared_ptr<Context> ctx, std::string uri);
+  /**
+   * Flushes stats data to write buffers and submits write queries. Sample
+   * stats are only flushed if finalizing.
+   *
+   * @param finalize Whether or not the write queries should be finalized
+   */
+  void flush_ingestion_tasks(bool finalize);
 
-  /** Flush ingestion tasks. */
-  void flush_ingestion_tasks(bool finalize = false);
-
-  /** Drain local heap of anchors into the anchor worker. */
-  void drain_anchors(WriterWorkerV4& anchor_worker);
-
-  /** Move all records in the anchor heap to the local buffers and return the
-   * number of records buffered. */
-  size_t buffer_anchors();
+  /**
+   * Writes all buffered data, i.e. records, anchors, allele counts, variant
+   * stats, and sample stats. Note that sample stats are only written when
+   * finalizing.
+   *
+   * @param record_query The query to use for writing records
+   * @param anchor_query The query to use for writing anchors
+   * @param finalize Whether or not the write queries should be finalized
+   */
+  void write_buffers(
+      std::unique_ptr<Query>& record_query,
+      std::unique_ptr<Query>& anchor_query,
+      bool finalize);
 
  private:
+  struct Head {
+    std::unique_ptr<RecordHeapV4::Node> node;
+    int stream_index;
+  };
+
   /** Worker id */
   int id_;
 
+  /** Number of VCF streams to use */
+  int num_vcf_streams_;
+
   /** Attribute buffers holding parsed data. */
-  AttributeBufferSet buffers_;
+  AttributeBufferSet record_buffers_;
+
+  /** Attribute buffers holding generated anchor data. */
+  AttributeBufferSet anchor_buffers_;
 
   /** The destination dataset. */
   const TileDBVCFDataset* dataset_;
 
-  /** Vector of VCF files being parsed. */
-  std::vector<std::shared_ptr<VCFV4>> vcfs_;
+  /** A list that stores the next node (i.e. head) of each VCF stream in sorted
+   * order. */
+  std::list<Head> head_list_;
+
+  /** Vector of merged VCF streams. */
+  std::vector<std::unique_ptr<MergedVCFV4Stream>> vcf_streams_;
+
+  /** Vector of VCF parse tasks that run the streams. */
+  std::vector<std::future<void>> vcf_stream_tasks;
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
@@ -136,49 +186,72 @@ class WriterWorkerV4 : public WriterWorker {
   /** Current number of anchors buffered. */
   uint64_t anchors_buffered_;
 
-  /** Record heap for sorting records across samples. */
-  RecordHeapV4 record_heap_;
-
   /** Record heap for storing anchors. */
   RecordHeapV4 anchor_heap_;
 
-  // Allele count ingestion task object
+  /** Allele count ingestion task object. */
   AlleleCount ac_;
 
-  // Variant stats ingestion task object
+  /** Variant stats ingestion task object. */
   VariantStats vs_;
 
-  // Sample stats ingestion task object
+  /** Sample stats ingestion task object. */
   SampleStats ss_;
 
   /**
-   * Inserts a record (non-anchor) into the heap if it fits
-   * in `region_`.
+   * A compartor used to order nodes in the head list.
    *
-   * @param record The record to insert
-   * @param vcf The VCF state that contains `record`.
-   * @param contig_offset The VCF contig offset
-   * @param sample_id The sample id for the record.
+   * @param The first node to be compared
+   * @param The second node to be compared
+   * @return Whether or not the first node if greater than the second node
    */
-  void insert_record(
-      const SafeSharedBCFRec& record,
-      std::shared_ptr<VCFV4> vcf,
-      const std::string& contig,
-      const std::string& sample_name);
+  bool head_comparator_gt(
+      const std::unique_ptr<RecordHeapV4::Node>& a,
+      const std::unique_ptr<RecordHeapV4::Node>& b) const;
 
   /**
-   * Copies all fields of a VCF record or anchor into the attribute buffers.
+   * Inserts a node into the head list.
    *
-   * @param contig_offset Offset of the record's contig
-   * @param node Record to buffer
-   * @return True if copy succeeded; false on buffer overflow.
+   * @param node The node to insert
+   * @param i The index of VCF stream the node is from
    */
-  bool buffer_record(const RecordHeapV4::Node& node);
+  void insert_head(std::unique_ptr<RecordHeapV4::Node>, int i);
 
-  /** Helper function to buffer the alleles attribute. */
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   *
+   * @return The total size of the buffers
+   */
+  uint64_t total_size() const;
+
+  /**
+   * Copies all fields of a VCF record or anchor into the attribute buffers and
+   * buffers stats for records.
+   *
+   * @param buffers The attribute buffer set to add the record to
+   * @param node Record to buffer
+   */
+  void buffer_record(
+      AttributeBufferSet& buffers, const RecordHeapV4::Node& node);
+
+  /**
+   * Helper function to buffer the alleles attribute.
+   *
+   * @param record The record to be buffered
+   * @param buffer The buffer to add the record to
+   */
   static void buffer_alleles(bcf1_t* record, Buffer* buffer);
 
-  /** Helper function to buffer an INFO field. */
+  /**
+   * Helper function to buffer an INFO field.
+   *
+   * @param hdr The header for the field being buffered
+   * @param r The record for the field being buffered
+   * @param info The info field being buffered
+   * @param include_key Whether or not to incude the key in the buffered data
+   * @param val The value of the field being buffered
+   * @param buff The buffer to add the data to
+   */
   static void buffer_info_field(
       const bcf_hdr_t* hdr,
       bcf1_t* r,
@@ -187,7 +260,16 @@ class WriterWorkerV4 : public WriterWorker {
       HtslibValueMem* val,
       Buffer* buff);
 
-  /** Helper function to buffer a FMT field. */
+  /**
+   * Helper function to buffer a FMT field.
+   *
+   * @param hdr The header for the field being buffered
+   * @param r The record for the field being buffered
+   * @param fmt The format field being buffered
+   * @param include_key Whether or not to incude the key in the buffered data
+   * @param val The value of the field being buffered
+   * @param buff The buffer to add the data to
+   */
   static void buffer_fmt_field(
       const bcf_hdr_t* hdr,
       bcf1_t* r,
@@ -195,6 +277,36 @@ class WriterWorkerV4 : public WriterWorker {
       bool include_key,
       HtslibValueMem* val,
       Buffer* buff);
+
+  /**
+   * Generates anchors for the given record and adds them to the anchor heap.
+   *
+   * @param node The record to generate anchors for
+   */
+  void generate_anchors(const RecordHeapV4::Node& node);
+
+  /** Buffers all anchors in the anchor heap. */
+  void buffer_anchors();
+
+  /**
+   * Buffers all anchors in the anchor heap with a start position less than or
+   * equal to the given record.
+   *
+   * @param node The record to compare anchors to
+   */
+  void buffer_anchors(const RecordHeapV4::Node& node);
+
+  /**
+   * Uses the given query to write all data in the given buffer.
+   *
+   * @param query The query to use when writing data
+   * @param buffers The attribute buffers to write
+   * @param finalize Whether or not the write queries should be finalized
+   */
+  void write_buffers(
+      std::unique_ptr<Query>& query,
+      AttributeBufferSet& buffers,
+      bool finalize);
 };
 
 }  // namespace vcf
