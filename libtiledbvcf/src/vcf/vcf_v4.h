@@ -41,6 +41,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "utils/logger_public.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "vcf/region.h"
@@ -54,7 +55,25 @@ namespace vcf {
  */
 class VCFV4 {
  public:
-  VCFV4();
+  enum SharingMode {
+    MANUAL,
+    AUTOMATIC,
+  };
+
+  /**
+   * Constructor that determines how `SafeSharedBCFRec` records are managed. In
+   * MANUAL mode, records must be returned using `return_record()` to prevent
+   * them from being automatically destroyed when the `SafeSharedBCFRec` counter
+   * reaches 0. In AUTOMATIC mode, `VCFV4` keeps a copy of each
+   * `SafeSharedBCFRec` and releases it for reuse when the counter reachers 1.
+   *
+   * Note that AUTOMATIC mode uses a lazy algorithm for releasing records, so
+   * it is only appropriate when records can be released in roughly the same
+   * order that they were popped.
+   *
+   * @param mode The mode to use for managing SafeSharedBCFRec pointers
+   */
+  VCFV4(SharingMode mode = SharingMode::MANUAL);
   ~VCFV4();
 
   VCFV4(VCFV4&& other) = delete;
@@ -135,6 +154,15 @@ class VCFV4 {
   void set_max_record_buff_size(uint64_t max_record_buffer_size);
 
  private:
+  inline const std::string modeToString(SharingMode mode) {
+    switch (mode) {
+      case MANUAL:
+        return "MANUAL";
+      case AUTOMATIC:
+        return "AUTOMATIC";
+    }
+    LOG_ERROR("VCFV4::modeToString {} is not a valid SharingMode", mode);
+  }
   /** BCF/VCF iterator wrapper. */
   class Iter {
    public:
@@ -165,6 +193,9 @@ class VCFV4 {
     hts_idx_t* hts_idx_;
     kstring_t tmps_ = {0, 0, nullptr};
   };
+
+  /** The mode used to manage the SafeSharedBCFRec pointers. */
+  SharingMode mode_;
 
   /** True if the file is open. */
   bool open_;
@@ -198,6 +229,21 @@ class VCFV4 {
 
   /** The HTS index handle, if the index format is HTS. */
   hts_idx_t* index_hts_;
+
+  /**
+   * Creates a new record and adds it to the `record_queue_`.
+   *
+   * @param tmp_r The record to wrap
+   */
+  void create_record(SafeBCFRec& tmp_r);
+
+  /**
+   * Pops the first record from `record_queue_pool_` and reuses it to add a
+   * record to `record_queue_`.
+   *
+   * @param tmp_r The record to wrap
+   */
+  void reuse_record(SafeBCFRec& tmp_r);
 
   /** Reads records into the record buffer using `iter_`. */
   void read_records();
