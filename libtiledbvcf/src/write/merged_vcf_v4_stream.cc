@@ -37,7 +37,7 @@ MergedVCFV4Stream::MergedVCFV4Stream(
     uint64_t vcf_buffer_size)
     : queue_(queue_size) {
   for (const auto& s : samples) {
-    auto vcf = std::make_shared<VCFV4>();
+    auto vcf = std::make_shared<VCFV4>(VCFV4::SharingMode::AUTOMATIC);
     vcf->set_max_record_buff_size(vcf_buffer_size);
     vcf->open(s.sample_uri, s.index_uri);
     vcfs_.push_back(vcf);
@@ -69,24 +69,18 @@ std::unique_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
   const uint32_t end_pos =
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
 
-  // Duplicate the record so the original can be reused by vcf
-  SafeSharedBCFRec record_copy(bcf_dup(record.get()), bcf_destroy);
-  bcf_unpack(record_copy.get(), BCF_UN_ALL);
-
   // Create a new node for the record
   auto node = std::unique_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
   node->vcf = vcf;
   node->type = RecordHeapV4::NodeType::Record;
-  node->record = std::move(record_copy);
+  node->record = std::move(record);
   node->contig = region_.seq_name;
   node->start_pos = start_pos;
   node->end_pos = end_pos;
   node->sample_name = vcf->sample_name();
 
-  // Pop the record from the VCF buffer and return it to the pool at the same
-  // time
+  // Pop the record from the VCF buffer
   vcf->pop_record();
-  vcf->return_record(record);
 
   return node;
 }
