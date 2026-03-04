@@ -1132,8 +1132,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // mergeable contigs merged, even if there's a non-mergeable between them?
       bool finalize =
           (i == regions.size() - 1 ||
-           (check_contig_mergeable(region.seq_name) &&
-            check_contig_mergeable(regions[i - 1].seq_name)));
+           (!check_contig_mergeable(region.seq_name) ||
+            !check_contig_mergeable(regions[i + 1].seq_name)));
       worker->write_buffers(query_, anchor_query_, finalize);
       if (finalize) {
         // Start new queries since the next contig will be on a new fragment
