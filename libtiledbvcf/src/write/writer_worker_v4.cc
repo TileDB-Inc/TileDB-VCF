@@ -77,29 +77,9 @@ uint64_t WriterWorkerV4::anchors_buffered() const {
   return anchors_buffered_;
 }
 
-inline bool WriterWorkerV4::head_comparator_gt(
-    const std::unique_ptr<RecordHeapV4::Node>& a,
-    const std::unique_ptr<RecordHeapV4::Node>& b) const {
-  auto a_start = a->start_pos, b_start = b->start_pos;
-  auto a_contig = a->contig, b_contig = b->contig;
-  return a_contig > b_contig || (a_contig == b_contig && a_start > b_start) ||
-         (a_contig == b_contig && a_start == b_start &&
-          a->sample_name > b->sample_name);
-}
-
-void WriterWorkerV4::insert_head(
-    std::unique_ptr<RecordHeapV4::Node> node, int i) {
-  // Iterate the head list and add the node in the correct position
-  auto itr = head_list_.begin();
-  for (; itr != head_list_.end(); ++itr) {
-    if (head_comparator_gt(itr->node, node)) {
-      head_list_.insert(itr, {std::move(node), i});
-      break;
-    }
-  }
-  if (itr == head_list_.end()) {
-    head_list_.push_back({std::move(node), i});
-  }
+std::unique_ptr<RecordHeapV4::Node> WriterWorkerV4::get_head(size_t i) {
+  MergedVCFV4Stream* vcf = vcf_streams_[i].get();
+  return vcf->pop();
 }
 
 bool WriterWorkerV4::parse(const Region& region) {
@@ -117,17 +97,15 @@ bool WriterWorkerV4::parse(const Region& region) {
       region.min,
       region.max);
 
-  // Initialize the head list with the first record from each stream
+  // Start parsing the VCF files
   for (int i = 0; i < vcf_streams_.size(); i++) {
     MergedVCFV4Stream* vcf = vcf_streams_[i].get();
     TRY_CATCH_THROW(vcf_stream_tasks.push_back(std::async(
         std::launch::async, &MergedVCFV4Stream::parse, vcf, region)));
-    std::unique_ptr<RecordHeapV4::Node> head = vcf->pop();
-    // The stream has no records at this region, skip it
-    if (head == nullptr)
-      continue;
-    insert_head(std::move(head), i);
   }
+
+  // Initialize the merged head list
+  initialize_merge_head_list(vcf_streams_.size());
 
   // Start buffering records
   return resume();
@@ -153,19 +131,14 @@ bool WriterWorkerV4::resume() {
   // flushes all of the buffers, with the possible exception of samples stats.
   // These buffers are only flushed when the buffers are flushed AND finalized.
 
-  record_buffers_.clear();
-  anchor_buffers_.clear();
-  records_buffered_ = 0;
-  anchors_buffered_ = 0;
+  if (records_buffered_ > 0)
+    LOG_FATAL("WriterWorkerV4(id={})::resume record buffers aren't empy");
 
   // Buffer records until there's no variants left to parse in any of the VCF
   // streams or until the buffer is full
-  while (!head_list_.empty()) {
-    // Get the next node in the global order and remove it from the head list
-    Head& next = head_list_.front();
-    std::unique_ptr<RecordHeapV4::Node> node = std::move(next.node);
-    int i = next.stream_index;
-    head_list_.pop_front();
+  while (!merged_records_empty()) {
+    // Get the next node in the global order from the head list
+    std::unique_ptr<RecordHeapV4::Node> node = next_head();
     if (node->start_pos > region_.max) {
       LOG_FATAL(
           "WriterWorkerV4(id={})::resume Next record starts outside of the "
@@ -173,13 +146,6 @@ bool WriterWorkerV4::resume() {
           id_,
           node->start_pos,
           region_.max);
-    }
-
-    // Replace the record in the list with the head record from the same VCF
-    auto& vcf = vcf_streams_[i];
-    std::unique_ptr<RecordHeapV4::Node> head = vcf->pop();
-    if (head != nullptr) {
-      insert_head(std::move(head), i);
     }
 
     // Buffer the node's record
@@ -199,7 +165,7 @@ bool WriterWorkerV4::resume() {
       return false;
     }
   }
-  // Drain the anchor heap for returning for the final time
+  // Drain the anchor heap before returning for the final time
   buffer_anchors();
   LOG_TRACE(
       "WriterWorkerV4(id={})::resume all records parsed, total buffers size = "
@@ -234,6 +200,11 @@ void WriterWorkerV4::write_buffers(
   }
   // Flush the stats arrays
   flush_ingestion_tasks(finalize);
+
+  record_buffers_.clear();
+  anchor_buffers_.clear();
+  records_buffered_ = 0;
+  anchors_buffered_ = 0;
 }
 
 uint64_t WriterWorkerV4::total_size() const {

@@ -60,7 +60,7 @@ namespace vcf {
  * TileDB-VCF array schema's global order, which is column-major (no tiling
  * across columns).
  */
-class WriterWorkerV4 : public WriterWorker {
+class WriterWorkerV4 : public WriterWorker, public RecordMergeAlgorithm {
  public:
   /**
    * Constructor.
@@ -167,10 +167,6 @@ class WriterWorkerV4 : public WriterWorker {
   /** The destination dataset. */
   const TileDBVCFDataset* dataset_;
 
-  /** A list that stores the next node (i.e. head) of each VCF stream in sorted
-   * order. */
-  std::list<Head> head_list_;
-
   /** Vector of merged VCF streams. */
   std::vector<std::unique_ptr<MergedVCFV4Stream>> vcf_streams_;
 
@@ -199,23 +195,12 @@ class WriterWorkerV4 : public WriterWorker {
   SampleStats ss_;
 
   /**
-   * A compartor used to order nodes in the head list.
+   * Pops the head record from the ith `MergedVCFV4Stream`.
    *
-   * @param The first node to be compared
-   * @param The second node to be compared
-   * @return Whether or not the first node if greater than the second node
+   * @param i The index of the `MergedVCFV4Stream`
+   * @return The head record that was popped
    */
-  bool head_comparator_gt(
-      const std::unique_ptr<RecordHeapV4::Node>& a,
-      const std::unique_ptr<RecordHeapV4::Node>& b) const;
-
-  /**
-   * Inserts a node into the head list.
-   *
-   * @param node The node to insert
-   * @param i The index of VCF stream the node is from
-   */
-  void insert_head(std::unique_ptr<RecordHeapV4::Node>, int i);
+  std::unique_ptr<RecordHeapV4::Node> get_head(size_t i);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes).

@@ -31,6 +31,7 @@
 
 #include <atomic_queue/atomic_queue.h>
 
+#include "record_merge_algorithm.h"
 #include "utils/sample_utils.h"
 #include "vcf/vcf_utils.h"
 #include "vcf/vcf_v4.h"
@@ -46,7 +47,7 @@ namespace vcf {
  * A lock-free queue built on a circular buffer is used as the stream to ensure
  * that variants can be continuously written and read in a thread-safe manner.
  */
-class MergedVCFV4Stream {
+class MergedVCFV4Stream : public RecordMergeAlgorithm {
  public:
   /**
    * Constructs the class and opens the VCF files for reading.
@@ -64,6 +65,14 @@ class MergedVCFV4Stream {
 
   /** Closes the VCF files and detructs the class. */
   ~MergedVCFV4Stream();
+
+  /**
+   * Pops the head record from the ith `VCFV4`.
+   *
+   * @param i The index of the `VCFV4`
+   * @return The head record that was popped
+   */
+  std::unique_ptr<RecordHeapV4::Node> get_head(size_t i);
 
   /**
    * Parses the given region in each VCF file and continuously fills the queue
@@ -85,10 +94,6 @@ class MergedVCFV4Stream {
   std::unique_ptr<RecordHeapV4::Node> pop();
 
  private:
-  /** A list that stores the next record (i.e. head) of each VCF file in sorted
-   * order. */
-  std::list<std::unique_ptr<RecordHeapV4::Node>> head_list_;
-
   /**
    * Fixed size queue for non-atomic elements, i.e. records. This is the
    * "OptimistAtomicQueueB2" configuration where the buffer size is specified as
@@ -112,30 +117,17 @@ class MergedVCFV4Stream {
       OptimistAtomicQueueB2;
   OptimistAtomicQueueB2 queue_;
 
+  /** The region current being parsed. */
+  Region region_;
+
   /** Vector of VCF files being parsed. */
   std::vector<std::shared_ptr<VCFV4>> vcfs_;
 
+  /** Vector of VCF files being parsed. */
+  std::vector<bool> vcf_has_records_;
+
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
-
-  /** A compartor used to order nodes in the head list. */
-  bool head_comparator_gt(
-      const std::unique_ptr<RecordHeapV4::Node>& a,
-      const std::unique_ptr<RecordHeapV4::Node>& b) const;
-
-  /**
-   * Inserts a record into the head list.
-   *
-   * @param record The record to insert
-   * @param vcf The VCF state that contains the record
-   * @param contig_offset The VCF contig offset
-   * @param sample_id The sample id for the record.
-   */
-  void insert_head(
-      SafeSharedBCFRec& record,
-      std::shared_ptr<VCFV4> vcf,
-      const std::string& contig,
-      const std::string& sample_name);
 };
 
 }  // namespace vcf
