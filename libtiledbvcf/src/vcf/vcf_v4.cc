@@ -25,13 +25,13 @@
  */
 
 #include "vcf/vcf_v4.h"
-#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
 
-VCFV4::VCFV4()
-    : open_(false)
+VCFV4::VCFV4(SharingMode mode)
+    : mode_(mode)
+    , open_(false)
     , inited_(false)
     , max_record_buffer_size_(10000)
     , hdr_(nullptr)
@@ -156,7 +156,13 @@ void VCFV4::pop_record() {
 }
 
 void VCFV4::return_record(SafeSharedBCFRec& record) {
-  record_queue_pool_.emplace(std::move(record));
+  if (mode_ == SharingMode::MANUAL) {
+    record_queue_pool_.emplace(std::move(record));
+  } else {
+    LOG_ERROR(
+        "VCFV4::return_record records cannot be manually returned for mode {}",
+        modeToString(mode_));
+  }
 }
 
 std::string VCFV4::contig_name(bcf1_t* const r) const {
@@ -285,6 +291,21 @@ bool VCFV4::seek(const std::string& contig_name, uint32_t pos) {
   return !record_queue_.empty();
 }
 
+void VCFV4::create_record(SafeBCFRec& tmp_r) {
+  SafeSharedBCFRec r(bcf_dup(tmp_r.get()), bcf_destroy);
+  bcf_unpack(r.get(), BCF_UN_ALL);
+  record_queue_.emplace(std::move(r));
+}
+
+void VCFV4::reuse_record(SafeBCFRec& tmp_r) {
+  SafeSharedBCFRec r = record_queue_pool_.front();
+  record_queue_pool_.pop();
+  // Use `bcf_copy` to destroy (free) the stale data to prevent memory leaks
+  bcf_copy(r.get(), tmp_r.get());
+  bcf_unpack(r.get(), BCF_UN_ALL);
+  record_queue_.emplace(std::move(r));
+}
+
 void VCFV4::read_records() {
   if (!record_queue_.empty())
     std::queue<SafeSharedBCFRec>().swap(record_queue_);
@@ -301,19 +322,21 @@ void VCFV4::read_records() {
       break;
     }
 
-    if (!record_queue_pool_.empty()) {
-      // Pop a stale record for re-use. Note that `bcf_copy`
-      // destroys (frees) the stale data to prevent a memory
-      // leak.
-      SafeSharedBCFRec r = record_queue_pool_.front();
-      record_queue_pool_.pop();
-      bcf_copy(r.get(), tmp_r.get());
-      bcf_unpack(r.get(), BCF_UN_ALL);
-      record_queue_.emplace(std::move(r));
+    if (!record_queue_pool_.empty() && mode_ == SharingMode::MANUAL) {
+      reuse_record(tmp_r);
+    } else if (!record_queue_pool_.empty() && mode_ == SharingMode::AUTOMATIC) {
+      // Check if the record at the front of the pool is stale, i.e. the pool
+      // has the only copy
+      SafeSharedBCFRec& r = record_queue_pool_.front();
+      if (r.use_count() == 1) {
+        reuse_record(tmp_r);
+      } else {
+        // Resuse a stale record
+        create_record(tmp_r);
+      }
+      record_queue_pool_.push(record_queue_.front());
     } else {
-      SafeSharedBCFRec r(bcf_dup(tmp_r.get()), bcf_destroy);
-      bcf_unpack(r.get(), BCF_UN_ALL);
-      record_queue_.emplace(std::move(r));
+      create_record(tmp_r);
     }
     record_buffer_size += sizeof(bcf1_t) + record_queue_.front()->shared.m +
                           record_queue_.front()->indiv.m;
@@ -328,6 +351,7 @@ void VCFV4::read_records() {
 }
 
 void VCFV4::swap(VCFV4& other) {
+  std::swap(mode_, other.mode_);
   std::swap(open_, other.open_);
   std::swap(path_, other.path_);
   std::swap(index_path_, other.index_path_);
