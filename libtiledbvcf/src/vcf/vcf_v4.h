@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "utils/logger_public.h"
+#include "utils/shared_ptr_pool.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "vcf/region.h"
@@ -53,12 +54,9 @@ namespace vcf {
 /**
  * Class wrapping a BCF/VCF file to allow iteration over records.
  */
-class VCFV4 {
+class VCFV4 : public SharedPtrPool<bcf1_t> {
  public:
-  enum SharingMode {
-    MANUAL,
-    AUTOMATIC,
-  };
+  typedef SharedPtrPool::SharingMode SharingMode;
 
   /**
    * Constructor that determines how `SafeSharedBCFRec` records are managed. In
@@ -154,15 +152,6 @@ class VCFV4 {
   void set_max_record_buff_size(uint64_t max_record_buffer_size);
 
  private:
-  inline const std::string modeToString(SharingMode mode) {
-    switch (mode) {
-      case MANUAL:
-        return "MANUAL";
-      case AUTOMATIC:
-        return "AUTOMATIC";
-    }
-    LOG_ERROR("VCFV4::modeToString {} is not a valid SharingMode", mode);
-  }
   /** BCF/VCF iterator wrapper. */
   class Iter {
    public:
@@ -194,9 +183,6 @@ class VCFV4 {
     kstring_t tmps_ = {0, 0, nullptr};
   };
 
-  /** The mode used to manage the SafeSharedBCFRec pointers. */
-  SharingMode mode_;
-
   /** True if the file is open. */
   bool open_;
 
@@ -212,9 +198,6 @@ class VCFV4 {
   /** The buffered records. */
   std::queue<SafeSharedBCFRec> record_queue_;
 
-  /** Stale records available for re-use in `record_queue_`. */
-  std::queue<SafeSharedBCFRec> record_queue_pool_;
-
   /** The BCF/TBX record iterator. */
   Iter record_iter_;
 
@@ -229,21 +212,6 @@ class VCFV4 {
 
   /** The HTS index handle, if the index format is HTS. */
   hts_idx_t* index_hts_;
-
-  /**
-   * Creates a new record and adds it to the `record_queue_`.
-   *
-   * @param tmp_r The record to wrap
-   */
-  void create_record(SafeBCFRec& tmp_r);
-
-  /**
-   * Pops the first record from `record_queue_pool_` and reuses it to add a
-   * record to `record_queue_`.
-   *
-   * @param tmp_r The record to wrap
-   */
-  void reuse_record(SafeBCFRec& tmp_r);
 
   /** Reads records into the record buffer using `iter_`. */
   void read_records();

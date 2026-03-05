@@ -34,8 +34,10 @@ namespace vcf {
 MergedVCFV4Stream::MergedVCFV4Stream(
     const std::vector<SampleAndIndex>& samples,
     uint32_t queue_size,
-    uint64_t vcf_buffer_size)
-    : queue_(queue_size) {
+    uint64_t vcf_buffer_size,
+    SharingMode mode)
+    : SharedPtrPool<RecordHeapV4::Node>(mode)
+    , queue_(queue_size) {
   for (const auto& s : samples) {
     auto vcf = std::make_shared<VCFV4>(VCFV4::SharingMode::AUTOMATIC);
     vcf->set_max_record_buff_size(vcf_buffer_size);
@@ -49,34 +51,6 @@ MergedVCFV4Stream::~MergedVCFV4Stream() {
   for (auto& vcf : vcfs_) {
     vcf->close();
   }
-}
-
-std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::create_node() {
-  return std::shared_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
-}
-
-std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::reuse_node() {
-  std::shared_ptr<RecordHeapV4::Node> r = node_queue_pool_.front();
-  node_queue_pool_.pop();
-  return r;
-}
-
-std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_or_create_node() {
-  std::shared_ptr<RecordHeapV4::Node> node(nullptr);
-  if (!node_queue_pool_.empty()) {
-    // Check if the node at the front of the pool is stale, i.e. the pool
-    // has the only copy
-    std::shared_ptr<RecordHeapV4::Node>& front = node_queue_pool_.front();
-    if (front.use_count() == 1) {
-      node = reuse_node();
-    } else {
-      node = create_node();
-    }
-  } else {
-    node = create_node();
-  }
-  node_queue_pool_.push(node);
-  return node;
 }
 
 std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
@@ -98,7 +72,7 @@ std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
 
   // Create a new node for the record
-  std::shared_ptr<RecordHeapV4::Node> node = get_or_create_node();
+  std::shared_ptr<RecordHeapV4::Node> node = get_ptr_from_pool();
   node->vcf = vcf;
   node->type = RecordHeapV4::NodeType::Record;
   node->record = std::move(record);
@@ -146,6 +120,10 @@ void MergedVCFV4Stream::parse(const Region& region) {
 
 std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::pop() {
   return queue_.pop();
+}
+
+void MergedVCFV4Stream::return_node(std::shared_ptr<RecordHeapV4::Node>& node) {
+  return_ptr_to_pool(node);
 }
 
 }  // namespace vcf

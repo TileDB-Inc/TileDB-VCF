@@ -27,13 +27,13 @@
 #ifndef TILEDB_VCF_MERGED_VCF_V4_STREAM_H
 #define TILEDB_VCF_MERGED_VCF_V4_STREAM_H
 
-#include <queue>
 #include <vector>
 
 #include <atomic_queue/atomic_queue.h>
 
 #include "record_merge_algorithm.h"
 #include "utils/sample_utils.h"
+#include "utils/shared_ptr_pool.h"
 #include "vcf/vcf_utils.h"
 #include "vcf/vcf_v4.h"
 #include "write/record_heap_v4.h"
@@ -48,8 +48,11 @@ namespace vcf {
  * A lock-free queue built on a circular buffer is used as the stream to ensure
  * that variants can be continuously written and read in a thread-safe manner.
  */
-class MergedVCFV4Stream : public RecordMergeAlgorithm {
+class MergedVCFV4Stream : public RecordMergeAlgorithm,
+                          public SharedPtrPool<RecordHeapV4::Node> {
  public:
+  typedef SharedPtrPool::SharingMode SharingMode;
+
   /**
    * Constructs the class and opens the VCF files for reading.
    *
@@ -62,7 +65,8 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
   MergedVCFV4Stream(
       const std::vector<SampleAndIndex>& samples,
       uint32_t queue_size,
-      uint64_t vcf_buffer_size);
+      uint64_t vcf_buffer_size,
+      SharingMode mode = SharingMode::AUTOMATIC);
 
   /** Closes the VCF files and detructs the class. */
   ~MergedVCFV4Stream();
@@ -93,6 +97,14 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
    * @return A unique pointer wrapping the pooped node
    */
   std::shared_ptr<RecordHeapV4::Node> pop();
+
+  /**
+   * As an optimization, nodes returned from `get_head()` may be passed
+   * to this routine for reuse to reduce memory allocation overhead.
+   *
+   * @param node The processed node to return into the allocation pool
+   */
+  void return_node(std::shared_ptr<RecordHeapV4::Node>& node);
 
  private:
   /**
@@ -129,21 +141,6 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
-
-  /** Stale nodes available for reuse in `get_head()`. */
-  std::queue<std::shared_ptr<RecordHeapV4::Node>> node_queue_pool_;
-
-  /** Creates a new node and returns it. */
-  std::shared_ptr<RecordHeapV4::Node> create_node();
-
-  /** Modes the front node to the back of `node_queue_pool` and returns it. */
-  std::shared_ptr<RecordHeapV4::Node> reuse_node();
-
-  /**
-   * Checks if the front node in `node_queue_pool` is stale and either reuses
-   * it or returns a new node.
-   */
-  std::shared_ptr<RecordHeapV4::Node> get_or_create_node();
 };
 
 }  // namespace vcf
