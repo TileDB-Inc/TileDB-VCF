@@ -48,13 +48,13 @@ namespace vcf {
  * The algorithm can be used as follows:
  * ```
  * class RecordMergeImplementation : public RecordMergeAlgorithm {
- *   std::unique_ptr<RecordHeapV4::Node> get_head(size_t i) {
+ *   std::shared_ptr<RecordHeapV4::Node> get_head(size_t i) {
  *     // Get the head record from VCF source i
  *   }
  *   void merge_records() {
  *     // Loop until `head_list_` is empty
  *     while (!merged_records_empty()) {
- *       std::unique_ptr<RecordHeapV4::Node> node = next_head();
+ *       std::shared_ptr<RecordHeapV4::Node> node = next_head();
  *       // Do something with node
  *     }
  *   }
@@ -67,7 +67,7 @@ class RecordMergeAlgorithm {
 
  protected:
   struct Head {
-    std::unique_ptr<RecordHeapV4::Node> node;
+    std::shared_ptr<RecordHeapV4::Node> node;
     size_t stream_index;
   };
 
@@ -77,7 +77,7 @@ class RecordMergeAlgorithm {
    * @param i The index of the VCF source
    * @return The head record that was popped
    */
-  virtual std::unique_ptr<RecordHeapV4::Node> get_head(size_t i) = 0;
+  virtual std::shared_ptr<RecordHeapV4::Node> get_head(size_t i) = 0;
 
   /**
    * Initializes the head list with the head record from each VCF source.
@@ -92,7 +92,7 @@ class RecordMergeAlgorithm {
    *
    * @return The next ordered record from the head list
    */
-  std::unique_ptr<RecordHeapV4::Node> next_head();
+  std::shared_ptr<RecordHeapV4::Node> next_head();
 
   /**
    * Checks if there are any merged ordered records.
@@ -114,8 +114,8 @@ class RecordMergeAlgorithm {
    * @return Whether or not the first node if greater than the second node
    */
   bool head_comparator_gt(
-      const std::unique_ptr<RecordHeapV4::Node>& a,
-      const std::unique_ptr<RecordHeapV4::Node>& b) const;
+      const std::shared_ptr<RecordHeapV4::Node>& a,
+      const std::shared_ptr<RecordHeapV4::Node>& b) const;
 
   /**
    * Inserts a node into the head list.
@@ -123,7 +123,7 @@ class RecordMergeAlgorithm {
    * @param node The node to insert
    * @param i The index of VCF source the node is from
    */
-  void insert_head(std::unique_ptr<RecordHeapV4::Node>, size_t i);
+  void insert_head(std::shared_ptr<RecordHeapV4::Node>, size_t i);
 };
 
 }  // namespace vcf

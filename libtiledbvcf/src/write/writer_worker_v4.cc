@@ -77,7 +77,7 @@ uint64_t WriterWorkerV4::anchors_buffered() const {
   return anchors_buffered_;
 }
 
-std::unique_ptr<RecordHeapV4::Node> WriterWorkerV4::get_head(size_t i) {
+std::shared_ptr<RecordHeapV4::Node> WriterWorkerV4::get_head(size_t i) {
   MergedVCFV4Stream* vcf = vcf_streams_[i].get();
   return vcf->pop();
 }
@@ -138,7 +138,7 @@ bool WriterWorkerV4::resume() {
   // streams or until the buffer is full
   while (!merged_records_empty()) {
     // Get the next node in the global order from the head list
-    std::unique_ptr<RecordHeapV4::Node> node = next_head();
+    std::shared_ptr<RecordHeapV4::Node> node = next_head();
     if (node->start_pos > region_.max) {
       LOG_FATAL(
           "WriterWorkerV4(id={})::resume Next record starts outside of the "
@@ -225,9 +225,12 @@ void WriterWorkerV4::buffer_record(
 
   // Ingestion tasks process only NodeType::Record
   if (node.type == RecordHeapV4::NodeType::Record) {
+    records_buffered_++;
     ac_.process(hdr, sample_name, contig, pos, r);
     ss_.process(hdr, sample_name, contig, pos, r);
     vs_.process(hdr, sample_name, contig, pos, r);
+  } else {
+    anchors_buffered_++;
   }
 
   buffers.sample_name().offsets().push_back(buffers.sample_name().size());
@@ -319,11 +322,6 @@ void WriterWorkerV4::buffer_record(
   // Make sure any extra attributes get dummy values if no info was written.
   for (auto& it : buffers.extra_attrs())
     it.second.stop_expecting();
-
-  if (node.type == RecordHeapV4::NodeType::Record)
-    records_buffered_++;
-  else
-    anchors_buffered_++;
 }
 
 void WriterWorkerV4::buffer_alleles(bcf1_t* record, Buffer* buffer) {

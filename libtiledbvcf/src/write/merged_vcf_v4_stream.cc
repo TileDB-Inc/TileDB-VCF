@@ -51,7 +51,7 @@ MergedVCFV4Stream::~MergedVCFV4Stream() {
   }
 }
 
-std::unique_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
+std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
   // Check if the VCF has records for this region
   if (!vcf_has_records_[i]) {
     return nullptr;
@@ -70,7 +70,7 @@ std::unique_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
 
   // Create a new node for the record
-  auto node = std::unique_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
+  auto node = std::shared_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
   node->vcf = vcf;
   node->type = RecordHeapV4::NodeType::Record;
   node->record = std::move(record);
@@ -108,7 +108,7 @@ void MergedVCFV4Stream::parse(const Region& region) {
 
   // Buffer records until there's no variants left to parse in any of the VCFs
   while (!merged_records_empty()) {
-    std::unique_ptr<RecordHeapV4::Node> node = next_head();
+    std::shared_ptr<RecordHeapV4::Node> node = next_head();
     // Add the next record to the queue; push() will block if the queue is full
     queue_.push(std::move(node));
   }
@@ -116,7 +116,7 @@ void MergedVCFV4Stream::parse(const Region& region) {
   queue_.push(nullptr);
 }
 
-std::unique_ptr<RecordHeapV4::Node> MergedVCFV4Stream::pop() {
+std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::pop() {
   return queue_.pop();
 }
 

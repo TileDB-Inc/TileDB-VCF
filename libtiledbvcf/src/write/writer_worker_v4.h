@@ -148,7 +148,7 @@ class WriterWorkerV4 : public WriterWorker, public RecordMergeAlgorithm {
 
  private:
   struct Head {
-    std::unique_ptr<RecordHeapV4::Node> node;
+    std::shared_ptr<RecordHeapV4::Node> node;
     int stream_index;
   };
 
@@ -200,7 +200,7 @@ class WriterWorkerV4 : public WriterWorker, public RecordMergeAlgorithm {
    * @param i The index of the `MergedVCFV4Stream`
    * @return The head record that was popped
    */
-  std::unique_ptr<RecordHeapV4::Node> get_head(size_t i);
+  std::shared_ptr<RecordHeapV4::Node> get_head(size_t i);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes).

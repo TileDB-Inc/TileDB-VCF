@@ -72,7 +72,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
    * @param i The index of the `VCFV4`
    * @return The head record that was popped
    */
-  std::unique_ptr<RecordHeapV4::Node> get_head(size_t i);
+  std::shared_ptr<RecordHeapV4::Node> get_head(size_t i);
 
   /**
    * Parses the given region in each VCF file and continuously fills the queue
@@ -91,7 +91,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
    *
    * @return A unique pointer wrapping the pooped node
    */
-  std::unique_ptr<RecordHeapV4::Node> pop();
+  std::shared_ptr<RecordHeapV4::Node> pop();
 
  private:
   /**
@@ -109,8 +109,8 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
    * faster
    */
   typedef atomic_queue::AtomicQueueB2<
-      std::unique_ptr<RecordHeapV4::Node>,
-      std::allocator<std::unique_ptr<RecordHeapV4::Node>>,
+      std::shared_ptr<RecordHeapV4::Node>,
+      std::allocator<std::shared_ptr<RecordHeapV4::Node>>,
       true,
       true,
       true>
