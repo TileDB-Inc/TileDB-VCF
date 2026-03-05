@@ -87,11 +87,9 @@ class RecordHeapV4 {
   struct NodeCompareGT {
     bool operator()(
         const std::unique_ptr<Node>& a, const std::unique_ptr<Node>& b) const {
-      auto a_start = a->start_pos, b_start = b->start_pos;
-      auto a_contig = a->contig, b_contig = b->contig;
-      return a_contig > b_contig ||
-             (a_contig == b_contig && a_start > b_start) ||
-             (a_contig == b_contig && a_start == b_start &&
+      return a->contig > b->contig ||
+             (a->contig == b->contig && a->start_pos > b->start_pos) ||
+             (a->contig == b->contig && a->start_pos == b->start_pos &&
               a->sample_name > b->sample_name);
     }
   };
