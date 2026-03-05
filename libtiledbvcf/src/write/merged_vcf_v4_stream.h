@@ -27,6 +27,7 @@
 #ifndef TILEDB_VCF_MERGED_VCF_V4_STREAM_H
 #define TILEDB_VCF_MERGED_VCF_V4_STREAM_H
 
+#include <queue>
 #include <vector>
 
 #include <atomic_queue/atomic_queue.h>
@@ -128,6 +129,21 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm {
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
+
+  /** Stale nodes available for reuse in `get_head()`. */
+  std::queue<std::shared_ptr<RecordHeapV4::Node>> node_queue_pool_;
+
+  /** Creates a new node and returns it. */
+  std::shared_ptr<RecordHeapV4::Node> create_node();
+
+  /** Modes the front node to the back of `node_queue_pool` and returns it. */
+  std::shared_ptr<RecordHeapV4::Node> reuse_node();
+
+  /**
+   * Checks if the front node in `node_queue_pool` is stale and either reuses
+   * it or returns a new node.
+   */
+  std::shared_ptr<RecordHeapV4::Node> get_or_create_node();
 };
 
 }  // namespace vcf

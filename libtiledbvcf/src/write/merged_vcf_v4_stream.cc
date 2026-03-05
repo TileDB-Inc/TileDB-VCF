@@ -51,6 +51,34 @@ MergedVCFV4Stream::~MergedVCFV4Stream() {
   }
 }
 
+std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::create_node() {
+  return std::shared_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
+}
+
+std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::reuse_node() {
+  std::shared_ptr<RecordHeapV4::Node> r = node_queue_pool_.front();
+  node_queue_pool_.pop();
+  return r;
+}
+
+std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_or_create_node() {
+  std::shared_ptr<RecordHeapV4::Node> node(nullptr);
+  if (!node_queue_pool_.empty()) {
+    // Check if the node at the front of the pool is stale, i.e. the pool
+    // has the only copy
+    std::shared_ptr<RecordHeapV4::Node>& front = node_queue_pool_.front();
+    if (front.use_count() == 1) {
+      node = reuse_node();
+    } else {
+      node = create_node();
+    }
+  } else {
+    node = create_node();
+  }
+  node_queue_pool_.push(node);
+  return node;
+}
+
 std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
   // Check if the VCF has records for this region
   if (!vcf_has_records_[i]) {
@@ -70,7 +98,7 @@ std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
 
   // Create a new node for the record
-  auto node = std::shared_ptr<RecordHeapV4::Node>(new RecordHeapV4::Node);
+  std::shared_ptr<RecordHeapV4::Node> node = get_or_create_node();
   node->vcf = vcf;
   node->type = RecordHeapV4::NodeType::Record;
   node->record = std::move(record);
