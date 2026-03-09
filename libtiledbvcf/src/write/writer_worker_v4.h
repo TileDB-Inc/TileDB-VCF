@@ -38,13 +38,12 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
-#include "stats/allele_count.h"
-#include "stats/sample_stats.h"
-#include "stats/variant_stats.h"
+#include "stats_worker.h"
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
 #include "write/merged_vcf_v4_stream.h"
 #include "write/record_heap_v4.h"
+#include "write/stats_worker.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
 
@@ -185,14 +184,14 @@ class WriterWorkerV4 : public WriterWorker, public RecordMergeAlgorithm {
   /** Record heap for storing anchors. */
   RecordHeapV4 anchor_heap_;
 
-  /** Allele count ingestion task object. */
-  AlleleCount ac_;
+  /** A worker for computing sample stats in a separate thread. */
+  std::unique_ptr<StatsWorker> stats_worker_;
 
-  /** Variant stats ingestion task object. */
-  VariantStats vs_;
+  /** The stats task that buffers record stats. */
+  std::future<void> stats_task_;
 
-  /** Sample stats ingestion task object. */
-  SampleStats ss_;
+  /** A queue of records that still need to have stats computed. */
+  // std::queue<std::shared_ptr<RecordHeapV4::Node>> stats_queue_;
 
   /**
    * Pops the head record from the ith `MergedVCFV4Stream`.

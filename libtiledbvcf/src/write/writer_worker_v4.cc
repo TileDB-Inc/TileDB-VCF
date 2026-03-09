@@ -26,6 +26,7 @@
 
 #include "write/writer_worker_v4.h"
 #include "merged_vcf_v4_stream.h"
+#include "stats_worker.h"
 #include "utils/logger_public.h"
 #include "writer_worker_v4.h"
 
@@ -62,6 +63,10 @@ void WriterWorkerV4::init(
         stream_samples, 1024, params.max_record_buffer_size);
     vcf_streams_.emplace_back(stream);
   }
+
+  // Create the stats worker
+  // TODO: make queue_size configurable
+  stats_worker_.reset(new StatsWorker(1024));
 
   for (const auto& attr : dataset.metadata().extra_attributes) {
     record_buffers_.extra_attrs()[attr] = Buffer();
@@ -103,6 +108,11 @@ bool WriterWorkerV4::parse(const Region& region) {
     TRY_CATCH_THROW(vcf_stream_tasks.push_back(std::async(
         std::launch::async, &MergedVCFV4Stream::parse, vcf, region)));
   }
+
+  // Start the stats task
+  TRY_CATCH_THROW(stats_task_ = std::async(std::launch::async, [this]() {
+                    stats_worker_->run();
+                  }));
 
   // Initialize the merged head list
   initialize_merge_head_list(vcf_streams_.size());
@@ -148,7 +158,9 @@ bool WriterWorkerV4::resume() {
           region_.max);
     }
 
-    // Buffer the node's record
+    // Buffer the record and compute stats
+    // NOTE: The stats queue has finite size so this blocks when it's full
+    stats_worker_->push(node);
     buffer_record(record_buffers_, *node);
     // Generate and buffer anchors
     generate_anchors(*node);
@@ -167,6 +179,8 @@ bool WriterWorkerV4::resume() {
   }
   // Drain the anchor heap before returning for the final time
   buffer_anchors();
+  // Signal the stats worker to stop
+  stats_worker_->push(nullptr);
   LOG_TRACE(
       "WriterWorkerV4(id={})::resume all records parsed, total buffers size = "
       "{} MiB",
@@ -180,11 +194,10 @@ const AttributeBufferSet& WriterWorkerV4::buffers() const {
 }
 
 void WriterWorkerV4::flush_ingestion_tasks(bool finalize) {
-  ac_.flush(finalize);
-  vs_.flush(finalize);
-  if (finalize) {
-    ss_.flush(finalize);
+  while (!stats_worker_->is_idle()) {
+    // Spin lock until the stats queue is empty
   }
+  stats_worker_->flush(finalize);
 }
 
 void WriterWorkerV4::write_buffers(
@@ -208,8 +221,8 @@ void WriterWorkerV4::write_buffers(
 }
 
 uint64_t WriterWorkerV4::total_size() const {
-  return record_buffers_.total_size() + anchor_buffers_.total_size() +
-         ac_.total_size() + vs_.total_size();
+  // TODO: Include stats in the size
+  return record_buffers_.total_size() + anchor_buffers_.total_size();
 }
 
 void WriterWorkerV4::buffer_record(
@@ -226,9 +239,6 @@ void WriterWorkerV4::buffer_record(
   // Ingestion tasks process only NodeType::Record
   if (node.type == RecordHeapV4::NodeType::Record) {
     records_buffered_++;
-    ac_.process(hdr, sample_name, contig, pos, r);
-    ss_.process(hdr, sample_name, contig, pos, r);
-    vs_.process(hdr, sample_name, contig, pos, r);
   } else {
     anchors_buffered_++;
   }
