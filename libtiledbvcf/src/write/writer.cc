@@ -1117,9 +1117,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       // Write worker buffers
       if (worker->records_buffered() > 0) {
         worker->write_buffers(query_, anchor_query_, false);
-      } /* else {
-         LOG_FATAL("Parse not complete but no records were buffered.");
-       }*/
+      } else {
+        LOG_FATAL("Parse not complete but no records were buffered.");
+      }
       // Parse more records into the now empty buffers
       parse_complete = worker->resume();
     }
@@ -1143,9 +1143,9 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
         anchor_query_->set_layout(TILEDB_GLOBAL_ORDER);
         // TODO: Do we need to create a new worker because of the stats arrays?
       }
-    } /* else {
-       LOG_FATAL("No records were buffered after parse completed.");
-     }*/
+    } else {
+      LOG_FATAL("No records were buffered after parse completed.");
+    }
 
     if (records_ingested > prev_records) {
       LOG_INFO(
