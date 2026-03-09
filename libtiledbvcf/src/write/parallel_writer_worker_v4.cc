@@ -46,6 +46,7 @@ void ParallelWriterWorkerV4::init(
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples) {
   dataset_ = &dataset;
+  const auto& metadata = dataset_->metadata();
 
   // Partition the samples into equal sized parts
   const int num_vcf_streams =
@@ -60,7 +61,10 @@ void ParallelWriterWorkerV4::init(
   for (auto& stream_samples : partitioned_samples) {
     // TODO: make queue_size configurable
     MergedVCFV4Stream* stream = new MergedVCFV4Stream(
-        stream_samples, 1024, params.max_record_buffer_size);
+        stream_samples,
+        1024,
+        params.max_record_buffer_size,
+        metadata.anchor_gap);
     vcf_streams_.emplace_back(stream);
   }
 
@@ -68,7 +72,7 @@ void ParallelWriterWorkerV4::init(
   // TODO: make queue_size configurable
   stats_worker_.reset(new StatsWorker(1024));
 
-  for (const auto& attr : dataset.metadata().extra_attributes) {
+  for (const auto& attr : metadata.extra_attributes) {
     record_buffers_.extra_attrs()[attr] = Buffer();
     anchor_buffers_.extra_attrs()[attr] = Buffer();
   }
@@ -90,8 +94,6 @@ SharedWriterRecordV4 ParallelWriterWorkerV4::get_head(size_t i) {
 bool ParallelWriterWorkerV4::parse(const Region& region) {
   if (records_buffered_ > 0)
     throw std::runtime_error("Error in parsing; record buffers aren't empy.");
-  if (!anchor_heap_.empty())
-    throw std::runtime_error("Error in parsing; anchor heap not empty.");
 
   region_ = region;
 
@@ -122,24 +124,20 @@ bool ParallelWriterWorkerV4::parse(const Region& region) {
 }
 
 bool ParallelWriterWorkerV4::resume() {
-  // Buffer VCF records in-memory for writing to the TileDB array. The records
-  // are expected to be sorted in ascending order by there start position and
-  // duplicate start positions are allowed. Record ranges may overlap. Records
-  // are sorted by a merge algorithm and anchor points are ordered by using a
-  // small record heap.
+  // Buffer VCF records (and anchors) in-memory for writing to the TileDB array.
+  // The records are expected to be sorted in ascending order by their start
+  // position and duplicate start positions are allowed. Record ranges may
+  // overlap. Records are sorted by a merge algorithm.
   //
-  // 1. Pop the top record from `head_list_` and buffer the record.
-  //     a. This includes generating allele count, variant stats, and sample
-  //        stats data
-  // 2. Generate anchors for the record and push them onto the `anchor_heap_`.
-  // 3. Buffer anchors from the `anchor_heap_`
-  //     a. Any anchor on the heap with start position up to the current
-  //        record's start position can be buffered.
-  // 3. Repeat step (1) until the `head_list_` is empty or the buffers are full.
+  // 1. Pop the top record/anchor from `head_list_` and buffer it.
+  //     a. If the reord is not an anchor, generate allele count, variant stats,
+  //     and sample stats data using a stats worker running in another thread
+  // 2. Repeat step (1) until the `head_list_` is empty or the buffers are full.
   //
   // When a region has been parsed or the buffers are full, upstream code
   // flushes all of the buffers, with the possible exception of samples stats.
-  // These buffers are only flushed when the buffers are flushed AND finalized.
+  // Sample stats buffers are only flushed when the buffers are flushed AND
+  // finalized.
 
   if (records_buffered_ > 0)
     LOG_FATAL(
@@ -160,12 +158,13 @@ bool ParallelWriterWorkerV4::resume() {
     }
 
     // Buffer the record and compute stats
-    // NOTE: The stats queue has finite size so this blocks when it's full
-    stats_worker_->push(node);
-    buffer_record(record_buffers_, *node);
-    // Generate and buffer anchors
-    generate_anchors(*node);
-    buffer_anchors(*node);
+    if (node->type == WriterRecordV4::Type::Record) {
+      // NOTE: The stats queue has finite size so this blocks when it's full
+      stats_worker_->push(node);
+      buffer_record(record_buffers_, *node);
+    } else {
+      buffer_record(anchor_buffers_, *node);
+    }
 
     // Check if the buffers are full
     const uint64_t buffer_size_mb = total_size() >> 20;
@@ -178,8 +177,6 @@ bool ParallelWriterWorkerV4::resume() {
       return false;
     }
   }
-  // Drain the anchor heap before returning for the final time
-  buffer_anchors();
   // Signal the stats worker to stop
   stats_worker_->push(nullptr);
   LOG_TRACE(
@@ -427,46 +424,6 @@ void ParallelWriterWorkerV4::buffer_fmt_field(
   buff->append(&type, sizeof(int));
   buff->append(&num_vals, sizeof(int));
   buff->append(val->dst, num_vals * utils::bcf_type_size(type));
-}
-
-void ParallelWriterWorkerV4::generate_anchors(const WriterRecordV4& node) {
-  // Early exit if start and end are the same
-  if (node.start_pos == node.end_pos) {
-    return;
-  }
-  // Generate anchors between start and end position of node
-  const auto& metadata = dataset_->metadata();
-  for (uint32_t start_pos = node.start_pos + metadata.anchor_gap;
-       start_pos < node.end_pos - metadata.anchor_gap - 1;
-       start_pos += metadata.anchor_gap) {
-    anchor_heap_.insert(
-        node.vcf,
-        WriterRecordV4::Type::Anchor,
-        node.record,
-        node.contig,
-        start_pos,
-        node.end_pos,
-        node.sample_name);
-  }
-}
-
-void ParallelWriterWorkerV4::buffer_anchors() {
-  while (!anchor_heap_.empty()) {
-    buffer_record(anchor_buffers_, anchor_heap_.top());
-    anchor_heap_.pop();
-  }
-}
-
-void ParallelWriterWorkerV4::buffer_anchors(const WriterRecordV4& node) {
-  while (!anchor_heap_.empty()) {
-    const WriterRecordV4& top = anchor_heap_.top();
-    if (top.start_pos <= node.start_pos) {
-      buffer_record(anchor_buffers_, top);
-      anchor_heap_.pop();
-    } else {
-      break;
-    }
-  }
 }
 
 void ParallelWriterWorkerV4::write_buffers(

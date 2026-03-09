@@ -66,6 +66,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
       const std::vector<SampleAndIndex>& samples,
       uint32_t queue_size,
       uint64_t vcf_buffer_size,
+      uint32_t anchor_gap,
       SharingMode mode = SharingMode::AUTOMATIC);
 
   /** Closes the VCF files and detructs the class. */
@@ -130,6 +131,9 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
       OptimistAtomicQueueB2;
   OptimistAtomicQueueB2 queue_;
 
+  /** The anchor gap size to use when computing anchors. */
+  uint32_t anchor_gap_;
+
   /** The region current being parsed. */
   Region region_;
 
@@ -141,6 +145,13 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
+
+  /**
+   * Generates anchors for the given record and adds them to the queue.
+   *
+   * @param node The record to generate anchors for
+   */
+  void generate_anchors(const WriterRecordV4& node);
 };
 
 }  // namespace vcf

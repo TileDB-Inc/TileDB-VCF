@@ -35,9 +35,11 @@ MergedVCFV4Stream::MergedVCFV4Stream(
     const std::vector<SampleAndIndex>& samples,
     uint32_t queue_size,
     uint64_t vcf_buffer_size,
+    uint32_t anchor_gap,
     SharingMode mode)
     : SharedPtrPool<WriterRecordV4>(mode)
-    , queue_(queue_size) {
+    , queue_(queue_size)
+    , anchor_gap_(anchor_gap) {
   for (const auto& s : samples) {
     auto vcf = std::make_shared<VCFV4>(VCFV4::SharingMode::AUTOMATIC);
     vcf->set_max_record_buff_size(vcf_buffer_size);
@@ -111,8 +113,11 @@ void MergedVCFV4Stream::parse(const Region& region) {
   // Buffer records until there's no variants left to parse in any of the VCFs
   while (!merged_records_empty()) {
     SharedWriterRecordV4 node = next_head();
+    WriterRecordV4& record = *node;
     // Add the next record to the queue; push() will block if the queue is full
     queue_.push(std::move(node));
+    // Generate anchors and push them to the queue after the node
+    generate_anchors(record);
   }
   // Signal that the parse is complete by pushing a null pointer
   queue_.push(nullptr);
@@ -124,6 +129,29 @@ SharedWriterRecordV4 MergedVCFV4Stream::pop() {
 
 void MergedVCFV4Stream::return_node(SharedWriterRecordV4& node) {
   return_ptr_to_pool(node);
+}
+
+void MergedVCFV4Stream::generate_anchors(const WriterRecordV4& node) {
+  // Early exit if start and end are the same
+  if (node.start_pos == node.end_pos) {
+    return;
+  }
+  // Generate anchors between start and end position of node
+  for (uint32_t start_pos = node.start_pos + anchor_gap_;
+       start_pos < node.end_pos - anchor_gap_ - 1;
+       start_pos += anchor_gap_) {
+    // Create a new anchor for the record
+    SharedWriterRecordV4 anchor = get_ptr_from_pool();
+    anchor->vcf = node.vcf;
+    anchor->type = WriterRecordV4::Type::Anchor;
+    anchor->record = node.record;
+    anchor->contig = node.contig;
+    anchor->start_pos = start_pos;
+    anchor->end_pos = node.end_pos;
+    anchor->sample_name = node.sample_name;
+    // Add the next anchor to the queue; push() will block if the queue is full
+    queue_.push(std::move(anchor));
+  }
 }
 
 }  // namespace vcf

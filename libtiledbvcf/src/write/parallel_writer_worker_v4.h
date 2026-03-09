@@ -42,7 +42,6 @@
 #include "vcf/htslib_value.h"
 #include "vcf/vcf_utils.h"
 #include "write/merged_vcf_v4_stream.h"
-#include "write/record_heap_v4.h"
 #include "write/stats_worker.h"
 #include "write/writer.h"
 #include "write/writer_record_v4.h"
@@ -194,9 +193,6 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   /** Current number of anchors buffered. */
   uint64_t anchors_buffered_;
 
-  /** Record heap for storing anchors. */
-  RecordHeapV4 anchor_heap_;
-
   /** A worker for computing sample stats in a separate thread. */
   std::unique_ptr<StatsWorker> stats_worker_;
 
@@ -270,24 +266,6 @@ class ParallelWriterWorkerV4 : public WriterWorker,
       bool include_key,
       HtslibValueMem* val,
       Buffer* buff);
-
-  /**
-   * Generates anchors for the given record and adds them to the anchor heap.
-   *
-   * @param node The record to generate anchors for
-   */
-  void generate_anchors(const WriterRecordV4& node);
-
-  /** Buffers all anchors in the anchor heap. */
-  void buffer_anchors();
-
-  /**
-   * Buffers all anchors in the anchor heap with a start position less than or
-   * equal to the given record.
-   *
-   * @param node The record to compare anchors to
-   */
-  void buffer_anchors(const WriterRecordV4& node);
 
   /**
    * Uses the given query to write all data in the given buffer.
