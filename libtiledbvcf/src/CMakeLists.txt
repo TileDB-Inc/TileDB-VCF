@@ -84,6 +84,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v4.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_merge_algorithm.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/stats_worker.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4.cc
