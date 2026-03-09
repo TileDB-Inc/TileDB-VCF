@@ -64,7 +64,7 @@ class RecordHeapV4 {
   typedef std::priority_queue<
       UniqueWriterRecordV4,
       std::vector<UniqueWriterRecordV4>,
-      UniqueWriterRecordV4GT>
+      WriterRecordV4GT>
       record_heap_t;
 
   /** The heap. */

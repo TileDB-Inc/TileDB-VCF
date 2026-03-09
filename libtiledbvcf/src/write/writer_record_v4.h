@@ -79,9 +79,14 @@ inline bool writer_record_v4_gt(
          strcmp(a.contig.c_str(), b.contig.c_str()) > 0;
 };
 
-struct UniqueWriterRecordV4GT {
+struct WriterRecordV4GT {
   bool operator()(
       const UniqueWriterRecordV4& a, const UniqueWriterRecordV4& b) const {
+    return writer_record_v4_gt(*a, *b);
+  }
+
+  bool operator()(
+      const SharedWriterRecordV4& a, const SharedWriterRecordV4& b) const {
     return writer_record_v4_gt(*a, *b);
   }
 };
