@@ -36,7 +36,7 @@
 #include "utils/shared_ptr_pool.h"
 #include "vcf/vcf_utils.h"
 #include "vcf/vcf_v4.h"
-#include "write/record_heap_v4.h"
+#include "write/writer_record_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -49,7 +49,7 @@ namespace vcf {
  * that variants can be continuously written and read in a thread-safe manner.
  */
 class MergedVCFV4Stream : public RecordMergeAlgorithm,
-                          public SharedPtrPool<RecordHeapV4::Node> {
+                          public SharedPtrPool<WriterRecordV4> {
  public:
   typedef SharedPtrPool::SharingMode SharingMode;
 
@@ -77,7 +77,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
    * @param i The index of the `VCFV4`
    * @return The head record that was popped
    */
-  std::shared_ptr<RecordHeapV4::Node> get_head(size_t i);
+  SharedWriterRecordV4 get_head(size_t i);
 
   /**
    * Parses the given region in each VCF file and continuously fills the queue
@@ -96,7 +96,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
    *
    * @return A unique pointer wrapping the pooped node
    */
-  std::shared_ptr<RecordHeapV4::Node> pop();
+  SharedWriterRecordV4 pop();
 
   /**
    * As an optimization, nodes returned from `get_head()` may be passed
@@ -104,7 +104,7 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
    *
    * @param node The processed node to return into the allocation pool
    */
-  void return_node(std::shared_ptr<RecordHeapV4::Node>& node);
+  void return_node(SharedWriterRecordV4& node);
 
  private:
   /**
@@ -122,8 +122,8 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
    * faster
    */
   typedef atomic_queue::AtomicQueueB2<
-      std::shared_ptr<RecordHeapV4::Node>,
-      std::allocator<std::shared_ptr<RecordHeapV4::Node>>,
+      SharedWriterRecordV4,
+      std::allocator<SharedWriterRecordV4>,
       true,
       true,
       true>

@@ -33,7 +33,7 @@
 #include "stats/allele_count.h"
 #include "stats/sample_stats.h"
 #include "stats/variant_stats.h"
-#include "write/record_heap_v4.h"
+#include "write/writer_record_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -63,7 +63,7 @@ class StatsWorker {
    *
    * @param node The record to push
    */
-  void push(const std::shared_ptr<RecordHeapV4::Node>& node);
+  void push(const SharedWriterRecordV4& node);
 
   /**
    * Checks if the worker is idle, i.e. there's no records in the queue.
@@ -103,8 +103,8 @@ class StatsWorker {
    * faster
    */
   typedef atomic_queue::AtomicQueueB2<
-      std::shared_ptr<RecordHeapV4::Node>,
-      std::allocator<std::shared_ptr<RecordHeapV4::Node>>,
+      SharedWriterRecordV4,
+      std::allocator<SharedWriterRecordV4>,
       true,
       true,
       true>
@@ -125,7 +125,7 @@ class StatsWorker {
    *
    * @param node The record to buffer
    */
-  void buffer_record(const RecordHeapV4::Node& node);
+  void buffer_record(const WriterRecordV4& node);
 };
 
 }  // namespace vcf

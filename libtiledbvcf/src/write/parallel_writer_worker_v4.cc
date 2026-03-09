@@ -82,7 +82,7 @@ uint64_t ParallelWriterWorkerV4::anchors_buffered() const {
   return anchors_buffered_;
 }
 
-std::shared_ptr<RecordHeapV4::Node> ParallelWriterWorkerV4::get_head(size_t i) {
+SharedWriterRecordV4 ParallelWriterWorkerV4::get_head(size_t i) {
   MergedVCFV4Stream* vcf = vcf_streams_[i].get();
   return vcf->pop();
 }
@@ -149,7 +149,7 @@ bool ParallelWriterWorkerV4::resume() {
   // streams or until the buffer is full
   while (!merged_records_empty()) {
     // Get the next node in the global order from the head list
-    std::shared_ptr<RecordHeapV4::Node> node = next_head();
+    SharedWriterRecordV4 node = next_head();
     if (node->start_pos > region_.max) {
       LOG_FATAL(
           "ParallelWriterWorkerV4(id={})::resume Next record starts outside of "
@@ -227,7 +227,7 @@ uint64_t ParallelWriterWorkerV4::total_size() const {
 }
 
 void ParallelWriterWorkerV4::buffer_record(
-    AttributeBufferSet& buffers, const RecordHeapV4::Node& node) {
+    AttributeBufferSet& buffers, const WriterRecordV4& node) {
   auto vcf = node.vcf;
   bcf1_t* r = node.record.get();
   bcf_hdr_t* hdr = vcf->hdr();
@@ -237,8 +237,8 @@ void ParallelWriterWorkerV4::buffer_record(
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
-  // Ingestion tasks process only NodeType::Record
-  if (node.type == RecordHeapV4::NodeType::Record) {
+  // Ingestion tasks process only Type::Record
+  if (node.type == WriterRecordV4::Type::Record) {
     records_buffered_++;
   } else {
     anchors_buffered_++;
@@ -429,7 +429,7 @@ void ParallelWriterWorkerV4::buffer_fmt_field(
   buff->append(val->dst, num_vals * utils::bcf_type_size(type));
 }
 
-void ParallelWriterWorkerV4::generate_anchors(const RecordHeapV4::Node& node) {
+void ParallelWriterWorkerV4::generate_anchors(const WriterRecordV4& node) {
   // Early exit if start and end are the same
   if (node.start_pos == node.end_pos) {
     return;
@@ -441,7 +441,7 @@ void ParallelWriterWorkerV4::generate_anchors(const RecordHeapV4::Node& node) {
        start_pos += metadata.anchor_gap) {
     anchor_heap_.insert(
         node.vcf,
-        RecordHeapV4::NodeType::Anchor,
+        WriterRecordV4::Type::Anchor,
         node.record,
         node.contig,
         start_pos,
@@ -457,9 +457,9 @@ void ParallelWriterWorkerV4::buffer_anchors() {
   }
 }
 
-void ParallelWriterWorkerV4::buffer_anchors(const RecordHeapV4::Node& node) {
+void ParallelWriterWorkerV4::buffer_anchors(const WriterRecordV4& node) {
   while (!anchor_heap_.empty()) {
-    const RecordHeapV4::Node& top = anchor_heap_.top();
+    const WriterRecordV4& top = anchor_heap_.top();
     if (top.start_pos <= node.start_pos) {
       buffer_record(anchor_buffers_, top);
       anchor_heap_.pop();

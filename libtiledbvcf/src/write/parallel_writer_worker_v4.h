@@ -45,6 +45,7 @@
 #include "write/record_heap_v4.h"
 #include "write/stats_worker.h"
 #include "write/writer.h"
+#include "write/writer_record_v4.h"
 #include "write/writer_worker.h"
 
 namespace tiledb {
@@ -159,7 +160,7 @@ class ParallelWriterWorkerV4 : public WriterWorker,
 
  private:
   struct Head {
-    std::shared_ptr<RecordHeapV4::Node> node;
+    SharedWriterRecordV4 node;
     int stream_index;
   };
 
@@ -202,16 +203,13 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   /** The stats task that buffers record stats. */
   std::future<void> stats_task_;
 
-  /** A queue of records that still need to have stats computed. */
-  // std::queue<std::shared_ptr<RecordHeapV4::Node>> stats_queue_;
-
   /**
    * Pops the head record from the ith `MergedVCFV4Stream`.
    *
    * @param i The index of the `MergedVCFV4Stream`
    * @return The head record that was popped
    */
-  std::shared_ptr<RecordHeapV4::Node> get_head(size_t i);
+  SharedWriterRecordV4 get_head(size_t i);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes).
@@ -227,8 +225,7 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    * @param buffers The attribute buffer set to add the record to
    * @param node Record to buffer
    */
-  void buffer_record(
-      AttributeBufferSet& buffers, const RecordHeapV4::Node& node);
+  void buffer_record(AttributeBufferSet& buffers, const WriterRecordV4& node);
 
   /**
    * Helper function to buffer the alleles attribute.
@@ -279,7 +276,7 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    *
    * @param node The record to generate anchors for
    */
-  void generate_anchors(const RecordHeapV4::Node& node);
+  void generate_anchors(const WriterRecordV4& node);
 
   /** Buffers all anchors in the anchor heap. */
   void buffer_anchors();
@@ -290,7 +287,7 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    *
    * @param node The record to compare anchors to
    */
-  void buffer_anchors(const RecordHeapV4::Node& node);
+  void buffer_anchors(const WriterRecordV4& node);
 
   /**
    * Uses the given query to write all data in the given buffer.

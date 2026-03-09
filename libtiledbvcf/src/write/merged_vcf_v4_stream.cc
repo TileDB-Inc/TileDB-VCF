@@ -36,7 +36,7 @@ MergedVCFV4Stream::MergedVCFV4Stream(
     uint32_t queue_size,
     uint64_t vcf_buffer_size,
     SharingMode mode)
-    : SharedPtrPool<RecordHeapV4::Node>(mode)
+    : SharedPtrPool<WriterRecordV4>(mode)
     , queue_(queue_size) {
   for (const auto& s : samples) {
     auto vcf = std::make_shared<VCFV4>(VCFV4::SharingMode::AUTOMATIC);
@@ -53,7 +53,7 @@ MergedVCFV4Stream::~MergedVCFV4Stream() {
   }
 }
 
-std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
+SharedWriterRecordV4 MergedVCFV4Stream::get_head(size_t i) {
   // Check if the VCF has records for this region
   if (!vcf_has_records_[i]) {
     return nullptr;
@@ -72,9 +72,9 @@ std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::get_head(size_t i) {
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
 
   // Create a new node for the record
-  std::shared_ptr<RecordHeapV4::Node> node = get_ptr_from_pool();
+  SharedWriterRecordV4 node = get_ptr_from_pool();
   node->vcf = vcf;
-  node->type = RecordHeapV4::NodeType::Record;
+  node->type = WriterRecordV4::Type::Record;
   node->record = std::move(record);
   node->contig = region_.seq_name;
   node->start_pos = start_pos;
@@ -110,7 +110,7 @@ void MergedVCFV4Stream::parse(const Region& region) {
 
   // Buffer records until there's no variants left to parse in any of the VCFs
   while (!merged_records_empty()) {
-    std::shared_ptr<RecordHeapV4::Node> node = next_head();
+    SharedWriterRecordV4 node = next_head();
     // Add the next record to the queue; push() will block if the queue is full
     queue_.push(std::move(node));
   }
@@ -118,11 +118,11 @@ void MergedVCFV4Stream::parse(const Region& region) {
   queue_.push(nullptr);
 }
 
-std::shared_ptr<RecordHeapV4::Node> MergedVCFV4Stream::pop() {
+SharedWriterRecordV4 MergedVCFV4Stream::pop() {
   return queue_.pop();
 }
 
-void MergedVCFV4Stream::return_node(std::shared_ptr<RecordHeapV4::Node>& node) {
+void MergedVCFV4Stream::return_node(SharedWriterRecordV4& node) {
   return_ptr_to_pool(node);
 }
 

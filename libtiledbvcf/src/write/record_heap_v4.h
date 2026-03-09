@@ -31,74 +31,40 @@
 #include <queue>
 
 #include "vcf/vcf_v4.h"
+#include "write/writer_record_v4.h"
 
 namespace tiledb {
 namespace vcf {
 
 class RecordHeapV4 {
  public:
-  enum class NodeType { Record, Anchor };
-  struct Node {
-    Node()
-        : vcf(nullptr)
-        , type(NodeType::Record)
-        , record(nullptr)
-        , start_pos(std::numeric_limits<uint32_t>::max())
-        , end_pos(std::numeric_limits<uint32_t>::max())
-        , sample_name() {
-    }
-
-    std::shared_ptr<VCFV4> vcf;
-    NodeType type;
-    SafeSharedBCFRec record;
-    std::string contig;
-    uint32_t start_pos;
-    uint32_t end_pos;
-    std::string sample_name;
-  };
-
   void clear();
 
   bool empty() const;
 
   void insert(
       std::shared_ptr<VCFV4> vcf,
-      NodeType type,
+      WriterRecordV4::Type type,
       SafeSharedBCFRec record,
       const std::string& contig,
       uint32_t start_pos,
       uint32_t end_pos,
       const std::string& sample_name);
 
-  void insert(const Node& node);
+  void insert(const WriterRecordV4& node);
 
-  const Node& top() const;
+  const WriterRecordV4& top() const;
 
   void pop();
 
   size_t size();
 
  private:
-  /**
-   * Performs a greater-than comparison on two RecordHeapV4 Node structs. This
-   * results in a min-heap sorted on start position first, breaking ties by
-   * sample ID.
-   */
-  struct NodeCompareGT {
-    bool operator()(
-        const std::unique_ptr<Node>& a, const std::unique_ptr<Node>& b) const {
-      return a->contig > b->contig ||
-             (a->contig == b->contig && a->start_pos > b->start_pos) ||
-             (a->contig == b->contig && a->start_pos == b->start_pos &&
-              a->sample_name > b->sample_name);
-    }
-  };
-
-  /** A min-heap of BCF record structs, sorted on start pos. */
+  /** A min-heap of UniqueWriterRecordV4 structs. */
   typedef std::priority_queue<
-      std::unique_ptr<Node>,
-      std::vector<std::unique_ptr<Node>>,
-      NodeCompareGT>
+      UniqueWriterRecordV4,
+      std::vector<UniqueWriterRecordV4>,
+      UniqueWriterRecordV4GT>
       record_heap_t;
 
   /** The heap. */

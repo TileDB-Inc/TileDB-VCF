@@ -45,6 +45,7 @@
 #include "vcf/vcf_utils.h"
 #include "write/record_heap_v4.h"
 #include "write/writer.h"
+#include "write/writer_record_v4.h"
 #include "write/writer_worker.h"
 
 namespace tiledb {
@@ -173,7 +174,7 @@ class WriterWorkerV4 : public WriterWorker {
    * @param node Record to buffer
    * @return True if copy succeeded; false on buffer overflow.
    */
-  bool buffer_record(const RecordHeapV4::Node& node);
+  bool buffer_record(const WriterRecordV4& node);
 
   /** Helper function to buffer the alleles attribute. */
   static void buffer_alleles(bcf1_t* record, Buffer* buffer);

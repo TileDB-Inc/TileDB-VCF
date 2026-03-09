@@ -41,7 +41,7 @@ void StatsWorker::run() {
     throw std::runtime_error(
         "Error in run; record queue was unexpectedly not empty.");
 
-  std::shared_ptr<RecordHeapV4::Node> node = queue_.pop();
+  SharedWriterRecordV4 node = queue_.pop();
   // Buffer records until there's no variants left to parse in any of the VCFs
   while (node != nullptr) {
     buffer_record(*node);
@@ -49,7 +49,7 @@ void StatsWorker::run() {
   }
 }
 
-void StatsWorker::push(const std::shared_ptr<RecordHeapV4::Node>& node) {
+void StatsWorker::push(const SharedWriterRecordV4& node) {
   queue_.push(node);
 }
 
@@ -57,7 +57,7 @@ bool StatsWorker::is_idle() {
   return queue_.was_empty();
 }
 
-void StatsWorker::buffer_record(const RecordHeapV4::Node& node) {
+void StatsWorker::buffer_record(const WriterRecordV4& node) {
   auto vcf = node.vcf;
   bcf1_t* r = node.record.get();
   bcf_hdr_t* hdr = vcf->hdr();
