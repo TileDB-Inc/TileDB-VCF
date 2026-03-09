@@ -42,7 +42,6 @@
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "write/writer_worker_v4.h"
-#include "write/writer_worker_v4_legacy.h"
 
 namespace tiledb {
 namespace vcf {
@@ -52,7 +51,7 @@ namespace vcf {
 /* ********************************* */
 
 // Forward declaration
-class WriterWorkerV4Legacy;
+class WriterWorkerV4;
 
 /** Arguments/params for dataset ingestion. */
 struct IngestionParams {
@@ -539,7 +538,7 @@ class Writer {
    *
    * @param worker Writer worker containing the anchors.
    */
-  size_t write_anchors(WriterWorkerV4Legacy& worker);
+  size_t write_anchors(WriterWorkerV4& worker);
 };
 
 }  // namespace vcf

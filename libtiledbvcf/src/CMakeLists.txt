@@ -80,6 +80,7 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/vcf/vcf_v4.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/merged_vcf_v4_stream.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/write/parallel_writer_worker_v4.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/record_heap_v4.cc
@@ -88,7 +89,6 @@ set(TILEDB_VCF_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v3.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/write/writer_worker_v4_legacy.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/write/writer.cc
 )
 

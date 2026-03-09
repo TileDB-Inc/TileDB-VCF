@@ -33,12 +33,12 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
+#include "write/parallel_writer_worker_v4.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
 #include "write/writer_worker_v2.h"
 #include "write/writer_worker_v3.h"
 #include "write/writer_worker_v4.h"
-#include "write/writer_worker_v4_legacy.h"
 
 namespace tiledb {
 namespace vcf {
@@ -1092,7 +1092,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Instantiate a single worker that will be reused for all regions
   unsigned num_vcf_streams =
       std::max(1u, params.num_threads - 1);  // -1 for the worker itself
-  WriterWorkerV4* worker = new WriterWorkerV4(0, num_vcf_streams);
+  ParallelWriterWorkerV4* worker =
+      new ParallelWriterWorkerV4(0, num_vcf_streams);
   worker->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   worker->init(*dataset_, params, samples);
 
@@ -1179,14 +1180,14 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
   // samples.size() vcf open calls
   std::vector<std::unique_ptr<WriterWorker>> workers(params.num_threads);
   for (size_t i = 0; i < workers.size(); ++i) {
-    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4Legacy(i));
+    workers[i] = std::unique_ptr<WriterWorker>(new WriterWorkerV4(i));
 
     workers[i]->init(*dataset_, params, samples);
     workers[i]->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   }
 
   // Create a worker for buffering anchors
-  WriterWorkerV4Legacy anchor_worker(params.num_threads);
+  WriterWorkerV4 anchor_worker(params.num_threads);
   anchor_worker.init(*dataset_, params, samples);
   anchor_worker.set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
 
@@ -1574,8 +1575,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
         records_ingested += worker->records_buffered();
 
         // Drain anchors from the worker into the anchor_worker
-        dynamic_cast<WriterWorkerV4Legacy*>(worker)->drain_anchors(
-            anchor_worker);
+        dynamic_cast<WriterWorkerV4*>(worker)->drain_anchors(anchor_worker);
 
         // Repeatedly resume the same worker where it left off until it
         // is able to complete.
@@ -1657,7 +1657,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
   return {records_ingested, anchors_ingested};
 }
 
-size_t Writer::write_anchors(WriterWorkerV4Legacy& worker) {
+size_t Writer::write_anchors(WriterWorkerV4& worker) {
   // Buffer anchor records in the anchor worker
   int records = worker.buffer_anchors();
 
