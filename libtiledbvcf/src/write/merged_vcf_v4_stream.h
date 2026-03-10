@@ -36,6 +36,7 @@
 #include "utils/shared_ptr_pool.h"
 #include "vcf/vcf_utils.h"
 #include "vcf/vcf_v4.h"
+#include "write/record_heap_v4.h"
 #include "write/writer_record_v4.h"
 
 namespace tiledb {
@@ -146,12 +147,26 @@ class MergedVCFV4Stream : public RecordMergeAlgorithm,
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
 
+  /** Record heap for storing anchors. */
+  SharedRecordHeapV4 anchor_heap_;
+
   /**
    * Generates anchors for the given record and adds them to the queue.
    *
    * @param node The record to generate anchors for
    */
   void generate_anchors(const WriterRecordV4& node);
+
+  /** Pushes all anchors in the anchor heap to the queue. */
+  void push_anchors();
+
+  /**
+   * Pushes all anchors in the anchor heap with a start position less than or
+   * equal to the given record to the queue.
+   *
+   * @param node The record to compare anchors to
+   */
+  void push_anchors(const WriterRecordV4& node);
 };
 
 }  // namespace vcf

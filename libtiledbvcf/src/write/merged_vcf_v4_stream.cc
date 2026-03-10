@@ -114,11 +114,15 @@ void MergedVCFV4Stream::parse(const Region& region) {
   while (!merged_records_empty()) {
     SharedWriterRecordV4 node = next_head();
     WriterRecordV4& record = *node;
-    // Add the next record to the queue; push() will block if the queue is full
+    // Push anchors from the heap that precede the head
+    push_anchors(record);
+    // Push the head to the queue; push() will block if the queue is full
     queue_.push(std::move(node));
-    // Generate anchors and push them to the queue after the node
+    // Generate anchors and add them to the heap
     generate_anchors(record);
   }
+  // Push any remaining anchors from the heap to the queue
+  push_anchors();
   // Signal that the parse is complete by pushing a null pointer
   queue_.push(nullptr);
 }
@@ -149,8 +153,29 @@ void MergedVCFV4Stream::generate_anchors(const WriterRecordV4& node) {
     anchor->start_pos = start_pos;
     anchor->end_pos = node.end_pos;
     anchor->sample_name = node.sample_name;
-    // Add the next anchor to the queue; push() will block if the queue is full
-    queue_.push(std::move(anchor));
+    // Add the anchor to the heap
+    anchor_heap_.insert(std::move(anchor));
+  }
+}
+
+void MergedVCFV4Stream::push_anchors() {
+  while (!anchor_heap_.empty()) {
+    // Push the anchor to the queue; push() will block if the queue is full
+    queue_.push(anchor_heap_.top());
+    anchor_heap_.pop();
+  }
+}
+
+void MergedVCFV4Stream::push_anchors(const WriterRecordV4& node) {
+  while (!anchor_heap_.empty()) {
+    const SharedWriterRecordV4& top = anchor_heap_.top();
+    if (top->start_pos <= node.start_pos) {
+      // Push the anchor to the queue; push() will block if the queue is full
+      queue_.push(anchor_heap_.top());
+      anchor_heap_.pop();
+    } else {
+      break;
+    }
   }
 }
 
