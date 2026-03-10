@@ -71,6 +71,43 @@ class RecordHeapV4 {
   record_heap_t heap_;
 };
 
+class SharedRecordHeapV4 {
+ public:
+  void clear();
+
+  bool empty() const;
+
+  void insert(
+      std::shared_ptr<VCFV4> vcf,
+      WriterRecordV4::Type type,
+      SafeSharedBCFRec record,
+      const std::string& contig,
+      uint32_t start_pos,
+      uint32_t end_pos,
+      const std::string& sample_name);
+
+  void insert(const WriterRecordV4& node);
+
+  void insert(const SharedWriterRecordV4& node);
+
+  const SharedWriterRecordV4& top() const;
+
+  void pop();
+
+  size_t size();
+
+ private:
+  /** A min-heap of UniqueWriterRecordV4 structs. */
+  typedef std::priority_queue<
+      SharedWriterRecordV4,
+      std::vector<SharedWriterRecordV4>,
+      WriterRecordV4GT>
+      record_heap_t;
+
+  /** The heap. */
+  record_heap_t heap_;
+};
+
 }  // namespace vcf
 }  // namespace tiledb
 

@@ -97,5 +97,75 @@ size_t RecordHeapV4::size() {
   return heap_.size();
 }
 
+void SharedRecordHeapV4::clear() {
+  while (!heap_.empty())
+    heap_.pop();
+}
+
+bool SharedRecordHeapV4::empty() const {
+  return heap_.empty();
+}
+
+void SharedRecordHeapV4::insert(
+    std::shared_ptr<VCFV4> vcf,
+    WriterRecordV4::Type type,
+    SafeSharedBCFRec record,
+    const std::string& contig,
+    uint32_t start_pos,
+    uint32_t end_pos,
+    const std::string& sample_name) {
+  // Sanity check start_pos is greater than the record start position.
+  if (start_pos < (uint32_t)record->pos) {
+    HtslibValueMem val;
+    std::string str_type =
+        type == WriterRecordV4::Type::Record ? "record" : "anchor";
+    throw std::runtime_error(
+        "Error inserting " + str_type + " '" + contig + ":" +
+        std::to_string(record->pos + 1) + "-" +
+        std::to_string(
+            VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val) + 1) +
+        "' into ingestion heap from sample " + sample_name +
+        "; sort start position " + std::to_string(start_pos + 1) +
+        " cannot be less than start.");
+  }
+
+  auto node = std::shared_ptr<WriterRecordV4>(new WriterRecordV4);
+  node->vcf = vcf;
+  node->type = type;
+  node->record = std::move(record);
+  node->contig = contig;
+  node->start_pos = start_pos;
+  node->end_pos = end_pos;
+  node->sample_name = sample_name;
+  heap_.push(std::move(node));
+}
+
+void SharedRecordHeapV4::insert(const WriterRecordV4& node) {
+  insert(
+      node.vcf,
+      node.type,
+      node.record,
+      node.contig,
+      node.start_pos,
+      node.end_pos,
+      node.sample_name);
+}
+
+void SharedRecordHeapV4::insert(const SharedWriterRecordV4& node) {
+  heap_.push(node);
+}
+
+const SharedWriterRecordV4& SharedRecordHeapV4::top() const {
+  return heap_.top();
+}
+
+void SharedRecordHeapV4::pop() {
+  heap_.pop();
+}
+
+size_t SharedRecordHeapV4::size() {
+  return heap_.size();
+}
+
 }  // namespace vcf
 }  // namespace tiledb
