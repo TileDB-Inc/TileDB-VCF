@@ -50,11 +50,26 @@ class StatsWorker {
    *
    * @param queue_size The size of the queue (will be rounded up to the nearest
    * power of 2)
+   * @param num_buffers The number of buffers to instantiate
    */
-  StatsWorker(uint32_t queue_size);
+  StatsWorker(uint32_t queue_size, size_t num_buffers = 1);
 
-  /** Parses records from the queue until a `nullptr` is popped. */
-  void run();
+  /**
+   * Gets the number of buffers in the stats worker.
+   *
+   * @return The number of buffers
+   */
+  size_t num_buffers() const {
+    return num_buffers_;
+  }
+
+  /**
+   * Parses records from the queue until a `nullptr` is popped.
+   *
+   * @param i Which buffers to parse data into; this can be different each time
+   *    `run(i)` is called
+   */
+  void run(size_t i = 0);
 
   /**
    * Pushes a VCF record onto the queue. Note that this will block if the queue
@@ -66,28 +81,31 @@ class StatsWorker {
   void push(const SharedWriterRecordV4& node);
 
   /**
-   * Checks if the worker is idle, i.e. there's no records in the queue.
-   *
-   * @return True if the idle, otherwise false
-   */
-  bool is_idle();
-
-  /**
    * Flushes stats data to write buffers and submits write queries. Sample
    * stats are only flushed if finalizing.
    *
+   * @param i Which buffers to flush
    * @param finalize Whether or not the write queries should be finalized
    */
-  void flush(bool finalize);
+  void flush(bool finalize, size_t i = 0);
 
   /**
    * Returns the sum of sizes of all buffers (in bytes).
    *
+   * @param i Which buffers to get the size of
    * @return The total size of the buffers
    */
-  uint64_t total_size() const;
+  uint64_t total_size(size_t i = 0) const;
 
  private:
+  struct Buffers {
+    /** Variant stats ingestion task object. */
+    VariantStats variant_stats;
+    /** Allele count ingestion task object. */
+    AlleleCount allele_count;
+    /** SampleStats is excluded because they're only flushed when finalizing. */
+  };
+
   /**
    * Fixed size queue for non-atomic elements, i.e. records. This is the
    * "OptimistAtomicQueueB2" configuration where the buffer size is specified as
@@ -111,21 +129,28 @@ class StatsWorker {
       OptimistAtomicQueueB2;
   OptimistAtomicQueueB2 queue_;
 
-  /** Variant stats ingestion task object. */
-  VariantStats vs_;
+  /** Number of buffers available */
+  const int num_buffers_;
 
-  /** Allele count ingestion task object. */
-  AlleleCount ac_;
+  /** Stats buffers available for concurrent parsing and writing. */
+  std::vector<Buffers> buffers_;
 
   /** Sample stats ingestion task object. */
-  SampleStats ss_;
+  SampleStats sample_stats_;
 
   /**
    * Computes stats for a VCF record.
    *
    * @param node The record to buffer
+   * @param vs The variant stats buffer to put data in
+   * @param ac The allele count buffer to put data in
+   * @param ss The sample stats buffer to put data in
    */
-  void buffer_record(const WriterRecordV4& node);
+  void buffer_record(
+      const WriterRecordV4& node,
+      VariantStats& vs,
+      AlleleCount& ac,
+      SampleStats& ss);
 };
 
 }  // namespace vcf

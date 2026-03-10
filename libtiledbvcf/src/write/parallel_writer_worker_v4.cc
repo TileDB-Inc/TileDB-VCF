@@ -33,12 +33,13 @@
 namespace tiledb {
 namespace vcf {
 
-ParallelWriterWorkerV4::ParallelWriterWorkerV4(int id, int num_vcf_streams)
+ParallelWriterWorkerV4::ParallelWriterWorkerV4(
+    int id, size_t num_vcf_streams, size_t num_buffers)
     : id_(id)
     , num_vcf_streams_(num_vcf_streams)
-    , dataset_(nullptr)
-    , records_buffered_(0)
-    , anchors_buffered_(0) {
+    , num_buffers_(num_buffers)
+    , buffers_(num_buffers)
+    , dataset_(nullptr) {
 }
 
 void ParallelWriterWorkerV4::init(
@@ -49,11 +50,9 @@ void ParallelWriterWorkerV4::init(
   const auto& metadata = dataset_->metadata();
 
   // Partition the samples into equal sized parts
-  const int num_vcf_streams =
-      std::min(num_vcf_streams_, static_cast<int>(samples.size()));
+  const size_t num_vcf_streams = std::min(num_vcf_streams_, samples.size());
   std::vector<std::vector<SampleAndIndex>> partitioned_samples(num_vcf_streams);
-  for (int i = 0; i < samples.size(); i++) {
-    const int j = i % num_vcf_streams;
+  for (size_t i = 0, j = 0; i < samples.size(); j = ++i % num_vcf_streams) {
     partitioned_samples[j].push_back(samples[i]);
   }
 
@@ -70,20 +69,26 @@ void ParallelWriterWorkerV4::init(
 
   // Create the stats worker
   // TODO: make queue_size configurable
-  stats_worker_.reset(new StatsWorker(1024));
+  stats_worker_.reset(new StatsWorker(1024, num_buffers_));
 
-  for (const auto& attr : metadata.extra_attributes) {
-    record_buffers_.extra_attrs()[attr] = Buffer();
-    anchor_buffers_.extra_attrs()[attr] = Buffer();
+  // Reset the buffers
+  for (size_t i = 0; i < num_buffers_; i++) {
+    Buffers& buffers = buffers_[i];
+    for (const auto& attr : metadata.extra_attributes) {
+      buffers.record_buffers.extra_attrs()[attr] = Buffer();
+      buffers.anchor_buffers.extra_attrs()[attr] = Buffer();
+    }
+    buffers.records_buffered = 0;
+    buffers.anchors_buffered = 0;
   }
 }
 
-uint64_t ParallelWriterWorkerV4::records_buffered() const {
-  return records_buffered_;
+uint64_t ParallelWriterWorkerV4::records_buffered(size_t i) const {
+  return buffers_[i].records_buffered;
 }
 
-uint64_t ParallelWriterWorkerV4::anchors_buffered() const {
-  return anchors_buffered_;
+uint64_t ParallelWriterWorkerV4::anchors_buffered(size_t i) const {
+  return buffers_[i].anchors_buffered;
 }
 
 SharedWriterRecordV4 ParallelWriterWorkerV4::get_head(size_t i) {
@@ -91,9 +96,13 @@ SharedWriterRecordV4 ParallelWriterWorkerV4::get_head(size_t i) {
   return vcf->pop();
 }
 
-bool ParallelWriterWorkerV4::parse(const Region& region) {
-  if (records_buffered_ > 0)
-    throw std::runtime_error("Error in parsing; record buffers aren't empy.");
+bool ParallelWriterWorkerV4::parse(const Region& region, size_t i) {
+  if (buffers_[i].records_buffered > 0)
+    LOG_ERROR(
+        "WriteWorker4(id={})::parse Error in parsing; record buffers {} aren't "
+        "empty.",
+        id_,
+        i);
 
   region_ = region;
 
@@ -105,25 +114,20 @@ bool ParallelWriterWorkerV4::parse(const Region& region) {
       region.max);
 
   // Start parsing the VCF files
-  for (int i = 0; i < vcf_streams_.size(); i++) {
-    MergedVCFV4Stream* vcf = vcf_streams_[i].get();
-    TRY_CATCH_THROW(vcf_stream_tasks.push_back(std::async(
+  for (int j = 0; j < vcf_streams_.size(); j++) {
+    MergedVCFV4Stream* vcf = vcf_streams_[j].get();
+    TRY_CATCH_THROW(vcf_stream_tasks_.push_back(std::async(
         std::launch::async, &MergedVCFV4Stream::parse, vcf, region)));
   }
-
-  // Start the stats task
-  TRY_CATCH_THROW(stats_task_ = std::async(std::launch::async, [this]() {
-                    stats_worker_->run();
-                  }));
 
   // Initialize the merged head list
   initialize_merge_head_list(vcf_streams_.size());
 
   // Start buffering records
-  return resume();
+  return resume(i);
 }
 
-bool ParallelWriterWorkerV4::resume() {
+bool ParallelWriterWorkerV4::resume(size_t i) {
   // Buffer VCF records (and anchors) in-memory for writing to the TileDB array.
   // The records are expected to be sorted in ascending order by their start
   // position and duplicate start positions are allowed. Record ranges may
@@ -139,9 +143,17 @@ bool ParallelWriterWorkerV4::resume() {
   // Sample stats buffers are only flushed when the buffers are flushed AND
   // finalized.
 
-  if (records_buffered_ > 0)
+  // Start the stats task
+  TRY_CATCH_THROW(stats_task_ = std::async(std::launch::async, [this, i]() {
+                    stats_worker_->run(i);
+                  }));
+
+  // Get the buffers to be filled
+  Buffers& buffers = buffers_[i];
+  if (buffers.records_buffered > 0)
     LOG_FATAL(
-        "ParallelWriterWorkerV4(id={})::resume record buffers aren't empy");
+        "ParallelWriterWorkerV4(id={})::resume record buffers aren't empy",
+        id_);
 
   // Buffer records until there's no variants left to parse in any of the VCF
   // streams or until the buffer is full
@@ -159,20 +171,25 @@ bool ParallelWriterWorkerV4::resume() {
 
     // Buffer the record and compute stats
     if (node->type == WriterRecordV4::Type::Record) {
-      // NOTE: The stats queue has finite size so this blocks when it's full
+      // The stats queue has finite size so `push(node)` blocks when it's full
       stats_worker_->push(node);
-      buffer_record(record_buffers_, *node);
+      buffer_record(buffers.record_buffers, *node);
+      buffers.records_buffered++;
     } else {
-      buffer_record(anchor_buffers_, *node);
+      buffer_record(buffers.anchor_buffers, *node);
+      buffers.anchors_buffered++;
     }
 
     // Check if the buffers are full
-    const uint64_t buffer_size_mb = total_size() >> 20;
+    const uint64_t buffer_size_mb = total_size(i) >> 20;
     if (buffer_size_mb > max_total_buffer_size_mb_) {
+      // Signal the stats worker to stop
+      stats_worker_->push(nullptr);
       LOG_DEBUG(
-          "ParallelWriterWorkerV4(id={})::resume buffers full, total buffers "
-          "size = {} MiB",
+          "ParallelWriterWorkerV4(id={})::resume buffers {} full, total "
+          "buffers size = {} MiB",
           id_,
+          i,
           buffer_size_mb);
       return false;
     }
@@ -181,46 +198,51 @@ bool ParallelWriterWorkerV4::resume() {
   stats_worker_->push(nullptr);
   LOG_TRACE(
       "ParallelWriterWorkerV4(id={})::resume all records parsed, total buffers "
-      "size = {} MiB",
+      "{} size = {} MiB",
       id_,
+      i,
       total_size() >> 20);
   return true;
 }
 
-const AttributeBufferSet& ParallelWriterWorkerV4::buffers() const {
-  return record_buffers_;
+const AttributeBufferSet& ParallelWriterWorkerV4::buffers(size_t i) const {
+  return buffers_[i].record_buffers;
 }
 
-void ParallelWriterWorkerV4::flush_ingestion_tasks(bool finalize) {
-  while (!stats_worker_->is_idle()) {
-    // Spin lock until the stats queue is empty
-  }
-  stats_worker_->flush(finalize);
+void ParallelWriterWorkerV4::flush_ingestion_tasks(bool finalize, size_t i) {
+  // Wait for the stats worker to finish parsing before flushing
+  stats_task_.get();
+  stats_worker_->flush(finalize, i);
 }
 
 void ParallelWriterWorkerV4::write_buffers(
     std::unique_ptr<Query>& record_query,
     std::unique_ptr<Query>& anchor_query,
-    bool finalize) {
+    bool finalize,
+    size_t i) {
+  Buffers& buffers = buffers_[i];
+
   // Write the buffered records
-  if (records_buffered_ > 0) {
-    write_buffers(record_query, record_buffers_, finalize);
+  if (buffers.records_buffered > 0) {
+    write_buffers(record_query, buffers.record_buffers, finalize);
   }
-  if (anchors_buffered_ > 0) {
-    write_buffers(anchor_query, anchor_buffers_, finalize);
+  if (buffers.anchors_buffered > 0) {
+    write_buffers(anchor_query, buffers.anchor_buffers, finalize);
   }
   // Flush the stats arrays
-  flush_ingestion_tasks(finalize);
+  flush_ingestion_tasks(finalize, i);
 
-  record_buffers_.clear();
-  anchor_buffers_.clear();
-  records_buffered_ = 0;
-  anchors_buffered_ = 0;
+  // Clear the buffers
+  buffers.record_buffers.clear();
+  buffers.anchor_buffers.clear();
+  buffers.records_buffered = 0;
+  buffers.anchors_buffered = 0;
 }
 
-uint64_t ParallelWriterWorkerV4::total_size() const {
+uint64_t ParallelWriterWorkerV4::total_size(size_t i) const {
   // TODO: Include stats in the size
-  return record_buffers_.total_size() + anchor_buffers_.total_size();
+  return buffers_[i].record_buffers.total_size() +
+         buffers_[i].anchor_buffers.total_size();
 }
 
 void ParallelWriterWorkerV4::buffer_record(
@@ -233,13 +255,6 @@ void ParallelWriterWorkerV4::buffer_record(
   const uint32_t col = node.start_pos;
   const uint32_t pos = r->pos;
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
-
-  // Ingestion tasks process only Type::Record
-  if (node.type == WriterRecordV4::Type::Record) {
-    records_buffered_++;
-  } else {
-    anchors_buffered_++;
-  }
 
   buffers.sample_name().offsets().push_back(buffers.sample_name().size());
   buffers.sample_name().append(sample_name.c_str(), sample_name.length());
@@ -441,7 +456,10 @@ void ParallelWriterWorkerV4::write_buffers(
   // Check that the query didn't fail
   auto status = query->query_status();
   if (status == Query::Status::FAILED) {
-    LOG_FATAL("Error submitting TileDB write query: status = FAILED");
+    LOG_FATAL(
+        "ParallelWriterWorkerV4(id={})::write_buffers Error submitting TileDB "
+        "write query: status = FAILED",
+        id_);
   }
 }
 

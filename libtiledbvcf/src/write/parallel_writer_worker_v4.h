@@ -79,8 +79,28 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    * @param id The ID the worker will use when logging
    * @param num_vcf_streams The number of VCF streams/threads the worker should
    * use
+   * @param num_buffers The number of buffers to instantiate
    */
-  ParallelWriterWorkerV4(int id = 0, int num_vcf_streams = 0);
+  ParallelWriterWorkerV4(
+      int id = 0, size_t num_vcf_streams = 1, size_t num_buffers = 1);
+
+  /**
+   * Gets the number of VCF streams/threads in the writer worker.
+   *
+   * @return The number of streams
+   */
+  size_t num_vcf_streams() const {
+    return num_vcf_streams_;
+  }
+
+  /**
+   * Gets the number of buffers in the writer worker.
+   *
+   * @return The number of buffers
+   */
+  size_t num_buffers() const {
+    return num_buffers_;
+  }
 
   /**
    * Initializes: opens the specified VCF files and allocates empty attribute
@@ -99,49 +119,104 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    * Parse the given region from all samples into the worker's buffers.
    *
    * @param region Genomic region to parse
+   * @param i Which buffers to parse data into; this can be different each time
+   *    `resume(i)` is called
    * @return True if all records from all samples were loaded into the buffers.
    *    False if the buffers ran out of space, and there are more records
    *    to be read.
    */
-  bool parse(const Region& region);
+  bool parse(const Region& region, size_t i);
+
+  /**
+   * WriterWorker::parse(region) overload; alias for
+   * ParallelWriterWorkerV4::parse(region, 0).
+   */
+  bool parse(const Region& region) {
+    return parse(region, 0);
+  }
 
   /**
    * Resumes parsing from the current state. This is used if the buffers are too
    * small to fit all records in the genomic region in memory.
    *
+   * @param i Which buffers to parse data into
    * @return True if the last record from all samples was buffered. False if the
    *    buffers ran out of space, and there are more records to be read.
    */
-  bool resume();
+  bool resume(size_t i);
+
+  /**
+   * WriterWorker::resume() overload; alias for
+   * ParallelWriterWorkerV4::resume(0).
+   */
+  bool resume() {
+    return resume(0);
+  }
 
   /**
    * Returns a handle to the attribute buffers of the parsed records.
    *
+   * @param i Which buffers to return
    * @return The attribute buffers
    */
-  const AttributeBufferSet& buffers() const;
+  const AttributeBufferSet& buffers(size_t i) const;
+
+  /**
+   * WriterWorker::buffers() overload; alias for
+   * ParallelWriterWorkerV4::buffers(0).
+   */
+  const AttributeBufferSet& buffers() const {
+    return buffers(0);
+  }
 
   /**
    * Returns the number of records buffered by the last parse operation.
    *
+   * @param i Which buffers to return the number of records for
    * @return The number of records buffered
    */
-  uint64_t records_buffered() const;
+  uint64_t records_buffered(size_t i) const;
+
+  /**
+   * WriterWorker::records_buffered() overload; alias for
+   * ParallelWriterWorkerV4::records_buffered(0).
+   */
+  uint64_t records_buffered() const {
+    return records_buffered(0);
+  }
 
   /**
    * Returns the number of anchors buffered by the last parse operation.
    *
+   * @param i Which buffers to return the number of anchors for
    * @return The number of anchors buffered
    */
-  uint64_t anchors_buffered() const;
+  uint64_t anchors_buffered(size_t i) const;
+
+  /**
+   * WriterWorker::anchors_buffered() overload; alias for
+   * ParallelWriterWorkerV4::anchors_buffered(0).
+   */
+  uint64_t anchors_buffered() const {
+    return anchors_buffered(0);
+  }
 
   /**
    * Flushes stats data to write buffers and submits write queries. Sample
    * stats are only flushed if finalizing.
    *
+   * @param i Which stats buffers to flush
    * @param finalize Whether or not the write queries should be finalized
    */
-  void flush_ingestion_tasks(bool finalize);
+  void flush_ingestion_tasks(bool finalize, size_t i);
+
+  /**
+   * WriterWorker::flush_ingestion_tasks() overload; alias for
+   * ParallelWriterWorkerV4::flush_ingestion_tasks(0).
+   */
+  void flush_ingestion_tasks(bool finalize) {
+    return flush_ingestion_tasks(finalize, 0);
+  }
 
   /**
    * Writes all buffered data, i.e. records, anchors, allele counts, variant
@@ -151,29 +226,37 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    * @param record_query The query to use for writing records
    * @param anchor_query The query to use for writing anchors
    * @param finalize Whether or not the write queries should be finalized
+   * @param i Which buffers to write
    */
   void write_buffers(
       std::unique_ptr<Query>& record_query,
       std::unique_ptr<Query>& anchor_query,
-      bool finalize);
+      bool finalize,
+      size_t i = 0);
 
  private:
-  struct Head {
-    SharedWriterRecordV4 node;
-    int stream_index;
+  struct Buffers {
+    /** Attribute buffers holding parsed data. */
+    AttributeBufferSet record_buffers;
+    /** Current number of records buffered. */
+    uint64_t records_buffered;
+    /** Attribute buffers holding generated anchor data. */
+    AttributeBufferSet anchor_buffers;
+    /** Current number of anchors buffered. */
+    uint64_t anchors_buffered;
   };
 
-  /** Worker id */
-  int id_;
+  /** Worker id. */
+  const int id_;
 
-  /** Number of VCF streams to use */
-  int num_vcf_streams_;
+  /** Number of VCF streams to use. */
+  const size_t num_vcf_streams_;
 
-  /** Attribute buffers holding parsed data. */
-  AttributeBufferSet record_buffers_;
+  /** Number of attribute buffers to use. */
+  const size_t num_buffers_;
 
-  /** Attribute buffers holding generated anchor data. */
-  AttributeBufferSet anchor_buffers_;
+  /** Attribute buffers available for concurrent parsing/writing. */
+  std::vector<Buffers> buffers_;
 
   /** The destination dataset. */
   const TileDBVCFDataset* dataset_;
@@ -182,16 +265,10 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   std::vector<std::unique_ptr<MergedVCFV4Stream>> vcf_streams_;
 
   /** Vector of VCF parse tasks that run the streams. */
-  std::vector<std::future<void>> vcf_stream_tasks;
+  std::vector<std::future<void>> vcf_stream_tasks_;
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
-
-  /** Current number of records buffered. */
-  uint64_t records_buffered_;
-
-  /** Current number of anchors buffered. */
-  uint64_t anchors_buffered_;
 
   /** A worker for computing sample stats in a separate thread. */
   std::unique_ptr<StatsWorker> stats_worker_;
@@ -210,9 +287,10 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   /**
    * Returns the sum of sizes of all buffers (in bytes).
    *
+   * @param i Which buffers to get the size of
    * @return The total size of the buffers
    */
-  uint64_t total_size() const;
+  uint64_t total_size(size_t i = 0) const;
 
   /**
    * Copies all fields of a VCF record or anchor into the attribute buffers and
