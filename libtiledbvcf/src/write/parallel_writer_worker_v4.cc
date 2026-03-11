@@ -99,15 +99,15 @@ SharedWriterRecordV4 ParallelWriterWorkerV4::get_head(size_t i) {
 bool ParallelWriterWorkerV4::parse(const Region& region, size_t i) {
   if (buffers_[i].records_buffered > 0)
     LOG_ERROR(
-        "WriteWorker4(id={})::parse Error in parsing; record buffers {} aren't "
-        "empty.",
+        "ParallelWriterWorker4(id={})::parse Error in parsing; record buffers "
+        "{} aren't empty.",
         id_,
         i);
 
   region_ = region;
 
   LOG_DEBUG(
-      "WriteWorker4(id={})::parse {}:{}-{}",
+      "ParallelWriterWorker4(id={})::parse {}:{}-{}",
       id_,
       region.seq_name,
       region.min,
@@ -152,7 +152,7 @@ bool ParallelWriterWorkerV4::resume(size_t i) {
   Buffers& buffers = buffers_[i];
   if (buffers.records_buffered > 0)
     LOG_FATAL(
-        "ParallelWriterWorkerV4(id={})::resume record buffers aren't empy",
+        "ParallelWriterWorkerV4(id={})::resume Record buffers aren't empty",
         id_);
 
   // Buffer records until there's no variants left to parse in any of the VCF
@@ -209,9 +209,14 @@ const AttributeBufferSet& ParallelWriterWorkerV4::buffers(size_t i) const {
   return buffers_[i].record_buffers;
 }
 
-void ParallelWriterWorkerV4::flush_ingestion_tasks(bool finalize, size_t i) {
+void ParallelWriterWorkerV4::pre_finalize(size_t i) {
   // Wait for the stats worker to finish parsing before flushing
-  stats_task_.get();
+  stats_task_.wait();
+  stats_worker_->buffer_sample_stats(i);
+}
+
+void ParallelWriterWorkerV4::flush_ingestion_tasks(bool finalize, size_t i) {
+  stats_task_.wait();
   stats_worker_->flush(finalize, i);
 }
 

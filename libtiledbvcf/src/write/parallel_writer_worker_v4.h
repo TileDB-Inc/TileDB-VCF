@@ -202,6 +202,13 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   }
 
   /**
+   * Runs tasks that must be performed synchronously prior to a finalize write.
+   *
+   * @param i The buffer that the finalize write will be made with
+   */
+  void pre_finalize(size_t i = 0);
+
+  /**
    * Flushes stats data to write buffers and submits write queries. Sample
    * stats are only flushed if finalizing.
    *
