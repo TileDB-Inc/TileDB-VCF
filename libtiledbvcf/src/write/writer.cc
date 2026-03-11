@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include <memory>
 #if !defined _MSC_VER
 #include <sys/resource.h>
 #endif
@@ -1092,12 +1093,15 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Instantiate a single worker that will be reused for all regions
   unsigned num_vcf_streams =
       std::max(1u, params.num_threads - 1);  // -1 for the worker itself
+  unsigned num_buffers = 2;
   ParallelWriterWorkerV4* worker =
-      new ParallelWriterWorkerV4(0, num_vcf_streams);
+      new ParallelWriterWorkerV4(0, num_vcf_streams, num_buffers);
   worker->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
   worker->init(*dataset_, params, samples);
 
   // Parse the regions one at a time
+  uint8_t current_buffer = 0;
+  std::future<void> flush_task;
   for (size_t i = 0; i < regions.size(); ++i) {
     const Region& region = regions[i];
     LOG_DEBUG("Current contig = {}", region.seq_name);
@@ -1107,46 +1111,79 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
 
     // Repeatedly parse variants into a buffer and write the buffer when it's
     // full
-    bool parse_complete = worker->parse(region);
+    bool parse_complete = worker->parse(region, current_buffer);
     while (!parse_complete) {
-      records_ingested += worker->records_buffered();
-      anchors_ingested += worker->anchors_buffered();
+      records_ingested += worker->records_buffered(current_buffer);
+      anchors_ingested += worker->anchors_buffered(current_buffer);
       LOG_DEBUG(
           "Parse not complete: {} records buffered, {} anchors buffered.",
-          worker->records_buffered(),
-          worker->anchors_buffered());
-      // Write worker buffers
-      if (worker->records_buffered() > 0) {
-        worker->write_buffers(query_, anchor_query_, false);
-      } else {
+          worker->records_buffered(current_buffer),
+          worker->anchors_buffered(current_buffer));
+      if (worker->records_buffered(current_buffer) == 0) {
         LOG_FATAL("Parse not complete but no records were buffered.");
       }
+
+      // Wait for the previous flush task before proceeding
+      if (flush_task.valid()) {
+        flush_task.get();
+      }
+
+      // Write worker buffers
+      const size_t write_buffer = current_buffer;
+      TRY_CATCH_THROW(
+          flush_task = std::async(std::launch::async, [&, write_buffer]() {
+            worker->write_buffers(query_, anchor_query_, false, write_buffer);
+          }));
+      ++current_buffer %= num_buffers;
       // Parse more records into the now empty buffers
-      parse_complete = worker->resume();
+      parse_complete = worker->resume(current_buffer);
     }
     // Write the records from the last parse and finalize, if necessary
-    records_ingested += worker->records_buffered();
-    anchors_ingested += worker->anchors_buffered();
-    // Write worker buffers
-    if (worker->records_buffered() > 0) {
-      // TODO: Is this right? Are only sequential contigs merged or are ALL
-      // mergeable contigs merged, even if there's a non-mergeable between them?
-      bool finalize =
-          (i == regions.size() - 1 ||
-           (!check_contig_mergeable(region.seq_name) ||
-            !check_contig_mergeable(regions[i + 1].seq_name)));
-      worker->write_buffers(query_, anchor_query_, finalize);
-      if (finalize) {
-        // Start new queries since the next contig will be on a new fragment
-        query_.reset(new Query(*ctx_, *array_));
-        query_->set_layout(TILEDB_GLOBAL_ORDER);
-        anchor_query_.reset(new Query(*ctx_, *array_));
-        anchor_query_->set_layout(TILEDB_GLOBAL_ORDER);
-        // TODO: Do we need to create a new worker because of the stats arrays?
-      }
-    } else {
+    records_ingested += worker->records_buffered(current_buffer);
+    anchors_ingested += worker->anchors_buffered(current_buffer);
+    if (worker->records_buffered(current_buffer) == 0) {
       LOG_FATAL("No records were buffered after parse completed.");
     }
+
+    // Write worker buffers
+    // TODO: Is the merge behavior we actually want? Only sequential contigs
+    // that are mergeable get merged. If there's a non-mergeable between
+    // mergeable contigs then they are not merged.
+    bool finalize =
+        (i == regions.size() - 1 ||
+         (!check_contig_mergeable(region.seq_name) ||
+          !check_contig_mergeable(regions[i + 1].seq_name)));
+    // Wait for the previous flush task before proceeding
+    if (flush_task.valid()) {
+      flush_task.get();
+    }
+    const size_t write_buffer = current_buffer;
+    if (finalize) {
+      worker->pre_finalize(current_buffer);
+      // Move the queries before reseting them
+      TRY_CATCH_THROW(
+          flush_task = std::async(
+              std::launch::async,
+              [&,
+               query = std::move(query_),
+               anchor_query = std::move(anchor_query_),
+               write_buffer]() mutable {
+                worker->write_buffers(
+                    query, anchor_query, finalize, write_buffer);
+              }));
+      // Start new queries since the next contig will be on a new fragment
+      query_.reset(new Query(*ctx_, *array_));
+      query_->set_layout(TILEDB_GLOBAL_ORDER);
+      anchor_query_.reset(new Query(*ctx_, *array_));
+      anchor_query_->set_layout(TILEDB_GLOBAL_ORDER);
+    } else {
+      TRY_CATCH_THROW(
+          flush_task = std::async(std::launch::async, [&, write_buffer]() {
+            worker->write_buffers(
+                query_, anchor_query_, finalize, write_buffer);
+          }));
+    }
+    ++current_buffer %= num_buffers;
 
     if (records_ingested > prev_records) {
       LOG_INFO(
@@ -1154,6 +1191,11 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           (records_ingested - prev_records) / utils::chrono_duration(start),
           utils::memory_usage_str());
     }
+  }
+
+  // Wait for the final flush task before finishing
+  if (flush_task.valid()) {
+    flush_task.get();
   }
 
   return {records_ingested, anchors_ingested};
