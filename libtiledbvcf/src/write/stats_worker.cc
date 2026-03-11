@@ -36,12 +36,13 @@ StatsWorker::StatsWorker(uint32_t queue_size, size_t num_buffers)
     : queue_(queue_size)
     , num_buffers_(num_buffers)
     , buffers_(num_buffers) {
+  sample_stats_.reset(new SampleStats());
 }
 
 void StatsWorker::run(size_t i) {
-  // NOTE: We don't check if `queue_` still has records because it's shared in
-  // the multiple buffer scenario and the caller may push records before `run()`
-  // is called
+  // NOTE: We don't check if `queue_` still has records because the caller may
+  // push records before `run()` is called and because `queue_` is shared in the
+  // multiple buffer scenario
 
   Buffers& buffers = buffers_[i];
   VariantStats& vs = buffers.variant_stats;
@@ -50,7 +51,7 @@ void StatsWorker::run(size_t i) {
   SharedWriterRecordV4 node = queue_.pop();
   // Buffer records until there's no variants left to parse in any of the VCFs
   while (node != nullptr) {
-    buffer_record(*node, vs, ac, sample_stats_);
+    buffer_record(*node, vs, ac, *sample_stats_);
     node = queue_.pop();
   }
 }
@@ -75,12 +76,17 @@ void StatsWorker::buffer_record(
   ss.process(hdr, sample_name, contig, pos, r);
 }
 
+void StatsWorker::buffer_sample_stats(size_t i) {
+  buffers_[i].sample_stats = std::move(sample_stats_);
+  sample_stats_.reset(new SampleStats());
+}
+
 void StatsWorker::flush(bool finalize, size_t i) {
   Buffers& buffers = buffers_[i];
   buffers.variant_stats.flush(finalize);
   buffers.allele_count.flush(finalize);
   if (finalize) {
-    sample_stats_.flush(finalize);
+    buffers.sample_stats->flush(finalize);
   }
 }
 

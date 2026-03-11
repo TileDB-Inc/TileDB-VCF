@@ -81,6 +81,15 @@ class StatsWorker {
   void push(const SharedWriterRecordV4& node);
 
   /**
+   * Moves the buffered sample stats data into the target buffer for a
+   * finalize write. This method should be always run synchronously prior to
+   * running `flush(true)`.
+   *
+   * @param i Which buffers to move the sample stats to
+   */
+  void buffer_sample_stats(size_t i = 0);
+
+  /**
    * Flushes stats data to write buffers and submits write queries. Sample
    * stats are only flushed if finalizing.
    *
@@ -98,12 +107,16 @@ class StatsWorker {
   uint64_t total_size(size_t i = 0) const;
 
  private:
+  /** Stats ingestion task objects. */
   struct Buffers {
-    /** Variant stats ingestion task object. */
     VariantStats variant_stats;
-    /** Allele count ingestion task object. */
     AlleleCount allele_count;
-    /** SampleStats is excluded because they're only flushed when finalizing. */
+    /**
+     * NOTE: Sample stats aren't flushed until a finalize write so the
+     * `sample_stats_` class member is used when buffering with `run()`. Then
+     * `buffer_sample_stats()` must be called to move the sample stats into the
+     * buffer that the finalize write will be made with. */
+    std::unique_ptr<SampleStats> sample_stats;
   };
 
   /**
@@ -136,7 +149,7 @@ class StatsWorker {
   std::vector<Buffers> buffers_;
 
   /** Sample stats ingestion task object. */
-  SampleStats sample_stats_;
+  std::unique_ptr<SampleStats> sample_stats_;
 
   /**
    * Computes stats for a VCF record.
