@@ -288,6 +288,12 @@ std::string Writer::version() {
   return version_str;
 }
 
+void Writer::set_legacy(const bool legacy) {
+  auto writer = ptr.get();
+  check_error(
+      writer, tiledb_vcf_writer_set_legacy_ingestion_algorithm(writer, legacy));
+}
+
 void Writer::set_resume(const bool resume) {
   auto writer = ptr.get();
   check_error(
