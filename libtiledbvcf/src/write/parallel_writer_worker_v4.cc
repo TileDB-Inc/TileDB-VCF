@@ -186,7 +186,7 @@ bool ParallelWriterWorkerV4::resume(size_t i) {
       // Signal the stats worker to stop
       stats_worker_->push(nullptr);
       LOG_DEBUG(
-          "ParallelWriterWorkerV4(id={})::resume buffers {} full, total "
+          "ParallelWriterWorkerV4(id={})::resume Buffers {} full, total "
           "buffers size = {} MiB",
           id_,
           i,
@@ -197,7 +197,7 @@ bool ParallelWriterWorkerV4::resume(size_t i) {
   // Signal the stats worker to stop
   stats_worker_->push(nullptr);
   LOG_TRACE(
-      "ParallelWriterWorkerV4(id={})::resume all records parsed, total buffers "
+      "ParallelWriterWorkerV4(id={})::resume All records parsed, total buffers "
       "{} size = {} MiB",
       id_,
       i,
@@ -228,12 +228,11 @@ void ParallelWriterWorkerV4::write_buffers(
   Buffers& buffers = buffers_[i];
 
   // Write the buffered records
-  if (buffers.records_buffered > 0) {
-    write_buffers(record_query, buffers.record_buffers, finalize);
-  }
-  if (buffers.anchors_buffered > 0) {
-    write_buffers(anchor_query, buffers.anchor_buffers, finalize);
-  }
+  write_buffers(
+      record_query, buffers.record_buffers, buffers.records_buffered, finalize);
+  write_buffers(
+      anchor_query, buffers.anchor_buffers, buffers.anchors_buffered, finalize);
+
   // Flush the stats arrays
   flush_ingestion_tasks(finalize, i);
 
@@ -447,9 +446,18 @@ void ParallelWriterWorkerV4::buffer_fmt_field(
 }
 
 void ParallelWriterWorkerV4::write_buffers(
-    std::unique_ptr<Query>& query, AttributeBufferSet& buffers, bool finalize) {
+    std::unique_ptr<Query>& query,
+    AttributeBufferSet& buffers,
+    uint64_t records_buffered,
+    bool finalize) {
   // Prepare the query to write the buffers
-  buffers.set_buffers(query.get(), dataset_->metadata().version);
+  if (records_buffered > 0) {
+    buffers.set_buffers(query.get(), dataset_->metadata().version);
+  } else if (
+      !finalize ||
+      (finalize && query->query_status() == Query::Status::UNINITIALIZED)) {
+    return;
+  }
 
   // Submit the write query
   if (finalize) {

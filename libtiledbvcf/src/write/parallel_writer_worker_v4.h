@@ -357,11 +357,13 @@ class ParallelWriterWorkerV4 : public WriterWorker,
    *
    * @param query The query to use when writing data
    * @param buffers The attribute buffers to write
+   * @param records_buffered The number of records in the attribute buffers
    * @param finalize Whether or not the write queries should be finalized
    */
   void write_buffers(
       std::unique_ptr<Query>& query,
       AttributeBufferSet& buffers,
+      uint64_t records_buffered,
       bool finalize);
 };
 

@@ -142,7 +142,7 @@ void MergedVCFV4Stream::generate_anchors(const WriterRecordV4& node) {
   }
   // Generate anchors between start and end position of node
   for (uint32_t start_pos = node.start_pos + anchor_gap_;
-       start_pos < node.end_pos - anchor_gap_ - 1;
+       start_pos <= node.end_pos;
        start_pos += anchor_gap_) {
     // Create a new anchor for the record
     SharedWriterRecordV4 anchor = get_ptr_from_pool();
@@ -171,7 +171,7 @@ void MergedVCFV4Stream::push_anchors(const WriterRecordV4& node) {
     const SharedWriterRecordV4& top = anchor_heap_.top();
     if (top->start_pos <= node.start_pos) {
       // Push the anchor to the queue; push() will block if the queue is full
-      queue_.push(anchor_heap_.top());
+      queue_.push(top);
       anchor_heap_.pop();
     } else {
       break;

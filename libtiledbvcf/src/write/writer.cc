@@ -407,6 +407,18 @@ void Writer::update_params_legacy(IngestionParams& params) {
 }
 
 void Writer::ingest_samples() {
+  if (ingestion_params_.legacy_ingestion_algorithm) {
+    ingest_samples_legacy();
+    return;
+  }
+
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    LOG_ERROR(
+        "Resuming isn't supported by the current ingestion algorithm; use "
+        "legacy "
+        "ingestion instead");
+  }
+
   auto start_all = std::chrono::steady_clock::now();
 
   // If the user requests stats, enable them on read
@@ -445,8 +457,8 @@ void Writer::ingest_samples() {
   update_params(ingestion_params_);
   init(ingestion_params_);
 
-  if (dataset_->metadata().version != TileDBVCFDataset::V4) {
-    std::string message = "Use legacy ingestion V2 and V3 datasets";
+  if (dataset_->metadata().version != TileDBVCFDataset::Version::V4) {
+    std::string message = "Use legacy ingestion for V2 and V3 datasets";
     LOG_ERROR(message);
     throw std::runtime_error(message);
   }
@@ -1145,21 +1157,20 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       LOG_FATAL("No records were buffered after parse completed.");
     }
 
-    // Write worker buffers
-    // TODO: Is the merge behavior we actually want? Only sequential contigs
-    // that are mergeable get merged. If there's a non-mergeable between
-    // mergeable contigs then they are not merged.
-    bool finalize =
-        (i == regions.size() - 1 ||
-         (!check_contig_mergeable(region.seq_name) ||
-          !check_contig_mergeable(regions[i + 1].seq_name)));
     // Wait for the previous flush task before proceeding
     if (flush_task.valid()) {
       flush_task.get();
     }
     const size_t write_buffer = current_buffer;
-    if (finalize) {
-      worker->pre_finalize(current_buffer);
+    // Finalize if last region or if this/next region isn't mergeable
+    if (i == regions.size() - 1 || !check_contig_mergeable(region.seq_name) ||
+        !check_contig_mergeable(regions[i + 1].seq_name)) {
+      LOG_INFO(
+          "Finalizing on region {}, records: {}, anchors: {}",
+          region.seq_name,
+          worker->records_buffered(current_buffer),
+          worker->anchors_buffered(current_buffer));
+      worker->pre_finalize(write_buffer);
       // Move the queries before reseting them
       TRY_CATCH_THROW(
           flush_task = std::async(
@@ -1168,8 +1179,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
                query = std::move(query_),
                anchor_query = std::move(anchor_query_),
                write_buffer]() mutable {
-                worker->write_buffers(
-                    query, anchor_query, finalize, write_buffer);
+                worker->write_buffers(query, anchor_query, true, write_buffer);
               }));
       // Start new queries since the next contig will be on a new fragment
       query_.reset(new Query(*ctx_, *array_));
@@ -1179,8 +1189,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     } else {
       TRY_CATCH_THROW(
           flush_task = std::async(std::launch::async, [&, write_buffer]() {
-            worker->write_buffers(
-                query_, anchor_query_, finalize, write_buffer);
+            worker->write_buffers(query_, anchor_query_, false, write_buffer);
           }));
     }
     ++current_buffer %= num_buffers;
@@ -1948,6 +1957,10 @@ void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
 
 void Writer::set_sample_batch_size(const uint64_t size) {
   ingestion_params_.sample_batch_size = size;
+}
+
+void Writer::set_legacy_ingestion_algorithm(const bool legacy) {
+  ingestion_params_.legacy_ingestion_algorithm = legacy;
 }
 
 void Writer::set_resume_sample_partial_ingestion(const bool resume) {

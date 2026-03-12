@@ -116,6 +116,9 @@ struct IngestionParams {
   // This is used for resuming partial ingestions
   bool load_data_array_fragment_info = false;
 
+  // Should the legacy algorithm be used when ingesting samples
+  bool legacy_ingestion_algorithm = false;
+
   // Should we check if the samples have been partial ingested?
   // This might have a significant performance penalty on large arrays
   bool resume_sample_partial_ingestion = false;
@@ -352,8 +355,11 @@ class Writer {
   /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
 
+  /** Set use of legacy ingestion algorithm. */
+  void set_legacy_ingestion_algorithm(const bool legacy);
+
   /** Set resume support for partial ingestion. */
-  void set_resume_sample_partial_ingestion(const bool);
+  void set_resume_sample_partial_ingestion(const bool resume);
 
   /** Set contig fragment merging. */
   void set_contig_fragment_merging(const bool contig_fragment_merging);
