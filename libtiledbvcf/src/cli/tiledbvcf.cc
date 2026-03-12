@@ -86,6 +86,13 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
     throw CLI::CallForHelp();
   }
 
+  if (!args.legacy_ingestion_algorithm &&
+      args.resume_sample_partial_ingestion) {
+    LOG_ERROR(
+        "--resume isn't supported by the current ingestion algorithm; use "
+        "--legacy to use an ingestion algorithm that supports resuming");
+  }
+
   if (args.verbose) {
     LOG_SET_LEVEL("debug");
   }
@@ -96,34 +103,6 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
   Writer writer;
   writer.set_all_params(args);
   writer.ingest_samples();
-
-  if (args.tiledb_stats_enabled) {
-    char* stats;
-    writer.tiledb_stats(&stats);
-    std::cout << "TileDB Internal Statistics:" << std::endl;
-    std::cout << stats << std::endl;
-  }
-  LOG_TRACE("Finished store command.");
-}
-
-/** Legacy store/ingest. */
-void do_store_legacy(const IngestionParams& args, const CLI::App& cmd) {
-  if (args.sample_uris.size() == 0 && args.samples_file_uri.empty()) {
-    std::cerr
-        << "ERROR: RequiredError: VCF URIs or --sample-file is required\n";
-    throw CLI::CallForHelp();
-  }
-
-  if (args.verbose) {
-    LOG_SET_LEVEL("debug");
-  }
-
-  LOG_TRACE("Starting store command.");
-  config_to_log(cmd);
-
-  Writer writer;
-  writer.set_all_params(args);
-  writer.ingest_samples_legacy();
 
   if (args.tiledb_stats_enabled) {
     char* stats;
@@ -578,164 +557,6 @@ void add_store(CLI::App& app) {
          "Percentage of total system memory used for ingestion "
          "(overrides '--total-memory-budget-mb')")
       ->check(CLI::Range(0.0, 1.0));
-
-  cmd->option_defaults()->group("Sample options");
-  cmd->add_option(
-      "-e,--sample-batch-size",
-      args->sample_batch_size,
-      "Number of samples per batch for ingestion");
-  cmd->add_option(
-      "-f,--samples-file",
-      args->samples_file_uri,
-      "File with 1 VCF path to be ingested per line. The format can "
-      "also include an explicit index path on each line, in the format "
-      "'<vcf-uri><TAB><index-uri>'");
-  cmd->add_option("paths", args->sample_uris, "VCF URIs to ingest")
-      ->excludes("--samples-file");
-  cmd->add_flag(
-         "--remove-sample-file",
-         args->remove_samples_file,
-         "If specified, the samples file ('-f' argument) is deleted after "
-         "successful ingestion")
-      ->needs("--samples-file");
-  cmd->add_option(
-      "-d,--scratch-dir",
-      args->scratch_space.path,
-      "Directory used for local storage of downloaded remote samples");
-  cmd->add_option(
-      "-s,--scratch-mb",
-      args->scratch_space.size_mb,
-      "Amount of local storage that can be used for downloading remote samples "
-      "(MB)");
-
-  cmd->option_defaults()->group("TileDB options");
-  cmd->add_option(
-      "-p,--s3-part-size",
-      args->part_size_mb,
-      "[S3 only] Part size to use for writes (MB)");
-  add_tiledb_options(cmd, args->tiledb_config);
-  cmd->add_flag("--stats", args->tiledb_stats_enabled, "Enable TileDB stats");
-  cmd->add_flag(
-      "--stats-vcf-header-array",
-      args->tiledb_stats_enabled_vcf_header_array,
-      "Enable TileDB stats for vcf header array usage");
-
-  cmd->option_defaults()->group("Advanced options");
-  cmd->add_option(
-         "--ratio-tiledb-memory",
-         args->ratio_tiledb_memory,
-         "Ratio of memory budget allocated to TileDB::sm.mem.total_budget")
-      ->check(CLI::Range(0.01, 0.99));
-  cmd->add_option(
-      "--max-tiledb-memory-mb",
-      args->max_tiledb_memory_mb,
-      "Maximum memory allocated to TileDB::sm.mem.total_budget (MiB)");
-  cmd->add_option(
-      "--input-record-buffer-mb",
-      args->input_record_buffer_mb,
-      "Size of input record buffer for each sample file (MiB)");
-  cmd->add_option(
-         "--avg-vcf-record-size",
-         args->avg_vcf_record_size,
-         "Average VCF record size (bytes)")
-      ->check(CLI::Range(1, 4096));
-  cmd->add_option(
-         "--ratio-task-size",
-         args->ratio_task_size,
-         "Ratio of worker task size to computed task size")
-      ->check(CLI::Range(0.01, 1.0));
-  cmd->add_option(
-         "--ratio-output-flush",
-         args->ratio_output_flush,
-         "Ratio of output buffer capacity that triggers a flush to TileDB")
-      ->check(CLI::Range(0.01, 1.0));
-
-  cmd->option_defaults()->group("Contig options");
-  cmd->add_flag(
-      "!--disable-contig-fragment-merging",
-      args->contig_fragment_merging,
-      "Disable merging of contigs into fragments. Generally contig fragment "
-      "merging is good, this is a performance optimization to reduce the "
-      "prefixes on a s3/azure/gcs bucket when there is a large number of "
-      "pseudo contigs which are small in size.");
-  cmd->add_option(
-         "--contigs-to-keep-separate",
-         args->contigs_to_keep_separate,
-         "Comma-separated list of contigs that should not be merged "
-         "into combined fragments. The default list includes all "
-         "standard human chromosomes in both UCSC (e.g., chr1) and "
-         "Ensembl (e.g., 1) formats.")
-      ->delimiter(',')
-      ->default_str("")
-      ->excludes("--disable-contig-fragment-merging");
-  cmd->add_option(
-         "--contigs-to-allow-merging",
-         args->contigs_to_allow_merging,
-         "Comma-separated list of contigs that should be allowed to "
-         "be merged into combined fragments.")
-      ->delimiter(',')
-      ->excludes("--disable-contig-fragment-merging")
-      ->excludes("--contigs-to-keep-separate");
-  cmd->add_option(
-         "--contig-mode",
-         args->contig_mode,
-         "Select which contigs are ingested: 'separate', 'merged', or 'all' "
-         "contigs")
-      ->transform(CLI::CheckedTransformer(contig_mode_map));
-
-  cmd->option_defaults()->group("Debug options");
-  add_logging_options(cmd, args->log_level, args->log_file);
-  cmd->add_flag("-v,--verbose", args->verbose, "Enable verbose output");
-  CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
-
-  cmd->option_defaults()->group("Legacy options");
-  cmd->add_option_function<unsigned>(
-      "-n,--max-record-buff",
-      [args](const unsigned& value) {
-        args->max_record_buffer_size = value;
-        args->use_legacy_max_record_buffer_size = true;
-      },
-      "Max number of VCF records to buffer per file");
-  cmd->add_option_function<unsigned>(
-      "-k,--thread-task-size",
-      [args](const unsigned& value) {
-        args->thread_task_size = value;
-        args->use_legacy_thread_task_size = true;
-      },
-      "Max length (# columns) of an ingestion task. Affects load "
-      "balancing of ingestion work across threads, and total "
-      "memory consumption.");
-  cmd->add_option_function<unsigned>(
-      "-b,--mem-budget-mb",
-      [args](const unsigned& value) {
-        args->max_tiledb_buffer_size_mb = value;
-        args->use_legacy_max_tiledb_buffer_size_mb = true;
-      },
-      "The maximum size of TileDB buffers before flushing (MiB)");
-
-  // register function to implement this command
-  cmd->callback([args, cmd]() { do_store(*args, *cmd); });
-}
-
-void add_store_legacy(CLI::App& app) {
-  auto args = std::make_shared<IngestionParams>();
-  auto cmd = app.add_subcommand(
-      "store-legacy", "Ingests samples into a TileDB-VCF dataset");
-
-  cmd->set_help_flag("-h,--help")->group("");  // hide from help message
-  add_tiledb_uri_option(cmd, args->uri);
-  cmd->add_option("-t,--threads", args->num_threads, "Number of threads");
-  cmd->add_option(
-         "-m,--total-memory-budget-mb",
-         args->total_memory_budget_mb,
-         "The total memory budget for ingestion (MiB)")
-      ->check(CLI::Range(512u, utils::system_memory_mb()));
-  cmd->add_option(
-         "-M,--total-memory-percentage",
-         args->total_memory_percentage,
-         "Percentage of total system memory used for ingestion "
-         "(overrides '--total-memory-budget-mb')")
-      ->check(CLI::Range(0.0, 1.0));
   cmd->add_flag(
       "--resume",
       args->resume_sample_partial_ingestion,
@@ -851,6 +672,10 @@ void add_store_legacy(CLI::App& app) {
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
 
   cmd->option_defaults()->group("Legacy options");
+  cmd->add_flag(
+      "--legacy",
+      args->legacy_ingestion_algorithm,
+      "Use the legacy ingestion algorithm");
   cmd->add_option_function<unsigned>(
       "-n,--max-record-buff",
       [args](const unsigned& value) {
@@ -1174,7 +999,6 @@ int main(int argc, char** argv) {
   add_create(app);
   add_register(app);
   add_store(app);
-  add_store_legacy(app);
   add_delete(app);
   add_export(app);
   add_list(app);
