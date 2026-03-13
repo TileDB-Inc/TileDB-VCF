@@ -114,7 +114,7 @@ bool ParallelWriterWorkerV4::parse(const Region& region, size_t i) {
       region.max);
 
   // Start parsing the VCF files
-  for (int j = 0; j < vcf_streams_.size(); j++) {
+  for (size_t j = 0; j < vcf_streams_.size(); j++) {
     MergedVCFV4Stream* vcf = vcf_streams_[j].get();
     TRY_CATCH_THROW(vcf_stream_tasks_.push_back(std::async(
         std::launch::async, &MergedVCFV4Stream::parse, vcf, region)));
