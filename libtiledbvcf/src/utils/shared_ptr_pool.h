@@ -82,8 +82,11 @@ class SharedPtrPool {
         return "MANUAL";
       case AUTOMATIC:
         return "AUTOMATIC";
+      default:
+        LOG_ERROR("{} is not a valid SharingMode", mode);
     }
-    LOG_ERROR("{} is not a valid SharingMode", mode);
+    // NO-OP: The default case will exit the program
+    return "";
   }
 
   /**
