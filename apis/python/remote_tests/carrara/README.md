@@ -23,7 +23,7 @@ export CARRARA_TEST_TEAMSPACE="..."  # Teamspace to use for tests
 
 Run the tests with pytest:
 ```bash
-pytest api/python/remotes_tests/carrara/
+pytest api/python/remotes_tests/carrara/ --carrara -v
 ```
 
 Objects will be created at the specified workspace/teamspace: `tiledb://${CARRARA_TEST_WORKSPACE}/${CARRARA_TEST_TEAMSPACE}/...`. The test should remove all created objects when completed; however, assets may remain in the case of a test failure.

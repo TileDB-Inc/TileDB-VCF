@@ -21,6 +21,25 @@ TEAMSPACE_NAME = os.getenv("CARRARA_TEST_TEAMSPACE") or "uat-tests"
 TEST_FOLDER = os.getenv("CARRARA_TEST_FOLDER") or "remote_test"
 BASE_URI = f"tiledb://{WORKSPACE_NAME}/{TEAMSPACE_NAME}/{TEST_FOLDER}"
 
+TESTS_INPUT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../../libtiledbvcf/test/inputs")
+)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--carrara", action="store_true", default=False, help="run Carrara tests"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--carrara"):
+        return
+    skip_carrara = pytest.mark.skip(reason="need --carrara option to run")
+    for item in items:
+        if "carrara" in item.keywords:
+            item.add_marker(skip_carrara)
+
 
 @pytest.fixture(scope="session")
 def carrara_login() -> None:
@@ -52,5 +71,11 @@ def carrara_group_path() -> Generator[str, None, None]:
             G.delete(recursive=True)
     except tiledb.TileDBError:
         pass
+
+
+@pytest.fixture(scope="session")
+def vcf_sample_uris() -> list[str]:
+    """Returns paths to local VCF/BCF test files used for ingestion tests."""
+    return [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
 
 
