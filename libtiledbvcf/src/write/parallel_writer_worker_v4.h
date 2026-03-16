@@ -27,7 +27,6 @@
 #ifndef TILEDB_VCF_PARALLEL_WRITER_WORKER_V4_H
 #define TILEDB_VCF_PARALLEL_WRITER_WORKER_V4_H
 
-#include <map>
 #include <memory>
 #include <string>
 #include <thread>
@@ -276,6 +275,12 @@ class ParallelWriterWorkerV4 : public WriterWorker,
 
   /** Reusable memory allocation for getting record field values from htslib. */
   HtslibValueMem val_;
+
+  /** Reusable vector for info fields. */
+  std::vector<bool> infos_extracted_;
+
+  /** Reusable vector for format fields. */
+  std::vector<bool> fmts_extracted_;
 
   /** A worker for computing sample stats in a separate thread. */
   std::unique_ptr<StatsWorker> stats_worker_;

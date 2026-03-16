@@ -287,7 +287,7 @@ void ParallelWriterWorkerV4::buffer_record(
     it.second.start_expecting();
 
   // Extract INFO fields into separate attributes
-  std::vector<bool> infos_extracted(r->n_info, false);
+  infos_extracted_.resize(r->n_info, false);
   unsigned n_info_as_attr = 0;
   for (unsigned i = 0; i < r->n_info; i++) {
     bcf_info_t* info = r->d.info + i;
@@ -300,13 +300,13 @@ void ParallelWriterWorkerV4::buffer_record(
       const bool include_key = false;
       buffer_info_field(hdr, r, info, include_key, &val_, buff);
       // Mark key so we don't add it again in the info blob attribute
-      infos_extracted[i] = true;
+      infos_extracted_[i] = true;
       n_info_as_attr++;
     }
   }
 
   // Extract FMT fields into separate attributes
-  std::vector<bool> fmts_extracted(r->n_fmt, false);
+  fmts_extracted_.resize(r->n_fmt, false);
   unsigned n_fmt_as_attr = 0;
   for (unsigned i = 0; i < r->n_fmt; i++) {
     bcf_fmt_t* fmt = r->d.fmt + i;
@@ -318,7 +318,7 @@ void ParallelWriterWorkerV4::buffer_record(
       const bool include_key = false;
       buffer_fmt_field(hdr, r, fmt, include_key, &val_, buff);
       // Mark key so we don't add it again in the fmt blob attribute
-      fmts_extracted[i] = true;
+      fmts_extracted_[i] = true;
       n_fmt_as_attr++;
     }
   }
@@ -329,7 +329,7 @@ void ParallelWriterWorkerV4::buffer_record(
   const uint32_t non_attr_info = r->n_info - n_info_as_attr;
   info.append(&non_attr_info, sizeof(uint32_t));
   for (unsigned i = 0; i < r->n_info; i++) {
-    if (!infos_extracted[i]) {
+    if (!infos_extracted_[i]) {
       bcf_info_t* info_field = r->d.info + i;
       buffer_info_field(hdr, r, info_field, true, &val_, &info);
     }
@@ -340,7 +340,7 @@ void ParallelWriterWorkerV4::buffer_record(
   const uint32_t non_attr_fmt = r->n_fmt - n_fmt_as_attr;
   fmt.append(&non_attr_fmt, sizeof(uint32_t));
   for (unsigned i = 0; i < r->n_fmt; i++) {
-    if (!fmts_extracted[i]) {
+    if (!fmts_extracted_[i]) {
       bcf_fmt_t* fmt_field = r->d.fmt + i;
       buffer_fmt_field(hdr, r, fmt_field, true, &val_, &fmt);
     }
