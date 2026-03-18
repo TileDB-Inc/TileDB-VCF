@@ -1,3 +1,6 @@
+# Copyright (c) TileDB, Inc.
+# Licensed under the MIT License.
+
 import pathlib
 import shutil
 import warnings
