@@ -137,15 +137,15 @@ extend-select = []
 
 # Ignore these rules in the test directory.
 "apis/python/tests/**.py" = [
-    "ANN001",   # don't require type annotation for parameters in tests (possibly re-enable in the future)
-    "ANN201",   # don't require type annotation for return types in tests (possibly re-enable in the future)
+    "ANN",      # don't require type annotations for tests (possibly re-enable in the future)
     "D",        # ignore docstring linting in tests
     "PTH",      # Path/os.path warnings (re-enable in the future)
     "B017",     # allow assert blind exception (re-enable in the future)
     "PD002",    # allow pandas `inplace=True` (re-enable in the future)
     "PLW1514",  # allow opening path without explicit encoding argument
-    "S602",     # allow subprocess
+    "S602",     # allow subprocess calls
     "C417",     # allow unnecessary `map()` (re-enable in the future)
+    "ARG001",   # allow unused arguments for fixtures (make better fixtures and re-enable)
 ]
 
 [tool.ruff.lint.isort]

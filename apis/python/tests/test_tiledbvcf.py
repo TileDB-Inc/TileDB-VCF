@@ -3,7 +3,7 @@ import os
 import pathlib
 import platform
 import shutil
-import subprocess
+import subprocess  # noqa: S404
 
 import numpy as np
 import pandas as pd
@@ -42,8 +42,8 @@ def check_if_compatible(uri):
             return True
     except tiledb.libtiledb.TileDBError as e:
         if "incompatible format version" in str(e).lower():
-            raise pytest.skip.Exception("Test skipped due to incompatible format version")
-        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {e!s}")
+            raise pytest.skip.Exception("Test skipped due to incompatible format version") from e
+        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {e!s}") from e
 
 
 @pytest.fixture
@@ -131,24 +131,24 @@ def test_read_unsupported_regions_type(test_ds):
         test_ds.read_arrow(regions=wrong_dimension_region)
     with pytest.raises(Exception, match=unsupported_type_error):
         for variant in test_ds.read_iter(regions=unsupported_region):
-            print(variant)
+            print(variant)  # noqa: T201
     with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
         for variant in test_ds.read_iter(regions=wrong_dimension_region):
-            print(variant)
+            print(variant)  # noqa: T201
 
 
 def test_read_attrs(test_ds_attrs):
     attrs = ["sample_name"]
     df = test_ds_attrs.read(attrs=attrs)
-    assert df.columns.values.tolist() == attrs
+    assert df.columns.array.tolist() == attrs
 
     attrs = ["sample_name", "fmt_GT"]
     df = test_ds_attrs.read(attrs=attrs)
-    assert df.columns.values.tolist() == attrs
+    assert df.columns.array.tolist() == attrs
 
     attrs = ["sample_name"]
     df = test_ds_attrs.read(attrs=attrs)
-    assert df.columns.values.tolist() == attrs
+    assert df.columns.array.tolist() == attrs
 
 
 def test_basic_reads(test_ds):
@@ -391,7 +391,7 @@ def test_incomplete_read_generator():
     # Regions as string
     dfs = []
     for df in test_ds.read_iter(attrs=["pos_end"], regions="1:12700-13400"):
-        dfs.append(df)
+        dfs.append(df)  # noqa: PERF402
     overall_df = pd.concat(dfs, ignore_index=True)
     assert len(overall_df) == 6
     _check_dfs(expected_df, overall_df)
@@ -735,14 +735,14 @@ def test_read_null_attrs(tmp_path):
 def test_read_config():
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig()
-    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+    tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
     cfg = tiledbvcf.ReadConfig(
         memory_budget_mb=512,
         region_partition=(0, 3),
         tiledb_config=["sm.tile_cache_size=0", "sm.compute_concurrency_level=1"],
     )
-    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+    tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
     with pytest.raises(TypeError):
         cfg = tiledbvcf.ReadConfig(abc=123)
@@ -751,7 +751,7 @@ def test_read_config():
     with pytest.raises(Exception):
         cfg = tiledbvcf.ReadConfig()
         tiledb_config = {"foo": "bar"}
-        ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg, tiledb_config=tiledb_config)
+        tiledbvcf.Dataset(uri, mode="r", cfg=cfg, tiledb_config=tiledb_config)
 
 
 # This test is skipped because running it in the same process as all the normal
@@ -761,11 +761,11 @@ def test_read_config():
 def test_tbb_threads_config():
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(tiledb_config=["sm.num_tbb_threads=3"])
-    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+    tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
     cfg = tiledbvcf.ReadConfig(tiledb_config=["sm.num_tbb_threads=4"])
     with pytest.raises(RuntimeError):
-        ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+        tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
 
 def test_read_limit():
@@ -1180,8 +1180,7 @@ def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3)
     ds.ingest_samples(test_stats_bgzipped_inputs)
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    return ds
+    return tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
 
 
 # Ok to skip is missing bcftools in Windows CI job
