@@ -127,6 +127,7 @@ ignore = [
     "S101",     # Use of `assert` detected
     "COM812",   # Ignore recommended by Ruff
     "PLW2901",  # redefined-loop-name
+    "B006",     #
 ]
 extend-select = []
 

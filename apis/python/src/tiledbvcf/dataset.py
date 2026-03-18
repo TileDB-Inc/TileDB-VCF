@@ -1,12 +1,12 @@
 # Copyright (c) TileDB, Inc.
 # Licensed under the MIT License.
+from __future__ import annotations
 
 import pathlib
 import shutil
 import warnings
 from collections import namedtuple
 from collections.abc import Generator
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -71,7 +71,7 @@ tiledb_tile_cache_percentage : int
 ReadConfig.__new__.__defaults__ = (None,) * 8  # len(ReadConfig._fields)
 
 
-def config_logging(level: str = "fatal", log_file: str = ""):
+def config_logging(level: str = "fatal", log_file: str = "") -> None:
     """
     Configure tiledbvcf logging.
 
@@ -121,7 +121,7 @@ class Dataset:
 
         """
 
-        def __init__(self, region: str):
+        def __init__(self, region: str) -> None:
             try:
                 contig, interval = region.split(":")
                 start, end = map(int, interval.split("-"))
@@ -140,7 +140,7 @@ class Dataset:
         def __lt__(self, region):
             return self.to_tuple() < region.to_tuple()
 
-        def __str__(self):
+        def __str__(self) -> str:
             return f"{self.contig}:{self.start}-{self.end}"
 
         def to_tuple(self):
@@ -153,8 +153,8 @@ class Dataset:
         cfg: ReadConfig = None,
         stats: bool = False,
         verbose: bool = False,
-        tiledb_config: dict = None,
-    ):
+        tiledb_config: dict | None = None,
+    ) -> None:
         if cfg and tiledb_config:
             raise Exception("Cannot specify both cfg and tiledb_config")
 
@@ -179,7 +179,7 @@ class Dataset:
         else:
             raise Exception(f"Unsupported dataset mode {mode}")
 
-    def close(self):
+    def close(self) -> None:
         """Close the dataset and release resources."""
         if self.mode == "r":
             del self.reader
@@ -193,7 +193,7 @@ class Dataset:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def _set_read_cfg(self, cfg):
+    def _set_read_cfg(self, cfg) -> None:
         if cfg is None:
             return
         if cfg.limit is not None:
@@ -211,7 +211,7 @@ class Dataset:
         if cfg.tiledb_tile_cache_percentage is not None:
             self.reader.set_tiledb_tile_cache_percentage(cfg.tiledb_tile_cache_percentage)
         if cfg.tiledb_config is not None:
-            tiledb_config_list = list()
+            tiledb_config_list = []
             if isinstance(cfg.tiledb_config, list):
                 tiledb_config_list = cfg.tiledb_config
             # Support dictionaries and tiledb.Config objects also
@@ -231,11 +231,11 @@ class Dataset:
                     pass
             self.reader.set_tiledb_config(",".join(tiledb_config_list))
 
-    def _set_write_cfg(self, cfg):
+    def _set_write_cfg(self, cfg) -> None:
         if cfg is None:
             return
         if cfg.tiledb_config is not None:
-            tiledb_config_list = list()
+            tiledb_config_list = []
             if isinstance(cfg.tiledb_config, list):
                 tiledb_config_list = cfg.tiledb_config
             # Support dictionaries and tiledb.Config objects also
@@ -256,7 +256,7 @@ class Dataset:
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
 
     # parses and sorts regions, then generates consolidated regions one at a time
-    def _prepare_regions(self, regions: List[str]) -> Generator[Region, None, None]:
+    def _prepare_regions(self, regions: list[str]) -> Generator[Region, None, None]:
         if not regions:
             return
         prev_region, *parsed_regions = sorted(map(self.Region, regions))
@@ -273,11 +273,11 @@ class Dataset:
 
     def read_arrow(
         self,
-        attrs: List[str] = DEFAULT_ATTRS,
-        samples: (str, List[str]) = None,
-        regions: (str, List[str], np.ndarray) = None,
-        samples_file: str = None,
-        bed_file: str = None,
+        attrs: list[str] = DEFAULT_ATTRS,
+        samples: (str, list[str]) = None,
+        regions: (str, list[str], np.ndarray) = None,
+        samples_file: str | None = None,
+        bed_file: str | None = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
@@ -352,13 +352,13 @@ class Dataset:
 
     def read_variant_stats(
         self,
-        region: str = None,
+        region: str | None = None,
         drop_ref: bool = False,
-        regions: List[str] = None,
+        regions: list[str] | None = None,
         scan_all_samples: bool = False,
     ) -> pd.DataFrame:
         """
-        Read variant stats from the dataset into a Pandas DataFrame
+        Read variant stats from the dataset into a Pandas DataFrame.
 
         Parameters
         ----------
@@ -380,7 +380,7 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning,
+                DeprecationWarning, stacklevel=2,
             )
             regions = [region]
 
@@ -393,13 +393,13 @@ class Dataset:
 
     def read_variant_stats_arrow(
         self,
-        region: str = None,
+        region: str | None = None,
         drop_ref: bool = False,
-        regions: List[str] = None,
+        regions: list[str] | None = None,
         scan_all_samples: bool = False,
     ) -> pa.Table:
         """
-        Read variant stats from the dataset into a PyArrow Table
+        Read variant stats from the dataset into a PyArrow Table.
 
         Parameters
         ----------
@@ -421,7 +421,7 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning,
+                DeprecationWarning, stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
@@ -450,11 +450,11 @@ class Dataset:
 
     def read_allele_count(
         self,
-        region: str = None,
-        regions: List[str] = None,
+        region: str | None = None,
+        regions: list[str] | None = None,
     ) -> pd.DataFrame:
         """
-        Read allele count from the dataset into a Pandas DataFrame
+        Read allele count from the dataset into a Pandas DataFrame.
 
         Parameters
         ----------
@@ -472,7 +472,7 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning,
+                DeprecationWarning, stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
@@ -482,11 +482,11 @@ class Dataset:
 
     def read_allele_count_arrow(
         self,
-        region: str = None,
-        regions: List[str] = None,
+        region: str | None = None,
+        regions: list[str] | None = None,
     ) -> pa.Table:
         """
-        Read allele count from the dataset into a Pandas DataFrame
+        Read allele count from the dataset into a Pandas DataFrame.
 
         Parameters
         ----------
@@ -504,7 +504,7 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning,
+                DeprecationWarning, stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
@@ -515,7 +515,7 @@ class Dataset:
             for r in regions:
                 self.reader.set_regions(str(r))
                 counts = self.reader.get_allele_count_results()
-                contigs = counts.sort_by([("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")])
+                counts.sort_by([("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")])
                 n = counts.num_rows
                 contig_col = [r.contig] * n
                 yield counts.add_column(0, "contig", [contig_col])
@@ -525,11 +525,11 @@ class Dataset:
 
     def read(
         self,
-        attrs: List[str] = DEFAULT_ATTRS,
-        samples: (str, List[str]) = None,
-        regions: (str, List[str], np.ndarray) = None,
-        samples_file: str = None,
-        bed_file: str = None,
+        attrs: list[str] = DEFAULT_ATTRS,
+        samples: (str, list[str]) = None,
+        regions: (str, list[str], np.ndarray) = None,
+        samples_file: str | None = None,
+        bed_file: str | None = None,
         skip_check_samples: bool = False,
         set_af_filter: str = "",
         scan_all_samples: bool = False,
@@ -604,16 +604,16 @@ class Dataset:
 
     def export(
         self,
-        samples: (str, List[str]) = None,
-        regions: (str, List[str], np.ndarray) = None,
-        samples_file: str = None,
-        bed_file: str = None,
+        samples: (str, list[str]) = None,
+        regions: (str, list[str], np.ndarray) = None,
+        samples_file: str | None = None,
+        bed_file: str | None = None,
         skip_check_samples: bool = False,
         merge: bool = False,
         output_format: str = "z",
         output_path: str = "",
         output_dir: str = ".",
-    ):
+    ) -> None:
         """
         Exports data to multiple VCF files or a combined VCF file.
 
@@ -686,11 +686,11 @@ class Dataset:
 
     def read_iter(
         self,
-        attrs: List[str] = DEFAULT_ATTRS,
-        samples: (str, List[str]) = None,
-        regions: (str, List[str], np.ndarray) = None,
-        samples_file: str = None,
-        bed_file: str = None,
+        attrs: list[str] = DEFAULT_ATTRS,
+        samples: (str, list[str]) = None,
+        regions: (str, list[str], np.ndarray) = None,
+        samples_file: str | None = None,
+        bed_file: str | None = None,
     ):
         """
         Iterator version of `read()`.
@@ -797,8 +797,8 @@ class Dataset:
 
     def count(
         self,
-        samples: (str, List[str]) = None,
-        regions: (str, List[str]) = None,
+        samples: (str, list[str]) = None,
+        regions: (str, list[str]) = None,
     ) -> int:
         """
         Count records in the dataset.
@@ -821,10 +821,7 @@ class Dataset:
 
         if isinstance(regions, str):
             regions = [regions]
-        if isinstance(regions, list):
-            regions = map(str, self._prepare_regions(regions))
-        else:
-            regions = ""
+        regions = map(str, self._prepare_regions(regions)) if isinstance(regions, list) else ""
         if isinstance(samples, str):
             samples = [samples]
         elif samples is None:
@@ -844,8 +841,8 @@ class Dataset:
 
     def create_dataset(
         self,
-        extra_attrs: str = None,
-        vcf_attrs: str = None,
+        extra_attrs: str | None = None,
+        vcf_attrs: str | None = None,
         tile_capacity: int = 10000,
         anchor_gap: int = 1000,
         checksum_type: str = "sha256",
@@ -856,7 +853,7 @@ class Dataset:
         compress_sample_dim: bool = True,
         compression_level: int = 4,
         variant_stats_version: int = 2,
-    ):
+    ) -> None:
         """
         Create a new dataset.
 
@@ -937,28 +934,28 @@ class Dataset:
 
     def ingest_samples(
         self,
-        sample_uris: List[str] = None,
-        threads: int = None,
-        total_memory_budget_mb: int = None,
-        total_memory_percentage: float = None,
-        ratio_tiledb_memory: float = None,
-        max_tiledb_memory_mb: int = None,
-        input_record_buffer_mb: int = None,
-        avg_vcf_record_size: int = None,
-        ratio_task_size: float = None,
-        ratio_output_flush: float = None,
-        scratch_space_path: str = None,
-        scratch_space_size: int = None,
-        sample_batch_size: int = None,
+        sample_uris: list[str] | None = None,
+        threads: int | None = None,
+        total_memory_budget_mb: int | None = None,
+        total_memory_percentage: float | None = None,
+        ratio_tiledb_memory: float | None = None,
+        max_tiledb_memory_mb: int | None = None,
+        input_record_buffer_mb: int | None = None,
+        avg_vcf_record_size: int | None = None,
+        ratio_task_size: float | None = None,
+        ratio_output_flush: float | None = None,
+        scratch_space_path: str | None = None,
+        scratch_space_size: int | None = None,
+        sample_batch_size: int | None = None,
         resume: bool = False,
         contig_fragment_merging: bool = True,
-        contigs_to_keep_separate: List[str] = None,
-        contigs_to_allow_merging: List[str] = None,
+        contigs_to_keep_separate: list[str] | None = None,
+        contigs_to_allow_merging: list[str] | None = None,
         contig_mode: str = "all",
-        thread_task_size: int = None,
-        memory_budget_mb: int = None,
-        record_limit: int = None,
-    ):
+        thread_task_size: int | None = None,
+        memory_budget_mb: int | None = None,
+        record_limit: int | None = None,
+    ) -> None:
         """
         Ingest VCF files into the dataset.
 
@@ -1102,8 +1099,8 @@ class Dataset:
 
     def delete_samples(
         self,
-        sample_uris: List[str] = None,
-    ):
+        sample_uris: list[str] | None = None,
+    ) -> None:
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
         self.writer.delete_samples(sample_uris)
@@ -1127,6 +1124,7 @@ class Dataset:
             if not self.writer.get_tiledb_stats_enabled:
                 raise Exception("TileDB write stats not enabled")
             return self.writer.get_tiledb_stats()
+        return None
 
     def schema_version(self) -> int:
         """
@@ -1194,10 +1192,9 @@ class Dataset:
 
         attr_types = ("all", "info", "fmt", "builtin")
         if attr_type not in attr_types:
-            raise ValueError("Invalid attribute type. Must be one of: %s" % attr_types)
+            raise ValueError(f"Invalid attribute type. Must be one of: {attr_types}")
 
         # combined attributes with type object
-        comb_attrs = ("info", "fmt")
 
         if attr_type == "info":
             return self.reader.get_info_attributes()
@@ -1207,7 +1204,7 @@ class Dataset:
             return self.reader.get_materialized_attributes()
         return self.reader.get_queryable_attributes()
 
-    def _set_samples(self, samples=None, samples_file=None):
+    def _set_samples(self, samples=None, samples_file=None) -> None:
         if samples is not None and samples_file is not None:
             raise TypeError(
                 "Argument 'samples' not allowed with 'samples_file'. "
@@ -1237,7 +1234,7 @@ class Dataset:
         return self.writer.version()
 
     @staticmethod
-    def delete(uri: str, *, config: dict = None) -> None:
+    def delete(uri: str, *, config: dict | None = None) -> None:
         """
         Delete the dataset.
 
@@ -1288,6 +1285,6 @@ class TileDBVCFDataset(Dataset):
 
     """
 
-    def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False):
-        warnings.warn("TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning)
+    def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False) -> None:
+        warnings.warn("TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning, stacklevel=2)
         super().__init__(uri, mode, cfg, stats, verbose)

@@ -1,12 +1,12 @@
 # Copyright (c) TileDB, Inc.
 # Licensed under the MIT License.
 
-import pandas
+import pandas as pd
 
 
-def read_allele_frequency(dataset_uri: str, region: str) -> pandas.DataFrame:
+def read_allele_frequency(dataset_uri: str, region: str) -> pd.DataFrame:
     """
-    Read variant status
+    Read variant status.
 
     :param dataset_uri: dataset URI
     :param region: genomics region to read
