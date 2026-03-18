@@ -1,12 +1,15 @@
-import numpy as np
-import subprocess
+import glob
 import os
+import pathlib
+import platform
+import shutil
+import subprocess
+
+import numpy as np
 import pandas as pd
 import pyarrow as pa
-import glob
-import shutil
-import platform
 import pytest
+
 import tiledbvcf
 import tiledb
 
@@ -14,9 +17,7 @@ import tiledb
 CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Test inputs directory
-TESTS_INPUT_DIR = os.path.abspath(
-    os.path.join(CONTAINING_DIR, "../../../libtiledbvcf/test/inputs")
-)
+TESTS_INPUT_DIR = os.path.abspath(os.path.join(CONTAINING_DIR, "../../../libtiledbvcf/test/inputs"))
 
 
 def _check_dfs(expected, actual):
@@ -41,31 +42,23 @@ def check_if_compatible(uri):
             return True
     except tiledb.libtiledb.TileDBError as e:
         if "incompatible format version" in str(e).lower():
-            raise pytest.skip.Exception(
-                "Test skipped due to incompatible format version"
-            )
-        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {str(e)}")
+            raise pytest.skip.Exception("Test skipped due to incompatible format version")
+        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {e!s}")
 
 
 @pytest.fixture
 def test_ds_v4():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
-    )
+    return tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples"))
 
 
 @pytest.fixture
 def test_ds():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
-    )
+    return tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples"))
 
 
 @pytest.fixture
 def test_ds_attrs():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples_GT_DP_PL")
-    )
+    return tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples_GT_DP_PL"))
 
 
 def test_basic_count(test_ds):
@@ -159,66 +152,62 @@ def test_read_attrs(test_ds_attrs):
 
 
 def test_basic_reads(test_ds):
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                [
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [
-                    12141,
-                    12141,
-                    12546,
-                    12546,
-                    13354,
-                    13354,
-                    13375,
-                    13396,
-                    13414,
-                    13452,
-                    13520,
-                    13545,
-                    17319,
-                    17480,
-                ],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [
-                    12277,
-                    12277,
-                    12771,
-                    12771,
-                    13374,
-                    13389,
-                    13395,
-                    13413,
-                    13451,
-                    13519,
-                    13544,
-                    13689,
-                    17479,
-                    17486,
-                ],
-                dtype=np.int32,
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [
+                12141,
+                12141,
+                12546,
+                12546,
+                13354,
+                13354,
+                13375,
+                13396,
+                13414,
+                13452,
+                13520,
+                13545,
+                17319,
+                17480,
+            ],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [
+                12277,
+                12277,
+                12771,
+                12771,
+                13374,
+                13389,
+                13395,
+                13413,
+                13451,
+                13519,
+                13544,
+                13689,
+                17479,
+                17486,
+            ],
+            dtype=np.int32,
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
     for use_arrow in [False, True]:
         func = test_ds.read_arrow if use_arrow else test_ds.read
@@ -233,59 +222,29 @@ def test_basic_reads(test_ds):
         )
 
     # Region intersection
-    df = test_ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]
-    )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                ["HG00280", "HG01762", "HG00280", "HG01762", "HG00280", "HG00280"]
-            ),
-            "pos_start": pd.Series(
-                [12546, 12546, 13354, 13354, 13375, 13396], dtype=np.int32
-            ),
-            "pos_end": pd.Series(
-                [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
-    df = test_ds.read_arrow(
-        attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]
-    ).to_pandas()
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"])
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series(["HG00280", "HG01762", "HG00280", "HG01762", "HG00280", "HG00280"]),
+        "pos_start": pd.Series([12546, 12546, 13354, 13354, 13375, 13396], dtype=np.int32),
+        "pos_end": pd.Series([12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
+    df = test_ds.read_arrow(attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]).to_pandas()
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
     # Regions as string
-    df = test_ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
-    )
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
-    df = test_ds.read_arrow(
-        attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
-    ).to_pandas()
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400")
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
+    df = test_ds.read_arrow(attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400").to_pandas()
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
     # Regions as numpy.ndarray
-    df = test_ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
-    )
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"]))
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
     df = test_ds.read_arrow(
         attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
     ).to_pandas()
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
     # Region and sample intersection
     df = test_ds.read(
@@ -293,31 +252,21 @@ def test_basic_reads(test_ds):
         regions=["1:12700-13400"],
         samples=["HG01762"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(["HG01762", "HG01762"]),
-            "pos_start": pd.Series([12546, 13354], dtype=np.int32),
-            "pos_end": pd.Series([12771, 13389], dtype=np.int32),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series(["HG01762", "HG01762"]),
+        "pos_start": pd.Series([12546, 13354], dtype=np.int32),
+        "pos_end": pd.Series([12771, 13389], dtype=np.int32),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
     # Sample only
-    df = test_ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], samples=["HG01762"]
-    )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(["HG01762", "HG01762", "HG01762"]),
-            "pos_start": pd.Series([12141, 12546, 13354], dtype=np.int32),
-            "pos_end": pd.Series([12277, 12771, 13389], dtype=np.int32),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    df = test_ds.read(attrs=["sample_name", "pos_start", "pos_end"], samples=["HG01762"])
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series(["HG01762", "HG01762", "HG01762"]),
+        "pos_start": pd.Series([12141, 12546, 13354], dtype=np.int32),
+        "pos_end": pd.Series([12277, 12771, 13389], dtype=np.int32),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_multiple_counts(test_ds):
@@ -367,9 +316,7 @@ def test_read_write_mode_exceptions():
     with pytest.raises(Exception):
         ds.ingest_samples(samples)
 
-    ds = tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples"), mode="w"
-    )
+    ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples"), mode="w")
     with pytest.raises(Exception):
         ds.count()
 
@@ -435,13 +382,9 @@ def test_incomplete_read_generator():
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
     test_ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-    expected_df = pd.DataFrame.from_dict(
-            {
-                "pos_end": np.array(
-                    [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
-                )
-            }
-        )
+    expected_df = pd.DataFrame.from_dict({
+        "pos_end": np.array([12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32)
+    })
 
     # NOTE: Running multiple test shows that the iterator can be reused
 
@@ -475,28 +418,18 @@ def test_read_filters(test_ds):
         attrs=["sample_name", "pos_start", "pos_end", "filters"],
         regions=["1:12700-13400"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                ["HG00280", "HG01762", "HG00280", "HG01762", "HG00280", "HG00280"]
-            ),
-            "pos_start": pd.Series(
-                [12546, 12546, 13354, 13354, 13375, 13396], dtype=np.int32
-            ),
-            "pos_end": pd.Series(
-                [12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32
-            ),
-            "filters": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=object),
-                    [None, None, ["LowQual"], None, None, None],
-                )
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series(["HG00280", "HG01762", "HG00280", "HG01762", "HG00280", "HG00280"]),
+        "pos_start": pd.Series([12546, 12546, 13354, 13354, 13375, 13396], dtype=np.int32),
+        "pos_end": pd.Series([12771, 12771, 13374, 13389, 13395, 13413], dtype=np.int32),
+        "filters": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=object),
+                [None, None, ["LowQual"], None, None, None],
+            )
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_read_var_length_filters(tmp_path):
@@ -509,44 +442,42 @@ def test_read_var_length_filters(tmp_path):
     ds = tiledbvcf.Dataset(uri, mode="r")
     df = ds.read(["pos_start", "filters"])
 
-    expected_df = pd.DataFrame(
-        {
-            "pos_start": pd.Series(
+    expected_df = pd.DataFrame({
+        "pos_start": pd.Series(
+            [
+                12141,
+                12546,
+                13354,
+                13375,
+                13396,
+                13414,
+                13452,
+                13520,
+                13545,
+                17319,
+                17480,
+            ],
+            dtype=np.int32,
+        ),
+        "filters": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=object),
                 [
-                    12141,
-                    12546,
-                    13354,
-                    13375,
-                    13396,
-                    13414,
-                    13452,
-                    13520,
-                    13545,
-                    17319,
-                    17480,
+                    ["PASS"],
+                    ["PASS"],
+                    ["ANEUPLOID", "LowQual"],
+                    ["PASS"],
+                    ["PASS"],
+                    ["ANEUPLOID", "LOWQ", "LowQual"],
+                    ["PASS"],
+                    ["PASS"],
+                    ["PASS"],
+                    ["LowQual"],
+                    ["PASS"],
                 ],
-                dtype=np.int32,
-            ),
-            "filters": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=object),
-                    [
-                        ["PASS"],
-                        ["PASS"],
-                        ["ANEUPLOID", "LowQual"],
-                        ["PASS"],
-                        ["PASS"],
-                        ["ANEUPLOID", "LOWQ", "LowQual"],
-                        ["PASS"],
-                        ["PASS"],
-                        ["PASS"],
-                        ["LowQual"],
-                        ["PASS"],
-                    ],
-                )
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["pos_start"])
+            )
+        ),
+    }).sort_values(ignore_index=True, by=["pos_start"])
 
     _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["pos_start"]))
 
@@ -556,52 +487,46 @@ def test_read_alleles(test_ds):
         attrs=["sample_name", "pos_start", "pos_end", "alleles"],
         regions=["1:12100-13360", "1:13500-17350"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545, 17319],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689, 17479],
+            dtype=np.int32,
+        ),
+        "alleles": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=object),
                 [
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545, 17319],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689, 17479],
-                dtype=np.int32,
-            ),
-            "alleles": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=object),
-                    [
-                        ["C", "<NON_REF>"],
-                        ["C", "<NON_REF>"],
-                        ["G", "<NON_REF>"],
-                        ["G", "<NON_REF>"],
-                        ["T", "<NON_REF>"],
-                        ["T", "<NON_REF>"],
-                        ["G", "<NON_REF>"],
-                        ["G", "<NON_REF>"],
-                        ["G", "<NON_REF>"],
-                        ["T", "<NON_REF>"],
-                    ],
-                )
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+                    ["C", "<NON_REF>"],
+                    ["C", "<NON_REF>"],
+                    ["G", "<NON_REF>"],
+                    ["G", "<NON_REF>"],
+                    ["T", "<NON_REF>"],
+                    ["T", "<NON_REF>"],
+                    ["G", "<NON_REF>"],
+                    ["G", "<NON_REF>"],
+                    ["G", "<NON_REF>"],
+                    ["T", "<NON_REF>"],
+                ],
+            )
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_read_multiple_alleles(tmp_path):
@@ -616,28 +541,24 @@ def test_read_multiple_alleles(tmp_path):
         attrs=["sample_name", "pos_start", "alleles", "id", "filters"],
         regions=["1:70100-1300000"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(["HG00280", "HG00280"]),
-            "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
-            "alleles": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=object),
-                    [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
-                )
-            ),
-            "id": pd.Series([".", "rs1497816"]),
-            "filters": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=object),
-                    [["LowQual"], ["LowQual"]],
-                )
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series(["HG00280", "HG00280"]),
+        "pos_start": pd.Series([866511, 1289367], dtype=np.int32),
+        "alleles": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=object),
+                [["T", "CCCCTCCCT", "C", "CCCCTCCCTCCCT", "CCCCT"], ["CTG", "C"]],
+            )
+        ),
+        "id": pd.Series([".", "rs1497816"]),
+        "filters": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=object),
+                [["LowQual"], ["LowQual"]],
+            )
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_read_var_len_attrs(test_ds):
@@ -645,59 +566,53 @@ def test_read_var_len_attrs(test_ds):
         attrs=["sample_name", "pos_start", "pos_end", "fmt_DP", "fmt_PL"],
         regions=["1:12100-13360", "1:13500-17350"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545, 17319],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689, 17479],
+            dtype=np.int32,
+        ),
+        "fmt_DP": pd.Series([0, 0, 0, 0, 15, 64, 10, 6, 0, 0], dtype=np.int32),
+        "fmt_PL": pd.Series(
+            map(
+                lambda lst: np.array(lst, dtype=np.int32),
                 [
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [12141, 12141, 12546, 12546, 13354, 13354, 13452, 13520, 13545, 17319],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [12277, 12277, 12771, 12771, 13374, 13389, 13519, 13544, 13689, 17479],
-                dtype=np.int32,
-            ),
-            "fmt_DP": pd.Series([0, 0, 0, 0, 15, 64, 10, 6, 0, 0], dtype=np.int32),
-            "fmt_PL": pd.Series(
-                map(
-                    lambda lst: np.array(lst, dtype=np.int32),
-                    [
-                        [0, 0, 0],
-                        [0, 0, 0],
-                        [0, 0, 0],
-                        [0, 0, 0],
-                        [0, 24, 360],
-                        [0, 66, 990],
-                        [0, 21, 210],
-                        [0, 6, 90],
-                        [0, 0, 0],
-                        [0, 0, 0],
-                    ],
-                )
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+                    [0, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                    [0, 24, 360],
+                    [0, 66, 990],
+                    [0, 21, 210],
+                    [0, 6, 90],
+                    [0, 0, 0],
+                    [0, 0, 0],
+                ],
+            )
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_sample_args(test_ds, tmp_path):
     sample_file = os.path.join(tmp_path, "1_sample.txt")
-    with open(sample_file, "w") as file:
+    with pathlib.Path(sample_file).open("w") as file:
         file.write("HG00280")
 
     region = ["1:12141-12141"]
@@ -734,99 +649,87 @@ def test_read_null_attrs(tmp_path):
         ],
         regions=["1:12700-13400", "1:69500-69800"],
     )
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                [
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG01762",
-                    "HG01762",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [
-                    12546,
-                    13354,
-                    13375,
-                    13396,
-                    12546,
-                    13354,
-                    69371,
-                    69511,
-                    69512,
-                    69761,
-                    69762,
-                    69771,
-                ],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [
-                    12771,
-                    13374,
-                    13395,
-                    13413,
-                    12771,
-                    13389,
-                    69510,
-                    69511,
-                    69760,
-                    69761,
-                    69770,
-                    69834,
-                ],
-                dtype=np.int32,
-            ),
-            "info_BaseQRankSum": pd.Series(
-                [
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    np.array([-0.787], dtype=np.float32),
-                    None,
-                    np.array([1.97], dtype=np.float32),
-                    None,
-                    None,
-                ]
-            ),
-            "info_DP": pd.Series(
-                [
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    np.array([89], dtype=np.int32),
-                    None,
-                    np.array([24], dtype=np.int32),
-                    None,
-                    None,
-                ]
-            ),
-            "fmt_DP": pd.Series(
-                [0, 15, 6, 2, 0, 64, 180, 88, 97, 24, 23, 21], dtype=np.int32
-            ),
-            "fmt_MIN_DP": pd.Series([0, 14, 3, 1, 0, 30, 20, None, 24, None, 23, 19]),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
-        expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    )
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG01762",
+            "HG01762",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [
+                12546,
+                13354,
+                13375,
+                13396,
+                12546,
+                13354,
+                69371,
+                69511,
+                69512,
+                69761,
+                69762,
+                69771,
+            ],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [
+                12771,
+                13374,
+                13395,
+                13413,
+                12771,
+                13389,
+                69510,
+                69511,
+                69760,
+                69761,
+                69770,
+                69834,
+            ],
+            dtype=np.int32,
+        ),
+        "info_BaseQRankSum": pd.Series([
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            np.array([-0.787], dtype=np.float32),
+            None,
+            np.array([1.97], dtype=np.float32),
+            None,
+            None,
+        ]),
+        "info_DP": pd.Series([
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            np.array([89], dtype=np.int32),
+            None,
+            np.array([24], dtype=np.int32),
+            None,
+            None,
+        ]),
+        "fmt_DP": pd.Series([0, 15, 6, 2, 0, 64, 180, 88, 97, 24, 23, 21], dtype=np.int32),
+        "fmt_MIN_DP": pd.Series([0, 14, 3, 1, 0, 30, 20, None, 24, None, 23, 19]),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]))
 
 
 def test_read_config():
@@ -915,17 +818,13 @@ def test_sample_partitioned_read():
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(0, 2))
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-    df = ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"]
-    )
+    df = ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"])
     assert len(df) == 11
     assert (df.sample_name == "HG00280").all()
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(1, 2))
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-    df = ds.read(
-        attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"]
-    )
+    df = ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"])
     assert len(df) == 3
     assert (df.sample_name == "HG01762").all()
 
@@ -933,9 +832,7 @@ def test_sample_partitioned_read():
     cfg = tiledbvcf.ReadConfig(sample_partition=(1, 3))
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
     with pytest.raises(RuntimeError):
-        df = ds.read(
-            attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"]
-        )
+        df = ds.read(attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12000-18000"])
 
     # Error: index >= num partitions
     cfg = tiledbvcf.ReadConfig(sample_partition=(2, 2))
@@ -997,9 +894,7 @@ def test_large_export_correctness():
             "query_bed_end",
         ],
         samples=["v2-DjrIAzkP", "v2-YMaDHIoW", "v2-usVwJUmo", "v2-ZVudhauk"],
-        bed_file=os.path.join(
-            TESTS_INPUT_DIR, "E001_15_coreMarks_dense_filtered.bed.gz"
-        ),
+        bed_file=os.path.join(TESTS_INPUT_DIR, "E001_15_coreMarks_dense_filtered.bed.gz"),
     )
 
     # total number of exported records
@@ -1030,9 +925,7 @@ def test_disable_ingestion_tasks(tmp_path):
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
-    ds.create_dataset(
-        enable_allele_count=False, enable_variant_stats=False, enable_sample_stats=False
-    )
+    ds.create_dataset(enable_allele_count=False, enable_variant_stats=False, enable_sample_stats=False)
     ds.ingest_samples(samples)
 
     # TODO: remove this workaround when sc-19721 is resolved
@@ -1044,9 +937,9 @@ def test_disable_ingestion_tasks(tmp_path):
     vs_uri = os.path.join(tmp_path, "dataset", "variant_stats")
     ss_uri = os.path.join(tmp_path, "dataset", "sample_stats")
 
-    assert not os.path.exists(ac_uri)
-    assert not os.path.exists(vs_uri)
-    assert not os.path.exists(ss_uri)
+    assert not pathlib.Path(ac_uri).exists()
+    assert not pathlib.Path(vs_uri).exists()
+    assert not pathlib.Path(ss_uri).exists()
 
 
 def test_ingestion_tasks(tmp_path):
@@ -1089,34 +982,32 @@ def test_ingestion_tasks(tmp_path):
 
     # Test raw sample_stats
 
-    expected_df = pd.DataFrame(
-        {
-            "sample": ["HG00280", "HG01762"],
-            "dp_sum": [879, 64],
-            "dp_sum2": [56375, 4096],
-            "dp_count": [68, 2],
-            "dp_min": [0, 0],
-            "dp_max": [180, 64],
-            "gq_sum": [1489, 99],
-            "gq_sum2": [79129, 9801],
-            "gq_count": [68, 2],
-            "gq_min": [0, 0],
-            "gq_max": [99, 99],
-            "n_records": [70, 3],
-            "n_called": [70, 3],
-            "n_not_called": [0, 0],
-            "n_hom_ref": [64, 3],
-            "n_het": [3, 0],
-            "n_singleton": [4, 0],
-            "n_snp": [7, 0],
-            "n_insertion": [2, 0],
-            "n_deletion": [1, 0],
-            "n_transition": [6, 0],
-            "n_transversion": [1, 0],
-            "n_star": [0, 0],
-            "n_multiallelic": [5, 0],
-        }
-    ).astype("uint64", errors="ignore")
+    expected_df = pd.DataFrame({
+        "sample": ["HG00280", "HG01762"],
+        "dp_sum": [879, 64],
+        "dp_sum2": [56375, 4096],
+        "dp_count": [68, 2],
+        "dp_min": [0, 0],
+        "dp_max": [180, 64],
+        "gq_sum": [1489, 99],
+        "gq_sum2": [79129, 9801],
+        "gq_count": [68, 2],
+        "gq_min": [0, 0],
+        "gq_max": [99, 99],
+        "n_records": [70, 3],
+        "n_called": [70, 3],
+        "n_not_called": [0, 0],
+        "n_hom_ref": [64, 3],
+        "n_het": [3, 0],
+        "n_singleton": [4, 0],
+        "n_snp": [7, 0],
+        "n_insertion": [2, 0],
+        "n_deletion": [1, 0],
+        "n_transition": [6, 0],
+        "n_transversion": [1, 0],
+        "n_star": [0, 0],
+        "n_multiallelic": [5, 0],
+    }).astype("uint64", errors="ignore")
 
     ss_uri = tiledb.Group(uri)["sample_stats"].uri
     with tiledb.open(ss_uri) as A:
@@ -1128,38 +1019,36 @@ def test_ingestion_tasks(tmp_path):
     assert df.equals(expected_df)
 
     # Test sample_qc
-    expected_qc = pd.DataFrame(
-        {
-            "sample": ["HG00280", "HG01762"],
-            "dp_mean": [12.92647, 32.0],
-            "dp_stddev": [25.728399, 32.0],
-            "dp_min": [0, 0],
-            "dp_max": [180, 64],
-            "gq_mean": [21.897058, 49.5],
-            "gq_stddev": [26.156845, 49.5],
-            "gq_min": [0, 0],
-            "gq_max": [99, 99],
-            "call_rate": [1.0, 1.0],
-            "n_called": [70, 3],
-            "n_not_called": [0, 0],
-            "n_hom_ref": [64, 3],
-            "n_het": [3, 0],
-            "n_hom_var": [3, 0],
-            "n_non_ref": [6, 0],
-            "n_singleton": [4, 0],
-            "n_snp": [7, 0],
-            "n_insertion": [2, 0],
-            "n_deletion": [1, 0],
-            "n_transition": [6, 0],
-            "n_transversion": [1, 0],
-            "n_star": [0, 0],
-            "r_ti_tv": [6.0, np.nan],
-            "r_het_hom_var": [1.0, np.nan],
-            "r_insertion_deletion": [2.0, np.nan],
-            "n_records": [70, 3],
-            "n_multiallelic": [5, 0],
-        }
-    )
+    expected_qc = pd.DataFrame({
+        "sample": ["HG00280", "HG01762"],
+        "dp_mean": [12.92647, 32.0],
+        "dp_stddev": [25.728399, 32.0],
+        "dp_min": [0, 0],
+        "dp_max": [180, 64],
+        "gq_mean": [21.897058, 49.5],
+        "gq_stddev": [26.156845, 49.5],
+        "gq_min": [0, 0],
+        "gq_max": [99, 99],
+        "call_rate": [1.0, 1.0],
+        "n_called": [70, 3],
+        "n_not_called": [0, 0],
+        "n_hom_ref": [64, 3],
+        "n_het": [3, 0],
+        "n_hom_var": [3, 0],
+        "n_non_ref": [6, 0],
+        "n_singleton": [4, 0],
+        "n_snp": [7, 0],
+        "n_insertion": [2, 0],
+        "n_deletion": [1, 0],
+        "n_transition": [6, 0],
+        "n_transversion": [1, 0],
+        "n_star": [0, 0],
+        "r_ti_tv": [6.0, np.nan],
+        "r_het_hom_var": [1.0, np.nan],
+        "r_insertion_deletion": [2.0, np.nan],
+        "n_records": [70, 3],
+        "n_multiallelic": [5, 0],
+    })
 
     qc = tiledbvcf.sample_qc(uri)
     _check_dfs(expected_qc, qc)
@@ -1187,9 +1076,7 @@ def test_ingest_disable_merging(tmp_path):
     attrs = ["sample_name", "contig", "pos_start", "pos_end"]
 
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds.create_dataset()
     ds.ingest_samples(samples, contig_fragment_merging=False)
 
@@ -1202,9 +1089,7 @@ def test_ingest_disable_merging(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging_separate")
     ds2 = tiledbvcf.Dataset(uri, mode="w", verbose=False)
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds2.create_dataset()
     ds2.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
 
@@ -1221,9 +1106,7 @@ def test_ingest_merging_separate(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging_separate")
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds.create_dataset()
     ds.ingest_samples(samples, contigs_to_keep_separate=["chr1"])
 
@@ -1237,9 +1120,7 @@ def test_ingest_merging(tmp_path):
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds.create_dataset()
     ds.ingest_samples(samples, contigs_to_allow_merging=["chr1", "chr2"])
 
@@ -1250,13 +1131,10 @@ def test_ingest_merging(tmp_path):
 
 
 def test_ingest_mode_merged(tmp_path):
-    # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds.create_dataset()
     # ingest only merged contigs (pseudo-contigs)
     ds.ingest_samples(samples, contig_mode="merged")
@@ -1272,11 +1150,8 @@ def test_stats_bgzipped_inputs(tmp_path):
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats"))
-    shutil.copytree(
-        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
-    )
+    shutil.copytree(os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats"))
     raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
         subprocess.run(
             "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
@@ -1285,7 +1160,7 @@ def test_stats_bgzipped_inputs(tmp_path):
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
     for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
+        assert subprocess.run("bcftools index " + vcf_file, check=False, shell=True).returncode == 0
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
@@ -1302,11 +1177,8 @@ def test_stats_sample_names(test_stats_bgzipped_inputs):
 @pytest.fixture
 def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
     assert len(test_stats_bgzipped_inputs) == 8
-    # print(f"bgzipped inputs: {test_stats_bgzipped_inputs}")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    ds.create_dataset(
-        enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3
-    )
+    ds.create_dataset(enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3)
     ds.ingest_samples(test_stats_bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     return ds
@@ -1314,36 +1186,27 @@ def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
 
 # Ok to skip is missing bcftools in Windows CI job
 @pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
+    os.environ.get("CI") == "true" and platform.system() == "Windows" and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_ingest_with_stats_v3(
-    tmp_path, test_stats_v3_ingestion, test_stats_sample_names
-):
+def test_ingest_with_stats_v3(tmp_path, test_stats_v3_ingestion, test_stats_sample_names):
     data_frame = test_stats_v3_ingestion.read(
         samples=test_stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
     assert data_frame.shape == (1, 8)
-    assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
-        343.73
-    )
-    assert (
-        data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
-        == 0.9375
-    )
+    assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(343.73)
+    assert data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0] == 0.9375
     data_frame = test_stats_v3_ingestion.read(
         samples=test_stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         scan_all_samples=True,
     )
     assert (
-        data_frame[
-            (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
-        ]["info_TILEDB_IAF"].iloc[0][0]
+        data_frame[(data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)]["info_TILEDB_IAF"].iloc[0][
+            0
+        ]
         == 0.9375
     )
 
@@ -1353,9 +1216,7 @@ def test_ingest_with_stats_v3(
 
     # test errors
     no_parameter_error = '"region" or "regions" parameter is required'
-    exclusive_parameter_error = (
-        '"region" and "regions" parameters are mutually exclusive'
-    )
+    exclusive_parameter_error = '"region" and "regions" parameters are mutually exclusive'
     format_error = '"region" parameter must have format "<contig>:<start>-<end>"'
     empty_contig_error = "Region contig cannot be empty"
     base_1_error = "Regions must be 1-based"
@@ -1367,9 +1228,7 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=exclusive_parameter_error):
         test_stats_v3_ingestion.read_variant_stats("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(
-            "chr1:1-100", regions=["chr1:1-100"]
-        )
+        test_stats_v3_ingestion.read_variant_stats_arrow("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=format_error):
         test_stats_v3_ingestion.read_variant_stats(regions=[""])
     with pytest.raises(Exception, match=format_error):
@@ -1577,9 +1436,7 @@ def test_ingest_with_stats_v3(
     with pytest.raises(Exception, match=exclusive_parameter_error):
         test_stats_v3_ingestion.read_allele_count("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(
-            "chr1:1-100", regions=["chr1:1-100"]
-        )
+        test_stats_v3_ingestion.read_allele_count_arrow("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=format_error):
         test_stats_v3_ingestion.read_allele_count(regions=[""])
     with pytest.raises(Exception, match=format_error):
@@ -1697,9 +1554,7 @@ def test_ingest_with_stats_v3(
     #########################
 
     region = "chr1:1-10000"
-    df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), region
-    )
+    df = tiledbvcf.allele_frequency.read_allele_frequency(os.path.join(tmp_path, "stats_test"), region)
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
@@ -1708,18 +1563,14 @@ def test_ingest_with_stats_v3(
 
 
 @pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
+    os.environ.get("CI") == "true" and platform.system() == "Windows" and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
 def test_delete_samples(tmp_path, test_stats_v3_ingestion, test_stats_sample_names):
-    #    assert test_stats_v3_ingestion.samples() == test_stats_sample_names
     assert "second" in test_stats_sample_names
     assert "fifth" in test_stats_sample_names
     assert "third" in test_stats_sample_names
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    # tiledbvcf.config_logging("trace")
     ds.delete_samples(["second", "fifth"])
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     sample_names = ds.samples()
@@ -1730,21 +1581,15 @@ def test_delete_samples(tmp_path, test_stats_v3_ingestion, test_stats_sample_nam
 
 # Ok to skip is missing bcftools in Windows CI job
 @pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
+    os.environ.get("CI") == "true" and platform.system() == "Windows" and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
 def test_ingest_with_stats_v2(tmp_path):
-    # tiledbvcf.config_logging("debug")
     tmp_path_contents = os.listdir(tmp_path)
     if "stats" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats"))
-    shutil.copytree(
-        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
-    )
+    shutil.copytree(os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats"))
     raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
         subprocess.run(
             "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
@@ -1752,14 +1597,12 @@ def test_ingest_with_stats_v2(tmp_path):
             check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
-    # print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
+        assert subprocess.run("bcftools index " + vcf_file, check=False, shell=True).returncode == 0
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "stats_test" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "stats_test"))
-    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
     ds.ingest_samples(bgzipped_inputs)
@@ -1771,30 +1614,23 @@ def test_ingest_with_stats_v2(tmp_path):
         set_af_filter="<0.2",
     )
     assert data_frame.shape == (1, 8)
-    assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(
-        343.73
-    )
-    assert (
-        data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
-        == 0.9375
-    )
+    assert data_frame.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(343.73)
+    assert data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0] == 0.9375
     data_frame = ds.read(
         samples=sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         scan_all_samples=True,
     )
     assert (
-        data_frame[
-            (data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)
-        ]["info_TILEDB_IAF"].iloc[0][0]
+        data_frame[(data_frame["sample_name"] == "second") & (data_frame["pos_start"] == 4)]["info_TILEDB_IAF"].iloc[0][
+            0
+        ]
         == 0.9375
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
     df = ds.read_variant_stats("chr1:1-10000")
     assert df.shape == (13, 6)
-    df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
-    )
+    df = tiledbvcf.allele_frequency.read_allele_frequency(os.path.join(tmp_path, "stats_test"), "chr1:1-10000")
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
@@ -1808,20 +1644,15 @@ def test_ingest_with_stats_v2(tmp_path):
 
 # Ok to skip is missing bcftools in Windows CI job
 @pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
+    os.environ.get("CI") == "true" and platform.system() == "Windows" and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
 def test_ingest_polyploid(tmp_path):
     tmp_path_contents = os.listdir(tmp_path)
     if "polyploid" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "polyploid"))
-    shutil.copytree(
-        os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
-    )
+    shutil.copytree(os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid"))
     raw_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
     for vcf_file in raw_inputs:
         subprocess.run(
             "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
@@ -1829,42 +1660,34 @@ def test_ingest_polyploid(tmp_path):
             check=True,
         )
     bgzipped_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.gz"))
-    # print(f"bgzipped inputs: {bgzipped_inputs}")
     for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
+        assert subprocess.run("bcftools index " + vcf_file, check=False, shell=True).returncode == 0
     if "polyploid" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "polyploid"))
     if "outputs" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "outputs"))
     if "polyploid_test" in tmp_path_contents:
         shutil.rmtree(os.path.join(tmp_path, "polyploid_test"))
-    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
     ds.ingest_samples(bgzipped_inputs)
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="r")
     sample_names = [os.path.basename(file).split(".")[0] for file in bgzipped_inputs]
-    data_frame = ds.read(
+    _ = ds.read(
         samples=sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.8",
     )
-    # print(data_frame)
 
 
 def test_ingest_mode_separate(tmp_path):
-    # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
-    samples = [
-        os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
-    ]
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]]
     ds.create_dataset()
     # ingest only merged contigs (pseudo-contigs)
-    ds.ingest_samples(
-        samples, contigs_to_keep_separate=["chr1"], contig_mode="separate"
-    )
+    ds.ingest_samples(samples, contigs_to_keep_separate=["chr1"], contig_mode="separate")
 
     # Open it back in read mode and check some queries
     ds = tiledbvcf.Dataset(uri, mode="r")
@@ -2060,9 +1883,7 @@ def test_compression_level(tmp_path, level):
 
 # Ok to skip is missing bcftools in Windows CI job
 @pytest.mark.skipif(
-    os.environ.get("CI") == "true"
-    and platform.system() == "Windows"
-    and shutil.which("bcftools") is None,
+    os.environ.get("CI") == "true" and platform.system() == "Windows" and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
 def test_gvcf_export(tmp_path):
@@ -2141,41 +1962,36 @@ def test_flag_export(tmp_path):
 
 
 def test_bed_filestore(tmp_path, test_ds_v4):
-    # tiledbvcf.config_logging("debug")
 
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                [
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [
-                    12141,
-                    12141,
-                    12546,
-                    12546,
-                    17319,
-                ],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [
-                    12277,
-                    12277,
-                    12771,
-                    12771,
-                    17479,
-                ],
-                dtype=np.int32,
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [
+                12141,
+                12141,
+                12546,
+                12546,
+                17319,
+            ],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [
+                12277,
+                12277,
+                12771,
+                12771,
+                17479,
+            ],
+            dtype=np.int32,
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
     # Create BED file
     bed_file = os.path.join(tmp_path, "test.bed")
@@ -2185,7 +2001,7 @@ def test_bed_filestore(tmp_path, test_ds_v4):
         (1, 17000, 17479),
     ]
 
-    with open(bed_file, "w") as f:
+    with pathlib.Path(bed_file).open("w") as f:
         for region in regions:
             f.write(f"{region[0]}\t{region[1]}\t{region[2]}\n")
 
@@ -2202,8 +2018,6 @@ def test_bed_filestore(tmp_path, test_ds_v4):
         if use_arrow:
             df = df.to_pandas()
 
-        # print(df)
-
         _check_dfs(
             expected_df,
             df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
@@ -2211,51 +2025,45 @@ def test_bed_filestore(tmp_path, test_ds_v4):
 
 
 def test_bed_array(tmp_path, test_ds_v4):
-    expected_df = pd.DataFrame(
-        {
-            "sample_name": pd.Series(
-                [
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                    "HG01762",
-                    "HG00280",
-                ]
-            ),
-            "pos_start": pd.Series(
-                [
-                    12141,
-                    12141,
-                    12546,
-                    12546,
-                    17319,
-                ],
-                dtype=np.int32,
-            ),
-            "pos_end": pd.Series(
-                [
-                    12277,
-                    12277,
-                    12771,
-                    12771,
-                    17479,
-                ],
-                dtype=np.int32,
-            ),
-        }
-    ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
+    expected_df = pd.DataFrame({
+        "sample_name": pd.Series([
+            "HG00280",
+            "HG01762",
+            "HG00280",
+            "HG01762",
+            "HG00280",
+        ]),
+        "pos_start": pd.Series(
+            [
+                12141,
+                12141,
+                12546,
+                12546,
+                17319,
+            ],
+            dtype=np.int32,
+        ),
+        "pos_end": pd.Series(
+            [
+                12277,
+                12277,
+                12771,
+                12771,
+                17479,
+            ],
+            dtype=np.int32,
+        ),
+    }).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
     # Create bed array
     bed_array = os.path.join(tmp_path, "bed_array")
     tiledb.from_pandas(
         bed_array,
-        pd.DataFrame(
-            {
-                "chrom": ["1", "1"],
-                "chromStart": [12000, 17000],
-                "chromEnd": [13000, 17479],
-            }
-        ),
+        pd.DataFrame({
+            "chrom": ["1", "1"],
+            "chromStart": [12000, 17000],
+            "chromEnd": [13000, 17479],
+        }),
         sparse=True,
         index_col=["chrom", "chromStart"],
     )
@@ -2288,162 +2096,159 @@ def test_info_end(tmp_path):
     The test also checks that info_END contains the original values from the VCF,
     including the missing values.
     """
-
-    expected_end = pd.DataFrame(
-        {
-            "pos_end": pd.Series(
-                [
-                    12277,
-                    12771,
-                    13374,
-                    13395,
-                    13413,
-                    13451,
-                    13519,
-                    13544,
-                    13689,
-                    17479,
-                    17486,
-                    30553,
-                    35224,
-                    35531,
-                    35786,
-                    69096,
-                    69103,
-                    69104,
-                    69109,
-                    69110,
-                    69111,
-                    69112,
-                    69114,
-                    69115,
-                    69122,
-                    69123,
-                    69128,
-                    69129,
-                    69130,
-                    69192,
-                    69195,
-                    69196,
-                    69215,
-                    69222,
-                    69227,
-                    69228,
-                    69261,
-                    69262,
-                    69269,
-                    69270,
-                    69346,
-                    69349,
-                    69352,
-                    69353,
-                    69370,
-                    69510,
-                    69511,
-                    69760,
-                    69761,
-                    69770,
-                    69834,
-                    69835,
-                    69838,
-                    69861,
-                    69863,
-                    69866,
-                    69896,
-                    69897,
-                    69912,
-                    69938,
-                    69939,
-                    69941,
-                    69946,
-                    69947,
-                    69948,
-                    69949,
-                    69953,
-                    70012,
-                    866511,
-                    1289369,
-                ],
-                dtype=np.int32,
-            ),
-            # Expected values are strings because the small3.vcf.gz defines END as a string
-            "info_END": pd.Series(
-                [
-                    "12277",
-                    "12771",
-                    "13374",
-                    "13395",
-                    "13413",
-                    "13451",
-                    "13519",
-                    "13544",
-                    "13689",
-                    "17479",
-                    "17486",
-                    "30553",
-                    "35224",
-                    "35531",
-                    "35786",
-                    "69096",
-                    "69103",
-                    "69104",
-                    "69109",
-                    "69110",
-                    "69111",
-                    "69112",
-                    "69114",
-                    "69115",
-                    "69122",
-                    "69123",
-                    "69128",
-                    "69129",
-                    "69130",
-                    "69192",
-                    "69195",
-                    "69196",
-                    "69215",
-                    "69222",
-                    "69227",
-                    "69228",
-                    "69261",
-                    "69262",
-                    "69269",
-                    None,
-                    "69346",
-                    "69349",
-                    "69352",
-                    "69353",
-                    "69370",
-                    "69510",
-                    None,
-                    "69760",
-                    None,
-                    "69770",
-                    "69834",
-                    "69835",
-                    "69838",
-                    "69861",
-                    "69863",
-                    "69866",
-                    "69896",
-                    None,
-                    "69912",
-                    "69938",
-                    "69939",
-                    "69941",
-                    "69946",
-                    "69947",
-                    "69948",
-                    "69949",
-                    "69953",
-                    "70012",
-                    None,
-                    None,
-                ],
-                dtype=object,
-            ),
-        }
-    )
+    expected_end = pd.DataFrame({
+        "pos_end": pd.Series(
+            [
+                12277,
+                12771,
+                13374,
+                13395,
+                13413,
+                13451,
+                13519,
+                13544,
+                13689,
+                17479,
+                17486,
+                30553,
+                35224,
+                35531,
+                35786,
+                69096,
+                69103,
+                69104,
+                69109,
+                69110,
+                69111,
+                69112,
+                69114,
+                69115,
+                69122,
+                69123,
+                69128,
+                69129,
+                69130,
+                69192,
+                69195,
+                69196,
+                69215,
+                69222,
+                69227,
+                69228,
+                69261,
+                69262,
+                69269,
+                69270,
+                69346,
+                69349,
+                69352,
+                69353,
+                69370,
+                69510,
+                69511,
+                69760,
+                69761,
+                69770,
+                69834,
+                69835,
+                69838,
+                69861,
+                69863,
+                69866,
+                69896,
+                69897,
+                69912,
+                69938,
+                69939,
+                69941,
+                69946,
+                69947,
+                69948,
+                69949,
+                69953,
+                70012,
+                866511,
+                1289369,
+            ],
+            dtype=np.int32,
+        ),
+        # Expected values are strings because the small3.vcf.gz defines END as a string
+        "info_END": pd.Series(
+            [
+                "12277",
+                "12771",
+                "13374",
+                "13395",
+                "13413",
+                "13451",
+                "13519",
+                "13544",
+                "13689",
+                "17479",
+                "17486",
+                "30553",
+                "35224",
+                "35531",
+                "35786",
+                "69096",
+                "69103",
+                "69104",
+                "69109",
+                "69110",
+                "69111",
+                "69112",
+                "69114",
+                "69115",
+                "69122",
+                "69123",
+                "69128",
+                "69129",
+                "69130",
+                "69192",
+                "69195",
+                "69196",
+                "69215",
+                "69222",
+                "69227",
+                "69228",
+                "69261",
+                "69262",
+                "69269",
+                None,
+                "69346",
+                "69349",
+                "69352",
+                "69353",
+                "69370",
+                "69510",
+                None,
+                "69760",
+                None,
+                "69770",
+                "69834",
+                "69835",
+                "69838",
+                "69861",
+                "69863",
+                "69866",
+                "69896",
+                None,
+                "69912",
+                "69938",
+                "69939",
+                "69941",
+                "69946",
+                "69947",
+                "69948",
+                "69949",
+                "69953",
+                "70012",
+                None,
+                None,
+            ],
+            dtype=object,
+        ),
+    })
 
     # Ingest the data
     uri = os.path.join(tmp_path, "dataset")
@@ -2505,13 +2310,13 @@ def test_delete_dataset(tmp_path):
         ds.create_dataset()
 
     # Check that the dataset exists
-    assert os.path.exists(uri)
+    assert pathlib.Path(uri).exists()
 
     # Delete the dataset
     tiledbvcf.Dataset.delete(uri)
 
     # Check that the dataset does not exist
-    assert not os.path.exists(uri)
+    assert not pathlib.Path(uri).exists()
 
 
 def test_equality_old_new_format():

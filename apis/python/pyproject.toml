@@ -67,3 +67,99 @@ editable.mode = "inplace"
 [tool.setuptools_scm]
 root = "../.."
 version_file = "src/tiledbvcf/version.py"
+
+[tool.ruff]
+fix = true
+preview = true  # enables "beta" rules: https://docs.astral.sh/ruff/preview/
+exclude = ["*.cc"]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = [  # see https://docs.astral.sh/ruff/rules/
+    # consider adding:  A (flake8-builtins) and TC (flake8-type-checking)
+    "ANN",  # flake8-annotations
+    "ARG",  # flake8-unused-arguments
+    "B",    # flake8-bugbear
+    "BLE",  # flake8-blind-exception
+    "C4",   # flake8-comprehensions
+    "COM",  # flake8-commas
+    "CPY",  # flake8-copyright
+    "D",    # pydocstyle (Google convention, see setting below)
+    "E",    # pycodestyle
+    "ERA",  # eradicate
+    "F",    # Pyflakes
+    "FA",   # flake8-future-annotations
+    "FLY",  # flynt
+    "I",    # isort
+    "ICN",  # flake8-import-conventions
+    "INP",  # flake8-no-pep420
+    "ISC",  # flake8-implicit-str-concat
+    "LOG",  # flake8-logging
+    "NPY",  # numpy-specific rules
+    "PD",   # pandas-vet
+    "PERF", # perflint
+    "PIE",  # flake8-pie
+    "PLC",  # pylint-convention
+    "PLE",  # pylint-error
+    "PLW",  # pylint-warning
+    "PTH",  # flake8-use-pathlib
+    "S",    # flake8-bandit
+    "T10",  # flake8-debugger
+    "T20",  # flake8-print
+    "Q",    # flake8-quotes
+    "RET",  # flake8-return
+    "RSE",  # flake8-raise
+    "RUF",  # Ruff-specific rules
+    "SLOT", # flake8-slots
+    "SIM",  # flake8-simplify
+    "TID",  # flake8-tidy-imports
+    "W",    # pycodestyle warnings
+    "YTT",  # flake8-2020
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",     # line too long
+    "D205",     # disable blank line requirement between summary and description
+    "D203",     # disable incorrect-blank-line-blank-line-before-class' (disable either this OR D211)
+    "D212",     # disable multi-line-summary-first-line (existing docs use second line)
+    "D417",     # disable documentation for every function parameter
+    "S101",     # Use of `assert` detected
+    "COM812",   # Ignore recommended by Ruff
+    "PLW2901",  # redefined-loop-name
+]
+extend-select = []
+
+[tool.ruff.lint.per-file-ignores]
+
+# Temporarily ignore these rules in the script directory.
+"scripts/**.py" = ["ANN", "ARG", "BLE", "C4", "CPY", "D", "ERA", "B", "INP", "S", "T20", "NPY002", "PTH", "PLW1514"]
+
+# Ignore these rules in the test directory.
+"apis/python/tests/**.py" = [
+    "ANN001",   # don't require type annotation for parameters in tests (possibly re-enable in the future)
+    "ANN201",   # don't require type annotation for return types in tests (possibly re-enable in the future)
+    "D",        # ignore docstring linting in tests
+    "PTH",      # Path/os.path warnings (re-enable in the future)
+    "B017",     # allow assert blind exception (re-enable in the future)
+    "PD002",    # allow pandas `inplace=True` (re-enable in the future)
+    "PLW1514",  # allow opening path without explicit encoding argument
+    "S602",     # allow subprocess
+    "C417",     # allow unnecessary `map()` (re-enable in the future)
+]
+
+[tool.ruff.lint.isort]
+# HACK: tiledb needs to come after tiledbsoma: https://github.com/single-cell-data/TileDB-SOMA/issues/2293
+section-order = ["future", "standard-library", "third-party", "tiledbsoma", "tiledb", "first-party", "local-folder"]
+no-lines-before = ["tiledb"]
+
+[tool.ruff.lint.isort.sections]
+"tiledbsoma" = ["tiledbvcf"]
+"tiledb" = ["tiledb"]
+
+[tool.ruff.lint.flake8-copyright]
+author = "TileDB, Inc."
+notice-rgx = "(?i)Copyright \\(C\\)"  # do not require year
+min-file-size = 1   # don't require copyright on empty files, e.g., __init__.py
+
+

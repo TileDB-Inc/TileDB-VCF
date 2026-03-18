@@ -4,6 +4,7 @@
 # Generates a small synthetic VCF sample based on a simple template.
 #
 
+import pathlib
 import random
 import sys
 
@@ -137,48 +138,37 @@ header = """##fileformat=VCFv4.1
 # 1	13354	.	T	<NON_REF>	.	.	END=13389	GT:DP:GQ:MIN_DP:PL	0/0:64:99:30:0,66,990
 
 if len(sys.argv) < 2:
-    print("USAGE: {} N".format(sys.argv[0]))
-    print(
-        'Generates a small synthetic sample named "G<N>" '
-        'and writes it to a new file "G<N>.vcf".'
-    )
+    print(f"USAGE: {sys.argv[0]} N")
+    print('Generates a small synthetic sample named "G<N>" and writes it to a new file "G<N>.vcf".')
     sys.exit(1)
 
-sample_name = "G{}".format(sys.argv[1])
+sample_name = f"G{sys.argv[1]}"
 contigs = list(map(str, range(1, 23)))
 
-with open("{}.vcf".format(sample_name), "w") as f:
+with pathlib.Path(f"{sample_name}.vcf").open("w") as f:
     f.write(header)
-    f.write(
-        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{}\n".format(
-            sample_name
-        )
-    )
+    f.write(f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample_name}\n")
     for contig in contigs:
         # Random start within the contig
         start = random.randint(10000, 15000)
         # Randon number of records in the contig
         nrecs = random.randint(3, 15)
-        for i in range(0, nrecs):
+        for i in range(nrecs):
             # Random record length
             end = start + random.randint(1, 100000)
 
             # Random attribute values
             ref = random.choice(["A", "G", "T", "C"])
             alt = "<NON_REF>"
-            gt = "{}/{}".format(random.randint(0, 1), random.randint(0, 1))
+            gt = f"{random.randint(0, 1)}/{random.randint(0, 1)}"
             dp = random.randint(0, 99)
             gq = random.randint(0, 99)
             min_dp = random.randint(0, 99)
-            pl = "{},{},{}".format(*[random.randint(0, 99) for i in range(0, 3)])
-            format = "{}:{}:{}:{}:{}".format(gt, dp, gq, min_dp, pl)
+            pl = "{},{},{}".format(*[random.randint(0, 99) for i in range(3)])
+            format = f"{gt}:{dp}:{gq}:{min_dp}:{pl}"
 
             # Write record
-            f.write(
-                "{}\t{}\t.\t{}\t{}\t.\t.\tEND={}\tGT:DP:GQ:MIN_DP:PL\t{}\n".format(
-                    contig, start, ref, alt, end, format
-                )
-            )
+            f.write(f"{contig}\t{start}\t.\t{ref}\t{alt}\t.\t.\tEND={end}\tGT:DP:GQ:MIN_DP:PL\t{format}\n")
 
             # Add random gap
             start = end + random.randint(1, 10000)

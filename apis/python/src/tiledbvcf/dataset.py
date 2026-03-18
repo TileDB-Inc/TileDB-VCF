@@ -1,8 +1,9 @@
-import os
+import pathlib
 import shutil
 import warnings
 from collections import namedtuple
-from typing import Generator, List
+from collections.abc import Generator
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -77,6 +78,7 @@ def config_logging(level: str = "fatal", log_file: str = ""):
         Log level from (fatal|error|warn|info|debug|trace)
     log_file
         Log file path.
+
     """
     if level not in ["fatal", "error", "warn", "info", "debug", "trace"]:
         raise Exception(f"Unsupported log level: {level}")
@@ -84,7 +86,7 @@ def config_logging(level: str = "fatal", log_file: str = ""):
     libtiledbvcf.config_logging(level, log_file)
 
 
-class Dataset(object):
+class Dataset:
     """
     A class that provides read/write access to a TileDB-VCF dataset.
 
@@ -102,9 +104,10 @@ class Dataset(object):
         Enable verbose output.
     tiledb_config
         TileDB configuration, alternative to `cfg.tiledb_config`.
+
     """
 
-    class Region(object):
+    class Region:
         """
         Represents a 1-based inclusive region.
 
@@ -112,6 +115,7 @@ class Dataset(object):
         ----------
         region
             A string in the form "<contig>:<start>-<end>".
+
         """
 
         def __init__(self, region: str):
@@ -119,9 +123,7 @@ class Dataset(object):
                 contig, interval = region.split(":")
                 start, end = map(int, interval.split("-"))
             except Exception:
-                raise Exception(
-                    '"region" parameter must have format "<contig>:<start>-<end>"'
-                )
+                raise Exception('"region" parameter must have format "<contig>:<start>-<end>"')
             if contig == "":
                 raise Exception("Region contig cannot be empty")
             if start <= 0:
@@ -172,7 +174,7 @@ class Dataset(object):
             self.writer.init(uri)
             self.writer.set_tiledb_stats_enabled(stats)
         else:
-            raise Exception("Unsupported dataset mode {}".format(mode))
+            raise Exception(f"Unsupported dataset mode {mode}")
 
     def close(self):
         """Close the dataset and release resources."""
@@ -204,9 +206,7 @@ class Dataset(object):
         if cfg.buffer_percentage is not None:
             self.reader.set_buffer_percentage(cfg.buffer_percentage)
         if cfg.tiledb_tile_cache_percentage is not None:
-            self.reader.set_tiledb_tile_cache_percentage(
-                cfg.tiledb_tile_cache_percentage
-            )
+            self.reader.set_tiledb_tile_cache_percentage(cfg.tiledb_tile_cache_percentage)
         if cfg.tiledb_config is not None:
             tiledb_config_list = list()
             if isinstance(cfg.tiledb_config, list):
@@ -215,9 +215,7 @@ class Dataset(object):
             elif isinstance(cfg.tiledb_config, dict):
                 for key in cfg.tiledb_config:
                     if cfg.tiledb_config[key] != "":
-                        tiledb_config_list.append(
-                            "{}={}".format(key, cfg.tiledb_config[key])
-                        )
+                        tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
             else:
                 try:
                     import tiledb
@@ -225,9 +223,7 @@ class Dataset(object):
                     if isinstance(cfg.tiledb_config, tiledb.Config):
                         for key in cfg.tiledb_config:
                             if cfg.tiledb_config[key] != "":
-                                tiledb_config_list.append(
-                                    "{}={}".format(key, cfg.tiledb_config[key])
-                                )
+                                tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
                 except ImportError:
                     pass
             self.reader.set_tiledb_config(",".join(tiledb_config_list))
@@ -243,9 +239,7 @@ class Dataset(object):
             elif isinstance(cfg.tiledb_config, dict):
                 for key in cfg.tiledb_config:
                     if cfg.tiledb_config[key] != "":
-                        tiledb_config_list.append(
-                            "{}={}".format(key, cfg.tiledb_config[key])
-                        )
+                        tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
             else:
                 try:
                     import tiledb
@@ -253,9 +247,7 @@ class Dataset(object):
                     if isinstance(cfg.tiledb_config, tiledb.Config):
                         for key in cfg.tiledb_config:
                             if cfg.tiledb_config[key] != "":
-                                tiledb_config_list.append(
-                                    "{}={}".format(key, cfg.tiledb_config[key])
-                                )
+                                tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
                 except ImportError:
                     pass
             self.writer.set_tiledb_config(",".join(tiledb_config_list))
@@ -319,6 +311,7 @@ class Dataset(object):
         -------
         :
             Query results as a PyArrow Table.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -327,9 +320,7 @@ class Dataset(object):
             regions = [regions]
         elif isinstance(regions, np.ndarray):
             if regions.ndim != 1:
-                raise Exception(
-                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
-                )
+                raise Exception(f'"regions" parameter of type {type(regions)} must be 1-dimensional')
             regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
@@ -376,6 +367,7 @@ class Dataset(object):
             Scan all samples when computing internal allele frequency.
         region
             **DEPRECATED** - Genomic region to be queried.
+
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
@@ -394,9 +386,7 @@ class Dataset(object):
             "regions": regions,
             "scan_all_samples": scan_all_samples,
         }
-        return self.read_variant_stats_arrow(**kwargs).to_pandas(
-            split_blocks=True, self_destruct=True
-        )
+        return self.read_variant_stats_arrow(**kwargs).to_pandas(split_blocks=True, self_destruct=True)
 
     def read_variant_stats_arrow(
         self,
@@ -418,6 +408,7 @@ class Dataset(object):
             Scan all samples when computing internal allele frequency.
         region
             **DEPRECATED** - Genomic region to be queried.
+
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
@@ -468,6 +459,7 @@ class Dataset(object):
             Genomic regions to be queried.
         region
             **DEPRECATED** - Genomic region to be queried.
+
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
@@ -483,9 +475,7 @@ class Dataset(object):
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
 
-        return self.read_allele_count_arrow(regions=regions).to_pandas(
-            split_blocks=True, self_destruct=True
-        )
+        return self.read_allele_count_arrow(regions=regions).to_pandas(split_blocks=True, self_destruct=True)
 
     def read_allele_count_arrow(
         self,
@@ -501,6 +491,7 @@ class Dataset(object):
             Genomic regions to be queried.
         region
             **DEPRECATED** - Genomic region to be queried.
+
         """
         # TODO: deprecated region and parse regions like read()
         if not (region or regions):
@@ -521,9 +512,7 @@ class Dataset(object):
             for r in regions:
                 self.reader.set_regions(str(r))
                 counts = self.reader.get_allele_count_results()
-                contigs = counts.sort_by(
-                    [("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")]
-                )
+                contigs = counts.sort_by([("pos", "ascending"), ("ref", "ascending"), ("alt", "ascending")])
                 n = counts.num_rows
                 contig_col = [r.contig] * n
                 yield counts.add_column(0, "contig", [contig_col])
@@ -574,6 +563,7 @@ class Dataset(object):
         -------
         :
             Query results as a Pandas DataFrame.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -582,9 +572,7 @@ class Dataset(object):
             regions = [regions]
         elif isinstance(regions, np.ndarray):
             if regions.ndim != 1:
-                raise Exception(
-                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
-                )
+                raise Exception(f'"regions" parameter of type {type(regions)} must be 1-dimensional')
             regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
@@ -651,6 +639,7 @@ class Dataset(object):
             Combined VCF output file.
         output_dir
             Directory used for local output of exported samples.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -659,9 +648,7 @@ class Dataset(object):
             regions = [regions]
         elif isinstance(regions, np.ndarray):
             if regions.ndim != 1:
-                raise Exception(
-                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
-                )
+                raise Exception(f'"regions" parameter of type {type(regions)} must be 1-dimensional')
             regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
@@ -717,6 +704,7 @@ class Dataset(object):
             URI of file containing sample names to be read, one per line.
         bed_file
             URI of a BED file of genomic regions to be read.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -725,9 +713,7 @@ class Dataset(object):
             regions = [regions]
         elif isinstance(regions, np.ndarray):
             if regions.ndim != 1:
-                raise Exception(
-                    f'"regions" parameter of type {type(regions)} must be 1-dimensional'
-                )
+                raise Exception(f'"regions" parameter of type {type(regions)} must be 1-dimensional')
             regions = regions.tolist()
         if isinstance(regions, list):
             regions = map(str, self._prepare_regions(regions))
@@ -759,6 +745,7 @@ class Dataset(object):
         -------
         :
             The next batch of data as a Pandas DataFrame.
+
         """
         table = self.continue_read_arrow(release_buffers=release_buffers)
 
@@ -777,6 +764,7 @@ class Dataset(object):
         -------
         :
             The next batch of data as a PyArrow Table.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -798,6 +786,7 @@ class Dataset(object):
         Returns
         -------
             True if the previous read operation was complete.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -822,6 +811,7 @@ class Dataset(object):
         -------
         :
             Number of intersecting records in the dataset.
+
         """
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
@@ -893,6 +883,7 @@ class Dataset(object):
             Compression level for zstd compression.
         variant_stats_version
             Version of the variant stats array.
+
         """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
@@ -1023,8 +1014,8 @@ class Dataset(object):
             **DEPRECATED** - This parameter will be removed in a future release.
         record_limit
             **DEPRECATED** - This parameter will be removed in a future release.
-        """
 
+        """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
 
@@ -1067,9 +1058,7 @@ class Dataset(object):
         if scratch_space_path is not None and scratch_space_size is not None:
             self.writer.set_scratch_space(scratch_space_path, scratch_space_size)
         elif scratch_space_path is not None or scratch_space_size is not None:
-            raise Exception(
-                "Must set both scratch_space_path and scratch_space_size to use scratch space"
-            )
+            raise Exception("Must set both scratch_space_path and scratch_space_size to use scratch space")
 
         if record_limit is not None:
             self.writer.set_max_num_records(record_limit)
@@ -1124,6 +1113,7 @@ class Dataset(object):
         -------
         :
             TileDB stats as a string.
+
         """
         if self.mode == "r":
             if not self.reader.get_tiledb_stats_enabled:
@@ -1143,6 +1133,7 @@ class Dataset(object):
         -------
         :
             VCF schema version of the dataset.
+
         """
         if self.mode != "r":
             return self.writer.get_schema_version()
@@ -1156,6 +1147,7 @@ class Dataset(object):
         -------
         :
             Number of samples in the dataset.
+
         """
         if self.mode != "r":
             raise Exception("Samples can only be retrieved for reader")
@@ -1169,6 +1161,7 @@ class Dataset(object):
         -------
         :
             List of samples in the dataset.
+
         """
         if self.mode != "r":
             raise Exception("Sample names can only be retrieved for reader")
@@ -1191,8 +1184,8 @@ class Dataset(object):
         -------
         :
             A list of attribute names.
-        """
 
+        """
         if self.mode != "r":
             raise Exception("Attributes can only be retrieved in read mode")
 
@@ -1205,12 +1198,11 @@ class Dataset(object):
 
         if attr_type == "info":
             return self.reader.get_info_attributes()
-        elif attr_type == "fmt":
+        if attr_type == "fmt":
             return self.reader.get_fmt_attributes()
-        elif attr_type == "builtin":
+        if attr_type == "builtin":
             return self.reader.get_materialized_attributes()
-        else:
-            return self.reader.get_queryable_attributes()
+        return self.reader.get_queryable_attributes()
 
     def _set_samples(self, samples=None, samples_file=None):
         if samples is not None and samples_file is not None:
@@ -1218,7 +1210,7 @@ class Dataset(object):
                 "Argument 'samples' not allowed with 'samples_file'. "
                 "Only one of these two arguments can be passed at a time."
             )
-        elif samples is not None:
+        if samples is not None:
             self.reader.set_samples(",".join(samples))
         elif samples_file is not None:
             self.reader.set_samples("")
@@ -1234,6 +1226,7 @@ class Dataset(object):
         -------
         :
             The TileDB-VCF version.
+
         """
         if self.mode == "r":
             return self.reader.version()
@@ -1251,17 +1244,15 @@ class Dataset(object):
             URI of the dataset.
         config
             TileDB configuration.
-        """
 
-        if os.path.exists(uri):
+        """
+        if pathlib.Path(uri).exists():
             shutil.rmtree(uri)
         elif uri.startswith("tiledb://"):
             try:
                 import tiledb.cloud
             except Exception:
-                raise Exception(
-                    "Deleting this dataset requires the tiledb.cloud package"
-                )
+                raise Exception("Deleting this dataset requires the tiledb.cloud package")
             tiledb.cloud.asset.delete(uri, recursive=True)
         else:
             try:
@@ -1269,9 +1260,8 @@ class Dataset(object):
             except Exception:
                 raise Exception("Deleting this dataset requires the tiledb package")
 
-            with tiledb.scope_ctx(config):
-                with tiledb.Group(uri, "m") as g:
-                    g.delete(recursive=True)
+            with tiledb.scope_ctx(config), tiledb.Group(uri, "m") as g:
+                g.delete(recursive=True)
 
 
 class TileDBVCFDataset(Dataset):
@@ -1292,10 +1282,9 @@ class TileDBVCFDataset(Dataset):
         Enable internal TileDB statistics.
     verbose
         Enable verbose output.
+
     """
 
     def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False):
-        warnings.warn(
-            "TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning
-        )
+        warnings.warn("TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning)
         super().__init__(uri, mode, cfg, stats, verbose)

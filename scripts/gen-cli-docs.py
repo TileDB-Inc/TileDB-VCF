@@ -15,7 +15,7 @@ sections = [
 ]
 
 for section, cmd in sections:
-    help = run(cmd.split(), capture_output=True, text=True).stdout.strip()
+    help = run(cmd.split(), check=False, capture_output=True, text=True).stdout.strip()
     if section == "CLI":
         print("# " + section)
     else:

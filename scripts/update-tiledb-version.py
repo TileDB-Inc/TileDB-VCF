@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import os
+import pathlib
 import re
 from subprocess import run
 from urllib.request import urlopen
@@ -10,7 +11,6 @@ from urllib.request import urlopen
 
 def hash_url_file(url):
     """Return SHA1 hash of the file located at the provided url."""
-
     try:
         print(f"  hashing {url}")
         BLOCK_SIZE = 65536
@@ -21,14 +21,14 @@ def hash_url_file(url):
                 if not data:
                     return hash.hexdigest()
                 hash.update(data)
-    except Exception as e:
+    except Exception:
         print(f"Error: failed to hash file at {url}")
         raise
 
 
 def get_version_hash(version):
     cmd = "git ls-remote --tags https://github.com/TileDB-Inc/TileDB.git"
-    output = run(cmd, shell=True, capture_output=True).stdout.decode()
+    output = run(cmd, check=False, shell=True, capture_output=True).stdout.decode()
 
     m = re.search(rf"\s(\S+)\s+refs/tags/{version}\s", output)
     if m:
@@ -47,14 +47,12 @@ def main(args):
     new_version = args.version
     new_hash = get_version_hash(new_version)
 
-    filepath = (
-        f"{os.path.dirname(__file__)}/../libtiledbvcf/cmake/Modules/FindTileDB_EP.cmake"
-    )
+    filepath = f"{os.path.dirname(__file__)}/../libtiledbvcf/cmake/Modules/FindTileDB_EP.cmake"
     print(f"Updating {filepath}")
     print(f"  new version = {new_version}-{new_hash}")
 
     findtiledb_lines = []
-    with open(filepath) as fp:
+    with pathlib.Path(filepath).open() as fp:
         for line in fp:
             line = line.rstrip()
 
@@ -88,7 +86,7 @@ def main(args):
             findtiledb_lines.append(line)
 
     # Write new lines to file
-    with open(filepath, "w") as fp:
+    with pathlib.Path(filepath).open("w") as fp:
         for line in findtiledb_lines:
             print(line, file=fp)
 

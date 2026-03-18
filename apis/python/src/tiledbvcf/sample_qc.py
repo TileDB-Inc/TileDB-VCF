@@ -24,8 +24,6 @@ def sample_qc(
     Returns
     -------
     pandas.DataFrame
-    """
 
-    return clib.sample_qc(dataset_uri, samples=samples, config=config).to_pandas(
-        split_blocks=True, self_destruct=True
-    )
+    """
+    return clib.sample_qc(dataset_uri, samples=samples, config=config).to_pandas(split_blocks=True, self_destruct=True)

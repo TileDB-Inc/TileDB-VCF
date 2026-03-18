@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import numpy as np
-import pandas as pd
-import tiledb
-import typer
 from collections import defaultdict
 
+import numpy as np
+import pandas as pd
+import typer
+
+import tiledb
 
 app = typer.Typer()
 
@@ -32,7 +33,6 @@ def query(
     to_csv: str = typer.Option(None, help="Save output to a CSV file"),
 ):
     """Report size of TileDB array."""
-
     with_filter = filter
 
     column_sizes = read_column_sizes(uri)
