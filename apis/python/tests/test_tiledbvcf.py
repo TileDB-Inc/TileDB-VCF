@@ -1,10 +1,8 @@
-import math
 import numpy as np
 import subprocess
 import os
 import pandas as pd
 import pyarrow as pa
-import re
 import glob
 import shutil
 import platform
@@ -41,7 +39,7 @@ def check_if_compatible(uri):
     try:
         with tiledb.open(uri):
             return True
-    except tiledb.cc.TileDBError as e:
+    except tiledb.libtiledb.TileDBError as e:
         if "incompatible format version" in str(e).lower():
             raise pytest.skip.Exception(
                 "Test skipped due to incompatible format version"
