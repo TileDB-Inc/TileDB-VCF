@@ -6,8 +6,12 @@ repos:
       types_or: [c++, c]
       files: 'libtiledbvcf/.*|apis/java/src/main/java/io/tiledb/libvcfnative/.*|apis/python/src/.*'
       exclude: 'libtiledbvcf/external/.*'
-  - repo: https://github.com/psf/black
-    rev: 25.9.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.10
     hooks:
-    - id: black
-      files: 'apis/python/src/.*'
+    - id: ruff-check
+      types_or: [ python, pyi ]
+      args: ["--config=apis/python/pyproject.toml"]
+    - id: ruff-format
+      types_or: [ python, pyi ]
+      args: ["--config=apis/python/pyproject.toml"]
