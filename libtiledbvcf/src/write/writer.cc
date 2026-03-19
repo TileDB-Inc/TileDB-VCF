@@ -28,13 +28,13 @@
 #if !defined _MSC_VER
 #include <sys/resource.h>
 #endif
+#include <deque>
 #include <future>
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/logger_public.h"
 #include "utils/sample_utils.h"
-#include "write/parallel_writer_worker_v4.h"
 #include "write/writer.h"
 #include "write/writer_worker.h"
 #include "write/writer_worker_v2.h"
@@ -52,6 +52,30 @@ Writer::~Writer() {
   AlleleCount::close();
   VariantStats::close();
   SampleStats::close();
+}
+
+Writer::IngestSamplesV4Job::IngestSamplesV4Job(
+    std::shared_ptr<Context> ctx,
+    const TileDBVCFDataset& dataset,
+    int id,
+    size_t num_vcf_streams,
+    size_t num_buffers,
+    uint64_t max_buffer_size_mb,
+    const IngestionParams& params,
+    const std::vector<SampleAndIndex>& samples)
+    : ctx(ctx) {
+  array.reset(new Array(*ctx, dataset.data_uri(), TILEDB_WRITE));
+  reset_queries();
+  worker.reset(new ParallelWriterWorkerV4(id, num_vcf_streams, num_buffers));
+  worker->set_max_total_buffer_size_mb(max_buffer_size_mb);
+  worker->init(dataset, params, samples);
+}
+
+void Writer::IngestSamplesV4Job::reset_queries() {
+  query.reset(new Query(*ctx, *array));
+  query->set_layout(TILEDB_GLOBAL_ORDER);
+  anchor_query.reset(new Query(*ctx, *array));
+  anchor_query->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {
@@ -90,7 +114,6 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
 void Writer::init(const IngestionParams& params) {
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
-  anchor_query_.reset(nullptr);
   array_.reset(nullptr);
 
   tiledb_config_.reset(new Config);
@@ -132,8 +155,6 @@ void Writer::init(const IngestionParams& params) {
   array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
   query_.reset(new Query(*ctx_, *array_));
   query_->set_layout(TILEDB_GLOBAL_ORDER);
-  anchor_query_.reset(new Query(*ctx_, *array_));
-  anchor_query_->set_layout(TILEDB_GLOBAL_ORDER);
 
   creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
   creation_params_.allow_duplicates = true;
@@ -980,6 +1001,37 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   return {records_ingested, anchors_ingested};
 }
 
+void Writer::ingest_samples_v4_flush(
+    std::shared_ptr<IngestSamplesV4Job>& job, bool finalize) {
+  // Wait for the previous flush to finish
+  if (job->flush_task.valid()) {
+    job->flush_task.get();
+  }
+  const size_t write_buffer = job->current_buffer;
+  if (finalize) {
+    job->worker->pre_finalize(write_buffer);
+    // Move the queries before reseting them
+    TRY_CATCH_THROW(
+        job->flush_task = std::async(
+            std::launch::async,
+            [job,
+             query = std::move(job->query),
+             anchor_query = std::move(job->anchor_query),
+             write_buffer]() mutable {
+              job->worker->write_buffers(
+                  query, anchor_query, true, write_buffer);
+            }));
+    // Start new queries since the next contig will be on a new fragment
+    job->reset_queries();
+  } else {
+    TRY_CATCH_THROW(
+        job->flush_task = std::async(std::launch::async, [job, write_buffer]() {
+          job->worker->write_buffers(
+              job->query, job->anchor_query, false, write_buffer);
+        }));
+  }
+}
+
 std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     const IngestionParams& params, const std::vector<SampleAndIndex>& samples) {
   assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
@@ -1103,17 +1155,22 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
 
   // Instantiate a single worker that will be reused for all regions
+  int worker_id = 0;
   unsigned num_vcf_streams =
       std::max(1u, params.num_threads - 1);  // -1 for the worker itself
   unsigned num_buffers = 2;
-  ParallelWriterWorkerV4* worker =
-      new ParallelWriterWorkerV4(0, num_vcf_streams, num_buffers);
-  worker->set_max_total_buffer_size_mb(params.max_tiledb_buffer_size_mb);
-  worker->init(*dataset_, params, samples);
+  std::deque<std::shared_ptr<IngestSamplesV4Job>> ingestion_job_pool;
+  ingestion_job_pool.emplace_front(new IngestSamplesV4Job(
+      ctx_,
+      *dataset_,
+      worker_id++,
+      num_vcf_streams,
+      num_buffers,
+      params.max_tiledb_buffer_size_mb,
+      params,
+      samples));
 
   // Parse the regions one at a time
-  uint8_t current_buffer = 0;
-  std::future<void> flush_task;
   for (size_t i = 0; i < regions.size(); ++i) {
     const Region& region = regions[i];
     LOG_DEBUG("Current contig = {}", region.seq_name);
@@ -1121,79 +1178,77 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     auto start = std::chrono::steady_clock::now();
     size_t prev_records = records_ingested;
 
+    // Get the next job from the pool
+    std::shared_ptr<IngestSamplesV4Job> job = ingestion_job_pool.front();
+    // Create a new job if the job's flush task is still running and the job is
+    // finalized, otherwise leave the job at the front of the pool in case it's
+    // part of a merged contig
+    if (job->flush_task.valid() && job->finalize &&
+        job->flush_task.wait_for(std::chrono::seconds(0)) !=
+            std::future_status::ready) {
+      // Add a new job to the front of the pool
+      ingestion_job_pool.emplace_front(new IngestSamplesV4Job(
+          ctx_,
+          *dataset_,
+          worker_id++,
+          num_vcf_streams,
+          num_buffers,
+          params.max_tiledb_buffer_size_mb,
+          params,
+          samples));
+      job = ingestion_job_pool.front();
+    } else if (job->flush_task.valid()) {
+      job->flush_task.wait();
+    }
+
     // Repeatedly parse variants into a buffer and write the buffer when it's
     // full
-    bool parse_complete = worker->parse(region, current_buffer);
+    bool parse_complete = job->worker->parse(region, job->current_buffer);
     while (!parse_complete) {
-      records_ingested += worker->records_buffered(current_buffer);
-      anchors_ingested += worker->anchors_buffered(current_buffer);
+      records_ingested += job->worker->records_buffered(job->current_buffer);
+      anchors_ingested += job->worker->anchors_buffered(job->current_buffer);
       LOG_DEBUG(
           "Parse not complete: {} records buffered, {} anchors buffered.",
-          worker->records_buffered(current_buffer),
-          worker->anchors_buffered(current_buffer));
-      if (worker->records_buffered(current_buffer) == 0) {
+          job->worker->records_buffered(job->current_buffer),
+          job->worker->anchors_buffered(job->current_buffer));
+      if (job->worker->records_buffered(job->current_buffer) == 0) {
         LOG_FATAL("Parse not complete but no records were buffered.");
       }
 
-      // Wait for the previous flush task before proceeding
-      if (flush_task.valid()) {
-        flush_task.get();
-      }
+      // Concurrently flush the current buffers
+      ingest_samples_v4_flush(job);
+      ++job->current_buffer %= num_buffers;
 
-      // Write worker buffers
-      const size_t write_buffer = current_buffer;
-      TRY_CATCH_THROW(
-          flush_task = std::async(std::launch::async, [&, write_buffer]() {
-            worker->write_buffers(query_, anchor_query_, false, write_buffer);
-          }));
-      ++current_buffer %= num_buffers;
       // Parse more records into the now empty buffers
-      parse_complete = worker->resume(current_buffer);
+      parse_complete = job->worker->resume(job->current_buffer);
     }
+
     // Write the records from the last parse and finalize, if necessary
-    records_ingested += worker->records_buffered(current_buffer);
-    anchors_ingested += worker->anchors_buffered(current_buffer);
-    if (worker->records_buffered(current_buffer) == 0) {
+    records_ingested += job->worker->records_buffered(job->current_buffer);
+    anchors_ingested += job->worker->anchors_buffered(job->current_buffer);
+    if (job->worker->records_buffered(job->current_buffer) == 0) {
       LOG_FATAL("No records were buffered after parse completed.");
     }
 
-    // Wait for the previous flush task before proceeding
-    if (flush_task.valid()) {
-      flush_task.get();
-    }
-    const size_t write_buffer = current_buffer;
     // Finalize if last region or if this/next region isn't mergeable
-    if (i == regions.size() - 1 || !check_contig_mergeable(region.seq_name) ||
-        !check_contig_mergeable(regions[i + 1].seq_name)) {
+    job->finalize = i == regions.size() - 1 ||
+                    !check_contig_mergeable(region.seq_name) ||
+                    !check_contig_mergeable(regions[i + 1].seq_name);
+    // Concurrently flush the current buffers
+    ingest_samples_v4_flush(job, job->finalize);
+    if (job->finalize) {
       LOG_INFO(
           "Finalizing on region {}, records: {}, anchors: {}",
           region.seq_name,
-          worker->records_buffered(current_buffer),
-          worker->anchors_buffered(current_buffer));
-      worker->pre_finalize(write_buffer);
-      // Move the queries before reseting them
-      TRY_CATCH_THROW(
-          flush_task = std::async(
-              std::launch::async,
-              [&,
-               query = std::move(query_),
-               anchor_query = std::move(anchor_query_),
-               write_buffer]() mutable {
-                worker->write_buffers(query, anchor_query, true, write_buffer);
-              }));
-      // Start new queries since the next contig will be on a new fragment
-      query_.reset(new Query(*ctx_, *array_));
-      query_->set_layout(TILEDB_GLOBAL_ORDER);
-      anchor_query_.reset(new Query(*ctx_, *array_));
-      anchor_query_->set_layout(TILEDB_GLOBAL_ORDER);
-    } else {
-      TRY_CATCH_THROW(
-          flush_task = std::async(std::launch::async, [&, write_buffer]() {
-            worker->write_buffers(query_, anchor_query_, false, write_buffer);
-          }));
+          job->worker->records_buffered(job->current_buffer),
+          job->worker->anchors_buffered(job->current_buffer));
+      // Move the job to the back of the job pool
+      ingestion_job_pool.pop_front();
+      ingestion_job_pool.push_back(job);
     }
-    ++current_buffer %= num_buffers;
+    ++job->current_buffer %= num_buffers;
 
+    // Report ingestion stats
     if (records_ingested > prev_records) {
       LOG_INFO(
           "Ingestion rate = {:.3f} records/sec (VmRSS = {})",
@@ -1202,9 +1257,13 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     }
   }
 
-  // Wait for the final flush task before finishing
-  if (flush_task.valid()) {
-    flush_task.get();
+  // Wait for all flush tasks before finishing
+  while (!ingestion_job_pool.empty()) {
+    std::shared_ptr<IngestSamplesV4Job> job = ingestion_job_pool.front();
+    if (job->flush_task.valid()) {
+      job->flush_task.get();
+    }
+    ingestion_job_pool.pop_front();
   }
 
   return {records_ingested, anchors_ingested};

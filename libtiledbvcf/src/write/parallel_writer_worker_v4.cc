@@ -227,14 +227,15 @@ void ParallelWriterWorkerV4::write_buffers(
     size_t i) {
   Buffers& buffers = buffers_[i];
 
+  // Flush stats first because stats queries are static members that are locked
+  // on write
+  flush_ingestion_tasks(finalize, i);
+
   // Write the buffered records
   write_buffers(
       record_query, buffers.record_buffers, buffers.records_buffered, finalize);
   write_buffers(
       anchor_query, buffers.anchor_buffers, buffers.anchors_buffered, finalize);
-
-  // Flush the stats arrays
-  flush_ingestion_tasks(finalize, i);
 
   // Clear the buffers
   buffers.record_buffers.clear();

@@ -41,6 +41,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
+#include "write/parallel_writer_worker_v4.h"
 #include "write/writer_worker_v4.h"
 
 namespace tiledb {
@@ -52,6 +53,7 @@ namespace vcf {
 
 // Forward declaration
 class WriterWorkerV4;
+class ParallelWriterWorkerV4;
 
 /** Arguments/params for dataset ingestion. */
 struct IngestionParams {
@@ -405,6 +407,33 @@ class Writer {
   void delete_samples(std::vector<std::string> samples);
 
  private:
+  /**
+   * Encapsulates everything for a single global-order write job, e.g. ingesting
+   * a specific chromosome or a sequence of mergeable chromosomes.
+   */
+  struct IngestSamplesV4Job {
+    std::shared_ptr<Context> ctx;
+    std::unique_ptr<Array> array;
+    std::unique_ptr<Query> query;
+    std::unique_ptr<Query> anchor_query;
+    uint8_t current_buffer = 0;
+    bool finalize;
+    std::future<void> flush_task;
+    std::unique_ptr<ParallelWriterWorkerV4> worker;
+
+    IngestSamplesV4Job(
+        std::shared_ptr<Context> ctx,
+        const TileDBVCFDataset& dataset,
+        int id,
+        size_t num_vcf_streams,
+        size_t num_buffers,
+        uint64_t max_buffer_size_mb,
+        const IngestionParams& params,
+        const std::vector<SampleAndIndex>& samples);
+
+    void reset_queries();
+  };
+
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
@@ -415,7 +444,6 @@ class Writer {
   std::unique_ptr<VFS> vfs_;
   std::unique_ptr<Array> array_;
   std::unique_ptr<Query> query_;
-  std::unique_ptr<Query> anchor_query_;
   /** Handle on the dataset being written to. */
   std::unique_ptr<TileDBVCFDataset> dataset_;
   /** Vector of futures from async query finalizes. */
@@ -492,6 +520,16 @@ class Writer {
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
       std::vector<Region>& regions);
+
+  /**
+   * A helper that concurrently flushes the current buffer of the given V4
+   * ingestion job.
+   *
+   * @param params The job to flush
+   * @param finalize Whether or not the flush's writes should be finalized
+   */
+  void ingest_samples_v4_flush(
+      std::shared_ptr<IngestSamplesV4Job>& job, bool finalize = false);
 
   /**
    * Ingests a batch of samples.
