@@ -119,15 +119,21 @@ select = [  # see https://docs.astral.sh/ruff/rules/
     "UP",   # pyupgrade
 ]
 ignore = [
-    "E501",     # line too long
+    "E501",     # disable line too long
     "D205",     # disable blank line requirement between summary and description
     "D203",     # disable incorrect-blank-line-blank-line-before-class' (disable either this OR D211)
     "D212",     # disable multi-line-summary-first-line (existing docs use second line)
     "D417",     # disable documentation for every function parameter
-    "S101",     # Use of `assert` detected
-    "COM812",   # Ignore recommended by Ruff
-    "PLW2901",  # redefined-loop-name
-    "B006",     #
+    "S101",     # disable use of `assert` detected
+    "COM812",   # ignore recommended by Ruff
+    "PLW2901",  # disable redefined-loop-name
+    "B006",     # disable no mutable agument defaults (re-enable)
+    "D100",     # disable missing docstring in public module (re-enable)
+    "D102",     # disable missing docstring in public method (re-enable)
+    "D104",     # disable missing docstring in public package (re-enable)
+    "D107",     # disable missing docstring in `__init__` (re-enable)
+    "D105",     # disable missing docstring in magic method (re-enable)
+    "BLE001",   # disable do not catch blind exception (re-enable)
 ]
 extend-select = []
 

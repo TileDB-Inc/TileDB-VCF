@@ -11,7 +11,7 @@ def read_allele_frequency(dataset_uri: str, region: str) -> pd.DataFrame:
     :param dataset_uri: dataset URI
     :param region: genomics region to read
     """
-    import tiledbvcf
+    import tiledbvcf  # noqa: PLC0415
 
     ds = tiledbvcf.Dataset(uri=dataset_uri, mode="r")
     return ds.read_variant_stats(region)

@@ -6,12 +6,13 @@ import pathlib
 import shutil
 import warnings
 from collections import namedtuple
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+from typing_extensions import Literal, Self
 
 from . import libtiledbvcf
 
@@ -125,9 +126,9 @@ class Dataset:
             try:
                 contig, interval = region.split(":")
                 start, end = map(int, interval.split("-"))
-            except Exception:
-                raise Exception('"region" parameter must have format "<contig>:<start>-<end>"')
-            if contig == "":
+            except Exception as err:
+                raise Exception('"region" parameter must have format "<contig>:<start>-<end>"') from err
+            if not contig:
                 raise Exception("Region contig cannot be empty")
             if start <= 0:
                 raise Exception("Regions must be 1-based")
@@ -137,19 +138,19 @@ class Dataset:
             self.start = start
             self.end = end
 
-        def __lt__(self, region):
+        def __lt__(self, region: Dataset.Region) -> bool:
             return self.to_tuple() < region.to_tuple()
 
         def __str__(self) -> str:
             return f"{self.contig}:{self.start}-{self.end}"
 
-        def to_tuple(self):
+        def to_tuple(self):  # noqa: ANN201
             return (self.contig, self.start, self.end)
 
     def __init__(
         self,
         uri: str,
-        mode: str = "r",
+        mode: Literal["r", "w"] = "r",
         cfg: ReadConfig = None,
         stats: bool = False,
         verbose: bool = False,
@@ -187,13 +188,13 @@ class Dataset:
             del self.writer
         self.mode = "closed"
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> bool | None:  # noqa: ANN001
         self.close()
 
-    def _set_read_cfg(self, cfg) -> None:
+    def _set_read_cfg(self, cfg: ReadConfig | None) -> None:
         if cfg is None:
             return
         if cfg.limit is not None:
@@ -217,21 +218,21 @@ class Dataset:
             # Support dictionaries and tiledb.Config objects also
             elif isinstance(cfg.tiledb_config, dict):
                 for key in cfg.tiledb_config:
-                    if cfg.tiledb_config[key] != "":
+                    if cfg.tiledb_config[key]:
                         tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
             else:
                 try:
-                    import tiledb
+                    import tiledb  # noqa: PLC0415
 
                     if isinstance(cfg.tiledb_config, tiledb.Config):
                         for key in cfg.tiledb_config:
-                            if cfg.tiledb_config[key] != "":
+                            if cfg.tiledb_config[key]:
                                 tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
                 except ImportError:
                     pass
             self.reader.set_tiledb_config(",".join(tiledb_config_list))
 
-    def _set_write_cfg(self, cfg) -> None:
+    def _set_write_cfg(self, cfg: ReadConfig | None) -> None:
         if cfg is None:
             return
         if cfg.tiledb_config is not None:
@@ -241,15 +242,15 @@ class Dataset:
             # Support dictionaries and tiledb.Config objects also
             elif isinstance(cfg.tiledb_config, dict):
                 for key in cfg.tiledb_config:
-                    if cfg.tiledb_config[key] != "":
+                    if cfg.tiledb_config[key]:
                         tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
             else:
                 try:
-                    import tiledb
+                    import tiledb  # noqa: PLC0415
 
                     if isinstance(cfg.tiledb_config, tiledb.Config):
                         for key in cfg.tiledb_config:
-                            if cfg.tiledb_config[key] != "":
+                            if cfg.tiledb_config[key]:
                                 tiledb_config_list.append(f"{key}={cfg.tiledb_config[key]}")
                 except ImportError:
                     pass
@@ -274,8 +275,8 @@ class Dataset:
     def read_arrow(
         self,
         attrs: list[str] = DEFAULT_ATTRS,
-        samples: (str, list[str]) = None,
-        regions: (str, list[str], np.ndarray) = None,
+        samples: str | list[str] | None = None,
+        regions: str | list[str] | np.ndarray | None = None,
         samples_file: str | None = None,
         bed_file: str | None = None,
         skip_check_samples: bool = False,
@@ -380,7 +381,8 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning, stacklevel=2,
+                DeprecationWarning,
+                stacklevel=2,
             )
             regions = [region]
 
@@ -421,7 +423,8 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning, stacklevel=2,
+                DeprecationWarning,
+                stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
@@ -431,7 +434,7 @@ class Dataset:
         self.reader.set_scan_all_samples(scan_all_samples)
 
         # generates stats, sorts the results, and adds contig column one region at a time
-        def variant_stats_generator(regions):
+        def variant_stats_generator(regions: Generator[Dataset.Region, None, None]) -> Generator[pa.Table, None, None]:
             for r in regions:
                 self.reader.set_regions(str(r))
                 stats = self.reader.get_variant_stats_results()
@@ -472,7 +475,8 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning, stacklevel=2,
+                DeprecationWarning,
+                stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
@@ -504,14 +508,15 @@ class Dataset:
         if region:
             warnings.warn(
                 '"region" parameter is deprecated, use "regions" instead',
-                DeprecationWarning, stacklevel=2,
+                DeprecationWarning,
+                stacklevel=2,
             )
             regions = [region]
         if self.mode != "r":
             raise Exception("Dataset not open in read mode")
 
         # generates counts and adds contig column one region at a time
-        def allele_count_generator(regions):
+        def allele_count_generator(regions: Generator[Dataset.Region, None, None]) -> Generator[pa.Table, None, None]:
             for r in regions:
                 self.reader.set_regions(str(r))
                 counts = self.reader.get_allele_count_results()
@@ -615,7 +620,7 @@ class Dataset:
         output_dir: str = ".",
     ) -> None:
         """
-        Exports data to multiple VCF files or a combined VCF file.
+        Export data to multiple VCF files or a combined VCF file.
 
         Parameters
         ----------
@@ -691,9 +696,11 @@ class Dataset:
         regions: (str, list[str], np.ndarray) = None,
         samples_file: str | None = None,
         bed_file: str | None = None,
-    ):
+    ) -> Iterator[pd.DataFrame]:
         """
-        Iterator version of `read()`.
+        Iterate over data from dataset.
+
+        This is an iterator version of :method:`read()`.
 
         Parameters
         ----------
@@ -775,14 +782,15 @@ class Dataset:
         self.reader.read(release_buffers)
         try:
             table = self.reader.get_results_arrow()
-        except:
+        except:  # noqa: E722   # TODO: Fix except
             # Return an empty table
             table = pa.Table.from_pandas(pd.DataFrame())
         return table
 
     def read_completed(self) -> bool:
         """
-        Returns true if the previous read operation was complete.
+        Return if the previous read operation was complete.
+
         A read is considered complete if the resulting dataframe contained
         all results.
 
@@ -1168,7 +1176,7 @@ class Dataset:
             raise Exception("Sample names can only be retrieved for reader")
         return self.reader.get_sample_names()
 
-    def attributes(self, attr_type="all") -> list:
+    def attributes(self, attr_type: str = "all") -> list:
         """
         Return a list of queryable attributes available in the VCF dataset.
 
@@ -1204,7 +1212,7 @@ class Dataset:
             return self.reader.get_materialized_attributes()
         return self.reader.get_queryable_attributes()
 
-    def _set_samples(self, samples=None, samples_file=None) -> None:
+    def _set_samples(self, samples: list[str] | None = None, samples_file: str | None = None) -> None:
         if samples is not None and samples_file is not None:
             raise TypeError(
                 "Argument 'samples' not allowed with 'samples_file'. "
@@ -1250,15 +1258,15 @@ class Dataset:
             shutil.rmtree(uri)
         elif uri.startswith("tiledb://"):
             try:
-                import tiledb.cloud
-            except Exception:
-                raise Exception("Deleting this dataset requires the tiledb.cloud package")
+                import tiledb.cloud  # noqa: PLC0415
+            except ImportError as err:
+                raise ImportError("Deleting this dataset requires the tiledb.cloud package") from err
             tiledb.cloud.asset.delete(uri, recursive=True)
         else:
             try:
-                import tiledb
-            except Exception:
-                raise Exception("Deleting this dataset requires the tiledb package")
+                import tiledb  # noqa: PLC0415
+            except ImportError as err:
+                raise ImportError("Deleting this dataset requires the tiledb package") from err
 
             with tiledb.scope_ctx(config), tiledb.Group(uri, "m") as g:
                 g.delete(recursive=True)
@@ -1285,6 +1293,13 @@ class TileDBVCFDataset(Dataset):
 
     """
 
-    def __init__(self, uri, mode="r", cfg=None, stats=False, verbose=False) -> None:
+    def __init__(
+        self,
+        uri: str,
+        mode: Literal["r", "w"] = "r",
+        cfg: ReadConfig | None = None,
+        stats: bool = False,
+        verbose: bool = False,
+    ) -> None:
         warnings.warn("TileDBVCFDataset is deprecated, use Dataset instead", DeprecationWarning, stacklevel=2)
         super().__init__(uri, mode, cfg, stats, verbose)

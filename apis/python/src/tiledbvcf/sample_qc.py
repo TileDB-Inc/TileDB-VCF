@@ -1,15 +1,17 @@
 # Copyright (c) TileDB, Inc.
 # Licensed under the MIT License.
 
+import pandas as pd
+
 import tiledbvcf.libtiledbvcf as clib
 
 
 def sample_qc(
-    dataset_uri,
+    dataset_uri: str,
     *,
-    samples=[],
-    config={},
-):
+    samples: list[str] = [],
+    config: dict[str, str] = {},
+) -> pd.DataFrame:
     """
     Compute Sample QC metrics for a TileDB-VCF dataset.
 
