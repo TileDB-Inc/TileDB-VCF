@@ -9,7 +9,7 @@ jobs:
   quarto-render-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: "Install Quarto"
       uses: quarto-dev/quarto-actions/setup@v2
@@ -25,7 +25,7 @@ jobs:
         # https://github.com/quarto-dev/quarto-cli/issues/493
 
     - name: "Deploy to gh-pages"
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       # Change to the name of your repo's primary branch name:
       if: github.ref == 'refs/heads/main' && github.repository_owner == 'TileDB-Inc'
       with:

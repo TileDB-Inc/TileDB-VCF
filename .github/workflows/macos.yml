@@ -20,7 +20,7 @@ jobs:
   libtiledbvcf:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup to build htslib from source
         run: brew install autoconf automake
       - name: Configure libtiledbvcf
@@ -69,7 +69,7 @@ jobs:
     env:
       DYLD_LIBRARY_PATH: "${{ github.workspace }}/dist/lib"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Download libtiledbvcf artifact
@@ -78,11 +78,11 @@ jobs:
           name: libtiledbvcf
           path: dist
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install libtiledb
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-name: ci
           create-args: tiledb
@@ -101,7 +101,7 @@ jobs:
     runs-on: macos-15
     needs: libtiledbvcf
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download libtiledbvcf artifact
         uses: actions/download-artifact@v4
         with:
@@ -116,13 +116,13 @@ jobs:
   python-standalone:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # fetch everything for python setuptools_scm
       - name: Setup to build htslib from source
         run: brew install autoconf automake
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Build tiledbvcf-py
