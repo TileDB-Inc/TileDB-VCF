@@ -418,7 +418,9 @@ class Writer {
     std::unique_ptr<Query> anchor_query;
     uint8_t current_buffer = 0;
     bool finalize;
-    std::future<void> flush_task;
+    std::future<void> records_task;
+    std::future<void> anchors_task;
+    std::future<void> stats_task;
     std::unique_ptr<ParallelWriterWorkerV4> worker;
 
     IngestSamplesV4Job(
@@ -430,6 +432,10 @@ class Writer {
         uint64_t max_buffer_size_mb,
         const IngestionParams& params,
         const std::vector<SampleAndIndex>& samples);
+
+    bool is_finalizing();
+
+    void wait_for_flush_tasks();
 
     void reset_queries();
   };

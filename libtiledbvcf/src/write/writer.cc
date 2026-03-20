@@ -71,6 +71,30 @@ Writer::IngestSamplesV4Job::IngestSamplesV4Job(
   worker->init(dataset, params, samples);
 }
 
+bool Writer::IngestSamplesV4Job::is_finalizing() {
+  return (
+      finalize &&
+      ((records_task.valid() && records_task.wait_for(std::chrono::seconds(
+                                    0)) != std::future_status::ready) ||
+       (anchors_task.valid() && anchors_task.wait_for(std::chrono::seconds(
+                                    0)) != std::future_status::ready) ||
+       (stats_task.valid() && stats_task.wait_for(std::chrono::seconds(0)) !=
+                                  std::future_status::ready)));
+}
+
+void Writer::IngestSamplesV4Job::wait_for_flush_tasks() {
+  // Use .get() instead of .wait() to propagate errors
+  if (records_task.valid()) {
+    records_task.get();
+  }
+  if (anchors_task.valid()) {
+    anchors_task.get();
+  }
+  if (stats_task.valid()) {
+    stats_task.get();
+  }
+}
+
 void Writer::IngestSamplesV4Job::reset_queries() {
   query.reset(new Query(*ctx, *array));
   query->set_layout(TILEDB_GLOBAL_ORDER);
@@ -352,8 +376,9 @@ void Writer::update_params(IngestionParams& params) {
     LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
 
   } else {
+    // Divide by 2 because we're double buffering
     params.max_tiledb_buffer_size_mb =
-        params.ratio_output_flush * params.output_memory_budget_mb;
+        params.ratio_output_flush * params.output_memory_budget_mb / 2;
     LOG_INFO(
         "Output buffers = {} threads * {} MiB (flush = {} MiB)",
         params.num_threads,
@@ -1004,30 +1029,49 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
 void Writer::ingest_samples_v4_flush(
     std::shared_ptr<IngestSamplesV4Job>& job, bool finalize) {
   // Wait for the previous flush to finish
-  if (job->flush_task.valid()) {
-    job->flush_task.get();
-  }
+  job->wait_for_flush_tasks();
   const size_t write_buffer = job->current_buffer;
   if (finalize) {
     job->worker->pre_finalize(write_buffer);
     // Move the queries before reseting them
     TRY_CATCH_THROW(
-        job->flush_task = std::async(
+        job->records_task = std::async(
+            std::launch::async,
+            [job, query = std::move(job->query), write_buffer]() mutable {
+              job->worker->write_record_buffers(query, true, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->anchors_task = std::async(
             std::launch::async,
             [job,
-             query = std::move(job->query),
              anchor_query = std::move(job->anchor_query),
              write_buffer]() mutable {
-              job->worker->write_buffers(
-                  query, anchor_query, true, write_buffer);
+              job->worker->write_anchor_buffers(
+                  anchor_query, true, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->stats_task =
+            std::async(std::launch::async, [job, write_buffer]() mutable {
+              job->worker->flush_ingestion_tasks(true, write_buffer);
             }));
     // Start new queries since the next contig will be on a new fragment
     job->reset_queries();
   } else {
     TRY_CATCH_THROW(
-        job->flush_task = std::async(std::launch::async, [job, write_buffer]() {
-          job->worker->write_buffers(
-              job->query, job->anchor_query, false, write_buffer);
+        job->records_task =
+            std::async(std::launch::async, [job, write_buffer]() {
+              job->worker->write_record_buffers(
+                  job->query, false, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->anchors_task =
+            std::async(std::launch::async, [job, write_buffer]() {
+              job->worker->write_anchor_buffers(
+                  job->anchor_query, false, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->stats_task = std::async(std::launch::async, [job, write_buffer]() {
+          job->worker->flush_ingestion_tasks(false, write_buffer);
         }));
   }
 }
@@ -1183,9 +1227,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
     // Create a new job if the job's flush task is still running and the job is
     // finalized, otherwise leave the job at the front of the pool in case it's
     // part of a merged contig
-    if (job->flush_task.valid() && job->finalize &&
-        job->flush_task.wait_for(std::chrono::seconds(0)) !=
-            std::future_status::ready) {
+    if (job->is_finalizing()) {
       // Add a new job to the front of the pool
       ingestion_job_pool.emplace_front(new IngestSamplesV4Job(
           ctx_,
@@ -1197,9 +1239,8 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
           params,
           samples));
       job = ingestion_job_pool.front();
-    } else if (job->flush_task.valid()) {
-      job->flush_task.wait();
     }
+    job->wait_for_flush_tasks();
 
     // Repeatedly parse variants into a buffer and write the buffer when it's
     // full
@@ -1216,6 +1257,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
       }
 
       // Concurrently flush the current buffers
+      LOG_DEBUG("allow duplicates: {}", creation_params_.allow_duplicates);
       ingest_samples_v4_flush(job);
       ++job->current_buffer %= num_buffers;
 
@@ -1260,9 +1302,7 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
   // Wait for all flush tasks before finishing
   while (!ingestion_job_pool.empty()) {
     std::shared_ptr<IngestSamplesV4Job> job = ingestion_job_pool.front();
-    if (job->flush_task.valid()) {
-      job->flush_task.get();
-    }
+    job->wait_for_flush_tasks();
     ingestion_job_pool.pop_front();
   }
 
