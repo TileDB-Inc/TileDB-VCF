@@ -30,7 +30,9 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -192,6 +194,11 @@ class VariantStats {
    */
   void flush(bool clear = false);
 
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
+
  private:
   //===================================================================
   //= private static
@@ -264,8 +271,14 @@ class VariantStats {
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
 
+  // Reusable vector for GT values
+  std::vector<int> gt_;
+
+  // Reusable vector for missing GT values
+  std::vector<int> gt_missing_;
+
   // Set of sample names in this query (per thread)
-  std::set<std::string> sample_names_;
+  std::unordered_set<std::string> sample_names_;
 
   struct FieldValues {
     int32_t ac = 0;
@@ -369,6 +382,21 @@ class VariantStats {
    *
    */
   void update_results();
+
+  /**
+   * @brief Move stats for the current locus to the TileDB buffers and start
+   * collecting stats at the next locus.
+   *
+   */
+  void update_results_v2();
+
+  /**
+   * @brief Move stats for the current locus to the TileDB buffers and start
+   * collecting stats at the next locus, first sorting the samples and end
+   * dimensions.
+   *
+   */
+  void update_results_v3();
 
   /**
    * @brief Create an ALT string from the reference and alternate alleles.

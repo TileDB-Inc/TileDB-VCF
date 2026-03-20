@@ -187,6 +187,40 @@ class SampleStats {
   void flush(bool finalize = false);
 
  private:
+  struct DPStats {
+    uint64_t dp_sum = 0;
+    uint64_t dp_sum2 = 0;
+    uint64_t dp_count = 0;
+    uint64_t dp_min = std::numeric_limits<uint64_t>::max();
+    uint64_t dp_max = 0;
+  };
+
+  struct GQStats {
+    uint64_t gq_sum = 0;
+    uint64_t gq_sum2 = 0;
+    uint64_t gq_count = 0;
+    uint64_t gq_min = std::numeric_limits<uint64_t>::max();
+    uint64_t gq_max = 0;
+  };
+
+  struct Stats {
+    uint64_t n_records = 0;
+    uint64_t n_called = 0;
+    uint64_t n_not_called = 0;
+    uint64_t n_hom_ref = 0;
+    uint64_t n_het = 0;
+    uint64_t n_singleton = 0;
+    uint64_t n_snp = 0;
+    uint64_t n_transition = 0;
+    uint64_t n_transversion = 0;
+    uint64_t n_insertion = 0;
+    uint64_t n_deletion = 0;
+    uint64_t n_star = 0;
+    uint64_t n_multiallelic = 0;
+    std::unique_ptr<DPStats> dp_stats = nullptr;
+    std::unique_ptr<GQStats> gq_stats = nullptr;
+  };
+
   // Array URI basename
   inline static const std::string SAMPLE_STATS_ARRAY = "sample_stats";
 
@@ -208,8 +242,8 @@ class SampleStats {
   // Current contig
   std::string contig_;
 
-  // Aggregate stats for each sample. map: sample -> (map: field -> count)
-  std::map<std::string, std::unordered_map<std::string, uint64_t>> stats_;
+  // Aggregate stats for each sample.
+  std::unordered_map<std::string, Stats> stats_;
 
   // Get the URI for the array from the root group
   static std::string group_uri(const Group& group) {

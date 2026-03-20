@@ -485,6 +485,18 @@ void VariantStats::flush(bool finalize) {
   }
 }
 
+size_t VariantStats::total_size() const {
+  return contig_buffer_.size() + sizeof(uint64_t) * contig_offsets_.size() +
+         sizeof(uint32_t) * pos_buffer_.size() + sample_buffer_.size() +
+         sizeof(uint64_t) * sample_offsets_.size() + allele_buffer_.size() +
+         sizeof(uint64_t) * allele_offsets_.size() +
+         sizeof(int32_t) * ac_buffer_.size() +
+         sizeof(int32_t) * an_buffer_.size() +
+         sizeof(int32_t) * n_hom_buffer_.size() +
+         sizeof(uint32_t) * max_length_buffer_.size() +
+         sizeof(uint32_t) * end_buffer_.size();
+}
+
 void VariantStats::process(
     const bcf_hdr_t* hdr,
     const std::string& sample_name,
@@ -529,7 +541,7 @@ inline void VariantStats::process_v3(
           pos_,
           sample_name);
     }
-    update_results();
+    update_results_v3();
     contig_ = contig;
     pos_ = pos;
     end_ = end_pos;
@@ -544,11 +556,11 @@ inline void VariantStats::process_v3(
     return;
   }
 
-  std::vector<int> gt(ngt);
-  std::vector<int> gt_missing(ngt);
+  gt_.resize(ngt, 0);
+  gt_missing_.resize(ngt, 0);
   for (int i = 0; i < ngt; i++) {
-    gt[i] = bcf_gt_allele(dst_[i]);
-    gt_missing[i] = bcf_gt_is_missing(dst_[i]);
+    gt_[i] = bcf_gt_allele(dst_[i]);
+    gt_missing_[i] = bcf_gt_is_missing(dst_[i]);
   }
   int n_allele = rec->n_allele;
 
@@ -556,7 +568,7 @@ inline void VariantStats::process_v3(
   {
     bool any_exceeds_nallele = false;
     for (int i = 0; i < ngt; i++) {
-      any_exceeds_nallele = any_exceeds_nallele || gt[i] >= n_allele;
+      any_exceeds_nallele = any_exceeds_nallele || gt_[i] >= n_allele;
     }
     if (any_exceeds_nallele) {
       LOG_WARN(
@@ -565,8 +577,8 @@ inline void VariantStats::process_v3(
           sample_name,
           contig,
           pos + 1,
-          gt[0],
-          gt[1],
+          gt_[0],
+          gt_[1],
           n_allele);
       return;
     }
@@ -576,7 +588,7 @@ inline void VariantStats::process_v3(
   if (ngt >= 0) {
     bool all_gt_missing = true;
     for (int i = 0; i < ngt; i++) {
-      all_gt_missing = all_gt_missing && gt_missing[i];
+      all_gt_missing = all_gt_missing && gt_missing_[i];
     }
     if (all_gt_missing) {
       return;
@@ -597,12 +609,12 @@ inline void VariantStats::process_v3(
     int first_gt = 0;
     bool first_gt_found = false;
     for (int i = 0; i < ngt; i++) {
-      if (!gt_missing[i]) {
+      if (!gt_missing_[i]) {
         if (first_gt_found) {
-          homozygous = homozygous && gt[i] == first_gt;
+          homozygous = homozygous && gt_[i] == first_gt;
         } else {
           first_gt_found = true;
-          first_gt = gt[i];
+          first_gt = gt_[i];
         }
       } else {
         homozygous = false;
@@ -629,34 +641,36 @@ inline void VariantStats::process_v3(
   bool already_added_homozygous = false;
   for (int i = 0; i < ngt; i++) {
     // If not missing, update allele count for GT[i]
-    if (!gt_missing[i]) {
-      auto alt = alt_string_v3(ref, rec->d.allele[gt[i]]);
+    if (!gt_missing_[i]) {
+      auto alt = alt_string_v3(ref, rec->d.allele[gt_[i]]);
       std::string ref_key = "ref";
       if (is_nr_block) {
         // ref block
         ref_key = "nr";
       }
 
-      if (gt[i] == 0) {
-        values_[ref_key].ac += count_delta_;
-        values_[ref_key].an = ngt * count_delta_;
-        values_[ref_key].end = end_pos;
-        values_[ref_key].max_length = max_length_;
-      } else {
-        values_[alt].ac += count_delta_;
-        values_[alt].an = ngt * count_delta_;
-        values_[alt].end = end_pos;
-        values_[alt].max_length = max_length_;
-      }
-
-      // Update homozygote count
-      if (homozygous && !already_added_homozygous) {
-        if (gt[i] == 0) {
-          values_[ref_key].n_hom += count_delta_;
-        } else {
-          values_[alt].n_hom += count_delta_;
+      if (gt_[i] == 0) {
+        FieldValues& ref_values = values_[ref_key];
+        ref_values.ac += count_delta_;
+        ref_values.an = ngt * count_delta_;
+        ref_values.end = end_pos;
+        ref_values.max_length = max_length_;
+        // Update homozygote count
+        if (homozygous && !already_added_homozygous) {
+          ref_values.n_hom += count_delta_;
+          already_added_homozygous = true;
         }
-        already_added_homozygous = true;
+      } else {
+        FieldValues& alt_values = values_[alt];
+        alt_values.ac += count_delta_;
+        alt_values.an = ngt * count_delta_;
+        alt_values.end = end_pos;
+        alt_values.max_length = max_length_;
+        // Update homozygote count
+        if (homozygous && !already_added_homozygous) {
+          alt_values.n_hom += count_delta_;
+          already_added_homozygous = true;
+        }
       }
     }
   }
@@ -687,7 +701,7 @@ inline void VariantStats::process_v2(
           pos_,
           sample_name);
     }
-    update_results();
+    update_results_v2();
     contig_ = contig;
     pos_ = pos;
     end_ = end_pos;
@@ -702,11 +716,11 @@ inline void VariantStats::process_v2(
     return;
   }
 
-  std::vector<int> gt(ngt);
-  std::vector<int> gt_missing(ngt);
+  gt_.resize(ngt, 0);
+  gt_missing_.resize(ngt, 0);
   for (int i = 0; i < ngt; i++) {
-    gt[i] = bcf_gt_allele(dst_[i]);
-    gt_missing[i] = bcf_gt_is_missing(dst_[i]);
+    gt_[i] = bcf_gt_allele(dst_[i]);
+    gt_missing_[i] = bcf_gt_is_missing(dst_[i]);
   }
   int n_allele = rec->n_allele;
 
@@ -714,7 +728,7 @@ inline void VariantStats::process_v2(
   {
     bool any_exceeds_nallele = false;
     for (int i = 0; i < ngt; i++) {
-      any_exceeds_nallele = any_exceeds_nallele || gt[i] >= n_allele;
+      any_exceeds_nallele = any_exceeds_nallele || gt_[i] >= n_allele;
     }
     if (any_exceeds_nallele) {
       LOG_WARN(
@@ -723,8 +737,8 @@ inline void VariantStats::process_v2(
           sample_name,
           contig,
           pos + 1,
-          gt[0],
-          gt[1],
+          gt_[0],
+          gt_[1],
           n_allele);
       return;
     }
@@ -734,7 +748,7 @@ inline void VariantStats::process_v2(
   if (ngt >= 0) {
     bool all_gt_missing = true;
     for (int i = 0; i < ngt; i++) {
-      all_gt_missing = all_gt_missing && gt_missing[i];
+      all_gt_missing = all_gt_missing && gt_missing_[i];
     }
     if (all_gt_missing) {
       return;
@@ -755,12 +769,12 @@ inline void VariantStats::process_v2(
     int first_gt = 0;
     bool first_gt_found = false;
     for (int i = 0; i < ngt; i++) {
-      if (!gt_missing[i]) {
+      if (!gt_missing_[i]) {
         if (first_gt_found) {
-          homozygous = homozygous && gt[i] == first_gt;
+          homozygous = homozygous && gt_[i] == first_gt;
         } else {
           first_gt_found = true;
-          first_gt = gt[i];
+          first_gt = gt_[i];
         }
       } else {
         homozygous = false;
@@ -774,31 +788,33 @@ inline void VariantStats::process_v2(
   }
 
   bool already_added_homozygous = false;
+  FieldValues& ref_values = values_["ref"];
   for (int i = 0; i < ngt; i++) {
     // If not missing, update allele count for GT[i]
-    if (!gt_missing[i]) {
-      auto alt = alt_string(ref, rec->d.allele[gt[i]]);
+    if (!gt_missing_[i]) {
+      auto alt = alt_string(ref, rec->d.allele[gt_[i]]);
 
-      if (gt[i] == 0) {
-        values_["ref"].ac += count_delta_;
-        values_["ref"].an = ngt * count_delta_;
-        values_["ref"].end = end_pos;
-        values_["ref"].max_length = max_length_;
-      } else {
-        values_[alt].ac += count_delta_;
-        values_[alt].an = ngt * count_delta_;
-        values_[alt].end = end_pos;
-        values_[alt].max_length = max_length_;
-      }
-
-      // Update homozygote count
-      if (homozygous && !already_added_homozygous) {
-        if (gt[i] == 0) {
-          values_["ref"].n_hom += count_delta_;
-        } else {
-          values_[alt].n_hom += count_delta_;
+      if (gt_[i] == 0) {
+        ref_values.ac += count_delta_;
+        ref_values.an = ngt * count_delta_;
+        ref_values.end = end_pos;
+        ref_values.max_length = max_length_;
+        // Update homozygote count
+        if (homozygous && !already_added_homozygous) {
+          ref_values.n_hom += count_delta_;
+          already_added_homozygous = true;
         }
-        already_added_homozygous = true;
+      } else {
+        FieldValues& alt_values = values_[alt];
+        alt_values.ac += count_delta_;
+        alt_values.an = ngt * count_delta_;
+        alt_values.end = end_pos;
+        alt_values.max_length = max_length_;
+        // Update homozygote count
+        if (homozygous && !already_added_homozygous) {
+          alt_values.n_hom += count_delta_;
+          already_added_homozygous = true;
+        }
       }
     }
   }
@@ -809,6 +825,36 @@ inline void VariantStats::process_v2(
 //===================================================================
 
 void VariantStats::update_results() {
+  switch (array_version_) {
+    case 2:
+      update_results_v2();
+      break;
+    case 3:
+      update_results_v3();
+      break;
+    default:
+      throw std::runtime_error(
+          "invalid array version encountered when updating varinat stats");
+  }
+}
+
+void VariantStats::update_results_v2() {
+  for (auto& [allele, value] : values_) {
+    contig_offsets_.push_back(contig_buffer_.size());
+    contig_buffer_ += contig_;
+    pos_buffer_.push_back(pos_);
+    sample_offsets_.push_back(sample_buffer_.size());
+    sample_buffer_ += sample_;
+    allele_offsets_.push_back(allele_buffer_.size());
+    allele_buffer_ += allele;
+    ac_buffer_.push_back(value.ac);
+    an_buffer_.push_back(value.an);
+    n_hom_buffer_.push_back(value.n_hom);
+  }
+  values_.clear();
+}
+
+void VariantStats::update_results_v3() {
   if (values_.size() > 0) {
     for (auto& [allele, value] : values_) {
       uint32_t& end = value.end;
@@ -825,75 +871,72 @@ void VariantStats::update_results() {
       auto an_buffer_point = an_buffer_.end();
       auto n_hom_buffer_point = n_hom_buffer_.end();
       auto end_buffer_point = end_buffer_.end();
-      // The following block is specific to variant stats v3; it sorts the
-      // sample and end dimensions, enabling future support for cohort selection
-      // and potential for improved effiency querying ranges, respectively. If
-      // rows were written out-of-order, this would result in an Embedded
-      // exception being thrown.
-      if (array_version_ >= 3) {
-        // check that we don't underrun the end buffer
-        if (end_buffer_.size() > 0)
-        // while the end coord or sample name (lexicographically) is too low to
-        // be appended to the end, go backward until it fits in order
-        {
-          int64_t end_diff;
-          size_t current_sample_offset = sample_buffer_.size();
-          int sample_diff;
-          bool sample_out_of_order, sample_equal, not_underrunning,
-              end_out_of_order, pos_equal;
-          // this lambda determines whether the row being appended be out of
-          // order in either the sample or end dimensions; it depends on the
-          // enclosing scope
-          auto out_of_order = [&]() {
-            size_t last_sample_length =
-                current_sample_offset - *(sample_offsets_point - 1);
-            pos_equal = *(pos_buffer_point - 1) == pos_;
-            end_diff = (static_cast<int64_t>(end) - *(end_buffer_point - 1));
-            end_out_of_order = (end_diff < 0);
-            sample_diff = strncmp(
-                sample_buffer_.data() + *(sample_offsets_point - 1),
-                sample_.data(),
-                std::min<uint32_t>(last_sample_length, sample_.size()));
-            sample_out_of_order =
-                (sample_diff > 0 ||
-                 (sample_diff == 0 && last_sample_length > sample_.size()));
-            sample_equal =
-                (sample_diff == 0 && last_sample_length == sample_.length());
-            not_underrunning = end_buffer_point - 1 > end_buffer_.begin();
-            return static_cast<bool>(  // need to swap ends
-                (not_underrunning && pos_equal && sample_equal &&
-                 end_out_of_order) ||
-                // need to swap samples
-                (not_underrunning && pos_equal && sample_out_of_order));
-          };
-          while (/*cells are out of order*/ out_of_order()) {
-            // decrement iterators by one cell
-            contig_offsets_point--;
-            // buffer iterators are set to match the selected offset
-            contig_buffer_point =
-                contig_buffer_.begin() + *contig_offsets_point;
-            *contig_offsets_point += contig_.length();
-            pos_buffer_point--;
-            sample_offsets_point--;
-            current_sample_offset = *sample_offsets_point;
-            sample_buffer_point =
-                sample_buffer_.begin() + *sample_offsets_point;
-            *sample_offsets_point += sample_.length();
-            allele_offsets_point--;
-            allele_buffer_point =
-                allele_buffer_.begin() + *allele_offsets_point;
-            *allele_offsets_point += allele.length();
-            ac_buffer_point--;
-            an_buffer_point--;
-            n_hom_buffer_point--;
-            end_buffer_point--;
-          }
+      // The following block sorts the sample and end dimensions, enabling
+      // future support for cohort selection and potential for improved effiency
+      // querying ranges, respectively. If rows were written out-of-order, this
+      // would result in an Embedded exception being thrown.
+      // Check that we don't underrun the end buffer
+      if (end_buffer_.size() > 0)
+      // while the end coord or sample name (lexicographically) is too low to
+      // be appended to the end, go backward until it fits in order
+      {
+        int64_t end_diff;
+        size_t current_sample_offset = sample_buffer_.size();
+        int sample_diff;
+        bool sample_out_of_order, sample_equal, not_underrunning,
+            end_out_of_order, pos_equal;
+        // this lambda determines whether the row being appended be out of
+        // order in either the sample or end dimensions; it depends on the
+        // enclosing scope
+        auto out_of_order = [&]() {
+          size_t last_sample_length =
+              current_sample_offset - *(sample_offsets_point - 1);
+          pos_equal = *(pos_buffer_point - 1) == pos_;
+          end_diff = (static_cast<int64_t>(end) - *(end_buffer_point - 1));
+          end_out_of_order = (end_diff < 0);
+          sample_diff = strncmp(
+              sample_buffer_.data() + *(sample_offsets_point - 1),
+              sample_.data(),
+              std::min<uint32_t>(last_sample_length, sample_.size()));
+          sample_out_of_order =
+              (sample_diff > 0 ||
+               (sample_diff == 0 && last_sample_length > sample_.size()));
+          sample_equal =
+              (sample_diff == 0 && last_sample_length == sample_.length());
+          not_underrunning = end_buffer_point - 1 > end_buffer_.begin();
+          return static_cast<bool>(  // need to swap ends
+              (not_underrunning && pos_equal && sample_equal &&
+               end_out_of_order) ||
+              // need to swap samples
+              (not_underrunning && pos_equal && sample_out_of_order));
+        };
+        while (/*cells are out of order*/ out_of_order()) {
+          // decrement iterators by one cell
+          contig_offsets_point--;
+          // buffer iterators are set to match the selected offset
+          contig_buffer_point = contig_buffer_.begin() + *contig_offsets_point;
+          *contig_offsets_point += contig_.length();
+          pos_buffer_point--;
+          sample_offsets_point--;
+          current_sample_offset = *sample_offsets_point;
+          sample_buffer_point = sample_buffer_.begin() + *sample_offsets_point;
+          *sample_offsets_point += sample_.length();
+          allele_offsets_point--;
+          allele_buffer_point = allele_buffer_.begin() + *allele_offsets_point;
+          *allele_offsets_point += allele.length();
+          ac_buffer_point--;
+          an_buffer_point--;
+          n_hom_buffer_point--;
+          end_buffer_point--;
         }
-        max_length_buffer_.push_back(value.max_length);
-        end_buffer_.insert(end_buffer_point, value.end);
       }
+      max_length_buffer_.push_back(value.max_length);
+      end_buffer_.insert(end_buffer_point, value.end);
       // for every field iterator, insert the new row into the appropriate
       // place; if no reordering occurred above, this appends the row
+      // TODO: Repeatedly inserting is very inefficient; use a more efficient
+      // strategy, e.g. store records on a heap and add them to the buffers in
+      // order when the stats are flushed
       contig_offsets_.insert(
           contig_offsets_point, contig_buffer_point - contig_buffer_.begin());
       contig_buffer_.insert(

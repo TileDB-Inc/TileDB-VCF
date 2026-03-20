@@ -371,6 +371,16 @@ void AlleleCount::flush(bool finalize) {
   }
 }
 
+size_t AlleleCount::total_size() const {
+  return contig_buffer_.size() + sizeof(uint64_t) * contig_offsets_.size() +
+         sizeof(uint32_t) * pos_buffer_.size() + ref_buffer_.size() +
+         sizeof(uint64_t) * ref_offsets_.size() + alt_buffer_.size() +
+         sizeof(uint64_t) * alt_offsets_.size() + filter_buffer_.size() +
+         sizeof(uint64_t) * filter_offsets_.size() + gt_buffer_.size() +
+         sizeof(uint64_t) * gt_offsets_.size() +
+         sizeof(int32_t) * count_buffer_.size();
+}
+
 void AlleleCount::process(
     const bcf_hdr_t* hdr,
     const std::string& sample_name,
@@ -525,13 +535,13 @@ void AlleleCount::update_results() {
 std::tuple<size_t, size_t, size_t, size_t, size_t>
 AlleleCountReader::allele_count_buffer_sizes() {
   size_t ref = 0, alt = 0, filter = 0, gt = 0;
-  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
+  for (std::pair<AlleleCountKey, int32_t> ac : alleleCountGroupBy) {
     ref += ac.first.ref.size();
     alt += ac.first.alt.size();
     filter += ac.first.filter.size();
     gt += ac.first.gt.size();
   }
-  return {AlleleCountGroupBy.size(), ref, alt, filter, gt};
+  return {alleleCountGroupBy.size(), ref, alt, filter, gt};
 }
 
 void AlleleCountReader::prepare_allele_count(Region region) {
@@ -554,7 +564,7 @@ void AlleleCountReader::prepare_allele_count(Region region) {
       // TODO: add function to generate key by concatenating pos, ref, alt,
       // filter, gt
       AlleleCountKey key(pos, ref, alt, filter, gt);
-      AlleleCountGroupBy[key] += mq.data<uint32_t>("count")[i];
+      alleleCountGroupBy[key] += mq.data<uint32_t>("count")[i];
     }
   }
 }
@@ -581,7 +591,7 @@ void AlleleCountReader::read_from_allele_count(
   filter_offsets[0] = 0;
   gt_offsets[0] = 0;
   size_t i = 0;
-  for (std::pair<AlleleCountKey, int32_t> ac : AlleleCountGroupBy) {
+  for (std::pair<AlleleCountKey, int32_t> ac : alleleCountGroupBy) {
     pos[i] = ac.first.pos;
     std::strncpy(
         ref + ref_offsets[i], ac.first.ref.data(), ac.first.ref.size());

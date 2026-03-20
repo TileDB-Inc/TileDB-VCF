@@ -30,7 +30,9 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -187,6 +189,11 @@ class AlleleCount {
    */
   void flush(bool finalize = false);
 
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
+
  private:
   // give the AlleleCountReader access to AlleleCount's private members
   friend class AlleleCountReader;
@@ -252,7 +259,7 @@ class AlleleCount {
   int count_delta_ = 1;
 
   // Set of sample names in this query (per thread)
-  std::set<std::string> sample_names_;
+  std::unordered_set<std::string> sample_names_;
 
   // Counts grouped by "key" at the current locus.
   // Use map to keep dimension keys sorted and maintain global order.
@@ -395,7 +402,7 @@ class AlleleCountReader {
   AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group);
 
  private:
-  std::map<AlleleCountKey, int32_t> AlleleCountGroupBy;
+  std::map<AlleleCountKey, int32_t> alleleCountGroupBy;
   std::shared_ptr<Array> array_;
 };
 
