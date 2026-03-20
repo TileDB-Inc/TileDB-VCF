@@ -220,6 +220,32 @@ void ParallelWriterWorkerV4::flush_ingestion_tasks(bool finalize, size_t i) {
   stats_worker_->flush(finalize, i);
 }
 
+void ParallelWriterWorkerV4::write_record_buffers(
+    std::unique_ptr<Query>& record_query, bool finalize, size_t i) {
+  Buffers& buffers = buffers_[i];
+
+  // Write the buffered records
+  write_buffers(
+      record_query, buffers.record_buffers, buffers.records_buffered, finalize);
+
+  // Clear the buffers
+  buffers.record_buffers.clear();
+  buffers.records_buffered = 0;
+}
+
+void ParallelWriterWorkerV4::write_anchor_buffers(
+    std::unique_ptr<Query>& anchor_query, bool finalize, size_t i) {
+  Buffers& buffers = buffers_[i];
+
+  // Write the buffered anchors
+  write_buffers(
+      anchor_query, buffers.anchor_buffers, buffers.anchors_buffered, finalize);
+
+  // Clear the buffers
+  buffers.anchor_buffers.clear();
+  buffers.anchors_buffered = 0;
+}
+
 void ParallelWriterWorkerV4::write_buffers(
     std::unique_ptr<Query>& record_query,
     std::unique_ptr<Query>& anchor_query,

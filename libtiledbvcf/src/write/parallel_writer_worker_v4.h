@@ -225,6 +225,26 @@ class ParallelWriterWorkerV4 : public WriterWorker,
   }
 
   /**
+   * Writes buffered records.
+   *
+   * @param record_query The query to use for writing records
+   * @param finalize Whether or not the write queriy should be finalized
+   * @param i Which buffers to write
+   */
+  void write_record_buffers(
+      std::unique_ptr<Query>& record_query, bool finalize, size_t i);
+
+  /**
+   * Writes buffered anchors.
+   *
+   * @param anchor_query The query to use for writing anchors
+   * @param finalize Whether or not the write queriy should be finalized
+   * @param i Which buffers to write
+   */
+  void write_anchor_buffers(
+      std::unique_ptr<Query>& anchor_query, bool finalize, size_t i);
+
+  /**
    * Writes all buffered data, i.e. records, anchors, allele counts, variant
    * stats, and sample stats. Note that sample stats are only written when
    * finalizing.
