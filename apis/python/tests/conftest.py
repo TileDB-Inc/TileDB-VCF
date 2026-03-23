@@ -1,5 +1,6 @@
 import glob
 import os
+import platform
 import shutil
 import subprocess
 
@@ -14,6 +15,15 @@ CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
 # Test inputs directory
 TESTS_INPUT_DIR = os.path.abspath(
     os.path.join(CONTAINING_DIR, "../../../libtiledbvcf/test/inputs")
+)
+
+
+# Skip marker for tests that require bcftools, which may be absent on Windows CI.
+skip_if_no_bcftools = pytest.mark.skipif(
+    os.environ.get("CI") == "true"
+    and platform.system() == "Windows"
+    and shutil.which("bcftools") is None,
+    reason="no bcftools",
 )
 
 
