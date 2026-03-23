@@ -6,6 +6,23 @@ import tiledbvcf
 
 from .conftest import TESTS_INPUT_DIR
 
+@pytest.mark.parametrize("level", ["fatal", "error", "warn", "info", "debug", "trace"])
+def test_config_logging_valid_levels(level):
+    """Every documented log level is accepted without raising."""
+    tiledbvcf.config_logging(level)
+
+
+def test_config_logging_invalid_level_raises():
+    """An unrecognised log level raises an exception."""
+    with pytest.raises(Exception, match="Unsupported log level"):
+        tiledbvcf.config_logging("verbose")
+
+
+def test_config_logging_log_file(tmp_path):
+    """A log_file path is accepted without raising."""
+    tiledbvcf.config_logging("fatal", log_file=str(tmp_path / "tiledbvcf.log"))
+
+
 def test_read_config():
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig()
