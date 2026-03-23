@@ -297,6 +297,24 @@ def test_allele_frequency(stats_v3_dataset, tmp_path):
     assert stats_v3_dataset.read_variant_stats(regions=[region]).shape == (13, 6)
 
 
+@skip_if_no_bcftools
+def test_allele_frequency_invalid_region_format(stats_v3_dataset, tmp_path):
+    """read_allele_frequency() raises for a badly-formatted region string."""
+    uri = os.path.join(tmp_path, "stats_test")
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        with pytest.raises(Exception, match='"region" parameter must have format'):
+            tiledbvcf.allele_frequency.read_allele_frequency(uri, "chr1")
+
+
+@skip_if_no_bcftools
+def test_allele_frequency_empty_region(stats_v3_dataset, tmp_path):
+    """read_allele_frequency() returns an empty DataFrame for a region with no data."""
+    uri = os.path.join(tmp_path, "stats_test")
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        df = tiledbvcf.allele_frequency.read_allele_frequency(uri, "chr3:1-10000")
+    assert df.empty
+
+
 def test_sample_qc_samples_parameter(tmp_path):
     """samples= restricts QC output to only the specified samples."""
     uri = os.path.join(tmp_path, "dataset")
