@@ -386,6 +386,15 @@ def test_read_iter_bed_file(tmp_path, v3_dataset):
     assert len(result) == 6
 
 
+def test_read_iter_samples(v3_dataset):
+    """samples= restricts read_iter() to the specified samples."""
+    dfs = []
+    for df in v3_dataset.read_iter(attrs=["sample_name"], samples=["HG01762"]):
+        dfs.append(df)
+    result = pd.concat(dfs, ignore_index=True)
+    assert set(result["sample_name"]) == {"HG01762"}
+
+
 def test_read_filters(v3_dataset):
     df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "filters"],
@@ -628,6 +637,41 @@ def test_sample_args(v3_dataset, tmp_path):
             samples=["HG00280"],
             samples_file=sample_file,
         )
+
+
+def test_read_arrow_samples(v3_dataset):
+    """samples= restricts read_arrow() to the specified samples."""
+    tbl = v3_dataset.read_arrow(
+        attrs=["sample_name", "pos_start", "pos_end"],
+        regions=["1:12700-13400"],
+        samples=["HG01762"],
+    )
+    df = tbl.to_pandas()
+    assert set(df["sample_name"]) == {"HG01762"}
+    assert len(df) == 2
+
+
+def test_read_arrow_samples_file(tmp_path, v3_dataset):
+    """samples_file= restricts read_arrow() to the samples listed in the file."""
+    samples_file = str(tmp_path / "samples.txt")
+    with open(samples_file, "w") as f:
+        f.write("HG00280\n")
+
+    tbl = v3_dataset.read_arrow(attrs=["sample_name"], samples_file=samples_file)
+    assert set(tbl.column("sample_name").to_pylist()) == {"HG00280"}
+
+
+def test_read_bed_file(tmp_path, v3_dataset):
+    """bed_file= restricts read() and read_arrow() to regions in the BED file."""
+    bed_file = str(tmp_path / "regions.bed")
+    with open(bed_file, "w") as f:
+        f.write("1\t12700\t13400\n")
+
+    df = v3_dataset.read(attrs=["pos_end"], bed_file=bed_file)
+    assert len(df) == 6
+
+    tbl = v3_dataset.read_arrow(attrs=["pos_end"], bed_file=bed_file)
+    assert tbl.num_rows == 6
 
 
 def test_read_null_attrs(tmp_path):

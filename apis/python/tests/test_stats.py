@@ -21,6 +21,14 @@ def test_read_with_af_filter(stats_v3_dataset, stats_sample_names):
     assert df.query("sample_name == 'second'")["qual"].iloc[0] == pytest.approx(343.73)
     assert df[df["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0] == 0.9375
 
+    tbl = stats_v3_dataset.read_arrow(
+        samples=stats_sample_names,
+        attrs=attrs,
+        set_af_filter="<0.2",
+    )
+    assert tbl.num_rows == 1
+    assert tbl.to_pandas().equals(df)
+
 
 @skip_if_no_bcftools
 def test_read_with_scan_all_samples(stats_v3_dataset, stats_sample_names):
@@ -36,6 +44,14 @@ def test_read_with_scan_all_samples(stats_v3_dataset, stats_sample_names):
         ].iloc[0][0]
         == 0.9375
     )
+
+    tbl = stats_v3_dataset.read_arrow(
+        samples=stats_sample_names,
+        attrs=attrs,
+        scan_all_samples=True,
+    )
+    assert tbl.num_rows == len(df)
+    assert tbl.to_pandas().equals(df)
 
 
 @skip_if_no_bcftools
