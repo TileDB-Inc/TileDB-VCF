@@ -1,78 +1,24 @@
-import numpy as np
-import subprocess
+import glob
 import os
+import platform
+import shutil
+import subprocess
+
+import numpy as np
 import pandas as pd
 import pyarrow as pa
-import glob
-import shutil
-import platform
 import pytest
-import tiledbvcf
 import tiledb
+import tiledbvcf
 
-# Directory containing this file
-CONTAINING_DIR = os.path.abspath(os.path.dirname(__file__))
-
-# Test inputs directory
-TESTS_INPUT_DIR = os.path.abspath(
-    os.path.join(CONTAINING_DIR, "../../../libtiledbvcf/test/inputs")
-)
+from .conftest import assert_dfs_equal, skip_if_incompatible, TESTS_INPUT_DIR
 
 
-def _check_dfs(expected, actual):
-    def assert_series(s1, s2):
-        if np.issubdtype(s2.dtype, np.floating):
-            assert np.isclose(s1, s2, equal_nan=True).all()
-        elif np.issubdtype(s2.dtype, np.integer):
-            assert s1.astype("int64").equals(s2.astype("int64"))
-        else:
-            assert s1.equals(s2)
-
-    for k in expected:
-        assert_series(expected[k], actual[k])
-
-    for k in actual:
-        assert_series(expected[k], actual[k])
+def test_basic_count(v3_dataset):
+    assert v3_dataset.count() == 14
 
 
-def check_if_compatible(uri):
-    try:
-        with tiledb.open(uri):
-            return True
-    except tiledb.libtiledb.TileDBError as e:
-        if "incompatible format version" in str(e).lower():
-            raise pytest.skip.Exception(
-                "Test skipped due to incompatible format version"
-            )
-        raise pytest.skip.Exception(f"Test skipped due to TileDB error: {str(e)}")
-
-
-@pytest.fixture
-def test_ds_v4():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
-    )
-
-
-@pytest.fixture
-def test_ds():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
-    )
-
-
-@pytest.fixture
-def test_ds_attrs():
-    return tiledbvcf.Dataset(
-        os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples_GT_DP_PL")
-    )
-
-
-def test_basic_count(test_ds):
-    assert test_ds.count() == 14
-
-
-def test_retrieve_attributes(test_ds):
+def test_retrieve_attributes(v3_dataset):
     builtin_attrs = [
         "sample_name",
         "contig",
@@ -88,7 +34,7 @@ def test_retrieve_attributes(test_ds):
         "query_bed_start",
         "query_bed_line",
     ]
-    assert sorted(test_ds.attributes(attr_type="builtin")) == sorted(builtin_attrs)
+    assert sorted(v3_dataset.attributes(attr_type="builtin")) == sorted(builtin_attrs)
 
     info_attrs = [
         "info_BaseQRankSum",
@@ -105,7 +51,7 @@ def test_retrieve_attributes(test_ds):
         "info_MQRankSum",
         "info_ReadPosRankSum",
     ]
-    assert test_ds.attributes(attr_type="info") == info_attrs
+    assert v3_dataset.attributes(attr_type="info") == info_attrs
 
     fmt_attrs = [
         "fmt_AD",
@@ -116,49 +62,49 @@ def test_retrieve_attributes(test_ds):
         "fmt_PL",
         "fmt_SB",
     ]
-    assert test_ds.attributes(attr_type="fmt") == fmt_attrs
+    assert v3_dataset.attributes(attr_type="fmt") == fmt_attrs
 
 
-def test_retrieve_samples(test_ds):
-    assert test_ds.samples() == ["HG00280", "HG01762"]
+def test_retrieve_samples(v3_dataset):
+    assert v3_dataset.samples() == ["HG00280", "HG01762"]
 
 
-def test_read_unsupported_regions_type(test_ds):
+def test_read_unsupported_regions_type(v3_dataset):
     unsupported_region = 3.14
     unsupported_type_error = f'"regions" parameter cannot have type: {type(unsupported_region)}'
     wrong_dimension_region = np.array([["1:12700-13400"], ["1:12700-13400"]])
     ndarray_wrong_dimension_error = f'"regions" parameter of type {type(wrong_dimension_region)} must be 1-dimensional'
     with pytest.raises(Exception, match=unsupported_type_error):
-        test_ds.read(regions=unsupported_region)
+        v3_dataset.read(regions=unsupported_region)
     with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
-        test_ds.read(regions=wrong_dimension_region)
+        v3_dataset.read(regions=wrong_dimension_region)
     with pytest.raises(Exception, match=unsupported_type_error):
-        test_ds.read_arrow(regions=unsupported_region)
+        v3_dataset.read_arrow(regions=unsupported_region)
     with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
-        test_ds.read_arrow(regions=wrong_dimension_region)
+        v3_dataset.read_arrow(regions=wrong_dimension_region)
     with pytest.raises(Exception, match=unsupported_type_error):
-        for variant in test_ds.read_iter(regions=unsupported_region):
+        for variant in v3_dataset.read_iter(regions=unsupported_region):
             print(variant)
     with pytest.raises(Exception, match=ndarray_wrong_dimension_error):
-        for variant in test_ds.read_iter(regions=wrong_dimension_region):
+        for variant in v3_dataset.read_iter(regions=wrong_dimension_region):
             print(variant)
 
 
-def test_read_attrs(test_ds_attrs):
+def test_read_attrs(v3_dataset_with_attrs):
     attrs = ["sample_name"]
-    df = test_ds_attrs.read(attrs=attrs)
+    df = v3_dataset_with_attrs.read(attrs=attrs)
     assert df.columns.values.tolist() == attrs
 
     attrs = ["sample_name", "fmt_GT"]
-    df = test_ds_attrs.read(attrs=attrs)
+    df = v3_dataset_with_attrs.read(attrs=attrs)
     assert df.columns.values.tolist() == attrs
 
     attrs = ["sample_name"]
-    df = test_ds_attrs.read(attrs=attrs)
+    df = v3_dataset_with_attrs.read(attrs=attrs)
     assert df.columns.values.tolist() == attrs
 
 
-def test_basic_reads(test_ds):
+def test_basic_reads(v3_dataset):
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -221,19 +167,19 @@ def test_basic_reads(test_ds):
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
     for use_arrow in [False, True]:
-        func = test_ds.read_arrow if use_arrow else test_ds.read
+        func = v3_dataset.read_arrow if use_arrow else v3_dataset.read
 
         df = func(attrs=["sample_name", "pos_start", "pos_end"])
         if use_arrow:
             df = df.to_pandas()
 
-        _check_dfs(
+        assert_dfs_equal(
             expected_df,
             df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
         )
 
     # Region intersection
-    df = test_ds.read(
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]
     )
     expected_df = pd.DataFrame(
@@ -249,46 +195,46 @@ def test_basic_reads(test_ds):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
-    df = test_ds.read_arrow(
+    df = v3_dataset.read_arrow(
         attrs=["sample_name", "pos_start", "pos_end"], regions=["1:12700-13400"]
     ).to_pandas()
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
     # Regions as string
-    df = test_ds.read(
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
     )
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
-    df = test_ds.read_arrow(
+    df = v3_dataset.read_arrow(
         attrs=["sample_name", "pos_start", "pos_end"], regions="1:12700-13400"
     ).to_pandas()
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
     # Regions as numpy.ndarray
-    df = test_ds.read(
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
     )
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
-    df = test_ds.read_arrow(
+    df = v3_dataset.read_arrow(
         attrs=["sample_name", "pos_start", "pos_end"], regions=np.array(["1:12700-13400"])
     ).to_pandas()
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
     # Region and sample intersection
-    df = test_ds.read(
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end"],
         regions=["1:12700-13400"],
         samples=["HG01762"],
@@ -300,12 +246,12 @@ def test_basic_reads(test_ds):
             "pos_end": pd.Series([12771, 13389], dtype=np.int32),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
     # Sample only
-    df = test_ds.read(
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end"], samples=["HG01762"]
     )
     expected_df = pd.DataFrame(
@@ -315,46 +261,46 @@ def test_basic_reads(test_ds):
             "pos_end": pd.Series([12277, 12771, 13389], dtype=np.int32),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
 
-def test_multiple_counts(test_ds):
-    assert test_ds.count() == 14
-    assert test_ds.count() == 14
-    assert test_ds.count(regions=["1:12700-13400"]) == 6
-    assert test_ds.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
-    assert test_ds.count() == 14
-    assert test_ds.count(samples=["HG01762"]) == 3
-    assert test_ds.count(samples=["HG00280"]) == 11
+def test_multiple_counts(v3_dataset):
+    assert v3_dataset.count() == 14
+    assert v3_dataset.count() == 14
+    assert v3_dataset.count(regions=["1:12700-13400"]) == 6
+    assert v3_dataset.count(samples=["HG00280"], regions=["1:12700-13400"]) == 4
+    assert v3_dataset.count() == 14
+    assert v3_dataset.count(samples=["HG01762"]) == 3
+    assert v3_dataset.count(samples=["HG00280"]) == 11
 
 
-def test_empty_region(test_ds):
-    assert test_ds.count(regions=["12:1-1000000"]) == 0
+def test_empty_region(v3_dataset):
+    assert v3_dataset.count(regions=["12:1-1000000"]) == 0
 
 
-def test_missing_sample_raises_exception(test_ds):
+def test_missing_sample_raises_exception(v3_dataset):
     with pytest.raises(RuntimeError):
-        test_ds.count(samples=["abcde"])
+        v3_dataset.count(samples=["abcde"])
 
 
 # TODO remove skip
 @pytest.mark.skip
-def test_bad_contig_raises_exception(test_ds):
+def test_bad_contig_raises_exception(v3_dataset):
     with pytest.raises(RuntimeError):
-        test_ds.count(regions=["chr1:1-1000000"])
+        v3_dataset.count(regions=["chr1:1-1000000"])
     with pytest.raises(RuntimeError):
-        test_ds.count(regions=["1"])
+        v3_dataset.count(regions=["1"])
     with pytest.raises(RuntimeError):
-        test_ds.count(regions=["1:100-"])
+        v3_dataset.count(regions=["1:100-"])
     with pytest.raises(RuntimeError):
-        test_ds.count(regions=["1:-100"])
+        v3_dataset.count(regions=["1:-100"])
 
 
-def test_bad_attr_raises_exception(test_ds):
+def test_bad_attr_raises_exception(v3_dataset):
     with pytest.raises(RuntimeError):
-        test_ds.read(attrs=["abcde"], regions=["1:12700-13400"])
+        v3_dataset.read(attrs=["abcde"], regions=["1:12700-13400"])
 
 
 def test_read_write_mode_exceptions():
@@ -378,53 +324,53 @@ def test_incomplete_reads():
     # Using undocumented "0 MB" budget to test incomplete reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+    v3_dataset = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
 
-    df = test_ds.read(attrs=["pos_end"], regions=["1:12700-13400"])
-    assert not test_ds.read_completed()
+    df = v3_dataset.read(attrs=["pos_end"], regions=["1:12700-13400"])
+    assert not v3_dataset.read_completed()
     assert len(df) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([12771, 12771], dtype=np.int32)}),
         df,
     )
 
-    df = test_ds.continue_read()
-    assert not test_ds.read_completed()
+    df = v3_dataset.continue_read()
+    assert not v3_dataset.read_completed()
     assert len(df) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([13374, 13389], dtype=np.int32)}),
         df,
     )
 
-    df = test_ds.continue_read()
-    assert test_ds.read_completed()
+    df = v3_dataset.continue_read()
+    assert v3_dataset.read_completed()
     assert len(df) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([13395, 13413], dtype=np.int32)}),
         df,
     )
 
     # test incomplete via read_arrow
-    table = test_ds.read_arrow(attrs=["pos_end"], regions=["1:12700-13400"])
-    assert not test_ds.read_completed()
+    table = v3_dataset.read_arrow(attrs=["pos_end"], regions=["1:12700-13400"])
+    assert not v3_dataset.read_completed()
     assert len(table) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([12771, 12771], dtype=np.int32)}),
         table.to_pandas(),
     )
 
-    table = test_ds.continue_read_arrow()
-    assert not test_ds.read_completed()
+    table = v3_dataset.continue_read_arrow()
+    assert not v3_dataset.read_completed()
     assert len(table) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([13374, 13389], dtype=np.int32)}),
         table.to_pandas(),
     )
 
-    table = test_ds.continue_read_arrow()
-    assert test_ds.read_completed()
+    table = v3_dataset.continue_read_arrow()
+    assert v3_dataset.read_completed()
     assert len(table) == 2
-    _check_dfs(
+    assert_dfs_equal(
         pd.DataFrame.from_dict({"pos_end": np.array([13395, 13413], dtype=np.int32)}),
         table.to_pandas(),
     )
@@ -434,7 +380,7 @@ def test_incomplete_read_generator():
     # Using undocumented "0 MB" budget to test incomplete reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
-    test_ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+    v3_dataset = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
     expected_df = pd.DataFrame.from_dict(
             {
                 "pos_end": np.array(
@@ -447,31 +393,31 @@ def test_incomplete_read_generator():
 
     # Regions as string
     dfs = []
-    for df in test_ds.read_iter(attrs=["pos_end"], regions="1:12700-13400"):
+    for df in v3_dataset.read_iter(attrs=["pos_end"], regions="1:12700-13400"):
         dfs.append(df)
     overall_df = pd.concat(dfs, ignore_index=True)
     assert len(overall_df) == 6
-    _check_dfs(expected_df, overall_df)
+    assert_dfs_equal(expected_df, overall_df)
 
     # Regions as list
     dfs = []
-    for df in test_ds.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
+    for df in v3_dataset.read_iter(attrs=["pos_end"], regions=["1:12700-13400"]):
         dfs.append(df)
     overall_df = pd.concat(dfs, ignore_index=True)
     assert len(overall_df) == 6
-    _check_dfs(expected_df, overall_df)
+    assert_dfs_equal(expected_df, overall_df)
 
     # Regions as numpy.ndarray
     dfs = []
-    for df in test_ds.read_iter(attrs=["pos_end"], regions=np.array(["1:12700-13400"])):
+    for df in v3_dataset.read_iter(attrs=["pos_end"], regions=np.array(["1:12700-13400"])):
         dfs.append(df)
     overall_df = pd.concat(dfs, ignore_index=True)
     assert len(overall_df) == 6
-    _check_dfs(expected_df, overall_df)
+    assert_dfs_equal(expected_df, overall_df)
 
 
-def test_read_filters(test_ds):
-    df = test_ds.read(
+def test_read_filters(v3_dataset):
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "filters"],
         regions=["1:12700-13400"],
     )
@@ -494,7 +440,7 @@ def test_read_filters(test_ds):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
@@ -548,11 +494,11 @@ def test_read_var_length_filters(tmp_path):
         }
     ).sort_values(ignore_index=True, by=["pos_start"])
 
-    _check_dfs(expected_df, df.sort_values(ignore_index=True, by=["pos_start"]))
+    assert_dfs_equal(expected_df, df.sort_values(ignore_index=True, by=["pos_start"]))
 
 
-def test_read_alleles(test_ds):
-    df = test_ds.read(
+def test_read_alleles(v3_dataset):
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "alleles"],
         regions=["1:12100-13360", "1:13500-17350"],
     )
@@ -599,7 +545,7 @@ def test_read_alleles(test_ds):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
@@ -635,13 +581,13 @@ def test_read_multiple_alleles(tmp_path):
             ),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
 
-def test_read_var_len_attrs(test_ds):
-    df = test_ds.read(
+def test_read_var_len_attrs(v3_dataset):
+    df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "fmt_DP", "fmt_PL"],
         regions=["1:12100-13360", "1:13500-17350"],
     )
@@ -690,23 +636,23 @@ def test_read_var_len_attrs(test_ds):
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
 
-def test_sample_args(test_ds, tmp_path):
+def test_sample_args(v3_dataset, tmp_path):
     sample_file = os.path.join(tmp_path, "1_sample.txt")
     with open(sample_file, "w") as file:
         file.write("HG00280")
 
     region = ["1:12141-12141"]
-    df1 = test_ds.read(["sample_name"], regions=region, samples=["HG00280"])
-    df2 = test_ds.read(["sample_name"], regions=region, samples_file=sample_file)
-    _check_dfs(df1, df2)
+    df1 = v3_dataset.read(["sample_name"], regions=region, samples=["HG00280"])
+    df2 = v3_dataset.read(["sample_name"], regions=region, samples_file=sample_file)
+    assert_dfs_equal(df1, df2)
 
     with pytest.raises(TypeError):
-        test_ds.read(
+        v3_dataset.read(
             attrs=["sample_name"],
             regions=region,
             samples=["HG00280"],
@@ -824,7 +770,7 @@ def test_read_null_attrs(tmp_path):
             "fmt_MIN_DP": pd.Series([0, 14, 3, 1, 0, 30, 20, None, 24, None, 23, 19]),
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
-    _check_dfs(
+    assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
 
@@ -1064,7 +1010,7 @@ def test_ingestion_tasks(tmp_path):
     # query allele_count array with TileDB
     ac_uri = tiledb.Group(uri)["allele_count"].uri
 
-    check_if_compatible(ac_uri)
+    skip_if_incompatible(ac_uri)
 
     contig = "1"
     region = slice(69896)
@@ -1162,7 +1108,7 @@ def test_ingestion_tasks(tmp_path):
     )
 
     qc = tiledbvcf.sample_qc(uri)
-    _check_dfs(expected_qc, qc)
+    assert_dfs_equal(expected_qc, qc)
 
 
 def test_incremental_ingest(tmp_path):
@@ -1267,51 +1213,6 @@ def test_ingest_mode_merged(tmp_path):
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
 
-@pytest.fixture
-def test_stats_bgzipped_inputs(tmp_path):
-    tmp_path_contents = os.listdir(tmp_path)
-    if "stats" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "stats"))
-    shutil.copytree(
-        os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
-    )
-    raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
-    for vcf_file in raw_inputs:
-        subprocess.run(
-            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
-            shell=True,
-            check=True,
-        )
-    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
-    for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
-    if "outputs" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "outputs"))
-    if "stats_test" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "stats_test"))
-    return bgzipped_inputs
-
-
-@pytest.fixture
-def test_stats_sample_names(test_stats_bgzipped_inputs):
-    assert len(test_stats_bgzipped_inputs) == 8
-    return [os.path.basename(file).split(".")[0] for file in test_stats_bgzipped_inputs]
-
-
-@pytest.fixture
-def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
-    assert len(test_stats_bgzipped_inputs) == 8
-    # print(f"bgzipped inputs: {test_stats_bgzipped_inputs}")
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    ds.create_dataset(
-        enable_variant_stats=True, enable_allele_count=True, variant_stats_version=3
-    )
-    ds.ingest_samples(test_stats_bgzipped_inputs)
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    return ds
-
-
 # Ok to skip is missing bcftools in Windows CI job
 @pytest.mark.skipif(
     os.environ.get("CI") == "true"
@@ -1320,10 +1221,10 @@ def test_stats_v3_ingestion(tmp_path, test_stats_bgzipped_inputs):
     reason="no bcftools",
 )
 def test_ingest_with_stats_v3(
-    tmp_path, test_stats_v3_ingestion, test_stats_sample_names
+    tmp_path, stats_v3_dataset, stats_sample_names
 ):
-    data_frame = test_stats_v3_ingestion.read(
-        samples=test_stats_sample_names,
+    data_frame = stats_v3_dataset.read(
+        samples=stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.2",
     )
@@ -1335,8 +1236,8 @@ def test_ingest_with_stats_v3(
         data_frame[data_frame["sample_name"] == "second"]["info_TILEDB_IAF"].iloc[0][0]
         == 0.9375
     )
-    data_frame = test_stats_v3_ingestion.read(
-        samples=test_stats_sample_names,
+    data_frame = stats_v3_dataset.read(
+        samples=stats_sample_names,
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         scan_all_samples=True,
     )
@@ -1361,53 +1262,53 @@ def test_ingest_with_stats_v3(
     base_1_error = "Regions must be 1-based"
     interval_error = '"100-1" is not a valid region interval'
     with pytest.raises(Exception, match=no_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats()
+        stats_v3_dataset.read_variant_stats()
     with pytest.raises(Exception, match=no_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow()
+        stats_v3_dataset.read_variant_stats_arrow()
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats("chr1:1-100", regions=["chr1:1-100"])
+        stats_v3_dataset.read_variant_stats("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(
+        stats_v3_dataset.read_variant_stats_arrow(
             "chr1:1-100", regions=["chr1:1-100"]
         )
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=[""])
+        stats_v3_dataset.read_variant_stats(regions=[""])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=[""])
+        stats_v3_dataset.read_variant_stats_arrow(regions=[""])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=["chr1"])
+        stats_v3_dataset.read_variant_stats(regions=["chr1"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=["chr1"])
+        stats_v3_dataset.read_variant_stats_arrow(regions=["chr1"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:-"])
+        stats_v3_dataset.read_variant_stats(regions=["chr1:-"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=["chr1:-"])
+        stats_v3_dataset.read_variant_stats_arrow(regions=["chr1:-"])
     with pytest.raises(Exception, match=empty_contig_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=[":1-100"])
+        stats_v3_dataset.read_variant_stats(regions=[":1-100"])
     with pytest.raises(Exception, match=empty_contig_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=[":1-100"])
+        stats_v3_dataset.read_variant_stats_arrow(regions=[":1-100"])
     with pytest.raises(Exception, match=base_1_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:0-100"])
+        stats_v3_dataset.read_variant_stats(regions=["chr1:0-100"])
     with pytest.raises(Exception, match=base_1_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=["chr1:0-100"])
+        stats_v3_dataset.read_variant_stats_arrow(regions=["chr1:0-100"])
     with pytest.raises(Exception, match=interval_error):
-        test_stats_v3_ingestion.read_variant_stats(regions=["chr1:100-1"])
+        stats_v3_dataset.read_variant_stats(regions=["chr1:100-1"])
     with pytest.raises(Exception, match=interval_error):
-        test_stats_v3_ingestion.read_variant_stats_arrow(regions=["chr1:100-1"])
+        stats_v3_dataset.read_variant_stats_arrow(regions=["chr1:100-1"])
 
     # test empty region
-    assert test_stats_v3_ingestion.read_variant_stats(regions=["chr3:1-10000"]).empty
+    assert stats_v3_dataset.read_variant_stats(regions=["chr3:1-10000"]).empty
 
     # test types and deprecated region parameter
     region1 = "chr1:1-10000"
-    df = test_stats_v3_ingestion.read_variant_stats(region1)
-    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(region1)
+    df = stats_v3_dataset.read_variant_stats(region1)
+    tbl = stats_v3_dataset.read_variant_stats_arrow(region1)
     assert isinstance(df, pd.DataFrame)
     assert isinstance(tbl, pa.Table)
     assert df.shape == (13, 6)
     assert df.equals(tbl.to_pandas())
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
-    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region1])
+    df = stats_v3_dataset.read_variant_stats(regions=[region1])
+    tbl = stats_v3_dataset.read_variant_stats_arrow(regions=[region1])
     assert isinstance(df, pd.DataFrame)
     assert isinstance(tbl, pa.Table)
     assert df.shape == (13, 6)
@@ -1415,63 +1316,63 @@ def test_ingest_with_stats_v3(
 
     # test a region on a different contig
     region2 = "chr2:1-10000"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region2])
-    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=[region2])
+    df = stats_v3_dataset.read_variant_stats(regions=[region2])
+    tbl = stats_v3_dataset.read_variant_stats_arrow(regions=[region2])
     assert df.shape == (2, 6)
     assert df.equals(tbl.to_pandas())
 
     # test multiple regions from different contigs and their ordering
     regions = [region1, region2]
     contigs = ["chr1"] * 13 + ["chr2"] * 2
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    df = stats_v3_dataset.read_variant_stats(regions=regions)
     assert df.shape == (15, 6)
     assert contigs == list(df["contig"].values)
-    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    df2 = stats_v3_dataset.read_variant_stats(regions=reversed(regions))
     assert df.equals(df2)
-    tbl = test_stats_v3_ingestion.read_variant_stats_arrow(regions=regions)
-    tbl2 = test_stats_v3_ingestion.read_variant_stats_arrow(regions=reversed(regions))
+    tbl = stats_v3_dataset.read_variant_stats_arrow(regions=regions)
+    tbl2 = stats_v3_dataset.read_variant_stats_arrow(regions=reversed(regions))
     assert tbl.equals(tbl2)
     assert df.equals(tbl.to_pandas())
     assert df2.equals(tbl2.to_pandas())
 
     # test overlapping regions on different contigs and their order
     region1 = "chr1:1-1"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region1])
+    df = stats_v3_dataset.read_variant_stats(regions=[region1])
     assert df.shape == (2, 6)
     region2 = "chr1:1-2"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region2])
+    df = stats_v3_dataset.read_variant_stats(regions=[region2])
     assert df.shape == (5, 6)
     region3 = "chr1:3-4"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region3])
+    df = stats_v3_dataset.read_variant_stats(regions=[region3])
     assert df.shape == (6, 6)
     region4 = "chr1:2-5"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region4])
+    df = stats_v3_dataset.read_variant_stats(regions=[region4])
     assert df.shape == (11, 6)
     regions_chr1 = [region1, region2, region3, region4]
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions_chr1)
-    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions_chr1))
+    df = stats_v3_dataset.read_variant_stats(regions=regions_chr1)
+    df2 = stats_v3_dataset.read_variant_stats(regions=reversed(regions_chr1))
     assert df.shape == (13, 6)
     assert df.equals(df2)
     region5 = "chr2:1-1"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region5])
+    df = stats_v3_dataset.read_variant_stats(regions=[region5])
     assert df.shape == (1, 6)
     region6 = "chr2:3-3"
-    df = test_stats_v3_ingestion.read_variant_stats(regions=[region6])
+    df = stats_v3_dataset.read_variant_stats(regions=[region6])
     assert df.shape == (1, 6)
     regions_chr2 = [region5, region6]
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions_chr2)
-    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions_chr2))
+    df = stats_v3_dataset.read_variant_stats(regions=regions_chr2)
+    df2 = stats_v3_dataset.read_variant_stats(regions=reversed(regions_chr2))
     assert df.shape == (2, 6)
     assert df.equals(df2)
     regions = regions_chr1 + regions_chr2
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
-    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    df = stats_v3_dataset.read_variant_stats(regions=regions)
+    df2 = stats_v3_dataset.read_variant_stats(regions=reversed(regions))
     assert df.shape == (15, 6)
     assert contigs == list(df["contig"].values)
     assert df.equals(df2)
     regions = regions_chr2 + regions_chr1
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
-    df2 = test_stats_v3_ingestion.read_variant_stats(regions=reversed(regions))
+    df = stats_v3_dataset.read_variant_stats(regions=regions)
+    df2 = stats_v3_dataset.read_variant_stats(regions=reversed(regions))
     assert df.shape == (15, 6)
     assert contigs == list(df["contig"].values)
     assert df.equals(df2)
@@ -1496,7 +1397,7 @@ def test_ingest_with_stats_v3(
         1.0,
         1.0,
     ]
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    df = stats_v3_dataset.read_variant_stats(regions=regions)
     assert ac == list(df["ac"].values)
     assert an == list(df["an"].values)
     assert af == list(df["af"].values)
@@ -1519,7 +1420,7 @@ def test_ingest_with_stats_v3(
         0.125,
         0.125,
     ]
-    df = test_stats_v3_ingestion.read_variant_stats(
+    df = stats_v3_dataset.read_variant_stats(
         regions=regions,
         scan_all_samples=True,
     )
@@ -1545,7 +1446,7 @@ def test_ingest_with_stats_v3(
         "G,GTTTA",
         "G,GTTTA",
     ]
-    df = test_stats_v3_ingestion.read_variant_stats(regions=regions)
+    df = stats_v3_dataset.read_variant_stats(regions=regions)
     assert alleles == list(df["alleles"].values)
     alleles = [
         "T,C",
@@ -1559,7 +1460,7 @@ def test_ingest_with_stats_v3(
         "G,GTTTA",
         "G,GTTTA",
     ]
-    df = test_stats_v3_ingestion.read_variant_stats(
+    df = stats_v3_dataset.read_variant_stats(
         regions=regions,
         drop_ref=True,
     )
@@ -1571,57 +1472,57 @@ def test_ingest_with_stats_v3(
 
     # test errors
     with pytest.raises(Exception, match=no_parameter_error):
-        test_stats_v3_ingestion.read_allele_count()
+        stats_v3_dataset.read_allele_count()
     with pytest.raises(Exception, match=no_parameter_error):
-        test_stats_v3_ingestion.read_allele_count_arrow()
+        stats_v3_dataset.read_allele_count_arrow()
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_allele_count("chr1:1-100", regions=["chr1:1-100"])
+        stats_v3_dataset.read_allele_count("chr1:1-100", regions=["chr1:1-100"])
     with pytest.raises(Exception, match=exclusive_parameter_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(
+        stats_v3_dataset.read_allele_count_arrow(
             "chr1:1-100", regions=["chr1:1-100"]
         )
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count(regions=[""])
+        stats_v3_dataset.read_allele_count(regions=[""])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=[""])
+        stats_v3_dataset.read_allele_count_arrow(regions=[""])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count(regions=["chr1"])
+        stats_v3_dataset.read_allele_count(regions=["chr1"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=["chr1"])
+        stats_v3_dataset.read_allele_count_arrow(regions=["chr1"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count(regions=["chr1:-"])
+        stats_v3_dataset.read_allele_count(regions=["chr1:-"])
     with pytest.raises(Exception, match=format_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=["chr1:-"])
+        stats_v3_dataset.read_allele_count_arrow(regions=["chr1:-"])
     with pytest.raises(Exception, match=empty_contig_error):
-        test_stats_v3_ingestion.read_allele_count(regions=[":1-100"])
+        stats_v3_dataset.read_allele_count(regions=[":1-100"])
     with pytest.raises(Exception, match=empty_contig_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=[":1-100"])
+        stats_v3_dataset.read_allele_count_arrow(regions=[":1-100"])
     with pytest.raises(Exception, match=base_1_error):
-        test_stats_v3_ingestion.read_allele_count(regions=["chr1:0-100"])
+        stats_v3_dataset.read_allele_count(regions=["chr1:0-100"])
     with pytest.raises(Exception, match=base_1_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=["chr1:0-100"])
+        stats_v3_dataset.read_allele_count_arrow(regions=["chr1:0-100"])
     with pytest.raises(Exception, match=interval_error):
-        test_stats_v3_ingestion.read_allele_count(regions=["chr1:100-1"])
+        stats_v3_dataset.read_allele_count(regions=["chr1:100-1"])
     with pytest.raises(Exception, match=interval_error):
-        test_stats_v3_ingestion.read_allele_count_arrow(regions=["chr1:100-1"])
+        stats_v3_dataset.read_allele_count_arrow(regions=["chr1:100-1"])
 
     # test empty region
-    assert test_stats_v3_ingestion.read_allele_count(regions=["chr3:1-10000"]).empty
+    assert stats_v3_dataset.read_allele_count(regions=["chr3:1-10000"]).empty
 
     # test types and deprecated region parameter
     region1 = "chr1:1-10000"
     pos = (0, 1, 1, 2, 2, 2, 3)
     count = (8, 5, 3, 4, 2, 2, 1)
-    df = test_stats_v3_ingestion.read_allele_count(region1)
-    tbl = test_stats_v3_ingestion.read_allele_count_arrow(region1)
+    df = stats_v3_dataset.read_allele_count(region1)
+    tbl = stats_v3_dataset.read_allele_count_arrow(region1)
     assert isinstance(df, pd.DataFrame)
     assert isinstance(tbl, pa.Table)
     assert df.shape == (7, 7)
     assert df.equals(tbl.to_pandas())
     assert sum(df["pos"] == pos) == 7
     assert sum(df["count"] == count) == 7
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region1])
-    tbl = test_stats_v3_ingestion.read_allele_count_arrow(regions=[region1])
+    df = stats_v3_dataset.read_allele_count(regions=[region1])
+    tbl = stats_v3_dataset.read_allele_count_arrow(regions=[region1])
     assert isinstance(df, pd.DataFrame)
     assert isinstance(tbl, pa.Table)
     assert df.shape == (7, 7)
@@ -1631,63 +1532,63 @@ def test_ingest_with_stats_v3(
 
     # test a region on a different contig
     region2 = "chr2:1-10000"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region2])
-    tbl = test_stats_v3_ingestion.read_allele_count_arrow(regions=[region2])
+    df = stats_v3_dataset.read_allele_count(regions=[region2])
+    tbl = stats_v3_dataset.read_allele_count_arrow(regions=[region2])
     assert df.shape == (2, 7)
     assert df.equals(tbl.to_pandas())
 
     # test multiple regions from different contigs and their ordering
     regions = [region1, region2]
     contigs = ["chr1"] * 7 + ["chr2"] * 2
-    df = test_stats_v3_ingestion.read_allele_count(regions=regions)
+    df = stats_v3_dataset.read_allele_count(regions=regions)
     assert df.shape == (9, 7)
     assert contigs == list(df["contig"].values)
-    df2 = test_stats_v3_ingestion.read_allele_count(regions=reversed(regions))
+    df2 = stats_v3_dataset.read_allele_count(regions=reversed(regions))
     assert df.equals(df2)
-    tbl = test_stats_v3_ingestion.read_allele_count_arrow(regions=regions)
-    tbl2 = test_stats_v3_ingestion.read_allele_count_arrow(regions=reversed(regions))
+    tbl = stats_v3_dataset.read_allele_count_arrow(regions=regions)
+    tbl2 = stats_v3_dataset.read_allele_count_arrow(regions=reversed(regions))
     assert tbl.equals(tbl2)
     assert df.equals(tbl.to_pandas())
     assert df2.equals(tbl2.to_pandas())
 
     # test overlapping regions on different contigs and their order
     region1 = "chr1:1-1"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region1])
+    df = stats_v3_dataset.read_allele_count(regions=[region1])
     assert df.shape == (1, 7)
     region2 = "chr1:1-2"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region2])
+    df = stats_v3_dataset.read_allele_count(regions=[region2])
     assert df.shape == (3, 7)
     region3 = "chr1:3-4"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region3])
+    df = stats_v3_dataset.read_allele_count(regions=[region3])
     assert df.shape == (4, 7)
     region4 = "chr1:2-5"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region4])
+    df = stats_v3_dataset.read_allele_count(regions=[region4])
     assert df.shape == (6, 7)
     regions_chr1 = [region1, region2, region3, region4]
-    df = test_stats_v3_ingestion.read_allele_count(regions=regions_chr1)
-    df2 = test_stats_v3_ingestion.read_allele_count(regions=reversed(regions_chr1))
+    df = stats_v3_dataset.read_allele_count(regions=regions_chr1)
+    df2 = stats_v3_dataset.read_allele_count(regions=reversed(regions_chr1))
     assert df.shape == (7, 7)
     assert df.equals(df2)
     region5 = "chr2:1-1"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region5])
+    df = stats_v3_dataset.read_allele_count(regions=[region5])
     assert df.shape == (1, 7)
     region6 = "chr2:3-3"
-    df = test_stats_v3_ingestion.read_allele_count(regions=[region6])
+    df = stats_v3_dataset.read_allele_count(regions=[region6])
     assert df.shape == (1, 7)
     regions_chr2 = [region5, region6]
-    df = test_stats_v3_ingestion.read_allele_count(regions=regions_chr2)
-    df2 = test_stats_v3_ingestion.read_allele_count(regions=reversed(regions_chr2))
+    df = stats_v3_dataset.read_allele_count(regions=regions_chr2)
+    df2 = stats_v3_dataset.read_allele_count(regions=reversed(regions_chr2))
     assert df.shape == (2, 7)
     assert df.equals(df2)
     regions = regions_chr1 + regions_chr2
-    df = test_stats_v3_ingestion.read_allele_count(regions=regions)
-    df2 = test_stats_v3_ingestion.read_allele_count(regions=reversed(regions))
+    df = stats_v3_dataset.read_allele_count(regions=regions)
+    df2 = stats_v3_dataset.read_allele_count(regions=reversed(regions))
     assert df.shape == (9, 7)
     assert contigs == list(df["contig"].values)
     assert df.equals(df2)
     regions = regions_chr2 + regions_chr1
-    df = test_stats_v3_ingestion.read_allele_count(regions=regions)
-    df2 = test_stats_v3_ingestion.read_allele_count(regions=reversed(regions))
+    df = stats_v3_dataset.read_allele_count(regions=regions)
+    df2 = stats_v3_dataset.read_allele_count(regions=reversed(regions))
     assert df.shape == (9, 7)
     assert contigs == list(df["contig"].values)
     assert df.equals(df2)
@@ -1703,7 +1604,7 @@ def test_ingest_with_stats_v3(
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    df = test_stats_v3_ingestion.read_variant_stats(region)
+    df = stats_v3_dataset.read_variant_stats(region)
     assert df.shape == (13, 6)
 
 
@@ -1713,11 +1614,11 @@ def test_ingest_with_stats_v3(
     and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_delete_samples(tmp_path, test_stats_v3_ingestion, test_stats_sample_names):
-    #    assert test_stats_v3_ingestion.samples() == test_stats_sample_names
-    assert "second" in test_stats_sample_names
-    assert "fifth" in test_stats_sample_names
-    assert "third" in test_stats_sample_names
+def test_delete_samples(tmp_path, stats_v3_dataset, stats_sample_names):
+    #    assert stats_v3_dataset.samples() == stats_sample_names
+    assert "second" in stats_sample_names
+    assert "fifth" in stats_sample_names
+    assert "third" in stats_sample_names
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     # tiledbvcf.config_logging("trace")
     ds.delete_samples(["second", "fifth"])
@@ -1735,30 +1636,12 @@ def test_delete_samples(tmp_path, test_stats_v3_ingestion, test_stats_sample_nam
     and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_ingest_with_stats_v2(tmp_path):
+def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
     # tiledbvcf.config_logging("debug")
-    tmp_path_contents = os.listdir(tmp_path)
-    if "stats" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "stats"))
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
     )
-    raw_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
-    for vcf_file in raw_inputs:
-        subprocess.run(
-            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
-            shell=True,
-            check=True,
-        )
-    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "stats", "*.gz"))
-    # print(f"bgzipped inputs: {bgzipped_inputs}")
-    for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
-    if "outputs" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "outputs"))
-    if "stats_test" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "stats_test"))
+    bgzipped_inputs = bgzip_and_index_vcfs(os.path.join(tmp_path, "stats"))
     # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
@@ -1813,31 +1696,11 @@ def test_ingest_with_stats_v2(tmp_path):
     and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_ingest_polyploid(tmp_path):
-    tmp_path_contents = os.listdir(tmp_path)
-    if "polyploid" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "polyploid"))
+def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
     )
-    raw_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.vcf"))
-    # print(f"raw inputs: {raw_inputs}")
-    for vcf_file in raw_inputs:
-        subprocess.run(
-            "bcftools view --no-version -Oz -o " + vcf_file + ".gz " + vcf_file,
-            shell=True,
-            check=True,
-        )
-    bgzipped_inputs = glob.glob(os.path.join(tmp_path, "polyploid", "*.gz"))
-    # print(f"bgzipped inputs: {bgzipped_inputs}")
-    for vcf_file in bgzipped_inputs:
-        assert subprocess.run("bcftools index " + vcf_file, shell=True).returncode == 0
-    if "polyploid" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "polyploid"))
-    if "outputs" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "outputs"))
-    if "polyploid_test" in tmp_path_contents:
-        shutil.rmtree(os.path.join(tmp_path, "polyploid_test"))
+    bgzipped_inputs = bgzip_and_index_vcfs(os.path.join(tmp_path, "polyploid"))
     # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
@@ -2028,7 +1891,7 @@ def test_sample_compression(tmp_path, compress):
     ds = tiledbvcf.Dataset(dataset_uri, mode="w")
     ds.create_dataset(compress_sample_dim=compress)
 
-    check_if_compatible(array_uri)
+    skip_if_incompatible(array_uri)
 
     # Check for the presence of the Zstd filter
     found_zstd = False
@@ -2047,7 +1910,7 @@ def test_compression_level(tmp_path, level):
     ds = tiledbvcf.Dataset(dataset_uri, mode="w")
     ds.create_dataset(compression_level=level)
 
-    check_if_compatible(array_uri)
+    skip_if_incompatible(array_uri)
 
     # Check for the expected compression level
     with tiledb.open(array_uri) as A:
@@ -2065,19 +1928,10 @@ def test_compression_level(tmp_path, level):
     and shutil.which("bcftools") is None,
     reason="no bcftools",
 )
-def test_gvcf_export(tmp_path):
-    # Compress the input VCFs
-    vcf_inputs = glob.glob(os.path.join(TESTS_INPUT_DIR, "gvcf-export", "*.vcf"))
-    for vcf_input in vcf_inputs:
-        vcf_output = os.path.join(tmp_path, os.path.basename(vcf_input)) + ".gz"
-        cmd = f"bcftools view --no-version -Oz -o {vcf_output} {vcf_input}"
-        subprocess.run(cmd, shell=True, check=True)
-
-    # Index the compressed VCFs
-    vcf_files = glob.glob(os.path.join(tmp_path, "*.gz"))
-    for vcf_file in vcf_files:
-        cmd = f"bcftools index {vcf_file}"
-        subprocess.run(cmd, shell=True, check=True)
+def test_gvcf_export(tmp_path, bgzip_and_index_vcfs):
+    vcf_files = bgzip_and_index_vcfs(
+        os.path.join(TESTS_INPUT_DIR, "gvcf-export"), output_dir=str(tmp_path)
+    )
 
     # Ingest the VCFs
     uri = os.path.join(tmp_path, "vcf.tdb")
@@ -2140,7 +1994,7 @@ def test_flag_export(tmp_path):
     assert df["info_DS"].tolist() == expected_ds
 
 
-def test_bed_filestore(tmp_path, test_ds_v4):
+def test_bed_filestore(tmp_path, v4_dataset):
     # tiledbvcf.config_logging("debug")
 
     expected_df = pd.DataFrame(
@@ -2196,7 +2050,7 @@ def test_bed_filestore(tmp_path, test_ds_v4):
 
     # Create the dataset
     for use_arrow in [False, True]:
-        func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read
+        func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
 
         df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_filestore)
         if use_arrow:
@@ -2204,13 +2058,13 @@ def test_bed_filestore(tmp_path, test_ds_v4):
 
         # print(df)
 
-        _check_dfs(
+        assert_dfs_equal(
             expected_df,
             df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
         )
 
 
-def test_bed_array(tmp_path, test_ds_v4):
+def test_bed_array(tmp_path, v4_dataset):
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -2268,13 +2122,13 @@ def test_bed_array(tmp_path, test_ds_v4):
 
     # Create the dataset
     for use_arrow in [False, True]:
-        func = test_ds_v4.read_arrow if use_arrow else test_ds_v4.read
+        func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
 
         df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_array)
         if use_arrow:
             df = df.to_pandas()
 
-        _check_dfs(
+        assert_dfs_equal(
             expected_df,
             df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
         )
@@ -2463,7 +2317,7 @@ def test_info_end(tmp_path):
     df.drop(columns=["sample_name", "pos_start"], inplace=True)
 
     # Check the results
-    _check_dfs(df, expected_end)
+    assert_dfs_equal(df, expected_end)
 
 
 def test_context_manager():
