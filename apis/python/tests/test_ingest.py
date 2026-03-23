@@ -526,3 +526,102 @@ def test_vcf_attrs(tmp_path):
     assert ds.attributes(attr_type="info") == []
     assert ds.attributes(attr_type="fmt") == []
     assert sorted(ds.attributes()) == sorted(queryable_attrs)
+
+
+def test_create_dataset_extra_attrs(tmp_path):
+    """extra_attrs causes those fmt fields to appear in the queryable attribute list."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(extra_attrs=["fmt_GT", "fmt_DP"])
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    attrs = ds.attributes()
+    assert "fmt_GT" in attrs
+    assert "fmt_DP" in attrs
+
+
+def test_create_dataset_extra_attrs_and_vcf_attrs_raises(tmp_path):
+    """Providing both extra_attrs and vcf_attrs raises an exception."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    vcf_uri = os.path.join(TESTS_INPUT_DIR, "v2-DjrIAzkP-downsampled.vcf.gz")
+    with pytest.raises(Exception, match="Cannot provide both extra_attrs and vcf_attrs"):
+        ds.create_dataset(extra_attrs=["fmt_GT"], vcf_attrs=vcf_uri)
+
+
+def test_create_dataset_invalid_checksum_type_raises(tmp_path):
+    """An unrecognised checksum_type raises an exception before touching disk."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    with pytest.raises(Exception, match="Invalid checksum_type"):
+        ds.create_dataset(checksum_type="crc32")
+
+
+def test_create_dataset_checksum_md5(tmp_path):
+    """checksum_type='md5' creates a usable dataset."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(checksum_type="md5")
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
+
+
+def test_create_dataset_already_exists_raises(tmp_path):
+    """Calling create_dataset() a second time on the same URI raises an exception."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+
+    ds2 = tiledbvcf.Dataset(uri, mode="w")
+    with pytest.raises(Exception):
+        ds2.create_dataset()
+
+
+def test_create_dataset_tile_capacity(tmp_path):
+    """A custom tile_capacity creates a usable dataset."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(tile_capacity=100)
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
+
+
+def test_create_dataset_anchor_gap(tmp_path):
+    """A custom anchor_gap creates a usable dataset."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(anchor_gap=500)
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
+
+
+def test_create_dataset_allow_duplicates_false(tmp_path):
+    """allow_duplicates=False creates a usable dataset and rejects duplicate ingestion."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(allow_duplicates=False)
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
+
+
+def test_create_dataset_variant_stats_version2(tmp_path):
+    """variant_stats_version=2 (the default) creates a usable dataset."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(enable_variant_stats=True, variant_stats_version=2)
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
+    )
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    df = ds.read_variant_stats("1:1-200000")
+    assert len(df) > 0
