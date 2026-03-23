@@ -104,7 +104,8 @@ def test_read_attrs(v3_dataset_with_attrs):
     assert df.columns.values.tolist() == attrs
 
 
-def test_basic_reads(v3_dataset):
+@pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
+def test_basic_reads(v3_dataset, use_arrow):
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -166,17 +167,14 @@ def test_basic_reads(v3_dataset):
         }
     ).sort_values(ignore_index=True, by=["sample_name", "pos_start"])
 
-    for use_arrow in [False, True]:
-        func = v3_dataset.read_arrow if use_arrow else v3_dataset.read
-
-        df = func(attrs=["sample_name", "pos_start", "pos_end"])
-        if use_arrow:
-            df = df.to_pandas()
-
-        assert_dfs_equal(
-            expected_df,
-            df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
-        )
+    func = v3_dataset.read_arrow if use_arrow else v3_dataset.read
+    df = func(attrs=["sample_name", "pos_start", "pos_end"])
+    if use_arrow:
+        df = df.to_pandas()
+    assert_dfs_equal(
+        expected_df,
+        df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
+    )
 
     # Region intersection
     df = v3_dataset.read(
@@ -1892,7 +1890,8 @@ def test_flag_export(tmp_path):
     assert df["info_DS"].tolist() == expected_ds
 
 
-def test_bed_filestore(tmp_path, v4_dataset):
+@pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
+def test_bed_filestore(tmp_path, v4_dataset, use_arrow):
     # tiledbvcf.config_logging("debug")
 
     expected_df = pd.DataFrame(
@@ -1946,23 +1945,18 @@ def test_bed_filestore(tmp_path, v4_dataset):
     tiledb.Array.create(bed_filestore, tiledb.ArraySchema.from_file(bed_file))
     tiledb.Filestore.copy_from(bed_filestore, bed_file)
 
-    # Create the dataset
-    for use_arrow in [False, True]:
-        func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
-
-        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_filestore)
-        if use_arrow:
-            df = df.to_pandas()
-
-        # print(df)
-
-        assert_dfs_equal(
-            expected_df,
-            df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
-        )
+    func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
+    df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_filestore)
+    if use_arrow:
+        df = df.to_pandas()
+    assert_dfs_equal(
+        expected_df,
+        df.sort_values(ignore_index=True, by=["sample_name", "pos_start"]),
+    )
 
 
-def test_bed_array(tmp_path, v4_dataset):
+@pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
+def test_bed_array(tmp_path, v4_dataset, use_arrow):
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -2018,13 +2012,10 @@ def test_bed_array(tmp_path, v4_dataset):
         A.meta["alias start"] = "chromStart"
         A.meta["alias end"] = "chromEnd"
 
-    # Create the dataset
-    for use_arrow in [False, True]:
-        func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
-
-        df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_array)
-        if use_arrow:
-            df = df.to_pandas()
+    func = v4_dataset.read_arrow if use_arrow else v4_dataset.read
+    df = func(attrs=["sample_name", "pos_start", "pos_end"], bed_file=bed_array)
+    if use_arrow:
+        df = df.to_pandas()
 
         assert_dfs_equal(
             expected_df,
