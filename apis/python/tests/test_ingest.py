@@ -733,3 +733,17 @@ def test_ingest_samples_memory_and_thread_params(tmp_path):
 
     ds = tiledbvcf.Dataset(uri, mode="r")
     assert ds.count() == 3
+
+
+def test_ingest_samples_total_memory_percentage(tmp_path):
+    """total_memory_percentage= is accepted and produces correct results."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+        total_memory_percentage=0.5,
+    )
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
