@@ -625,3 +625,122 @@ def test_create_dataset_variant_stats_version2(tmp_path):
     ds = tiledbvcf.Dataset(uri, mode="r")
     df = ds.read_variant_stats("1:1-200000")
     assert len(df) > 0
+
+
+def test_ingest_samples_none_is_noop(tmp_path):
+    """Calling ingest_samples() with sample_uris=None returns without error."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples()
+    ds.ingest_samples(sample_uris=None)
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 0
+
+
+def test_ingest_samples_scratch_space_path_only_raises(tmp_path):
+    """Providing scratch_space_path without scratch_space_size raises."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="Must set both scratch_space_path and scratch_space_size"):
+        ds.ingest_samples(
+            [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+            scratch_space_path=str(tmp_path),
+        )
+
+
+def test_ingest_samples_scratch_space_size_only_raises(tmp_path):
+    """Providing scratch_space_size without scratch_space_path raises."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="Must set both scratch_space_path and scratch_space_size"):
+        ds.ingest_samples(
+            [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+            scratch_space_size=1024,
+        )
+
+
+def test_ingest_samples_invalid_contig_mode_raises(tmp_path):
+    """An unrecognised contig_mode raises before ingestion starts."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="contig_mode must be"):
+        ds.ingest_samples(
+            [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+            contig_mode="invalid",
+        )
+
+
+def test_ingest_samples_contigs_to_keep_separate_not_list_raises(tmp_path):
+    """Passing a non-list for contigs_to_keep_separate raises."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="contigs_to_keep_separate must be a list"):
+        ds.ingest_samples(
+            [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+            contigs_to_keep_separate="1",
+        )
+
+
+def test_ingest_samples_contigs_to_allow_merging_not_list_raises(tmp_path):
+    """Passing a non-list for contigs_to_allow_merging raises."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="contigs_to_allow_merging must be a list"):
+        ds.ingest_samples(
+            [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+            contigs_to_allow_merging="1",
+        )
+
+
+def test_ingest_samples_resume(tmp_path):
+    """resume=True is accepted and produces the same result as a normal ingest."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+        resume=True,
+    )
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
+
+
+def test_ingest_samples_sample_batch_size(tmp_path):
+    """sample_batch_size=1 with 2 samples produces 2 fragments (one per batch)."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
+    ds.create_dataset()
+    ds.ingest_samples(samples, sample_batch_size=1)
+
+    data_uri = tiledb.Group(uri)["data"].uri
+    assert len(tiledb.array_fragments(data_uri)) == 2
+
+
+def test_ingest_samples_memory_and_thread_params(tmp_path):
+    """Memory and thread tuning parameters are accepted and produce correct results."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, "small.bcf")],
+        threads=2,
+        total_memory_budget_mb=512,
+        ratio_tiledb_memory=0.5,
+        max_tiledb_memory_mb=256,
+        input_record_buffer_mb=2,
+        avg_vcf_record_size=512,
+        ratio_task_size=0.5,
+        ratio_output_flush=0.5,
+    )
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    assert ds.count() == 3
