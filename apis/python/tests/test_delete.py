@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import tiledb
 import tiledbvcf
 
 from .conftest import skip_if_no_bcftools, TESTS_INPUT_DIR
@@ -12,14 +13,28 @@ def test_delete_dataset(tmp_path):
     with tiledbvcf.Dataset(uri, mode="w") as ds:
         ds.create_dataset()
 
-    # Check that the dataset exists
     assert os.path.exists(uri)
-
-    # Delete the dataset
     tiledbvcf.Dataset.delete(uri)
-
-    # Check that the dataset does not exist
     assert not os.path.exists(uri)
+
+
+def test_delete_dataset_with_config(tmp_path):
+    """config parameter is accepted and the dataset is still deleted."""
+    uri = os.path.join(tmp_path, "delete_dataset")
+
+    with tiledbvcf.Dataset(uri, mode="w") as ds:
+        ds.create_dataset()
+
+    assert os.path.exists(uri)
+    tiledbvcf.Dataset.delete(uri, config={"sm.tile_cache_size": "0"})
+    assert not os.path.exists(uri)
+
+
+def test_delete_dataset_nonexistent_uri_raises(tmp_path):
+    """Deleting a URI that does not exist raises TileDBError."""
+    uri = os.path.join(tmp_path, "nonexistent")
+    with pytest.raises(tiledb.TileDBError):
+        tiledbvcf.Dataset.delete(uri)
 
 
 @skip_if_no_bcftools
