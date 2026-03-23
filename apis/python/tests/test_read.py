@@ -8,6 +8,13 @@ import tiledbvcf
 
 from .conftest import assert_dfs_equal, skip_if_incompatible, TESTS_INPUT_DIR
 
+def test_invalid_mode_raises():
+    """An unrecognised mode string raises at construction time."""
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    with pytest.raises(Exception, match="Unsupported dataset mode"):
+        tiledbvcf.Dataset(uri, mode="x")
+
+
 def test_basic_count(v3_dataset):
     assert v3_dataset.count() == 14
 
@@ -821,6 +828,8 @@ def test_read_null_attrs(tmp_path):
     assert_dfs_equal(
         expected_df, df.sort_values(ignore_index=True, by=["sample_name", "pos_start"])
     )
+
+
 def test_context_manager():
     ds1_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
     expected_count1 = 14
