@@ -55,6 +55,36 @@ def test_read_with_scan_all_samples(stats_v3_dataset, stats_sample_names):
 
 
 @skip_if_no_bcftools
+def test_read_with_af_filter_and_scan_all_samples(stats_v3_dataset, stats_sample_names):
+    """set_af_filter and scan_all_samples can be combined.
+    scan_all_samples normalises AF across all samples, so more variants pass
+    the filter compared to using set_af_filter alone."""
+    attrs = ["contig", "pos_start", "sample_name"]
+
+    df_filter_only = stats_v3_dataset.read(
+        samples=stats_sample_names,
+        attrs=attrs,
+        set_af_filter="<0.2",
+    )
+
+    df = stats_v3_dataset.read(
+        samples=stats_sample_names,
+        attrs=attrs,
+        set_af_filter="<0.2",
+        scan_all_samples=True,
+    )
+    assert len(df) > len(df_filter_only)
+
+    tbl = stats_v3_dataset.read_arrow(
+        samples=stats_sample_names,
+        attrs=attrs,
+        set_af_filter="<0.2",
+        scan_all_samples=True,
+    )
+    assert tbl.to_pandas().equals(df)
+
+
+@skip_if_no_bcftools
 def test_variant_stats_parameter_errors(stats_v3_dataset):
     no_region = '"region" or "regions" parameter is required'
     exclusive = '"region" and "regions" parameters are mutually exclusive'
