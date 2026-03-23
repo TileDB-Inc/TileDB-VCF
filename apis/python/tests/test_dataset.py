@@ -80,6 +80,14 @@ def test_retrieve_attributes(v3_dataset):
     assert v3_dataset.attributes(attr_type="fmt") == fmt_attrs
 
 
+def test_retrieve_attributes_invalid_type_raises(v3_dataset):
+    """attributes() raises for an unrecognised attr_type.
+    Note: the implementation uses '% attr_types' where attr_types is a tuple, so
+    Python raises TypeError instead of the intended ValueError."""
+    with pytest.raises(TypeError):
+        v3_dataset.attributes(attr_type="unknown")
+
+
 def test_retrieve_samples(v3_dataset):
     assert v3_dataset.samples() == ["HG00280", "HG01762"]
 
