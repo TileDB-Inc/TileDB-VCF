@@ -195,6 +195,21 @@ def test_tiledb_stats_raises_when_not_enabled():
         ds.tiledb_stats()
 
 
+def test_deprecated_tiledbvcfdataset_warns(v3_dataset):
+    """Constructing TileDBVCFDataset emits a DeprecationWarning."""
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    with pytest.warns(DeprecationWarning, match="TileDBVCFDataset is deprecated"):
+        tiledbvcf.TileDBVCFDataset(uri, mode="r")
+
+
+def test_deprecated_tiledbvcfdataset_is_functional(v3_dataset):
+    """TileDBVCFDataset still works as a Dataset after construction."""
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    with pytest.warns(DeprecationWarning):
+        ds = tiledbvcf.TileDBVCFDataset(uri, mode="r")
+    assert ds.count() == 14
+
+
 def test_tiledb_stats_read_mode(v3_dataset):
     """tiledb_stats() returns a non-empty JSON string after a read operation."""
     v3_dataset.count()
