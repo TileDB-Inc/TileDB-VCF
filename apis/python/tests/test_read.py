@@ -368,6 +368,62 @@ def test_incomplete_reads():
     )
 
 
+def test_continue_read_release_buffers_false():
+    # Using undocumented "0 MB" budget to force batched reads.
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
+    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+
+    df = ds.read(attrs=["pos_end"], regions=["1:12700-13400"])
+    assert not ds.read_completed()
+    assert list(df["pos_end"]) == [12771, 12771]
+
+    # With release_buffers=False the previous buffer is not cleared.
+    # The result contains the unreleased batch alongside the new batch
+    # as two columns both named "pos_end".
+    df = ds.continue_read(release_buffers=False)
+    assert not ds.read_completed()
+    assert df.columns.tolist() == ["pos_end", "pos_end"]
+    assert list(df.iloc[:, 0]) == [12771, 12771]    # previous batch (unreleased)
+    assert list(df.iloc[:, 1]) == [13374, 13389]    # new batch
+
+    df = ds.continue_read(release_buffers=False)
+    assert ds.read_completed()
+    # Both previous unreleased batches accumulate alongside the new one.
+    assert df.columns.tolist() == ["pos_end", "pos_end", "pos_end"]
+    assert list(df.iloc[:, 0]) == [12771, 12771]    # batch 1 (still unreleased)
+    assert list(df.iloc[:, 1]) == [13374, 13389]    # batch 2 (unreleased)
+    assert list(df.iloc[:, 2]) == [13395, 13413]    # new batch
+
+
+def test_continue_read_arrow_release_buffers_false():
+    # Using undocumented "0 MB" budget to force batched reads.
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
+    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
+
+    table = ds.read_arrow(attrs=["pos_end"], regions=["1:12700-13400"])
+    assert not ds.read_completed()
+    assert table.column("pos_end").to_pylist() == [12771, 12771]
+
+    # With release_buffers=False the previous buffer is not cleared.
+    # The result contains the unreleased batch alongside the new batch
+    # as two columns both named "pos_end".
+    table = ds.continue_read_arrow(release_buffers=False)
+    assert not ds.read_completed()
+    assert table.schema.names == ["pos_end", "pos_end"]
+    assert table.column(0).to_pylist() == [12771, 12771]    # previous batch (unreleased)
+    assert table.column(1).to_pylist() == [13374, 13389]    # new batch
+
+    table = ds.continue_read_arrow(release_buffers=False)
+    assert ds.read_completed()
+    # Both previous unreleased batches accumulate alongside the new one.
+    assert table.schema.names == ["pos_end", "pos_end", "pos_end"]
+    assert table.column(0).to_pylist() == [12771, 12771]    # batch 1 (still unreleased)
+    assert table.column(1).to_pylist() == [13374, 13389]    # batch 2 (unreleased)
+    assert table.column(2).to_pylist() == [13395, 13413]    # new batch
+
+
 def test_incomplete_read_generator():
     # Using undocumented "0 MB" budget to test incomplete reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
