@@ -83,6 +83,23 @@ def test_retrieve_samples(v3_dataset):
     assert v3_dataset.samples() == ["HG00280", "HG01762"]
 
 
+def test_sample_count(v3_dataset, v4_dataset):
+    """sample_count() returns the number of samples, consistent with len(samples())."""
+    assert v3_dataset.sample_count() == 2
+    assert v3_dataset.sample_count() == len(v3_dataset.samples())
+    assert v4_dataset.sample_count() == 2
+    assert v4_dataset.sample_count() == len(v4_dataset.samples())
+
+
+def test_sample_count_write_mode_raises(tmp_path):
+    """sample_count() raises when the dataset is open in write mode."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    with pytest.raises(Exception, match="Samples can only be retrieved for reader"):
+        ds.sample_count()
+
+
 def test_multiple_counts(v3_dataset):
     assert v3_dataset.count() == 14
     assert v3_dataset.count() == 14
