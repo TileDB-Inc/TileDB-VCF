@@ -360,6 +360,32 @@ def test_incomplete_read_generator():
     assert_dfs_equal(expected_df, overall_df)
 
 
+def test_read_iter_samples_file(tmp_path, v3_dataset):
+    """samples_file= restricts read_iter to the samples listed in the file."""
+    samples_file = str(tmp_path / "samples.txt")
+    with open(samples_file, "w") as f:
+        f.write("HG00280\n")
+
+    dfs = []
+    for df in v3_dataset.read_iter(attrs=["sample_name"], samples_file=samples_file):
+        dfs.append(df)
+    result = pd.concat(dfs, ignore_index=True)
+    assert set(result["sample_name"]) == {"HG00280"}
+
+
+def test_read_iter_bed_file(tmp_path, v3_dataset):
+    """bed_file= restricts read_iter to genomic regions defined in the BED file."""
+    bed_file = str(tmp_path / "regions.bed")
+    with open(bed_file, "w") as f:
+        f.write("1\t12700\t13400\n")
+
+    dfs = []
+    for df in v3_dataset.read_iter(attrs=["pos_end"], bed_file=bed_file):
+        dfs.append(df)
+    result = pd.concat(dfs, ignore_index=True)
+    assert len(result) == 6
+
+
 def test_read_filters(v3_dataset):
     df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "filters"],
