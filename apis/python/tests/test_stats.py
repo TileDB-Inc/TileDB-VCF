@@ -76,18 +76,19 @@ def test_variant_stats_return_types(stats_v3_dataset):
     # Both the deprecated positional `region` parameter and the `regions` list
     # should return a DataFrame / Arrow Table of the same shape and content.
     region = "chr1:1-10000"
-    for kwargs in [{"region": region}, {"regions": [region]}]:
-        # Workaround: read_variant_stats takes region as positional-or-keyword
-        if "region" in kwargs:
-            df = stats_v3_dataset.read_variant_stats(kwargs["region"])
-            tbl = stats_v3_dataset.read_variant_stats_arrow(kwargs["region"])
-        else:
-            df = stats_v3_dataset.read_variant_stats(**kwargs)
-            tbl = stats_v3_dataset.read_variant_stats_arrow(**kwargs)
-        assert isinstance(df, pd.DataFrame)
-        assert isinstance(tbl, pa.Table)
-        assert df.shape == (13, 6)
-        assert df.equals(tbl.to_pandas())
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        for kwargs in [{"region": region}, {"regions": [region]}]:
+            # Workaround: read_variant_stats takes region as positional-or-keyword
+            if "region" in kwargs:
+                df = stats_v3_dataset.read_variant_stats(kwargs["region"])
+                tbl = stats_v3_dataset.read_variant_stats_arrow(kwargs["region"])
+            else:
+                df = stats_v3_dataset.read_variant_stats(**kwargs)
+                tbl = stats_v3_dataset.read_variant_stats_arrow(**kwargs)
+            assert isinstance(df, pd.DataFrame)
+            assert isinstance(tbl, pa.Table)
+            assert df.shape == (13, 6)
+            assert df.equals(tbl.to_pandas())
 
 
 @skip_if_no_bcftools
@@ -215,19 +216,20 @@ def test_allele_count_return_types(stats_v3_dataset):
     expected_pos = (0, 1, 1, 2, 2, 2, 3)
     expected_count = (8, 5, 3, 4, 2, 2, 1)
 
-    for kwargs in [{"region": region}, {"regions": [region]}]:
-        if "region" in kwargs:
-            df = stats_v3_dataset.read_allele_count(kwargs["region"])
-            tbl = stats_v3_dataset.read_allele_count_arrow(kwargs["region"])
-        else:
-            df = stats_v3_dataset.read_allele_count(**kwargs)
-            tbl = stats_v3_dataset.read_allele_count_arrow(**kwargs)
-        assert isinstance(df, pd.DataFrame)
-        assert isinstance(tbl, pa.Table)
-        assert df.shape == (7, 7)
-        assert df.equals(tbl.to_pandas())
-        assert sum(df["pos"] == expected_pos) == 7
-        assert sum(df["count"] == expected_count) == 7
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        for kwargs in [{"region": region}, {"regions": [region]}]:
+            if "region" in kwargs:
+                df = stats_v3_dataset.read_allele_count(kwargs["region"])
+                tbl = stats_v3_dataset.read_allele_count_arrow(kwargs["region"])
+            else:
+                df = stats_v3_dataset.read_allele_count(**kwargs)
+                tbl = stats_v3_dataset.read_allele_count_arrow(**kwargs)
+            assert isinstance(df, pd.DataFrame)
+            assert isinstance(tbl, pa.Table)
+            assert df.shape == (7, 7)
+            assert df.equals(tbl.to_pandas())
+            assert sum(df["pos"] == expected_pos) == 7
+            assert sum(df["count"] == expected_count) == 7
 
 
 @skip_if_no_bcftools
@@ -284,12 +286,14 @@ def test_allele_count_overlapping_regions(stats_v3_dataset):
 def test_allele_frequency(stats_v3_dataset, tmp_path):
     # Verify that ac / af ≈ an (i.e. allele frequency is consistent with counts).
     region = "chr1:1-10000"
-    df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), region
-    )
+    # read_allele_frequency internally uses the deprecated `region` parameter.
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        df = tiledbvcf.allele_frequency.read_allele_frequency(
+            os.path.join(tmp_path, "stats_test"), region
+        )
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    assert stats_v3_dataset.read_variant_stats(region).shape == (13, 6)
+    assert stats_v3_dataset.read_variant_stats(regions=[region]).shape == (13, 6)
 
 

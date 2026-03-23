@@ -310,17 +310,19 @@ def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
         == 0.9375
     )
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    df = ds.read_variant_stats("chr1:1-10000")
+    df = ds.read_variant_stats(regions=["chr1:1-10000"])
     assert df.shape == (13, 6)
-    df = tiledbvcf.allele_frequency.read_allele_frequency(
-        os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
-    )
+    # read_allele_frequency internally uses the deprecated `region` parameter.
+    with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
+        df = tiledbvcf.allele_frequency.read_allele_frequency(
+            os.path.join(tmp_path, "stats_test"), "chr1:1-10000"
+        )
     assert df.pos.is_monotonic_increasing
     df["an_check"] = (df.ac / df.af).round(0).astype("int32")
     assert df.an_check.equals(df.an)
-    df = ds.read_variant_stats("chr1:1-10000")
+    df = ds.read_variant_stats(regions=["chr1:1-10000"])
     assert df.shape == (13, 6)
-    df = ds.read_allele_count("chr1:1-10000")
+    df = ds.read_allele_count(regions=["chr1:1-10000"])
     assert df.shape == (7, 7)
     assert sum(df["pos"] == (0, 1, 1, 2, 2, 2, 3)) == 7
     assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
@@ -610,7 +612,7 @@ def test_create_dataset_variant_stats_version2(tmp_path):
     )
 
     ds = tiledbvcf.Dataset(uri, mode="r")
-    df = ds.read_variant_stats("1:1-200000")
+    df = ds.read_variant_stats(regions=["1:1-200000"])
     assert len(df) > 0
 
 
