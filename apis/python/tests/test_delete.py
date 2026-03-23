@@ -86,3 +86,15 @@ def test_delete_samples_nonexistent_raises(tmp_path):
     ds = tiledbvcf.Dataset(uri, mode="w")
     with pytest.raises(RuntimeError, match="Sample not found in dataset"):
         ds.delete_samples(["NONEXISTENT"])
+
+
+def test_delete_samples_read_mode_raises(tmp_path):
+    """delete_samples() raises when the dataset is open in read mode."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset()
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+
+    ds = tiledbvcf.Dataset(uri, mode="r")
+    with pytest.raises(Exception, match="Dataset not open in write mode"):
+        ds.delete_samples(["HG00280"])
