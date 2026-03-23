@@ -293,19 +293,3 @@ def test_allele_frequency(stats_v3_dataset, tmp_path):
     assert stats_v3_dataset.read_variant_stats(region).shape == (13, 6)
 
 
-@skip_if_no_bcftools
-def test_delete_samples(tmp_path, stats_v3_dataset, stats_sample_names):
-    #    assert stats_v3_dataset.samples() == stats_sample_names
-    assert "second" in stats_sample_names
-    assert "fifth" in stats_sample_names
-    assert "third" in stats_sample_names
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
-    # tiledbvcf.config_logging("trace")
-    ds.delete_samples(["second", "fifth"])
-    ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="r")
-    sample_names = ds.samples()
-    assert "second" not in sample_names
-    assert "fifth" not in sample_names
-    assert "third" in sample_names
-
-

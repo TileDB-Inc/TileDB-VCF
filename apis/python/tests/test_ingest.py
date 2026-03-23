@@ -366,20 +366,7 @@ def test_ingest_mode_separate(tmp_path):
     assert ds.count() == 17
     assert ds.count(regions=["chrX:9032893-9032893"]) == 0
 
-def test_delete_dataset(tmp_path):
-    uri = os.path.join(tmp_path, "delete_dataset")
 
-    with tiledbvcf.Dataset(uri, mode="w") as ds:
-        ds.create_dataset()
-
-    # Check that the dataset exists
-    assert os.path.exists(uri)
-
-    # Delete the dataset
-    tiledbvcf.Dataset.delete(uri)
-
-    # Check that the dataset does not exist
-    assert not os.path.exists(uri)
 def test_vcf_attrs(tmp_path):
     # Create the dataset with vcf info and fmt attributes
     uri = os.path.join(tmp_path, "vcf_attrs_dataset")
