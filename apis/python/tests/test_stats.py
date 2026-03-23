@@ -7,7 +7,7 @@ import pyarrow as pa
 import pytest
 import tiledbvcf
 
-from .conftest import skip_if_no_bcftools, TESTS_INPUT_DIR
+from .conftest import skip_if_no_bcftools, TESTS_INPUT_DIR, assert_dfs_equal
 
 @skip_if_no_bcftools
 def test_read_with_af_filter(stats_v3_dataset, stats_sample_names):
@@ -297,3 +297,32 @@ def test_allele_frequency(stats_v3_dataset, tmp_path):
     assert stats_v3_dataset.read_variant_stats(regions=[region]).shape == (13, 6)
 
 
+def test_sample_qc_samples_parameter(tmp_path):
+    """samples= restricts QC output to only the specified samples."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
+    )
+
+    qc_all = tiledbvcf.sample_qc(uri)
+    assert set(qc_all["sample"]) == {"HG00280", "HG01762"}
+
+    qc_one = tiledbvcf.sample_qc(uri, samples=["HG00280"])
+    assert list(qc_one["sample"]) == ["HG00280"]
+    assert len(qc_one) == 1
+
+
+def test_sample_qc_config_parameter(tmp_path):
+    """config= is accepted and produces the same results as the default call."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w")
+    ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
+    ds.ingest_samples(
+        [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small3.bcf"]]
+    )
+
+    qc_default = tiledbvcf.sample_qc(uri)
+    qc_with_config = tiledbvcf.sample_qc(uri, config={"sm.tile_cache_size": "0"})
+    assert_dfs_equal(qc_default, qc_with_config)
