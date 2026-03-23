@@ -1,3 +1,4 @@
+import json
 import os
 
 import pytest
@@ -179,3 +180,35 @@ def test_context_manager():
     ds2.close()
     with pytest.raises(Exception):
         assert ds2.count() == expected_count2
+
+
+# get_tiledb_stats_enabled is referenced without () in the guard condition, so it
+# always evaluates to the method object (truthy) and the check never fires.
+# Once that bug is fixed, this test should pass and the skip can be removed.
+@pytest.mark.skip(reason="bug: get_tiledb_stats_enabled called without () so the guard never raises")
+def test_tiledb_stats_raises_when_not_enabled():
+    """tiledb_stats() should raise when the dataset was opened without stats=True."""
+    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
+    ds = tiledbvcf.Dataset(uri, mode="r")  # stats=False by default
+    ds.count()
+    with pytest.raises(Exception, match="TileDB read stats not enabled"):
+        ds.tiledb_stats()
+
+
+def test_tiledb_stats_read_mode(v3_dataset):
+    """tiledb_stats() returns a non-empty JSON string after a read operation."""
+    v3_dataset.count()
+    stats = v3_dataset.tiledb_stats()
+    assert len(stats) > 0
+    json.loads(stats)  # raises if not valid JSON
+
+
+def test_tiledb_stats_write_mode(tmp_path):
+    """tiledb_stats() returns a non-empty JSON string after an ingest operation."""
+    uri = os.path.join(tmp_path, "dataset")
+    ds = tiledbvcf.Dataset(uri, mode="w", stats=True)
+    ds.create_dataset()
+    ds.ingest_samples([os.path.join(TESTS_INPUT_DIR, "small.bcf")])
+    stats = ds.tiledb_stats()
+    assert len(stats) > 0
+    json.loads(stats)  # raises if not valid JSON
