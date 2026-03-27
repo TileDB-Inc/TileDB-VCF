@@ -69,7 +69,7 @@ def test_ingestion_tasks(tmp_path):
     if platform.system() != "Linux":
         return
 
-    # query allele_count array with TileDB
+    # Query allele_count array with TileDB
     ac_uri = tiledb.Group(uri)["allele_count"].uri
 
     skip_if_incompatible(ac_uri)
@@ -83,7 +83,7 @@ def test_ingestion_tasks(tmp_path):
     assert df["alt"].array == "C"
     assert df["count"].array == 1
 
-    # query variant_stats array with TileDB
+    # Query variant_stats array with TileDB
     vs_uri = tiledb.Group(uri)["variant_stats"].uri
 
     contig = "1"
@@ -263,7 +263,6 @@ def test_ingest_merging(tmp_path):
 
 def test_ingest_mode_merged(tmp_path):
     """Verify contig_mode='merged' ingests only pseudo-contigs."""
-    # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -271,7 +270,7 @@ def test_ingest_mode_merged(tmp_path):
         os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
     ]
     ds.create_dataset()
-    # ingest only merged contigs (pseudo-contigs)
+    # Ingest only merged contigs (pseudo-contigs)
     ds.ingest_samples(samples, contig_mode="merged")
 
     # Open it back in read mode and check some queries
@@ -283,12 +282,10 @@ def test_ingest_mode_merged(tmp_path):
 @skip_if_no_bcftools
 def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
     """Verify ingestion with v2 stats, AF filtering, scan_all_samples, and allele counts."""
-    # tiledbvcf.config_logging("debug")
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
     )
     bgzipped_inputs = bgzip_and_index_vcfs(os.path.join(tmp_path, "stats"))
-    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "stats_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
     ds.ingest_samples(bgzipped_inputs)
@@ -337,7 +334,6 @@ def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
     assert sum(df["count"] == (8, 5, 3, 4, 2, 2, 1)) == 7
 
 
-# Ok to skip is missing bcftools in Windows CI job
 @skip_if_no_bcftools
 def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
     """Smoke Test: Verify ingestion and AF filtering on polyploid VCF data."""
@@ -345,7 +341,6 @@ def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
         os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
     )
     bgzipped_inputs = bgzip_and_index_vcfs(os.path.join(tmp_path, "polyploid"))
-    # tiledbvcf.config_logging("trace")
     ds = tiledbvcf.Dataset(uri=os.path.join(tmp_path, "polyploid_test"), mode="w")
     ds.create_dataset(enable_variant_stats=True)
     ds.ingest_samples(bgzipped_inputs)
@@ -356,12 +351,10 @@ def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
         attrs=["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"],
         set_af_filter="<0.8",
     )
-    # print(data_frame)
 
 
 def test_ingest_mode_separate(tmp_path):
     """Verify contig_mode='separate' ingests only non-merged contigs."""
-    # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -369,7 +362,7 @@ def test_ingest_mode_separate(tmp_path):
         os.path.join(TESTS_INPUT_DIR, s) for s in ["v2-DjrIAzkP-downsampled.vcf.gz"]
     ]
     ds.create_dataset()
-    # ingest only merged contigs (pseudo-contigs)
+    # Ingest only merged contigs (pseudo-contigs)
     ds.ingest_samples(
         samples, contigs_to_keep_separate=["chr1"], contig_mode="separate"
     )

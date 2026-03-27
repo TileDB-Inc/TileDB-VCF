@@ -82,8 +82,7 @@ def test_flag_export(tmp_path):
 @pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
 def test_bed_filestore(tmp_path, v4_dataset, use_arrow):
     """Verify reading with a BED file stored as a TileDB Filestore."""
-    # tiledbvcf.config_logging("debug")
-
+    # Expected DataFrame
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
