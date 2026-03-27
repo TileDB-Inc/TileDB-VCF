@@ -12,6 +12,7 @@ from .conftest import assert_dfs_equal, skip_if_no_bcftools, TESTS_INPUT_DIR
 
 @skip_if_no_bcftools
 def test_gvcf_export(tmp_path, bgzip_and_index_vcfs):
+    """Verify gVCF export reads correct samples with optional IAF filtering and reporting."""
     vcf_files = bgzip_and_index_vcfs(
         os.path.join(TESTS_INPUT_DIR, "gvcf-export"), output_dir=str(tmp_path)
     )
@@ -57,6 +58,7 @@ def test_gvcf_export(tmp_path, bgzip_and_index_vcfs):
 
 
 def test_flag_export(tmp_path):
+    """Verify that INFO flag attributes (DB, DS) are read correctly from an ingested VCF."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -79,6 +81,7 @@ def test_flag_export(tmp_path):
 
 @pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
 def test_bed_filestore(tmp_path, v4_dataset, use_arrow):
+    """Verify reading with a BED file stored as a TileDB Filestore."""
     # tiledbvcf.config_logging("debug")
 
     expected_df = pd.DataFrame(
@@ -144,6 +147,7 @@ def test_bed_filestore(tmp_path, v4_dataset, use_arrow):
 
 @pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
 def test_bed_array(tmp_path, v4_dataset, use_arrow):
+    """Verify reading with a BED file stored as a TileDB sparse array with metadata aliases."""
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -210,13 +214,7 @@ def test_bed_array(tmp_path, v4_dataset, use_arrow):
         )
 
 def test_info_end(tmp_path):
-    """
-    This test checks that the info_END attribute is handled correctly, even when the
-    VCF header incorrectly defines the END attribute as a string.
-
-    The test also checks that info_END contains the original values from the VCF,
-    including the missing values.
-    """
+    """Verify info_END is handled correctly even when the VCF header defines END as a string."""
 
     expected_end = pd.DataFrame(
         {
@@ -395,6 +393,7 @@ def test_info_end(tmp_path):
     assert_dfs_equal(df, expected_end)
 
 def test_equality_old_new_format():
+    """Verify that old and new format arrays produce identical counts, samples, and reads."""
     old_ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/old_format"))
     new_ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/new_format"))
 

@@ -8,22 +8,23 @@ from .conftest import TESTS_INPUT_DIR
 
 @pytest.mark.parametrize("level", ["fatal", "error", "warn", "info", "debug", "trace"])
 def test_config_logging_valid_levels(level):
-    """Every documented log level is accepted without raising."""
+    """Smoke Test: Verify all documented log levels are accepted."""
     tiledbvcf.config_logging(level)
 
 
 def test_config_logging_invalid_level_raises():
-    """An unrecognised log level raises an exception."""
+    """Verify an unrecognized log level raises an exception."""
     with pytest.raises(Exception, match="Unsupported log level"):
         tiledbvcf.config_logging("verbose")
 
 
 def test_config_logging_log_file(tmp_path):
-    """A log_file path is accepted without raising."""
+    """Smoke Test: Verify a log_file path is accepted."""
     tiledbvcf.config_logging("fatal", log_file=str(tmp_path / "tiledbvcf.log"))
 
 
 def test_read_config():
+    """Verify that ReadConfig parameters are accepted and that invalid parameters raise."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig()
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
@@ -50,6 +51,7 @@ def test_read_config():
 # the number of TBB threads allowed).
 @pytest.mark.skip
 def test_tbb_threads_config():
+    """Verify that changing the TBB thread count after initial setup raises RuntimeError."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(tiledb_config=["sm.num_tbb_threads=3"])
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
@@ -60,6 +62,7 @@ def test_tbb_threads_config():
 
 
 def test_read_limit():
+    """Verify that ReadConfig limit truncates results to the specified number of rows."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(limit=3)
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
@@ -71,6 +74,7 @@ def test_read_limit():
 
 
 def test_region_partitioned_read():
+    """Verify that region_partition splits reads across partitions correctly."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2))
@@ -105,6 +109,7 @@ def test_region_partitioned_read():
 
 
 def test_sample_partitioned_read():
+    """Verify that sample_partition splits reads by sample correctly."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
 
     cfg = tiledbvcf.ReadConfig(sample_partition=(0, 2))
@@ -138,6 +143,7 @@ def test_sample_partitioned_read():
 
 
 def test_sample_and_region_partitioned_read():
+    """Verify combined sample and region partitioning."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
 
     cfg = tiledbvcf.ReadConfig(region_partition=(0, 2), sample_partition=(0, 2))
@@ -177,7 +183,7 @@ def test_sample_and_region_partitioned_read():
 
 
 def test_sort_regions():
-    """sort_regions=False is accepted and returns the same records as sort_regions=True."""
+    """Verify disabling region sorting returns the same records as sorted."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     regions = ["1:17000-18000", "1:12000-13000"]  # intentionally out of order
 
@@ -193,7 +199,7 @@ def test_sort_regions():
 
 
 def test_buffer_percentage_and_tile_cache_percentage():
-    """Non-default buffer_percentage and tiledb_tile_cache_percentage are accepted."""
+    """Smoke Test: Verify non-default buffer and tile cache percentages are accepted."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(buffer_percentage=30, tiledb_tile_cache_percentage=5)
     ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
@@ -202,7 +208,7 @@ def test_buffer_percentage_and_tile_cache_percentage():
 
 
 def test_tiledb_config_as_dict():
-    """tiledb_config can be supplied as a dict instead of a list of strings."""
+    """Smoke Test: Verify tiledb_config accepts a dict."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(
         tiledb_config={"sm.tile_cache_size": "0", "sm.compute_concurrency_level": "1"}
@@ -213,7 +219,7 @@ def test_tiledb_config_as_dict():
 
 
 def test_tiledb_config_as_tiledb_config_object():
-    """tiledb_config can be supplied as a tiledb.Config object."""
+    """Smoke Test: Verify tiledb_config accepts a tiledb.Config object."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     tiledb_cfg = tiledb.Config({"sm.tile_cache_size": "0"})
     cfg = tiledbvcf.ReadConfig(tiledb_config=tiledb_cfg)
@@ -224,6 +230,7 @@ def test_tiledb_config_as_tiledb_config_object():
 
 @pytest.mark.skipif(os.environ.get("CI") != "true", reason="CI only")
 def test_large_export_correctness():
+    """Verify large export from S3 produces the expected total and unique record counts."""
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
     ds = tiledbvcf.Dataset(uri)

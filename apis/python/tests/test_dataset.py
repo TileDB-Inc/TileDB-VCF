@@ -8,14 +8,14 @@ from .conftest import TESTS_INPUT_DIR
 
 
 def test_invalid_mode_raises():
-    """An unrecognised mode string raises at construction time."""
+    """Verify an unrecognized mode string raises at construction time."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     with pytest.raises(Exception, match="Unsupported dataset mode"):
         tiledbvcf.Dataset(uri, mode="x")
 
 
 def test_version(v3_dataset, v4_dataset):
-    """version() returns a multi-line string containing TileDB-VCF, TileDB, and htslib versions."""
+    """Verify version() reports TileDB-VCF, TileDB, and htslib versions."""
     for ds in [v3_dataset, v4_dataset]:
         v = ds.version()
         assert "TileDB-VCF version" in v
@@ -24,16 +24,18 @@ def test_version(v3_dataset, v4_dataset):
 
 
 def test_schema_version(v3_dataset, v4_dataset):
-    """schema_version() returns the correct integer schema version for each dataset."""
+    """Verify schema_version() returns the correct version for v3 and v4 datasets."""
     assert v3_dataset.schema_version() == 3
     assert v4_dataset.schema_version() == 4
 
 
 def test_basic_count(v3_dataset):
+    """Verify count() returns the expected total record count."""
     assert v3_dataset.count() == 14
 
 
 def test_retrieve_attributes(v3_dataset):
+    """Verify attributes() returns the correct builtin, info, and fmt attribute lists."""
     builtin_attrs = [
         "sample_name",
         "contig",
@@ -81,19 +83,18 @@ def test_retrieve_attributes(v3_dataset):
 
 
 def test_retrieve_attributes_invalid_type_raises(v3_dataset):
-    """attributes() raises for an unrecognised attr_type.
-    Note: the implementation uses '% attr_types' where attr_types is a tuple, so
-    Python raises TypeError instead of the intended ValueError."""
+    """Verify attributes() raises for an unrecognized attr_type."""
     with pytest.raises(TypeError):
         v3_dataset.attributes(attr_type="unknown")
 
 
 def test_retrieve_samples(v3_dataset):
+    """Verify samples() returns the expected sample names."""
     assert v3_dataset.samples() == ["HG00280", "HG01762"]
 
 
 def test_sample_count(v3_dataset, v4_dataset):
-    """sample_count() returns the number of samples, consistent with len(samples())."""
+    """Verify sample_count() is consistent with len(samples())."""
     assert v3_dataset.sample_count() == 2
     assert v3_dataset.sample_count() == len(v3_dataset.samples())
     assert v4_dataset.sample_count() == 2
@@ -101,7 +102,7 @@ def test_sample_count(v3_dataset, v4_dataset):
 
 
 def test_sample_count_write_mode_raises(tmp_path):
-    """sample_count() raises when the dataset is open in write mode."""
+    """Verify sample_count() raises in write mode."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -110,6 +111,7 @@ def test_sample_count_write_mode_raises(tmp_path):
 
 
 def test_multiple_counts(v3_dataset):
+    """Verify count() with various region and sample filters returns correct counts."""
     assert v3_dataset.count() == 14
     assert v3_dataset.count() == 14
     assert v3_dataset.count(regions=["1:12700-13400"]) == 6
@@ -120,10 +122,12 @@ def test_multiple_counts(v3_dataset):
 
 
 def test_empty_region(v3_dataset):
+    """Verify count() returns 0 for a region with no data."""
     assert v3_dataset.count(regions=["12:1-1000000"]) == 0
 
 
 def test_missing_sample_raises_exception(v3_dataset):
+    """Verify count() raises RuntimeError for a nonexistent sample name."""
     with pytest.raises(RuntimeError):
         v3_dataset.count(samples=["abcde"])
 
@@ -131,6 +135,7 @@ def test_missing_sample_raises_exception(v3_dataset):
 # TODO remove skip
 @pytest.mark.skip
 def test_bad_contig_raises_exception(v3_dataset):
+    """Verify count() raises RuntimeError for invalid contig or region formats."""
     with pytest.raises(RuntimeError):
         v3_dataset.count(regions=["chr1:1-1000000"])
     with pytest.raises(RuntimeError):
@@ -142,6 +147,7 @@ def test_bad_contig_raises_exception(v3_dataset):
 
 
 def test_read_write_mode_exceptions():
+    """Verify that read operations fail in write mode and write operations fail in read mode."""
     ds = tiledbvcf.Dataset(os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples"))
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
 
@@ -159,6 +165,7 @@ def test_read_write_mode_exceptions():
 
 
 def test_context_manager():
+    """Verify that Dataset works as a context manager and raises after close()."""
     ds1_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples")
     expected_count1 = 14
     ds2_uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/synth-array")
@@ -195,7 +202,7 @@ def test_context_manager():
 # Once that bug is fixed, this test should pass and the skip can be removed.
 @pytest.mark.skip(reason="bug: get_tiledb_stats_enabled called without () so the guard never raises")
 def test_tiledb_stats_raises_when_not_enabled():
-    """tiledb_stats() should raise when the dataset was opened without stats=True."""
+    """Verify tiledb_stats() raises when stats were not enabled at open time."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     ds = tiledbvcf.Dataset(uri, mode="r")  # stats=False by default
     ds.count()
@@ -204,14 +211,14 @@ def test_tiledb_stats_raises_when_not_enabled():
 
 
 def test_deprecated_tiledbvcfdataset_warns(v3_dataset):
-    """Constructing TileDBVCFDataset emits a DeprecationWarning."""
+    """Verify the deprecated TileDBVCFDataset constructor emits a DeprecationWarning."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     with pytest.warns(DeprecationWarning, match="TileDBVCFDataset is deprecated"):
         tiledbvcf.TileDBVCFDataset(uri, mode="r")
 
 
 def test_deprecated_tiledbvcfdataset_is_functional(v3_dataset):
-    """TileDBVCFDataset still works as a Dataset after construction."""
+    """Verify the deprecated TileDBVCFDataset is still functional."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     with pytest.warns(DeprecationWarning):
         ds = tiledbvcf.TileDBVCFDataset(uri, mode="r")
@@ -219,7 +226,7 @@ def test_deprecated_tiledbvcfdataset_is_functional(v3_dataset):
 
 
 def test_tiledb_stats_read_mode(v3_dataset):
-    """tiledb_stats() returns a non-empty JSON string after a read operation."""
+    """Verify tiledb_stats() returns valid JSON after a read operation."""
     v3_dataset.count()
     stats = v3_dataset.tiledb_stats()
     assert len(stats) > 0
@@ -227,7 +234,7 @@ def test_tiledb_stats_read_mode(v3_dataset):
 
 
 def test_tiledb_stats_write_mode(tmp_path):
-    """tiledb_stats() returns a non-empty JSON string after an ingest operation."""
+    """Verify tiledb_stats() returns valid JSON after an ingest operation."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w", stats=True)
     ds.create_dataset()

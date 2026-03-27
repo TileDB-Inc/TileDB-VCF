@@ -9,6 +9,7 @@ import tiledbvcf
 from .conftest import assert_dfs_equal, skip_if_incompatible, TESTS_INPUT_DIR
 
 def test_read_unsupported_regions_type(v3_dataset):
+    """Verify that unsupported or wrong-dimension regions types raise appropriate errors."""
     unsupported_region = 3.14
     unsupported_type_error = f'"regions" parameter cannot have type: {type(unsupported_region)}'
     wrong_dimension_region = np.array([["1:12700-13400"], ["1:12700-13400"]])
@@ -30,6 +31,7 @@ def test_read_unsupported_regions_type(v3_dataset):
 
 
 def test_read_attrs(v3_dataset_with_attrs):
+    """Verify that read() returns only the requested attributes as columns."""
     attrs = ["sample_name"]
     df = v3_dataset_with_attrs.read(attrs=attrs)
     assert df.columns.values.tolist() == attrs
@@ -45,6 +47,7 @@ def test_read_attrs(v3_dataset_with_attrs):
 
 @pytest.mark.parametrize("use_arrow", [False, True], ids=["pandas", "arrow"])
 def test_basic_reads(v3_dataset, use_arrow):
+    """Verify basic reads with region, sample, and format filters via both pandas and Arrow."""
     expected_df = pd.DataFrame(
         {
             "sample_name": pd.Series(
@@ -204,11 +207,13 @@ def test_basic_reads(v3_dataset, use_arrow):
 
 
 def test_bad_attr_raises_exception(v3_dataset):
+    """Verify that read() raises RuntimeError for an unknown attribute name."""
     with pytest.raises(RuntimeError):
         v3_dataset.read(attrs=["abcde"], regions=["1:12700-13400"])
 
 
 def test_incomplete_reads():
+    """Verify incomplete reads with low memory budget and continue_read for pandas and Arrow."""
     # Using undocumented "0 MB" budget to test incomplete reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
@@ -265,6 +270,7 @@ def test_incomplete_reads():
 
 
 def test_continue_read_release_buffers_false():
+    """Verify continue_read(release_buffers=False) accumulates previous batches."""
     # Using undocumented "0 MB" budget to force batched reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
@@ -293,6 +299,7 @@ def test_continue_read_release_buffers_false():
 
 
 def test_continue_read_arrow_release_buffers_false():
+    """Verify continue_read_arrow(release_buffers=False) accumulates previous batches."""
     # Using undocumented "0 MB" budget to force batched reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
@@ -321,6 +328,7 @@ def test_continue_read_arrow_release_buffers_false():
 
 
 def test_incomplete_read_generator():
+    """Verify read_iter() yields all batches across string, list, and ndarray region types."""
     # Using undocumented "0 MB" budget to test incomplete reads.
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
     cfg = tiledbvcf.ReadConfig(memory_budget_mb=0)
@@ -361,7 +369,7 @@ def test_incomplete_read_generator():
 
 
 def test_read_iter_samples_file(tmp_path, v3_dataset):
-    """samples_file= restricts read_iter to the samples listed in the file."""
+    """Verify read_iter can be filtered by a samples file."""
     samples_file = str(tmp_path / "samples.txt")
     with open(samples_file, "w") as f:
         f.write("HG00280\n")
@@ -374,7 +382,7 @@ def test_read_iter_samples_file(tmp_path, v3_dataset):
 
 
 def test_read_iter_bed_file(tmp_path, v3_dataset):
-    """bed_file= restricts read_iter to genomic regions defined in the BED file."""
+    """Verify read_iter can be filtered by a BED file."""
     bed_file = str(tmp_path / "regions.bed")
     with open(bed_file, "w") as f:
         f.write("1\t12700\t13400\n")
@@ -387,7 +395,7 @@ def test_read_iter_bed_file(tmp_path, v3_dataset):
 
 
 def test_read_iter_samples(v3_dataset):
-    """samples= restricts read_iter() to the specified samples."""
+    """Verify read_iter can be filtered to specific samples."""
     dfs = []
     for df in v3_dataset.read_iter(attrs=["sample_name"], samples=["HG01762"]):
         dfs.append(df)
@@ -396,6 +404,7 @@ def test_read_iter_samples(v3_dataset):
 
 
 def test_read_filters(v3_dataset):
+    """Verify that the filters attribute is read correctly, including LowQual entries."""
     df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "filters"],
         regions=["1:12700-13400"],
@@ -425,6 +434,7 @@ def test_read_filters(v3_dataset):
 
 
 def test_read_var_length_filters(tmp_path):
+    """Verify reading variable-length filter arrays with multiple filter values per record."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["varLenFilter.vcf.gz"]]
@@ -477,6 +487,7 @@ def test_read_var_length_filters(tmp_path):
 
 
 def test_read_alleles(v3_dataset):
+    """Verify that the alleles attribute returns correct ref/alt arrays for each record."""
     df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "alleles"],
         regions=["1:12100-13360", "1:13500-17350"],
@@ -530,6 +541,7 @@ def test_read_alleles(v3_dataset):
 
 
 def test_read_multiple_alleles(tmp_path):
+    """Verify reading records with multiple alternate alleles from a multi-sample dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small3.bcf", "small.bcf"]]
@@ -566,6 +578,7 @@ def test_read_multiple_alleles(tmp_path):
 
 
 def test_read_var_len_attrs(v3_dataset):
+    """Verify reading variable-length format attributes (DP, PL) with region filtering."""
     df = v3_dataset.read(
         attrs=["sample_name", "pos_start", "pos_end", "fmt_DP", "fmt_PL"],
         regions=["1:12100-13360", "1:13500-17350"],
@@ -621,6 +634,7 @@ def test_read_var_len_attrs(v3_dataset):
 
 
 def test_sample_args(v3_dataset, tmp_path):
+    """Verify that samples= and samples_file= produce equivalent results and cannot be combined."""
     sample_file = os.path.join(tmp_path, "1_sample.txt")
     with open(sample_file, "w") as file:
         file.write("HG00280")
@@ -640,7 +654,7 @@ def test_sample_args(v3_dataset, tmp_path):
 
 
 def test_read_arrow_samples(v3_dataset):
-    """samples= restricts read_arrow() to the specified samples."""
+    """Verify read_arrow can be filtered to specific samples."""
     tbl = v3_dataset.read_arrow(
         attrs=["sample_name", "pos_start", "pos_end"],
         regions=["1:12700-13400"],
@@ -652,7 +666,7 @@ def test_read_arrow_samples(v3_dataset):
 
 
 def test_read_arrow_samples_file(tmp_path, v3_dataset):
-    """samples_file= restricts read_arrow() to the samples listed in the file."""
+    """Verify read_arrow can be filtered by a samples file."""
     samples_file = str(tmp_path / "samples.txt")
     with open(samples_file, "w") as f:
         f.write("HG00280\n")
@@ -662,7 +676,7 @@ def test_read_arrow_samples_file(tmp_path, v3_dataset):
 
 
 def test_read_bed_file(tmp_path, v3_dataset):
-    """bed_file= restricts read() and read_arrow() to regions in the BED file."""
+    """Verify read and read_arrow can be filtered by a BED file."""
     bed_file = str(tmp_path / "regions.bed")
     with open(bed_file, "w") as f:
         f.write("1\t12700\t13400\n")
@@ -675,6 +689,7 @@ def test_read_bed_file(tmp_path, v3_dataset):
 
 
 def test_read_null_attrs(tmp_path):
+    """Verify that nullable info and fmt attributes return None for missing values."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small3.bcf", "small.bcf"]]

@@ -8,6 +8,7 @@ from .conftest import skip_if_no_bcftools, TESTS_INPUT_DIR
 
 
 def test_delete_dataset(tmp_path):
+    """Verify that Dataset.delete() removes the dataset from disk."""
     uri = os.path.join(tmp_path, "delete_dataset")
 
     with tiledbvcf.Dataset(uri, mode="w") as ds:
@@ -19,7 +20,7 @@ def test_delete_dataset(tmp_path):
 
 
 def test_delete_dataset_with_config(tmp_path):
-    """config parameter is accepted and the dataset is still deleted."""
+    """Smoke Test: Verify Dataset.delete() accepts a config parameter."""
     uri = os.path.join(tmp_path, "delete_dataset")
 
     with tiledbvcf.Dataset(uri, mode="w") as ds:
@@ -31,7 +32,7 @@ def test_delete_dataset_with_config(tmp_path):
 
 
 def test_delete_dataset_nonexistent_uri_raises(tmp_path):
-    """Deleting a URI that does not exist raises TileDBError."""
+    """Verify deleting a nonexistent URI raises TileDBError."""
     uri = os.path.join(tmp_path, "nonexistent")
     with pytest.raises(tiledb.TileDBError):
         tiledbvcf.Dataset.delete(uri)
@@ -39,6 +40,7 @@ def test_delete_dataset_nonexistent_uri_raises(tmp_path):
 
 @skip_if_no_bcftools
 def test_delete_samples(tmp_path, stats_v3_dataset, stats_sample_names):
+    """Verify that delete_samples() removes the specified samples from the dataset."""
     assert "second" in stats_sample_names
     assert "fifth" in stats_sample_names
     assert "third" in stats_sample_names
@@ -53,7 +55,7 @@ def test_delete_samples(tmp_path, stats_v3_dataset, stats_sample_names):
 
 
 def test_delete_samples_empty_list_is_noop(tmp_path):
-    """delete_samples([]) leaves all samples in the dataset untouched."""
+    """Verify delete_samples with an empty list is a no-op."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -67,7 +69,7 @@ def test_delete_samples_empty_list_is_noop(tmp_path):
 
 
 def test_delete_samples_none_raises(tmp_path):
-    """delete_samples(None) raises because the C++ writer requires a sequence."""
+    """Verify delete_samples(None) raises TypeError."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -77,7 +79,7 @@ def test_delete_samples_none_raises(tmp_path):
 
 
 def test_delete_samples_nonexistent_raises(tmp_path):
-    """Attempting to delete a sample that is not in the dataset raises RuntimeError."""
+    """Verify deleting a nonexistent sample raises RuntimeError."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -89,7 +91,7 @@ def test_delete_samples_nonexistent_raises(tmp_path):
 
 
 def test_delete_samples_read_mode_raises(tmp_path):
-    """delete_samples() raises when the dataset is open in read mode."""
+    """Verify delete_samples() raises in read mode."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()

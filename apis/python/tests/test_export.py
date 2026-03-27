@@ -7,19 +7,19 @@ from .conftest import TESTS_INPUT_DIR
 
 
 def test_export_default(tmp_path, v4_dataset):
-    """export() with default parameters creates one vcf.gz per sample."""
+    """Verify default export produces one compressed VCF per sample."""
     v4_dataset.export(output_dir=str(tmp_path))
     assert set(os.listdir(tmp_path)) == {"HG00280.vcf.gz", "HG01762.vcf.gz"}
 
 
 def test_export_samples_filter(tmp_path, v4_dataset):
-    """samples= restricts export to the specified samples only."""
+    """Verify export can be filtered to specific samples."""
     v4_dataset.export(samples=["HG00280"], output_dir=str(tmp_path))
     assert os.listdir(tmp_path) == ["HG00280.vcf.gz"]
 
 
 def test_export_regions_filter(tmp_path, v4_dataset):
-    """regions= restricts export to the specified genomic region."""
+    """Verify export can be filtered to a specific genomic region."""
     v4_dataset.export(regions=["1:12000-13000"], output_dir=str(tmp_path))
     assert set(os.listdir(tmp_path)) == {"HG00280.vcf.gz", "HG01762.vcf.gz"}
 
@@ -34,7 +34,7 @@ def test_export_regions_filter(tmp_path, v4_dataset):
     ],
 )
 def test_export_output_format(tmp_path, output_format, expected_files):
-    """output_format produces files with the correct extension."""
+    """Verify each output format produces files with the correct extension."""
     ds = tiledbvcf.Dataset(
         os.path.join(TESTS_INPUT_DIR, "arrays/v4/ingested_2samples"), mode="r"
     )
@@ -43,7 +43,7 @@ def test_export_output_format(tmp_path, output_format, expected_files):
 
 
 def test_export_merge(tmp_path, v4_dataset):
-    """merge=True produces a single combined output file at output_path."""
+    """Verify merged export produces a single combined output file."""
     out = str(tmp_path / "merged.vcf.gz")
     v4_dataset.export(merge=True, output_path=out, output_dir=str(tmp_path))
     assert os.path.exists(out)
@@ -51,13 +51,13 @@ def test_export_merge(tmp_path, v4_dataset):
 
 
 def test_export_merge_without_output_path_raises(tmp_path, v4_dataset):
-    """merge=True without output_path raises an exception."""
+    """Verify merged export requires an output_path."""
     with pytest.raises(Exception, match="output_path required when merge=True"):
         v4_dataset.export(merge=True, output_dir=str(tmp_path))
 
 
 def test_export_samples_file(tmp_path, v4_dataset):
-    """samples_file= restricts export to samples listed in the file."""
+    """Verify export can be filtered by a samples file."""
     samples_file = str(tmp_path / "samples.txt")
     out = str(tmp_path / "out")
     os.makedirs(out)
@@ -68,7 +68,7 @@ def test_export_samples_file(tmp_path, v4_dataset):
 
 
 def test_export_bed_file(tmp_path, v4_dataset):
-    """bed_file= restricts export to regions defined in the BED file."""
+    """Verify export can be filtered by a BED file."""
     bed_file = str(tmp_path / "regions.bed")
     out = str(tmp_path / "out")
     os.makedirs(out)
@@ -79,7 +79,7 @@ def test_export_bed_file(tmp_path, v4_dataset):
 
 
 def test_export_skip_check_samples(tmp_path, v4_dataset):
-    """skip_check_samples=True skips existence check and produces no output for unknown samples."""
+    """Verify skipping sample existence checks silently produces no output for unknown samples."""
     v4_dataset.export(
         samples=["NOSUCHSAMPLE"], skip_check_samples=True, output_dir=str(tmp_path)
     )
@@ -87,7 +87,7 @@ def test_export_skip_check_samples(tmp_path, v4_dataset):
 
 
 def test_export_write_mode_raises(tmp_path):
-    """export() raises when the dataset is open in write mode."""
+    """Verify export raises when the dataset is open in write mode."""
     uri = str(tmp_path / "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()

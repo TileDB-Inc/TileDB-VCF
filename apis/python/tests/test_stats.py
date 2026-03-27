@@ -11,6 +11,7 @@ from .conftest import skip_if_no_bcftools, TESTS_INPUT_DIR, assert_dfs_equal
 
 @skip_if_no_bcftools
 def test_read_with_af_filter(stats_v3_dataset, stats_sample_names):
+    """Verify that set_af_filter restricts results by allele frequency for both pandas and Arrow."""
     attrs = ["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"]
     df = stats_v3_dataset.read(
         samples=stats_sample_names,
@@ -32,6 +33,7 @@ def test_read_with_af_filter(stats_v3_dataset, stats_sample_names):
 
 @skip_if_no_bcftools
 def test_read_with_scan_all_samples(stats_v3_dataset, stats_sample_names):
+    """Verify scan_all_samples normalizes IAF across all samples for both pandas and Arrow."""
     attrs = ["contig", "pos_start", "id", "qual", "info_TILEDB_IAF", "sample_name"]
     df = stats_v3_dataset.read(
         samples=stats_sample_names,
@@ -56,9 +58,7 @@ def test_read_with_scan_all_samples(stats_v3_dataset, stats_sample_names):
 
 @skip_if_no_bcftools
 def test_read_with_af_filter_and_scan_all_samples(stats_v3_dataset, stats_sample_names):
-    """set_af_filter and scan_all_samples can be combined.
-    scan_all_samples normalises AF across all samples, so more variants pass
-    the filter compared to using set_af_filter alone."""
+    """Verify set_af_filter and scan_all_samples can be combined to widen the result set."""
     attrs = ["contig", "pos_start", "sample_name"]
 
     df_filter_only = stats_v3_dataset.read(
@@ -86,6 +86,7 @@ def test_read_with_af_filter_and_scan_all_samples(stats_v3_dataset, stats_sample
 
 @skip_if_no_bcftools
 def test_variant_stats_parameter_errors(stats_v3_dataset):
+    """Verify that read_variant_stats and read_variant_stats_arrow reject invalid parameters."""
     no_region = '"region" or "regions" parameter is required'
     exclusive = '"region" and "regions" parameters are mutually exclusive'
     bad_format = '"region" parameter must have format "<contig>:<start>-<end>"'
@@ -114,11 +115,13 @@ def test_variant_stats_parameter_errors(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_variant_stats_empty_region(stats_v3_dataset):
+    """Verify read_variant_stats returns an empty DataFrame for a region with no variants."""
     assert stats_v3_dataset.read_variant_stats(regions=["chr3:1-10000"]).empty
 
 
 @skip_if_no_bcftools
 def test_variant_stats_return_types(stats_v3_dataset):
+    """Verify read_variant_stats returns a DataFrame and read_variant_stats_arrow returns an Arrow Table."""
     # Both the deprecated positional `region` parameter and the `regions` list
     # should return a DataFrame / Arrow Table of the same shape and content.
     region = "chr1:1-10000"
@@ -139,6 +142,7 @@ def test_variant_stats_return_types(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_variant_stats_multi_contig_regions(stats_v3_dataset):
+    """Verify read_variant_stats handles multiple contig regions and sorts results by contig."""
     # Results are always returned in contig-sorted order regardless of input order.
     region_chr1 = "chr1:1-10000"
     region_chr2 = "chr2:1-10000"
@@ -159,6 +163,7 @@ def test_variant_stats_multi_contig_regions(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_variant_stats_overlapping_regions(stats_v3_dataset):
+    """Verify read_variant_stats deduplicates and merges overlapping regions on the same contig."""
     # Overlapping regions on the same contig are merged; results are deduped and sorted.
     expected_contigs = ["chr1"] * 13 + ["chr2"] * 2
 
@@ -189,6 +194,7 @@ def test_variant_stats_overlapping_regions(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_variant_stats_scan_all_samples(stats_v3_dataset):
+    """Verify scan_all_samples normalizes allele number (an) across all samples in variant stats."""
     # Without scan_all_samples, an reflects only the queried samples' allele number.
     # With scan_all_samples=True, an is normalised across all samples in the dataset.
     regions = ["chr2:1-1", "chr2:3-3", "chr1:1-1", "chr1:1-2", "chr1:3-4", "chr1:2-5"]
@@ -209,6 +215,7 @@ def test_variant_stats_scan_all_samples(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_variant_stats_drop_ref(stats_v3_dataset):
+    """Verify drop_ref=True filters out reference allele rows from variant stats."""
     # drop_ref=True filters out rows where the alternate allele is "ref".
     regions = ["chr2:1-1", "chr2:3-3", "chr1:1-1", "chr1:1-2", "chr1:3-4", "chr1:2-5"]
 
@@ -223,6 +230,7 @@ def test_variant_stats_drop_ref(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_allele_count_parameter_errors(stats_v3_dataset):
+    """Verify that read_allele_count and read_allele_count_arrow reject invalid parameters."""
     no_region = '"region" or "regions" parameter is required'
     exclusive = '"region" and "regions" parameters are mutually exclusive'
     bad_format = '"region" parameter must have format "<contig>:<start>-<end>"'
@@ -251,11 +259,13 @@ def test_allele_count_parameter_errors(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_allele_count_empty_region(stats_v3_dataset):
+    """Verify read_allele_count returns an empty DataFrame for a region with no data."""
     assert stats_v3_dataset.read_allele_count(regions=["chr3:1-10000"]).empty
 
 
 @skip_if_no_bcftools
 def test_allele_count_return_types(stats_v3_dataset):
+    """Verify read_allele_count returns a DataFrame and read_allele_count_arrow returns an Arrow Table."""
     # Both the deprecated positional `region` parameter and the `regions` list
     # should return a DataFrame / Arrow Table of the same shape and content.
     region = "chr1:1-10000"
@@ -280,6 +290,7 @@ def test_allele_count_return_types(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_allele_count_multi_contig_regions(stats_v3_dataset):
+    """Verify read_allele_count handles multiple contig regions and sorts results by contig."""
     # Results are always returned in contig-sorted order regardless of input order.
     region_chr1 = "chr1:1-10000"
     region_chr2 = "chr2:1-10000"
@@ -300,6 +311,7 @@ def test_allele_count_multi_contig_regions(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_allele_count_overlapping_regions(stats_v3_dataset):
+    """Verify read_allele_count deduplicates and merges overlapping regions on the same contig."""
     # Overlapping regions on the same contig are merged; results are deduped and sorted.
     expected_contigs = ["chr1"] * 7 + ["chr2"] * 2
 
@@ -330,6 +342,7 @@ def test_allele_count_overlapping_regions(stats_v3_dataset):
 
 @skip_if_no_bcftools
 def test_allele_frequency(stats_v3_dataset, tmp_path):
+    """Verify allele frequency consistency: ac / af rounds to an."""
     # Verify that ac / af ≈ an (i.e. allele frequency is consistent with counts).
     region = "chr1:1-10000"
     # read_allele_frequency internally uses the deprecated `region` parameter.
@@ -345,7 +358,7 @@ def test_allele_frequency(stats_v3_dataset, tmp_path):
 
 @skip_if_no_bcftools
 def test_allele_frequency_invalid_region_format(stats_v3_dataset, tmp_path):
-    """read_allele_frequency() raises for a badly-formatted region string."""
+    """Verify read_allele_frequency rejects a badly-formatted region string."""
     uri = os.path.join(tmp_path, "stats_test")
     with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
         with pytest.raises(Exception, match='"region" parameter must have format'):
@@ -354,7 +367,7 @@ def test_allele_frequency_invalid_region_format(stats_v3_dataset, tmp_path):
 
 @skip_if_no_bcftools
 def test_allele_frequency_empty_region(stats_v3_dataset, tmp_path):
-    """read_allele_frequency() returns an empty DataFrame for a region with no data."""
+    """Verify read_allele_frequency returns an empty DataFrame for a region with no data."""
     uri = os.path.join(tmp_path, "stats_test")
     with pytest.warns(DeprecationWarning, match='"region" parameter is deprecated'):
         df = tiledbvcf.allele_frequency.read_allele_frequency(uri, "chr3:1-10000")
@@ -362,7 +375,7 @@ def test_allele_frequency_empty_region(stats_v3_dataset, tmp_path):
 
 
 def test_sample_qc_samples_parameter(tmp_path):
-    """samples= restricts QC output to only the specified samples."""
+    """Verify sample_qc can be filtered to specific samples."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)
@@ -379,7 +392,7 @@ def test_sample_qc_samples_parameter(tmp_path):
 
 
 def test_sample_qc_config_parameter(tmp_path):
-    """config= is accepted and produces the same results as the default call."""
+    """Smoke Test: Verify sample_qc accepts a config parameter."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(enable_variant_stats=True, enable_allele_count=True)

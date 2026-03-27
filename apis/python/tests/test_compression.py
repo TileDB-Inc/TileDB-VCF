@@ -8,6 +8,7 @@ from .conftest import skip_if_incompatible, TESTS_INPUT_DIR
 
 @pytest.mark.parametrize("compress", [True, False])
 def test_sample_compression(tmp_path, compress):
+    """Verify that compress_sample_dim controls whether the sample dimension has a Zstd filter."""
     # Create the dataset
     dataset_uri = os.path.join(tmp_path, "sample_compression")
     array_uri = os.path.join(dataset_uri, "data")
@@ -27,6 +28,7 @@ def test_sample_compression(tmp_path, compress):
 
 @pytest.mark.parametrize("level", [1, 4, 16, 22])
 def test_compression_level(tmp_path, level):
+    """Verify that compression_level sets the Zstd level on all attributes."""
     # Create the dataset
     dataset_uri = os.path.join(tmp_path, "compression_level")
     array_uri = os.path.join(dataset_uri, "data")

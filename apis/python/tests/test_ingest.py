@@ -16,6 +16,7 @@ from .conftest import (
 )
 
 def test_basic_ingest(tmp_path):
+    """Verify basic two-sample BCF ingestion and query counts."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -31,6 +32,7 @@ def test_basic_ingest(tmp_path):
 
 
 def test_disable_ingestion_tasks(tmp_path):
+    """Verify that disabling stats tasks prevents creation of stats arrays."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -55,6 +57,7 @@ def test_disable_ingestion_tasks(tmp_path):
 
 
 def test_ingestion_tasks(tmp_path):
+    """Verify that allele_count, variant_stats, and sample_stats arrays are created and populated."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -171,6 +174,7 @@ def test_ingestion_tasks(tmp_path):
 
 
 def test_incremental_ingest(tmp_path):
+    """Verify that samples can be ingested incrementally with the same result."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -185,6 +189,7 @@ def test_incremental_ingest(tmp_path):
 
 
 def test_ingest_disable_merging(tmp_path):
+    """Verify contig_fragment_merging=False produces identical results to contigs_to_keep_separate."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_disable_merging")
 
@@ -223,6 +228,7 @@ def test_ingest_disable_merging(tmp_path):
 
 
 def test_ingest_merging_separate(tmp_path):
+    """Verify ingestion with contigs_to_keep_separate produces correct counts."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging_separate")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -239,6 +245,7 @@ def test_ingest_merging_separate(tmp_path):
 
 
 def test_ingest_merging(tmp_path):
+    """Verify ingestion with contigs_to_allow_merging produces correct counts."""
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -255,6 +262,7 @@ def test_ingest_merging(tmp_path):
 
 
 def test_ingest_mode_merged(tmp_path):
+    """Verify contig_mode='merged' ingests only pseudo-contigs."""
     # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
@@ -274,6 +282,7 @@ def test_ingest_mode_merged(tmp_path):
 
 @skip_if_no_bcftools
 def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
+    """Verify ingestion with v2 stats, AF filtering, scan_all_samples, and allele counts."""
     # tiledbvcf.config_logging("debug")
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "stats"), os.path.join(tmp_path, "stats")
@@ -331,6 +340,7 @@ def test_ingest_with_stats_v2(tmp_path, bgzip_and_index_vcfs):
 # Ok to skip is missing bcftools in Windows CI job
 @skip_if_no_bcftools
 def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
+    """Smoke Test: Verify ingestion and AF filtering on polyploid VCF data."""
     shutil.copytree(
         os.path.join(TESTS_INPUT_DIR, "polyploid"), os.path.join(tmp_path, "polyploid")
     )
@@ -350,6 +360,7 @@ def test_ingest_polyploid(tmp_path, bgzip_and_index_vcfs):
 
 
 def test_ingest_mode_separate(tmp_path):
+    """Verify contig_mode='separate' ingests only non-merged contigs."""
     # tiledbvcf.config_logging("debug")
     # Create the dataset
     uri = os.path.join(tmp_path, "dataset_merging")
@@ -370,6 +381,7 @@ def test_ingest_mode_separate(tmp_path):
 
 
 def test_vcf_attrs(tmp_path):
+    """Verify create_dataset with vcf_attrs populates queryable attributes from a VCF header."""
     # Create the dataset with vcf info and fmt attributes
     uri = os.path.join(tmp_path, "vcf_attrs_dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
@@ -518,7 +530,7 @@ def test_vcf_attrs(tmp_path):
 
 
 def test_create_dataset_extra_attrs(tmp_path):
-    """extra_attrs causes those fmt fields to appear in the queryable attribute list."""
+    """Verify extra_attrs adds the specified fmt fields as queryable attributes."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(extra_attrs=["fmt_GT", "fmt_DP"])
@@ -531,7 +543,7 @@ def test_create_dataset_extra_attrs(tmp_path):
 
 
 def test_create_dataset_extra_attrs_and_vcf_attrs_raises(tmp_path):
-    """Providing both extra_attrs and vcf_attrs raises an exception."""
+    """Verify extra_attrs and vcf_attrs cannot be combined."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     vcf_uri = os.path.join(TESTS_INPUT_DIR, "v2-DjrIAzkP-downsampled.vcf.gz")
@@ -540,7 +552,7 @@ def test_create_dataset_extra_attrs_and_vcf_attrs_raises(tmp_path):
 
 
 def test_create_dataset_invalid_checksum_type_raises(tmp_path):
-    """An unrecognised checksum_type raises an exception before touching disk."""
+    """Verify an unrecognized checksum_type raises before creating the dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     with pytest.raises(Exception, match="Invalid checksum_type"):
@@ -548,7 +560,7 @@ def test_create_dataset_invalid_checksum_type_raises(tmp_path):
 
 
 def test_create_dataset_checksum_md5(tmp_path):
-    """checksum_type='md5' creates a usable dataset."""
+    """Smoke Test: Verify checksum_type='md5' creates a functional dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(checksum_type="md5")
@@ -559,7 +571,7 @@ def test_create_dataset_checksum_md5(tmp_path):
 
 
 def test_create_dataset_already_exists_raises(tmp_path):
-    """Calling create_dataset() a second time on the same URI raises an exception."""
+    """Verify create_dataset raises when the dataset already exists."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -570,7 +582,7 @@ def test_create_dataset_already_exists_raises(tmp_path):
 
 
 def test_create_dataset_tile_capacity(tmp_path):
-    """A custom tile_capacity creates a usable dataset."""
+    """Smoke Test: Verify a custom tile_capacity creates a functional dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(tile_capacity=100)
@@ -581,7 +593,7 @@ def test_create_dataset_tile_capacity(tmp_path):
 
 
 def test_create_dataset_anchor_gap(tmp_path):
-    """A custom anchor_gap creates a usable dataset."""
+    """Smoke Test: Verify a custom anchor_gap creates a functional dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(anchor_gap=500)
@@ -592,7 +604,7 @@ def test_create_dataset_anchor_gap(tmp_path):
 
 
 def test_create_dataset_allow_duplicates_false(tmp_path):
-    """allow_duplicates=False creates a usable dataset and rejects duplicate ingestion."""
+    """Smoke Test: Verify allow_duplicates=False creates a functional dataset."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(allow_duplicates=False)
@@ -603,7 +615,7 @@ def test_create_dataset_allow_duplicates_false(tmp_path):
 
 
 def test_create_dataset_variant_stats_version2(tmp_path):
-    """variant_stats_version=2 (the default) creates a usable dataset."""
+    """Smoke Test: Verify variant_stats_version=2 creates a functional dataset with readable stats."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset(enable_variant_stats=True, variant_stats_version=2)
@@ -617,7 +629,7 @@ def test_create_dataset_variant_stats_version2(tmp_path):
 
 
 def test_ingest_samples_none_is_noop(tmp_path):
-    """Calling ingest_samples() with sample_uris=None returns without error."""
+    """Verify ingest_samples with no samples is a no-op."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -629,7 +641,7 @@ def test_ingest_samples_none_is_noop(tmp_path):
 
 
 def test_ingest_samples_scratch_space_path_only_raises(tmp_path):
-    """Providing scratch_space_path without scratch_space_size raises."""
+    """Verify scratch_space_path requires scratch_space_size."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -641,7 +653,7 @@ def test_ingest_samples_scratch_space_path_only_raises(tmp_path):
 
 
 def test_ingest_samples_scratch_space_size_only_raises(tmp_path):
-    """Providing scratch_space_size without scratch_space_path raises."""
+    """Verify scratch_space_size requires scratch_space_path."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -653,7 +665,7 @@ def test_ingest_samples_scratch_space_size_only_raises(tmp_path):
 
 
 def test_ingest_samples_invalid_contig_mode_raises(tmp_path):
-    """An unrecognised contig_mode raises before ingestion starts."""
+    """Verify an unrecognized contig_mode raises before ingestion."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -665,7 +677,7 @@ def test_ingest_samples_invalid_contig_mode_raises(tmp_path):
 
 
 def test_ingest_samples_contigs_to_keep_separate_not_list_raises(tmp_path):
-    """Passing a non-list for contigs_to_keep_separate raises."""
+    """Verify contigs_to_keep_separate must be a list."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -677,7 +689,7 @@ def test_ingest_samples_contigs_to_keep_separate_not_list_raises(tmp_path):
 
 
 def test_ingest_samples_contigs_to_allow_merging_not_list_raises(tmp_path):
-    """Passing a non-list for contigs_to_allow_merging raises."""
+    """Verify contigs_to_allow_merging must be a list."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -689,7 +701,7 @@ def test_ingest_samples_contigs_to_allow_merging_not_list_raises(tmp_path):
 
 
 def test_ingest_samples_resume(tmp_path):
-    """resume=True is accepted and produces the same result as a normal ingest."""
+    """Smoke Test: Verify resume=True produces the same result as a normal ingest."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -703,7 +715,7 @@ def test_ingest_samples_resume(tmp_path):
 
 
 def test_ingest_samples_sample_batch_size(tmp_path):
-    """sample_batch_size=1 with 2 samples produces 2 fragments (one per batch)."""
+    """Verify sample_batch_size controls the number of ingestion fragments."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     samples = [os.path.join(TESTS_INPUT_DIR, s) for s in ["small.bcf", "small2.bcf"]]
@@ -715,7 +727,7 @@ def test_ingest_samples_sample_batch_size(tmp_path):
 
 
 def test_ingest_samples_memory_and_thread_params(tmp_path):
-    """Memory and thread tuning parameters are accepted and produce correct results."""
+    """Smoke Test: Verify memory and thread tuning parameters are accepted."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
@@ -736,7 +748,7 @@ def test_ingest_samples_memory_and_thread_params(tmp_path):
 
 
 def test_ingest_samples_total_memory_percentage(tmp_path):
-    """total_memory_percentage= is accepted and produces correct results."""
+    """Smoke Test: Verify total_memory_percentage is accepted."""
     uri = os.path.join(tmp_path, "dataset")
     ds = tiledbvcf.Dataset(uri, mode="w")
     ds.create_dataset()
