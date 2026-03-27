@@ -46,21 +46,6 @@ def test_read_config():
         ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg, tiledb_config=tiledb_config)
 
 
-# This test is skipped because running it in the same process as all the normal
-# tests will cause it to fail (the first context created in a process determines
-# the number of TBB threads allowed).
-@pytest.mark.skip
-def test_tbb_threads_config():
-    """Verify that changing the TBB thread count after initial setup raises RuntimeError."""
-    uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
-    cfg = tiledbvcf.ReadConfig(tiledb_config=["sm.num_tbb_threads=3"])
-    ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-
-    cfg = tiledbvcf.ReadConfig(tiledb_config=["sm.num_tbb_threads=4"])
-    with pytest.raises(RuntimeError):
-        ds = tiledbvcf.Dataset(uri, mode="r", cfg=cfg)
-
-
 def test_read_limit():
     """Verify that ReadConfig limit truncates results to the specified number of rows."""
     uri = os.path.join(TESTS_INPUT_DIR, "arrays/v3/ingested_2samples")
