@@ -41,6 +41,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "utils/logger_public.h"
+#include "utils/shared_ptr_pool.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "vcf/region.h"
@@ -52,9 +54,24 @@ namespace vcf {
 /**
  * Class wrapping a BCF/VCF file to allow iteration over records.
  */
-class VCFV4 {
+class VCFV4 : public SharedPtrPool<bcf1_t> {
  public:
-  VCFV4();
+  typedef SharedPtrPool::SharingMode SharingMode;
+
+  /**
+   * Constructor that determines how `SafeSharedBCFRec` records are managed. In
+   * MANUAL mode, records must be returned using `return_record()` to prevent
+   * them from being automatically destroyed when the `SafeSharedBCFRec` counter
+   * reaches 0. In AUTOMATIC mode, `VCFV4` keeps a copy of each
+   * `SafeSharedBCFRec` and releases it for reuse when the counter reachers 1.
+   *
+   * Note that AUTOMATIC mode uses a lazy algorithm for releasing records, so
+   * it is only appropriate when records can be released in roughly the same
+   * order that they were popped.
+   *
+   * @param mode The mode to use for managing SafeSharedBCFRec pointers
+   */
+  VCFV4(SharingMode mode = SharingMode::MANUAL);
   ~VCFV4();
 
   VCFV4(VCFV4&& other) = delete;
@@ -180,9 +197,6 @@ class VCFV4 {
 
   /** The buffered records. */
   std::queue<SafeSharedBCFRec> record_queue_;
-
-  /** Stale records available for re-use in `record_queue_`. */
-  std::queue<SafeSharedBCFRec> record_queue_pool_;
 
   /** The BCF/TBX record iterator. */
   Iter record_iter_;

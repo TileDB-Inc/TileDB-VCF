@@ -25,13 +25,13 @@
  */
 
 #include "vcf/vcf_v4.h"
-#include "utils/logger_public.h"
 
 namespace tiledb {
 namespace vcf {
 
-VCFV4::VCFV4()
-    : open_(false)
+VCFV4::VCFV4(SharingMode mode)
+    : SharedPtrPool<bcf1_t>(mode)
+    , open_(false)
     , inited_(false)
     , max_record_buffer_size_(10000)
     , hdr_(nullptr)
@@ -102,7 +102,7 @@ void VCFV4::open(const std::string& file, const std::string& index_file) {
 void VCFV4::close() {
   // Clear the record queue and associated allocation pool.
   std::queue<SafeSharedBCFRec>().swap(record_queue_);
-  std::queue<SafeSharedBCFRec>().swap(record_queue_pool_);
+  clear_ptr_pool();
 
   if (index_hts_ != nullptr) {
     hts_idx_destroy(index_hts_);
@@ -156,7 +156,7 @@ void VCFV4::pop_record() {
 }
 
 void VCFV4::return_record(SafeSharedBCFRec& record) {
-  record_queue_pool_.emplace(std::move(record));
+  return_ptr_to_pool(record);
 }
 
 std::string VCFV4::contig_name(bcf1_t* const r) const {
@@ -301,17 +301,15 @@ void VCFV4::read_records() {
       break;
     }
 
-    if (!record_queue_pool_.empty()) {
-      // Pop a stale record for re-use. Note that `bcf_copy`
-      // destroys (frees) the stale data to prevent a memory
-      // leak.
-      SafeSharedBCFRec r = record_queue_pool_.front();
-      record_queue_pool_.pop();
-      bcf_copy(r.get(), tmp_r.get());
+    // Add a new record to the pool or reuse a record from the pool
+    if (ptr_pool_empty()) {
+      SafeSharedBCFRec r = create_pool_ptr(bcf_dup(tmp_r.get()), bcf_destroy);
       bcf_unpack(r.get(), BCF_UN_ALL);
       record_queue_.emplace(std::move(r));
     } else {
-      SafeSharedBCFRec r(bcf_dup(tmp_r.get()), bcf_destroy);
+      SafeSharedBCFRec r = reuse_pool_ptr();
+      // Use `bcf_copy` to destroy (free) the stale data to prevent memory leaks
+      bcf_copy(r.get(), tmp_r.get());
       bcf_unpack(r.get(), BCF_UN_ALL);
       record_queue_.emplace(std::move(r));
     }
@@ -328,11 +326,11 @@ void VCFV4::read_records() {
 }
 
 void VCFV4::swap(VCFV4& other) {
+  SharedPtrPool<bcf1_t>::swap(other);
   std::swap(open_, other.open_);
   std::swap(path_, other.path_);
   std::swap(index_path_, other.index_path_);
   std::swap(record_queue_, other.record_queue_);
-  std::swap(record_queue_pool_, other.record_queue_pool_);
   record_iter_.swap(other.record_iter_);
   std::swap(hdr_, other.hdr_);
   std::swap(index_tbx_, other.index_tbx_);
