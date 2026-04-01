@@ -309,6 +309,41 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
+void VariantStats::skip_delete_sample(
+    std::shared_ptr<Context> ctx,
+    const Group& group,
+    const std::string& sample) {
+  auto uri = VariantStats::group_uri(group);
+  if (uri.empty()) {
+    return;
+  }
+
+  // Read existing skipped_delete_samples metadata
+  std::string existing;
+  {
+    Array read_array(*ctx, uri, TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    read_array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    if (value != nullptr && num > 0) {
+      existing = std::string(static_cast<const char*>(value), num);
+    }
+  }
+
+  // Build updated CSV
+  std::string csv = existing.empty() ? sample : existing + "," + sample;
+
+  // Write updated metadata
+  {
+    Array write_array(*ctx, uri, TILEDB_WRITE);
+    write_array.put_metadata(
+        "skipped_delete_samples", TILEDB_STRING_ASCII, csv.size(), csv.c_str());
+  }
+
+  LOG_INFO("[VariantStats] Recorded skipped deletion for sample {}", sample);
+}
+
 void VariantStats::consolidate_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
   auto uri = VariantStats::group_uri(group);

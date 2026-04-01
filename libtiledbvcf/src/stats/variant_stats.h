@@ -123,6 +123,21 @@ class VariantStats {
   static void close();
 
   /**
+   * @brief Record a skipped sample deletion in array metadata.
+   *
+   * Reads existing "skipped_deletions" metadata (if any), appends the sample
+   * name, and writes back the updated CSV.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @param sample Sample name whose stats update was skipped
+   */
+  static void skip_delete_sample(
+      std::shared_ptr<Context> ctx,
+      const Group& group,
+      const std::string& sample);
+
+  /**
    * @brief Consolidate commits
    *
    * @param ctx TileDB context
