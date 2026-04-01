@@ -438,6 +438,27 @@ cat <<EOF
 EOF
 ) || exit 1
 
+# check deletion with --skip-aggregate-stats
+$tilevcf create -u skip_stats_test || exit 1
+for i in {1..5}; do
+  $tilevcf store -u skip_stats_test ${input_dir}/random_synthetic/G$i.bcf || exit 1
+done
+$tilevcf delete -u skip_stats_test -s G1,G2 --skip-aggregate-stats
+diff -u <($tilevcf list -u skip_stats_test) <(
+cat <<EOF
+G3
+G4
+G5
+EOF
+) || exit 1
+# delete more samples to verify accumulation
+$tilevcf delete -u skip_stats_test -s G3,G4 --skip-aggregate-stats
+diff -u <($tilevcf list -u skip_stats_test) <(
+cat <<EOF
+G5
+EOF
+) || exit 1
+
 # check create from vcf
 $tilevcf create -u create_test -v ${input_dir}/small3.bcf || exit 1
 diff <($tilevcf stat -u create_test | grep Extracted) <(echo "- Extracted attributes: fmt_AD, fmt_DP, fmt_GQ, fmt_GT, fmt_MIN_DP, fmt_PL, fmt_SB, info_BaseQRankSum, info_ClippingRankSum, info_DP, info_DS, info_END, info_HaplotypeScore, info_InbreedingCoeff, info_MLEAC, info_MLEAF, info_MQ, info_MQ0, info_MQRankSum, info_ReadPosRankSum") || exit 1
