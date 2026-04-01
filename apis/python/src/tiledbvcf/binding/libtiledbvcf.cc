@@ -131,6 +131,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
           "ingest_samples",
           &Writer::ingest_samples,
           py::call_guard<py::gil_scoped_release>())
+      .def("set_skip_aggregate_stats", &Writer::set_skip_aggregate_stats)
       .def(
           "delete_samples",
           &Writer::delete_samples,

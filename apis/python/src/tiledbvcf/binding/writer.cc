@@ -232,6 +232,11 @@ void Writer::ingest_samples() {
   check_error(writer, tiledb_vcf_writer_store(writer));
 }
 
+void Writer::set_skip_aggregate_stats(bool skip) {
+  auto writer = ptr.get();
+  check_error(writer, tiledb_vcf_writer_set_skip_aggregate_stats(writer, skip));
+}
+
 void Writer::delete_samples(std::vector<std::string> samples_to_delete) {
   std::vector<const char*> samples;
   for (std::string& sample : samples_to_delete) {
