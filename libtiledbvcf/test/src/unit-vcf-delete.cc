@@ -244,3 +244,208 @@ TEST_CASE("TileDB-VCF: Test multi sample delete", "[tiledbvcf][delete]") {
     vfs.remove_dir(dataset_uri);
   }
 }
+
+TEST_CASE(
+    "TileDB-VCF: Test delete with skip_aggregate_stats",
+    "[tiledbvcf][delete]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+  std::string sample_name = "stats-test";
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+
+  // Create dataset with all stats arrays enabled
+  {
+    CreationParams create_args;
+    create_args.uri = dataset_uri;
+    create_args.tile_capacity = 10000;
+    create_args.allow_duplicates = false;
+    create_args.enable_allele_count = true;
+    create_args.enable_variant_stats = true;
+    create_args.enable_sample_stats = true;
+    TileDBVCFDataset::create(create_args);
+  }
+
+  // Ingest
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    params.sample_uris = {input_dir + "/stats-test.vcf.gz"};
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Verify pre-delete stat values
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/allele_count", "count") == 246);
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/variant_stats", "ac") == 492);
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/variant_stats", "n_hom") == 163);
+  REQUIRE(
+      sum<uint64_t>(ctx, dataset_uri + "/sample_stats", "n_records") == 246);
+
+  // Delete with skip_aggregate_stats=true
+  {
+    Config cfg;
+    TileDBVCFDataset dataset(cfg);
+    dataset.delete_samples(dataset_uri, {sample_name}, {}, true);
+  }
+
+  // Verify sample is deleted
+  {
+    auto ctx2 = std::make_shared<Context>();
+    TileDBVCFDataset dataset(ctx2);
+    dataset.open(dataset_uri);
+    REQUIRE(dataset.sample_names().empty());
+  }
+
+  // allele_count and variant_stats should be unchanged (stats were skipped)
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/allele_count", "count") == 246);
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/variant_stats", "ac") == 492);
+  REQUIRE(sum<int64_t>(ctx, dataset_uri + "/variant_stats", "n_hom") == 163);
+
+  // sample_stats should be zeroed (always runs regardless of flag)
+  REQUIRE(sum<uint64_t>(ctx, dataset_uri + "/sample_stats", "n_records") == 0);
+
+  // Verify skipped_delete_samples metadata on allele_count
+  {
+    Array array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    REQUIRE(type == TILEDB_STRING_ASCII);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == sample_name);
+  }
+
+  // Verify skipped_delete_samples metadata on variant_stats
+  {
+    Array array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    REQUIRE(type == TILEDB_STRING_ASCII);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == sample_name);
+  }
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+}
+
+TEST_CASE(
+    "TileDB-VCF: Test skip_aggregate_stats metadata accumulates",
+    "[tiledbvcf][delete]") {
+  tiledb::Context ctx;
+  tiledb::VFS vfs(ctx);
+
+  std::string dataset_uri = "test_dataset";
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+
+  // Create dataset with allele_count and variant_stats enabled
+  {
+    CreationParams create_args;
+    create_args.uri = dataset_uri;
+    create_args.tile_capacity = 10000;
+    create_args.allow_duplicates = false;
+    create_args.enable_allele_count = true;
+    create_args.enable_variant_stats = true;
+    TileDBVCFDataset::create(create_args);
+  }
+
+  // Ingest G1, G2, G3
+  {
+    Writer writer;
+    IngestionParams params;
+    params.uri = dataset_uri;
+    for (int i = 1; i <= 3; i++) {
+      params.sample_uris.push_back(
+          input_dir + "/random_synthetic/G" + std::to_string(i) + ".bcf");
+    }
+    writer.set_all_params(params);
+    writer.ingest_samples();
+  }
+
+  // Delete G1 with skip_aggregate_stats=true
+  {
+    Config cfg;
+    TileDBVCFDataset dataset(cfg);
+    dataset.delete_samples(dataset_uri, {"G1"}, {}, true);
+  }
+
+  // Verify metadata is "G1" on both arrays
+  {
+    Array ac_array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    ac_array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == "G1");
+  }
+  {
+    Array vs_array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    vs_array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == "G1");
+  }
+
+  // Delete G2 with skip_aggregate_stats=true
+  {
+    Config cfg;
+    TileDBVCFDataset dataset(cfg);
+    dataset.delete_samples(dataset_uri, {"G2"}, {}, true);
+  }
+
+  // Verify metadata accumulated to "G1,G2" on both arrays
+  {
+    Array ac_array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    ac_array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == "G1,G2");
+  }
+  {
+    Array vs_array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
+    const void* value = nullptr;
+    tiledb_datatype_t type = TILEDB_ANY;
+    uint32_t num = 0;
+    vs_array.get_metadata("skipped_delete_samples", &type, &num, &value);
+    REQUIRE(value != nullptr);
+    std::string meta(static_cast<const char*>(value), num);
+    REQUIRE(meta == "G1,G2");
+  }
+
+  // Verify G3 still present, G1 and G2 are gone
+  {
+    auto ctx2 = std::make_shared<Context>();
+    TileDBVCFDataset dataset(ctx2);
+    dataset.open(dataset_uri);
+    REQUIRE(dataset.sample_names().size() == 1);
+    std::string remaining(dataset.sample_names().at(0).data());
+    REQUIRE(remaining == "G3");
+  }
+
+  if (vfs.is_dir(dataset_uri)) {
+    vfs.remove_dir(dataset_uri);
+  }
+}
