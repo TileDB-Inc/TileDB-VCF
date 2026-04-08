@@ -120,8 +120,9 @@ class AlleleCount {
   /**
    * @brief Record a skipped sample deletion in array metadata.
    *
-   * Reads existing "skipped_deletions" metadata (if any), appends the sample
-   * name, and writes back the updated CSV.
+   * Writes a per-sample metadata key "skipped_delete_sample:<sample>" to the
+   * array. Using one key per sample avoids the read-modify-write race condition
+   * that would arise from accumulating a single CSV value.
    *
    * @param ctx TileDB context
    * @param group TileDB-VCF dataset group
@@ -131,6 +132,19 @@ class AlleleCount {
       std::shared_ptr<Context> ctx,
       const Group& group,
       const std::string& sample);
+
+  /**
+   * @brief Return the list of samples whose deletion was skipped.
+   *
+   * Enumerates all array metadata keys with the prefix
+   * "skipped_delete_sample:" and returns the sample name suffixes.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @return Vector of sample names recorded as skipped
+   */
+  static std::vector<std::string> get_skipped_delete_samples(
+      std::shared_ptr<Context> ctx, const Group& group);
 
   /**
    * @brief Consolidate commits

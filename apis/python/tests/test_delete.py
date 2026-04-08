@@ -102,18 +102,17 @@ def test_delete_samples_skip_aggregate_stats(tmp_path, stats_v3_dataset):
     assert "second" not in sample_names
     assert "third" in sample_names
 
-    # Verify skipped_delete_samples metadata on allele_count and variant_stats
+    # Verify per-sample skipped deletion key is recorded on allele_count and variant_stats
     for array_name in ["allele_count", "variant_stats"]:
         with tiledb.open(os.path.join(uri, array_name), "r") as arr:
-            meta = arr.meta["skipped_delete_samples"]
-            assert b"second" in meta
+            assert "skipped_delete_sample:second" in arr.meta
 
 
 @skip_if_no_bcftools
 def test_delete_samples_skip_aggregate_stats_accumulates(
     tmp_path, stats_v3_dataset
 ):
-    """Verify skipped_delete_samples metadata accumulates across deletions."""
+    """Verify per-sample skipped deletion keys are recorded across multiple deletions."""
     uri = os.path.join(tmp_path, "stats_test")
 
     ds = tiledbvcf.Dataset(uri=uri, mode="w")
@@ -124,8 +123,8 @@ def test_delete_samples_skip_aggregate_stats_accumulates(
 
     for array_name in ["allele_count", "variant_stats"]:
         with tiledb.open(os.path.join(uri, array_name), "r") as arr:
-            meta = arr.meta["skipped_delete_samples"]
-            assert meta == b"second,fifth"
+            assert "skipped_delete_sample:second" in arr.meta
+            assert "skipped_delete_sample:fifth" in arr.meta
 
 
 def test_delete_samples_read_mode_raises(tmp_path):

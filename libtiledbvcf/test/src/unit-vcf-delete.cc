@@ -34,9 +34,12 @@
 
 #include "dataset/tiledbvcfdataset.h"
 #include "read/reader.h"
+#include "stats/allele_count.h"
+#include "stats/variant_stats.h"
 #include "utils/logger_public.h"
 #include "write/writer.h"
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -312,28 +315,20 @@ TEST_CASE(
 
   // Verify skipped_delete_samples metadata on allele_count
   {
-    Array array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    REQUIRE(type == TILEDB_STRING_ASCII);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == sample_name);
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = AlleleCount::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 1);
+    REQUIRE(skipped[0] == sample_name);
   }
 
   // Verify skipped_delete_samples metadata on variant_stats
   {
-    Array array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    REQUIRE(type == TILEDB_STRING_ASCII);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == sample_name);
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = VariantStats::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 1);
+    REQUIRE(skipped[0] == sample_name);
   }
 
   if (vfs.is_dir(dataset_uri)) {
@@ -384,26 +379,20 @@ TEST_CASE(
     dataset.delete_samples(dataset_uri, {"G1"}, {}, true);
   }
 
-  // Verify metadata is "G1" on both arrays
+  // Verify metadata records G1 on both arrays
   {
-    Array ac_array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    ac_array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == "G1");
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = AlleleCount::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 1);
+    REQUIRE(skipped[0] == "G1");
   }
   {
-    Array vs_array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    vs_array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == "G1");
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = VariantStats::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 1);
+    REQUIRE(skipped[0] == "G1");
   }
 
   // Delete G2 with skip_aggregate_stats=true
@@ -413,26 +402,22 @@ TEST_CASE(
     dataset.delete_samples(dataset_uri, {"G2"}, {}, true);
   }
 
-  // Verify metadata accumulated to "G1,G2" on both arrays
+  // Verify metadata records both G1 and G2 on both arrays
   {
-    Array ac_array(ctx, dataset_uri + "/allele_count", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    ac_array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == "G1,G2");
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = AlleleCount::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 2);
+    REQUIRE(std::find(skipped.begin(), skipped.end(), "G1") != skipped.end());
+    REQUIRE(std::find(skipped.begin(), skipped.end(), "G2") != skipped.end());
   }
   {
-    Array vs_array(ctx, dataset_uri + "/variant_stats", TILEDB_READ);
-    const void* value = nullptr;
-    tiledb_datatype_t type = TILEDB_ANY;
-    uint32_t num = 0;
-    vs_array.get_metadata("skipped_delete_samples", &type, &num, &value);
-    REQUIRE(value != nullptr);
-    std::string meta(static_cast<const char*>(value), num);
-    REQUIRE(meta == "G1,G2");
+    auto ctx_ptr = std::make_shared<tiledb::Context>();
+    tiledb::Group group(*ctx_ptr, dataset_uri, TILEDB_READ);
+    auto skipped = VariantStats::get_skipped_delete_samples(ctx_ptr, group);
+    REQUIRE(skipped.size() == 2);
+    REQUIRE(std::find(skipped.begin(), skipped.end(), "G1") != skipped.end());
+    REQUIRE(std::find(skipped.begin(), skipped.end(), "G2") != skipped.end());
   }
 
   // Verify G3 still present, G1 and G2 are gone
