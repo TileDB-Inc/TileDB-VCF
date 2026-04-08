@@ -1374,10 +1374,11 @@ void TileDBVCFDataset::SampleHeaders::set_sample_header(
   }
 
   // Save the sample's unique header index and insertion order
-  sample_index_lookup.emplace(sample_name, Indexes{hdr_idx, sample_idx});
+  sample_index_lookup.emplace(
+      sample_name, Indexes{hdr_idx, sample_idx, nullptr});
 }
 
-SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
+bcf_hdr_t* TileDBVCFDataset::SampleHeaders::parse_sample_header(
     const std::string& sample) const {
   bcf_hdr_t* hdr = bcf_hdr_init("r");
   if (!hdr) {
@@ -1411,7 +1412,28 @@ SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
         "bcftools: failed to update VCF header.");
   }
 
+  return hdr;
+}
+
+SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
+    const std::string& sample) const {
+  bcf_hdr_t* hdr = parse_sample_header(sample);
   return SafeBCFHdr(hdr, bcf_hdr_destroy);
+}
+
+SafeSharedBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header_shared(
+    std::string& sample, bool cache) {
+  Indexes& indexes = sample_index_lookup.at(sample);
+  if (cache) {
+    if (indexes.cached_header == nullptr) {
+      bcf_hdr_t* hdr = parse_sample_header(sample);
+      indexes.cached_header.reset(hdr);
+    }
+    return indexes.cached_header;
+  }
+
+  bcf_hdr_t* hdr = parse_sample_header(sample);
+  return SafeSharedBCFHdr(hdr);
 }
 
 std::vector<std::string>

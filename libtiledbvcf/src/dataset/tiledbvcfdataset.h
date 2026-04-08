@@ -220,6 +220,7 @@ class TileDBVCFDataset {
     struct Indexes {
       size_t header_idx;  // index in unique_headers
       size_t tiledb_idx;  // index in TileDB header array
+      SafeSharedBCFHdr cached_header;
     };
     // Save unique headers as strings for on-demand bcf_hdr_t parsing
     std::vector<std::string> unique_headers;
@@ -239,6 +240,14 @@ class TileDBVCFDataset {
      */
     void set_sample_header(
         const char* hdr_str, const std::string& sample_name, size_t sample_idx);
+
+    /**
+     * Parses the header for the given sample name and returns a raw pointer.
+     *
+     * @param sample The name of the sample to get the header for
+     * @return The header for the sample
+     */
+    bcf_hdr_t* parse_sample_header(const std::string& sample) const;
 
    public:
     friend class TileDBVCFDataset;
@@ -275,12 +284,23 @@ class TileDBVCFDataset {
     SafeBCFHdr first() const;
 
     /**
-     * Gets the header for the given sample name.
+     * Gets the header for the given sample name and returns a unique pointer.
      *
      * @param sample The name of the sample to get the header for
-     * @return The first header
+     * @return The header for the sample
      */
     SafeBCFHdr get_sample_header(const std::string& sample) const;
+
+    /**
+     * Gets the header for the given sample name and returns a shared pointer,
+     * with optional caching.
+     *
+     * @param sample The name of the sample to get the header for
+     * @param cache If the shared pointer should be cached
+     * @return The header for the sample
+     */
+    SafeSharedBCFHdr get_sample_header_shared(
+        std::string& sample, bool cache = true);
 
     /**
      * Returns the sample names stored as a view of the internal lookup map.

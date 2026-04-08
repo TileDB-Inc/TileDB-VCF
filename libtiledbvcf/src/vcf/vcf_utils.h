@@ -46,6 +46,9 @@ namespace vcf {
 /** Alias for unique_ptr to bcf_hdr_t. */
 typedef std::unique_ptr<bcf_hdr_t, decltype(&bcf_hdr_destroy)> SafeBCFHdr;
 
+/** Alias for unique_ptr to bcf_hdr_t. */
+typedef std::shared_ptr<bcf_hdr_t> SafeSharedBCFHdr;
+
 /** Alias for unique_ptr to bcf1_t. */
 typedef std::unique_ptr<bcf1_t, decltype(&bcf_destroy)> SafeBCFRec;
 
