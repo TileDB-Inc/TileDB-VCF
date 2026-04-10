@@ -89,6 +89,44 @@ def test_delete_samples_nonexistent_raises(tmp_path):
         ds.delete_samples(["NONEXISTENT"])
 
 
+@skip_if_no_bcftools
+def test_delete_samples_skip_aggregate_stats(tmp_path, stats_v3_dataset):
+    """Verify skip_aggregate_stats skips stats update and records metadata."""
+    uri = os.path.join(tmp_path, "stats_test")
+    ds = tiledbvcf.Dataset(uri=uri, mode="w")
+    ds.delete_samples(["second"], skip_aggregate_stats=True)
+
+    # Verify sample is deleted
+    ds = tiledbvcf.Dataset(uri=uri, mode="r")
+    sample_names = ds.samples()
+    assert "second" not in sample_names
+    assert "third" in sample_names
+
+    # Verify per-sample skipped deletion key is recorded on allele_count and variant_stats
+    for array_name in ["allele_count", "variant_stats"]:
+        with tiledb.open(os.path.join(uri, array_name), "r") as arr:
+            assert "skipped_delete_sample:second" in arr.meta
+
+
+@skip_if_no_bcftools
+def test_delete_samples_skip_aggregate_stats_accumulates(
+    tmp_path, stats_v3_dataset
+):
+    """Verify per-sample skipped deletion keys are recorded across multiple deletions."""
+    uri = os.path.join(tmp_path, "stats_test")
+
+    ds = tiledbvcf.Dataset(uri=uri, mode="w")
+    ds.delete_samples(["second"], skip_aggregate_stats=True)
+
+    ds = tiledbvcf.Dataset(uri=uri, mode="w")
+    ds.delete_samples(["fifth"], skip_aggregate_stats=True)
+
+    for array_name in ["allele_count", "variant_stats"]:
+        with tiledb.open(os.path.join(uri, array_name), "r") as arr:
+            assert "skipped_delete_sample:second" in arr.meta
+            assert "skipped_delete_sample:fifth" in arr.meta
+
+
 def test_delete_samples_read_mode_raises(tmp_path):
     """Verify delete_samples() raises in read mode."""
     uri = os.path.join(tmp_path, "dataset")

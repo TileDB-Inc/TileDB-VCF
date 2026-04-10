@@ -1501,6 +1501,16 @@ TILEDBVCF_EXPORT int32_t
 tiledb_vcf_writer_set_verbose(tiledb_vcf_writer_t* writer, bool verbose);
 
 /**
+ * Set whether to skip aggregate stats updates during deletion.
+ *
+ * @param writer VCF writer object
+ * @param skip_aggregate_stats whether to skip aggregate stats
+ * @return `TILEDB_VCF_OK` for success or `TILEDB_VCF_ERR` for error.
+ */
+TILEDBVCF_EXPORT int32_t tiledb_vcf_writer_set_skip_aggregate_stats(
+    tiledb_vcf_writer_t* writer, bool skip_aggregate_stats);
+
+/**
  * Sets whether TileDB internal statistics should be enabled or not.
  *
  * @param writer VCF writer object

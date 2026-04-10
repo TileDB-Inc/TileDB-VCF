@@ -162,6 +162,8 @@ class Writer {
 
   void ingest_samples();
 
+  void set_skip_aggregate_stats(bool skip);
+
   void delete_samples(std::vector<std::string> samples);
 
   /** Returns schema version number of the TileDB VCF dataset */

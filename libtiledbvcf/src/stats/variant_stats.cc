@@ -309,6 +309,48 @@ void VariantStats::close() {
   enabled_ = false;
 }
 
+void VariantStats::skip_delete_sample(
+    std::shared_ptr<Context> ctx,
+    const Group& group,
+    const std::string& sample) {
+  auto uri = VariantStats::group_uri(group);
+  if (uri.empty()) {
+    return;
+  }
+
+  // Write one key per sample to avoid a read-modify-write race condition.
+  // Concurrent callers write to different keys so no coordination is needed.
+  std::string key = "skipped_delete_sample:" + sample;
+  Array write_array(*ctx, uri, TILEDB_WRITE);
+  write_array.put_metadata(key, TILEDB_STRING_ASCII, 0, nullptr);
+
+  LOG_INFO("[VariantStats] Recorded skipped deletion for sample {}", sample);
+}
+
+std::vector<std::string> VariantStats::get_skipped_delete_samples(
+    std::shared_ptr<Context> ctx, const Group& group) {
+  auto uri = VariantStats::group_uri(group);
+  if (uri.empty()) {
+    return {};
+  }
+
+  const std::string prefix = "skipped_delete_sample:";
+  std::vector<std::string> samples;
+  Array array(*ctx, uri, TILEDB_READ);
+  uint64_t n = array.metadata_num();
+  for (uint64_t i = 0; i < n; i++) {
+    std::string key;
+    tiledb_datatype_t type;
+    uint32_t num;
+    const void* value;
+    array.get_metadata_from_index(i, &key, &type, &num, &value);
+    if (key.rfind(prefix, 0) == 0) {
+      samples.push_back(key.substr(prefix.size()));
+    }
+  }
+  return samples;
+}
+
 void VariantStats::consolidate_commits(
     std::shared_ptr<Context> ctx, const Group& group) {
   auto uri = VariantStats::group_uri(group);

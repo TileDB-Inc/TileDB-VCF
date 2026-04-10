@@ -131,7 +131,7 @@ void do_delete(const DeleteParams& args, const CLI::App& cmd) {
   params.memory_budget_breakdown.buffers_percentage = args.buffers_percentage;
   params.memory_budget_breakdown.tile_cache_percentage =
       args.tile_cache_percentage;
-  dataset.delete_samples(args.sample_names, params);
+  dataset.delete_samples(args.sample_names, params, args.skip_aggregate_stats);
   LOG_TRACE("Finished delete command.");
 }
 
@@ -722,6 +722,10 @@ void add_delete(CLI::App& app) {
       args->tile_cache_percentage,
       "The percentage of the memory budget to use for TileDB tile "
       "cache.");
+  cmd->add_flag(
+      "--skip-aggregate-stats",
+      args->skip_aggregate_stats,
+      "Skip updating allele_count and variant_stats arrays during deletion.");
   add_logging_options(cmd, args->log_level, args->log_file);
 
   // register function to implement this command

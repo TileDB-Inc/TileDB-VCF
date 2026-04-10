@@ -1573,6 +1573,19 @@ int32_t tiledb_vcf_writer_set_verbose(
   return TILEDB_VCF_OK;
 }
 
+int32_t tiledb_vcf_writer_set_skip_aggregate_stats(
+    tiledb_vcf_writer_t* writer, const bool skip_aggregate_stats) {
+  if (sanity_check(writer) == TILEDB_VCF_ERR)
+    return TILEDB_VCF_ERR;
+
+  if (SAVE_ERROR_CATCH(
+          writer,
+          writer->writer_->set_skip_aggregate_stats(skip_aggregate_stats)))
+    return TILEDB_VCF_ERR;
+
+  return TILEDB_VCF_OK;
+}
+
 int32_t tiledb_vcf_writer_set_tiledb_stats_enabled(
     tiledb_vcf_writer_t* writer, const bool stats_enabled) {
   if (sanity_check(writer) == TILEDB_VCF_ERR)
