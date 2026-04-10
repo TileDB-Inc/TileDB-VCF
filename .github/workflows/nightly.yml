@@ -85,6 +85,8 @@ jobs:
           python-version: "3.10"
       - name: Build tiledb-py from source
         run: bash TileDB-VCF/ci/nightly/build-tiledb-py.sh
+        env:
+          PYBIND11_MAX_VERSION: ${{ matrix.branches.tiledb-py != 'main' && '<3' || '' }}
       - name: Build (and test) tiledbvcf-py
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
   issue:
