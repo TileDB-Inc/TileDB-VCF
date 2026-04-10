@@ -44,7 +44,7 @@ using namespace tiledb::vcf;
  * @return py::object Arrow table
  */
 py::object _buffer_to_table(std::shared_ptr<ArrayBuffers> buffers) {
-  auto pa = py::module::import("pyarrow");
+  auto pa = py::module_::import("pyarrow");
   auto pa_table_from_arrays = pa.attr("Table").attr("from_arrays");
   auto pa_array_import = pa.attr("Array").attr("_import_from_c");
   auto pa_schema_import = pa.attr("Schema").attr("_import_from_c");

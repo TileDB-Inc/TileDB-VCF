@@ -35,7 +35,7 @@ namespace py = pybind11;
 using namespace py::literals;
 using namespace tiledb::vcf;
 
-void load_sample_stats(py::module& m) {
+void load_sample_stats(py::module_& m) {
   m.def(
       "sample_qc",
       [](const std::string& dataset_uri,
