@@ -18,6 +18,12 @@ fi
 
 export TILEDB_PATH=$GITHUB_WORKSPACE/install/
 
+# Pin pybind11 version if PYBIND11_MAX_VERSION is set (e.g. "<3")
+if [ -n "${PYBIND11_MAX_VERSION:-}" ]; then
+  echo "pybind11${PYBIND11_MAX_VERSION}" > /tmp/pybind11-constraint.txt
+  export PIP_CONSTRAINT=/tmp/pybind11-constraint.txt
+fi
+
 cd TileDB-Py/
 python -m pip install -Cskbuild.cmake.define.TILEDB_REMOVE_DEPRECATIONS=OFF -v .
 
