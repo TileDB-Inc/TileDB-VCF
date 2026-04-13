@@ -1525,6 +1525,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -1605,6 +1606,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -1674,6 +1676,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -1761,6 +1764,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -1841,6 +1845,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -1910,6 +1915,7 @@ TEST_CASE(
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     writer.set_all_params(params);
     writer.ingest_samples();

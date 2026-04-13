@@ -86,6 +86,13 @@ void do_store(const IngestionParams& args, const CLI::App& cmd) {
     throw CLI::CallForHelp();
   }
 
+  if (!args.legacy_ingestion_algorithm &&
+      args.resume_sample_partial_ingestion) {
+    LOG_ERROR(
+        "--resume isn't supported by the current ingestion algorithm; use "
+        "--legacy to use an ingestion algorithm that supports resuming");
+  }
+
   if (args.verbose) {
     LOG_SET_LEVEL("debug");
   }
@@ -665,6 +672,10 @@ void add_store(CLI::App& app) {
   CLI::deprecate_option(cmd, "--verbose", "--log-level debug");
 
   cmd->option_defaults()->group("Legacy options");
+  cmd->add_flag(
+      "--legacy",
+      args->legacy_ingestion_algorithm,
+      "Use the legacy ingestion algorithm");
   cmd->add_option_function<unsigned>(
       "-n,--max-record-buff",
       [args](const unsigned& value) {
