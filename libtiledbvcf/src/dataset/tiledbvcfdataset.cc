@@ -954,17 +954,20 @@ bool TileDBVCFDataset::sample_exists(const std::string& sample) {
 void TileDBVCFDataset::delete_samples(
     const std::string& uri,
     const std::vector<std::string>& sample_names,
-    const std::vector<std::string>& tiledb_config) {
+    const std::vector<std::string>& tiledb_config,
+    bool skip_aggregate_stats) {
   ExportParams params;
   params.format = ExportFormat::Delete;
   params.export_to_disk = true;
   params.uri = uri;
   params.tiledb_config = tiledb_config;
-  delete_samples(sample_names, params);
+  delete_samples(sample_names, params, skip_aggregate_stats);
 }
 
 void TileDBVCFDataset::delete_samples(
-    const std::vector<std::string>& sample_names, const ExportParams& params) {
+    const std::vector<std::string>& sample_names,
+    const ExportParams& params,
+    bool skip_aggregate_stats) {
   assert(params.format == ExportFormat::Delete);
   assert(params.export_to_disk);
 
@@ -1003,14 +1006,19 @@ void TileDBVCFDataset::delete_samples(
       throw std::runtime_error("Sample not found in dataset: " + sample);
     }
 
-    // If a stats array exists, read the data with the delete exporter,
-    // which adds negative counts to the stats arrays
+    // If a stats array exists, update or skip the allele_count and
+    // variant_stats arrays
     if (stats_array_exists) {
-      Reader reader;
-      reader.set_all_params(params);
-      reader.set_samples(sample);
-      reader.open_dataset(params.uri);
-      reader.read();
+      if (skip_aggregate_stats) {
+        AlleleCount::skip_delete_sample(ctx_, group, sample);
+        VariantStats::skip_delete_sample(ctx_, group, sample);
+      } else {
+        Reader reader;
+        reader.set_all_params(params);
+        reader.set_samples(sample);
+        reader.open_dataset(params.uri);
+        reader.read();
+      }
     }
 
     // Delete samples from the vcf_header, data, and sample_stats arrays
@@ -1374,10 +1382,11 @@ void TileDBVCFDataset::SampleHeaders::set_sample_header(
   }
 
   // Save the sample's unique header index and insertion order
-  sample_index_lookup.emplace(sample_name, Indexes{hdr_idx, sample_idx});
+  sample_index_lookup.emplace(
+      sample_name, Indexes{hdr_idx, sample_idx, nullptr});
 }
 
-SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
+bcf_hdr_t* TileDBVCFDataset::SampleHeaders::parse_sample_header(
     const std::string& sample) const {
   bcf_hdr_t* hdr = bcf_hdr_init("r");
   if (!hdr) {
@@ -1411,7 +1420,28 @@ SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
         "bcftools: failed to update VCF header.");
   }
 
+  return hdr;
+}
+
+SafeBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header(
+    const std::string& sample) const {
+  bcf_hdr_t* hdr = parse_sample_header(sample);
   return SafeBCFHdr(hdr, bcf_hdr_destroy);
+}
+
+SafeSharedBCFHdr TileDBVCFDataset::SampleHeaders::get_sample_header_shared(
+    std::string& sample, bool cache) {
+  Indexes& indexes = sample_index_lookup.at(sample);
+  if (cache) {
+    if (indexes.cached_header == nullptr) {
+      bcf_hdr_t* hdr = parse_sample_header(sample);
+      indexes.cached_header.reset(hdr);
+    }
+    return indexes.cached_header;
+  }
+
+  bcf_hdr_t* hdr = parse_sample_header(sample);
+  return SafeSharedBCFHdr(hdr);
 }
 
 std::vector<std::string>

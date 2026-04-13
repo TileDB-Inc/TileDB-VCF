@@ -1484,9 +1484,16 @@ void Writer::set_variant_stats_array_version(uint8_t version) {
   creation_params_.variant_stats_array_version = version;
 }
 
+void Writer::set_skip_aggregate_stats(bool skip) {
+  ingestion_params_.skip_aggregate_stats = skip;
+}
+
 void Writer::delete_samples(std::vector<std::string> samples) {
   dataset_->delete_samples(
-      ingestion_params_.uri, samples, ingestion_params_.tiledb_config);
+      ingestion_params_.uri,
+      samples,
+      ingestion_params_.tiledb_config,
+      ingestion_params_.skip_aggregate_stats);
 }
 
 }  // namespace vcf

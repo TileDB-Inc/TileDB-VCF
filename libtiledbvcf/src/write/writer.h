@@ -150,6 +150,9 @@ struct IngestionParams {
   //  SEPARATE = contigs in the contigs_to_keep_separate
   //  MERGED = contigs not in the contigs_to_keep_separate
   ContigMode contig_mode = ContigMode::ALL;
+
+  // Skip updating allele_count and variant_stats arrays during deletion
+  bool skip_aggregate_stats = false;
 };
 
 /* ********************************* */
@@ -381,6 +384,9 @@ class Writer {
 
   /** Set variant stats array version */
   void set_variant_stats_array_version(uint8_t version);
+
+  /** Set whether to skip aggregate stats updates during deletion. */
+  void set_skip_aggregate_stats(bool skip);
 
   /**
    * @brief Delete samples from the writer's dataset.

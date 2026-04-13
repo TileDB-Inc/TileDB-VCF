@@ -30,7 +30,9 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -121,6 +123,35 @@ class VariantStats {
   static void close();
 
   /**
+   * @brief Record a skipped sample deletion in array metadata.
+   *
+   * Writes a per-sample metadata key "skipped_delete_sample:<sample>" to the
+   * array. Using one key per sample avoids the read-modify-write race condition
+   * that would arise from accumulating a single CSV value.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @param sample Sample name whose stats update was skipped
+   */
+  static void skip_delete_sample(
+      std::shared_ptr<Context> ctx,
+      const Group& group,
+      const std::string& sample);
+
+  /**
+   * @brief Return the list of samples whose deletion was skipped.
+   *
+   * Enumerates all array metadata keys with the prefix
+   * "skipped_delete_sample:" and returns the sample name suffixes.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @return Vector of sample names recorded as skipped
+   */
+  static std::vector<std::string> get_skipped_delete_samples(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
    * @brief Consolidate commits
    *
    * @param ctx TileDB context
@@ -191,6 +222,11 @@ class VariantStats {
    * @param finalize If true, finalize the query.
    */
   void flush(bool clear = false);
+
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
 
  private:
   //===================================================================
@@ -264,8 +300,14 @@ class VariantStats {
   // Count delta is +1 in ingest mode, -1 in delete mode
   int count_delta_ = 1;
 
+  // Reusable vector for GT values
+  std::vector<int> gt_;
+
+  // Reusable vector for missing GT values
+  std::vector<int> gt_missing_;
+
   // Set of sample names in this query (per thread)
-  std::set<std::string> sample_names_;
+  std::unordered_set<std::string> sample_names_;
 
   struct FieldValues {
     int32_t ac = 0;
@@ -369,6 +411,21 @@ class VariantStats {
    *
    */
   void update_results();
+
+  /**
+   * @brief Move stats for the current locus to the TileDB buffers and start
+   * collecting stats at the next locus.
+   *
+   */
+  void update_results_v2();
+
+  /**
+   * @brief Move stats for the current locus to the TileDB buffers and start
+   * collecting stats at the next locus, first sorting the samples and end
+   * dimensions.
+   *
+   */
+  void update_results_v3();
 
   /**
    * @brief Create an ALT string from the reference and alternate alleles.

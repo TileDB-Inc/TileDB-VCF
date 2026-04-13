@@ -114,6 +114,9 @@ struct DeleteParams {
   uint64_t memory_budget_mb = 2 * 1024;
   float buffers_percentage = 25;
   float tile_cache_percentage = 10;
+
+  // Skip updating allele_count and variant_stats arrays during deletion
+  bool skip_aggregate_stats = false;
 };
 
 struct UtilsParams {
@@ -220,6 +223,7 @@ class TileDBVCFDataset {
     struct Indexes {
       size_t header_idx;  // index in unique_headers
       size_t tiledb_idx;  // index in TileDB header array
+      SafeSharedBCFHdr cached_header;
     };
     // Save unique headers as strings for on-demand bcf_hdr_t parsing
     std::vector<std::string> unique_headers;
@@ -239,6 +243,14 @@ class TileDBVCFDataset {
      */
     void set_sample_header(
         const char* hdr_str, const std::string& sample_name, size_t sample_idx);
+
+    /**
+     * Parses the header for the given sample name and returns a raw pointer.
+     *
+     * @param sample The name of the sample to get the header for
+     * @return The header for the sample
+     */
+    bcf_hdr_t* parse_sample_header(const std::string& sample) const;
 
    public:
     friend class TileDBVCFDataset;
@@ -275,12 +287,23 @@ class TileDBVCFDataset {
     SafeBCFHdr first() const;
 
     /**
-     * Gets the header for the given sample name.
+     * Gets the header for the given sample name and returns a unique pointer.
      *
      * @param sample The name of the sample to get the header for
-     * @return The first header
+     * @return The header for the sample
      */
     SafeBCFHdr get_sample_header(const std::string& sample) const;
+
+    /**
+     * Gets the header for the given sample name and returns a shared pointer,
+     * with optional caching.
+     *
+     * @param sample The name of the sample to get the header for
+     * @param cache If the shared pointer should be cached
+     * @return The header for the sample
+     */
+    SafeSharedBCFHdr get_sample_header_shared(
+        std::string& sample, bool cache = true);
 
     /**
      * Returns the sample names stored as a view of the internal lookup map.
@@ -436,9 +459,13 @@ class TileDBVCFDataset {
    *
    * @param sample_names Sample names to delete
    * @param params The read parameters to use, including TileDB config values
+   * @param skip_aggregate_stats If true, skip updating allele_count and
+   *   variant_stats arrays and record skipped samples as metadata instead
    */
   void delete_samples(
-      const std::vector<std::string>& sample_names, const ExportParams& params);
+      const std::vector<std::string>& sample_names,
+      const ExportParams& params,
+      bool skip_aggregate_stats = false);
 
   /**
    * @brief Delete samples from the dataset. This removes samples from the
@@ -447,11 +474,14 @@ class TileDBVCFDataset {
    * @param uri TileDB-VCF dataset URI
    * @param sample_names Sample names to delete
    * @param tiledb_config TileDB config values
+   * @param skip_aggregate_stats If true, skip updating allele_count and
+   *   variant_stats arrays and record skipped samples as metadata instead
    */
   void delete_samples(
       const std::string& uri,
       const std::vector<std::string>& sample_names,
-      const std::vector<std::string>& tiledb_config = {});
+      const std::vector<std::string>& tiledb_config = {},
+      bool skip_aggregate_stats = false);
 
   const Metadata& metadata() const;
 

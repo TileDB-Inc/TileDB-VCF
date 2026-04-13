@@ -1686,12 +1686,13 @@ bool Reader::report_cell(
     sample = SampleAndId{std::string(sample_name, size)};
   }
 
-  SafeBCFHdr hdr(nullptr, bcf_hdr_destroy);
+  bcf_hdr_t* hdr = nullptr;
   if (read_state_.need_headers) {
-    hdr = read_state_.current_hdrs.get_sample_header(sample.sample_name);
+    hdr = read_state_.current_hdrs.get_sample_header_shared(sample.sample_name)
+              .get();
   }
   if (!exporter_->export_record(
-          sample, hdr.get(), region, contig_offset, results, cell_idx))
+          sample, hdr, region, contig_offset, results, cell_idx))
     return false;
 
   // If no overflow, increment num records count.

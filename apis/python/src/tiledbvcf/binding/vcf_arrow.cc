@@ -316,7 +316,7 @@ void build_arrow_array_from_buffer(
 }
 
 py::object buffers_to_table(std::vector<std::shared_ptr<BufferInfo>>& buffers) {
-  auto pa = py::module::import("pyarrow");
+  auto pa = py::module_::import("pyarrow");
   auto pa_table_from_arrays = pa.attr("Table").attr("from_arrays");
   auto pa_array_import = pa.attr("Array").attr("_import_from_c");
   auto pa_schema_import = pa.attr("Schema").attr("_import_from_c");

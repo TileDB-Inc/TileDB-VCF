@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include <ranges>
+
 #include <htslib/vcf.h>
 #include <htslib/vcfutils.h>
 
@@ -206,31 +208,35 @@ void SampleStats::process(
     const std::string& contig,
     uint32_t pos,
     bcf1_t* rec) {
+  Stats& stats = stats_[sample];
+
   if (bcf_get_format_int32(hdr, rec, "DP", &dst_, &ndst_) > 0) {
     if (dst_[0] != bcf_int32_missing) {
-      auto dp = static_cast<uint64_t>(dst_[0]);
-      stats_[sample]["dp_sum"] += dp;
-      stats_[sample]["dp_sum2"] += dp * dp;
-      stats_[sample]["dp_count"] += 1;
-      if (!stats_[sample].contains("dp_min")) {
-        stats_[sample]["dp_min"] = std::numeric_limits<uint64_t>::max();
+      std::unique_ptr<DPStats>& dp_stats = stats.dp_stats;
+      if (dp_stats == nullptr) {
+        dp_stats.reset(new DPStats());
       }
-      stats_[sample]["dp_min"] = std::min(stats_[sample]["dp_min"], dp);
-      stats_[sample]["dp_max"] = std::max(stats_[sample]["dp_max"], dp);
+      auto dp = static_cast<uint64_t>(dst_[0]);
+      dp_stats->dp_sum += dp;
+      dp_stats->dp_sum2 += dp * dp;
+      dp_stats->dp_count += 1;
+      dp_stats->dp_min = std::min(dp_stats->dp_min, dp);
+      dp_stats->dp_max = std::max(dp_stats->dp_max, dp);
     }
   }
 
   if (bcf_get_format_int32(hdr, rec, "GQ", &dst_, &ndst_) > 0) {
     if (dst_[0] != bcf_int32_missing) {
-      auto gq = static_cast<uint64_t>(dst_[0]);
-      stats_[sample]["gq_sum"] += gq;
-      stats_[sample]["gq_sum2"] += gq * gq;
-      stats_[sample]["gq_count"] += 1;
-      if (!stats_[sample].contains("gq_min")) {
-        stats_[sample]["gq_min"] = std::numeric_limits<uint64_t>::max();
+      std::unique_ptr<GQStats>& gq_stats = stats.gq_stats;
+      if (gq_stats == nullptr) {
+        gq_stats.reset(new GQStats());
       }
-      stats_[sample]["gq_min"] = std::min(stats_[sample]["gq_min"], gq);
-      stats_[sample]["gq_max"] = std::max(stats_[sample]["gq_max"], gq);
+      auto gq = static_cast<uint64_t>(dst_[0]);
+      gq_stats->gq_sum += gq;
+      gq_stats->gq_sum2 += gq * gq;
+      gq_stats->gq_count += 1;
+      gq_stats->gq_min = std::min(gq_stats->gq_min, gq);
+      gq_stats->gq_max = std::max(gq_stats->gq_max, gq);
     }
   }
 
@@ -307,19 +313,19 @@ void SampleStats::process(
     n_singleton += count == 1;
   }
 
-  stats_[sample]["n_records"] += 1;
-  stats_[sample]["n_called"] += !is_missing;
-  stats_[sample]["n_not_called"] += is_missing;
-  stats_[sample]["n_hom_ref"] += is_hom_ref;
-  stats_[sample]["n_het"] += is_het;
-  stats_[sample]["n_singleton"] += n_singleton;
-  stats_[sample]["n_snp"] += n_ti + n_tv;
-  stats_[sample]["n_transition"] += n_ti;
-  stats_[sample]["n_transversion"] += n_tv;
-  stats_[sample]["n_insertion"] += n_ins;
-  stats_[sample]["n_deletion"] += n_del;
-  stats_[sample]["n_star"] += n_star;
-  stats_[sample]["n_multiallelic"] += is_multi;
+  stats.n_records += 1;
+  stats.n_called += !is_missing;
+  stats.n_not_called += is_missing;
+  stats.n_hom_ref += is_hom_ref;
+  stats.n_het += is_het;
+  stats.n_singleton += n_singleton;
+  stats.n_snp += n_ti + n_tv;
+  stats.n_transition += n_ti;
+  stats.n_transversion += n_tv;
+  stats.n_insertion += n_ins;
+  stats.n_deletion += n_del;
+  stats.n_star += n_star;
+  stats.n_multiallelic += is_multi;
 }
 
 void SampleStats::flush(bool finalize) {
@@ -351,21 +357,38 @@ void SampleStats::flush(bool finalize) {
     add_buffer_(name);
   }
 
-  bool found_dp = false;
-  bool found_gq = false;
-
-  for (const auto& [sample, stat] : stats_) {
+  // Sort the stats keys and iterate them in order
+  auto keys_view = stats_ | std::views::keys;
+  std::vector<std::string> samples(keys_view.begin(), keys_view.end());
+  std::sort(samples.begin(), samples.end());
+  for (const std::string& sample : samples) {
+    Stats& stats = stats_[sample];
     buffers["sample"]->push_back(sample);
 
     // Add stats to buffers
-    for (const auto& [field, value] : stat) {
-      buffers[field]->push_back(value);
-      found_dp |= field == "dp_sum";
-      found_gq |= field == "gq_sum";
-    }
+    buffers["n_records"]->push_back(stats.n_records);
+    buffers["n_called"]->push_back(stats.n_called);
+    buffers["n_not_called"]->push_back(stats.n_not_called);
+    buffers["n_hom_ref"]->push_back(stats.n_hom_ref);
+    buffers["n_het"]->push_back(stats.n_het);
+    buffers["n_singleton"]->push_back(stats.n_singleton);
+    buffers["n_snp"]->push_back(stats.n_snp);
+    buffers["n_transition"]->push_back(stats.n_transition);
+    buffers["n_transversion"]->push_back(stats.n_transversion);
+    buffers["n_insertion"]->push_back(stats.n_insertion);
+    buffers["n_deletion"]->push_back(stats.n_deletion);
+    buffers["n_star"]->push_back(stats.n_star);
+    buffers["n_multiallelic"]->push_back(stats.n_multiallelic);
 
-    // Add nulls for missing DP fields
-    if (!found_dp) {
+    // Add DP fields
+    const std::unique_ptr<DPStats>& dp_stats = stats.dp_stats;
+    if (dp_stats != nullptr) {
+      buffers["dp_sum"]->push_back(dp_stats->dp_sum);
+      buffers["dp_sum2"]->push_back(dp_stats->dp_sum2);
+      buffers["dp_count"]->push_back(dp_stats->dp_count);
+      buffers["dp_min"]->push_back(dp_stats->dp_min);
+      buffers["dp_max"]->push_back(dp_stats->dp_max);
+    } else {
       buffers["dp_sum"]->push_null();
       buffers["dp_sum2"]->push_null();
       buffers["dp_count"]->push_null();
@@ -373,8 +396,15 @@ void SampleStats::flush(bool finalize) {
       buffers["dp_max"]->push_null();
     }
 
-    // Add nulls for missing GQ fields
-    if (!found_gq) {
+    // Add GQ fields
+    const std::unique_ptr<GQStats>& gq_stats = stats.gq_stats;
+    if (gq_stats != nullptr) {
+      buffers["gq_sum"]->push_back(gq_stats->gq_sum);
+      buffers["gq_sum2"]->push_back(gq_stats->gq_sum2);
+      buffers["gq_count"]->push_back(gq_stats->gq_count);
+      buffers["gq_min"]->push_back(gq_stats->gq_min);
+      buffers["gq_max"]->push_back(gq_stats->gq_max);
+    } else {
       buffers["gq_sum"]->push_null();
       buffers["gq_sum2"]->push_null();
       buffers["gq_count"]->push_null();

@@ -30,7 +30,9 @@
 #include <atomic>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <htslib/vcf.h>
@@ -116,6 +118,35 @@ class AlleleCount {
   static void close();
 
   /**
+   * @brief Record a skipped sample deletion in array metadata.
+   *
+   * Writes a per-sample metadata key "skipped_delete_sample:<sample>" to the
+   * array. Using one key per sample avoids the read-modify-write race condition
+   * that would arise from accumulating a single CSV value.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @param sample Sample name whose stats update was skipped
+   */
+  static void skip_delete_sample(
+      std::shared_ptr<Context> ctx,
+      const Group& group,
+      const std::string& sample);
+
+  /**
+   * @brief Return the list of samples whose deletion was skipped.
+   *
+   * Enumerates all array metadata keys with the prefix
+   * "skipped_delete_sample:" and returns the sample name suffixes.
+   *
+   * @param ctx TileDB context
+   * @param group TileDB-VCF dataset group
+   * @return Vector of sample names recorded as skipped
+   */
+  static std::vector<std::string> get_skipped_delete_samples(
+      std::shared_ptr<Context> ctx, const Group& group);
+
+  /**
    * @brief Consolidate commits
    *
    * @param ctx TileDB context
@@ -187,6 +218,11 @@ class AlleleCount {
    */
   void flush(bool finalize = false);
 
+  /**
+   * Returns the sum of sizes of all buffers (in bytes).
+   */
+  size_t total_size() const;
+
  private:
   // give the AlleleCountReader access to AlleleCount's private members
   friend class AlleleCountReader;
@@ -252,7 +288,7 @@ class AlleleCount {
   int count_delta_ = 1;
 
   // Set of sample names in this query (per thread)
-  std::set<std::string> sample_names_;
+  std::unordered_set<std::string> sample_names_;
 
   // Counts grouped by "key" at the current locus.
   // Use map to keep dimension keys sorted and maintain global order.
@@ -395,7 +431,7 @@ class AlleleCountReader {
   AlleleCountReader(std::shared_ptr<Context> ctx, const Group& group);
 
  private:
-  std::map<AlleleCountKey, int32_t> AlleleCountGroupBy;
+  std::map<AlleleCountKey, int32_t> alleleCountGroupBy;
   std::shared_ptr<Array> array_;
 };
 

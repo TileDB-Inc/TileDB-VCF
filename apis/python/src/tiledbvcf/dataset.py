@@ -1111,9 +1111,23 @@ class Dataset(object):
     def delete_samples(
         self,
         sample_uris: List[str] = None,
+        skip_aggregate_stats: bool = False,
     ):
+        """
+        Delete samples from the dataset.
+
+        Parameters
+        ----------
+        sample_uris
+            List of sample names to delete.
+        skip_aggregate_stats
+            If True, skip updating allele_count and variant_stats arrays
+            during deletion.
+        """
         if self.mode != "w":
             raise Exception("Dataset not open in write mode")
+        if skip_aggregate_stats:
+            self.writer.set_skip_aggregate_stats(True)
         self.writer.delete_samples(sample_uris)
 
     def tiledb_stats(self) -> str:
