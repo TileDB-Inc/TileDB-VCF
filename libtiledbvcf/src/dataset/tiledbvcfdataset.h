@@ -813,6 +813,16 @@ class TileDBVCFDataset {
   bool tiledb_cloud_dataset() const;
 
   /**
+   * Returns true if the user requested an inverted time-travel range
+   * (vcf.start_timestamp > vcf.end_timestamp). In that case the arrays were
+   * never reopened with the inverted range, and callers should treat reads
+   * as producing zero results.
+   */
+  bool empty_time_range() const {
+    return empty_time_range_;
+  }
+
+  /**
    * Gets the datatype of a particular exportable attribute that is not fmt or
    * info
    *
@@ -880,6 +890,11 @@ class TileDBVCFDataset {
 
   /** Set to true when the dataset is opened. */
   bool open_;
+
+  /** Set to true when open() was called with an inverted time-travel range
+   * (start_timestamp > end_timestamp). When true, reads should short-circuit
+   * to zero results without consulting the underlying arrays. */
+  bool empty_time_range_ = false;
 
   /** The dataset's general metadata (does not contain sample header data). */
   Metadata metadata_;

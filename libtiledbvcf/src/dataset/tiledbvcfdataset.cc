@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <future>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -571,12 +572,12 @@ void TileDBVCFDataset::open(
   // 'vcf.end_timestamp' in tiledb_config. If either timestamp is provided,
   // reopen the arrays.
   bool reopen = false;
+  std::optional<uint64_t> start_timestamp;
+  std::optional<uint64_t> end_timestamp;
 
   try {
-    auto start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
-    data_array_->set_open_timestamp_start(start_timestamp);
-    vcf_header_array_->set_open_timestamp_start(start_timestamp);
-    LOG_INFO("Using vcf.start_timestamp from config: {}", start_timestamp);
+    start_timestamp = std::stoull(cfg_.get("vcf.start_timestamp"));
+    LOG_INFO("Using vcf.start_timestamp from config: {}", *start_timestamp);
     reopen = true;
   } catch (const tiledb::TileDBError& ex) {
     LOG_TRACE("'vcf.start_timestamp' not specified in config, using default");
@@ -587,10 +588,8 @@ void TileDBVCFDataset::open(
   }
 
   try {
-    auto end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
-    data_array_->set_open_timestamp_end(end_timestamp);
-    vcf_header_array_->set_open_timestamp_end(end_timestamp);
-    LOG_INFO("Using vcf.end_timestamp from config: {}", end_timestamp);
+    end_timestamp = std::stoull(cfg_.get("vcf.end_timestamp"));
+    LOG_INFO("Using vcf.end_timestamp from config: {}", *end_timestamp);
     reopen = true;
   } catch (const tiledb::TileDBError& ex) {
     LOG_TRACE("'vcf.end_timestamp' not specified in config, using default");
@@ -598,6 +597,29 @@ void TileDBVCFDataset::open(
     LOG_WARN(
         "Invalid vcf.end_timestamp '{}', using default",
         cfg_.get("vcf.end_timestamp"));
+  }
+
+  // If the user supplied an inverted range (start > end), short-circuit:
+  // mark the dataset as having an empty time range and skip the reopen.
+  // Calling reopen() with start > end would surface as an uncaught
+  // "Range is empty" exception in some TileDB versions and abort the process.
+  if (start_timestamp && end_timestamp && *start_timestamp > *end_timestamp) {
+    LOG_INFO(
+        "vcf.start_timestamp ({}) > vcf.end_timestamp ({}); treating as "
+        "empty time range",
+        *start_timestamp,
+        *end_timestamp);
+    empty_time_range_ = true;
+    reopen = false;
+  } else {
+    if (start_timestamp) {
+      data_array_->set_open_timestamp_start(*start_timestamp);
+      vcf_header_array_->set_open_timestamp_start(*start_timestamp);
+    }
+    if (end_timestamp) {
+      data_array_->set_open_timestamp_end(*end_timestamp);
+      vcf_header_array_->set_open_timestamp_end(*end_timestamp);
+    }
   }
 
   if (reopen) {
