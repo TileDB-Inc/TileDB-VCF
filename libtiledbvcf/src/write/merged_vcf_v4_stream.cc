@@ -169,7 +169,7 @@ void MergedVCFV4Stream::push_anchors() {
 void MergedVCFV4Stream::push_anchors(const WriterRecordV4& node) {
   while (!anchor_heap_.empty()) {
     const SharedWriterRecordV4& top = anchor_heap_.top();
-    if (top->start_pos <= node.start_pos) {
+    if (writer_record_v4_gt(node, *top)) {
       // Push the anchor to the queue; push() will block if the queue is full
       queue_.push(top);
       anchor_heap_.pop();
