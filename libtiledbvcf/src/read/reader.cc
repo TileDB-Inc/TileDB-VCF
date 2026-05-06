@@ -365,6 +365,12 @@ void Reader::read() {
     throw std::runtime_error(
         "Error exporting records; reader has not been initialized.");
 
+  if (dataset_->empty_time_range()) {
+    read_state_.status = ReadStatus::COMPLETED;
+    buffers_a.reset(nullptr);
+    return;
+  }
+
   bool pending_work = true;
   switch (read_state_.status) {
     case ReadStatus::COMPLETED:
@@ -2587,6 +2593,10 @@ void Reader::info_attribute_count(int32_t* count) {
 void Reader::sample_count(int32_t* count) {
   if (count == nullptr)
     throw std::runtime_error("Error getting sample count");
+  if (dataset_->empty_time_range()) {
+    *count = 0;
+    return;
+  }
   *count = dataset_->sample_names().size();
 }
 
