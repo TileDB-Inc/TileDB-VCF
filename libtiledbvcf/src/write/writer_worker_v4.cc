@@ -80,7 +80,7 @@ void WriterWorkerV4::insert_record(
       VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val_);
   record_heap_.insert(
       vcf,
-      RecordHeapV4::NodeType::Record,
+      WriterRecordV4::Type::Record,
       record,
       contig,
       start_pos,
@@ -133,14 +133,16 @@ bool WriterWorkerV4::resume() {
   // for overlapping records.
   //
   // 1. Pop the top record from `record_heap_`. If the record is a
-  //    NodeType::Record, add it to the attribute buffers.
+  //    WriterRecordV4::Type::Record, add it to the attribute buffers.
   // 2. If there are no remaining bytes for the record (an "end node"):
   //     a. Pop the next record from the VCF reader and insert it on the heap.
   //    Else
-  //     a. Re-insert the record on the record_heap_ as NodeType::Anchor with a
-  //        start position advanced by the length of the anchor gap.
-  //     b. Insert the record on the anchor_heap_ as NodeType::Anchor with a
-  //        start position advanced by the length of the anchor gap.
+  //     a. Re-insert the record on the record_heap_ as
+  //        WriterRecordV4::Type::Anchor with a start position advanced by the
+  //        length of the anchor gap.
+  //     b. Insert the record on the anchor_heap_ as
+  //     WriterRecordV4::Type::Anchor
+  //        with a start position advanced by the length of the anchor gap.
   //     c. front the next record from the VCF read. If it has a start position
   //        less than the start position of the anchor in step (a), insert it
   //        on the heap.
@@ -157,8 +159,7 @@ bool WriterWorkerV4::resume() {
   //    fragment.
   //
   while (!record_heap_.empty()) {
-    RecordHeapV4::Node& top =
-        const_cast<RecordHeapV4::Node&>(record_heap_.top());
+    WriterRecordV4& top = const_cast<WriterRecordV4&>(record_heap_.top());
     const std::string sample_name = top.sample_name;
     auto vcf = top.vcf;
 
@@ -166,7 +167,7 @@ bool WriterWorkerV4::resume() {
     // buffers. If the record caused the buffers to exceed the max memory
     // allocation, we'll stop processing at this record.
     bool overflowed = false;
-    if (top.type == RecordHeapV4::NodeType::Record) {
+    if (top.type == WriterRecordV4::Type::Record) {
       if (top.start_pos > region_.max) {
         LOG_FATAL(
             "WriterWorker4: Top record starts outside of the region: {} > {}",
@@ -204,7 +205,7 @@ bool WriterWorkerV4::resume() {
       const uint32_t anchor_start = top.start_pos + metadata.anchor_gap;
       record_heap_.insert(
           vcf,
-          RecordHeapV4::NodeType::Anchor,
+          WriterRecordV4::Type::Anchor,
           top.record,
           top.contig,
           anchor_start,
@@ -218,7 +219,7 @@ bool WriterWorkerV4::resume() {
       bcf_unpack(dup_record.get(), BCF_UN_ALL);
       anchor_heap_.insert(
           vcf,
-          RecordHeapV4::NodeType::Anchor,
+          WriterRecordV4::Type::Anchor,
           std::move(dup_record),
           top.contig,
           anchor_start,
@@ -291,7 +292,7 @@ size_t WriterWorkerV4::buffer_anchors() {
   return records;
 }
 
-bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
+bool WriterWorkerV4::buffer_record(const WriterRecordV4& node) {
   auto vcf = node.vcf;
   bcf1_t* r = node.record.get();
   bcf_hdr_t* hdr = vcf->hdr();
@@ -302,7 +303,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   const uint32_t end_pos = VCFUtils::get_end_pos(hdr, r, &val_);
 
   // Ingestion tasks process only NodeType::Record
-  if (node.type == RecordHeapV4::NodeType::Record) {
+  if (node.type == WriterRecordV4::Type::Record) {
     ac_.process(hdr, sample_name, contig, pos, r);
     ss_.process(hdr, sample_name, contig, pos, r);
     vs_.process(hdr, sample_name, contig, pos, r);
@@ -398,7 +399,7 @@ bool WriterWorkerV4::buffer_record(const RecordHeapV4::Node& node) {
   for (auto& it : buffers_.extra_attrs())
     it.second.stop_expecting();
 
-  if (node.type == RecordHeapV4::NodeType::Record)
+  if (node.type == WriterRecordV4::Type::Record)
     records_buffered_++;
   else
     anchors_buffered_++;
