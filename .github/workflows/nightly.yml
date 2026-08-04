@@ -13,7 +13,7 @@ on:
       - '.github/workflows/nightly.yml'
       - 'ci/nightly/**'
   schedule:
-    - cron: "0 3 * * *" # Every night at 3 AM UTC (10 PM EST; 11 PM EDT)
+    - cron: "0 3 * * 1" # Monday 3 AM UTC (Sunday 10 PM EST; 11 PM EDT)
   workflow_dispatch:
 jobs:
   nightly:
