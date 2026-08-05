@@ -28,6 +28,17 @@ jobs:
           - {libtiledb: main, tiledb-py: main}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
+      # Workaround for an S3 retry regression on unreleased TileDB main
+      # (2.31.0-dev, introduced by TileDB PR #5747). The default S3 retry
+      # strategy became the AWS SDK's "standard" mode, which sleeps a random
+      # 0-1000ms before the *first* retry -- 2.30.x retried immediately -- caps
+      # a request at 3 attempts, and spends a retry quota that is only
+      # partially refunded on success. On the macOS runners' higher-latency
+      # link this turned the ~5 minute S3 read in test_large_export_correctness
+      # into ~2 hours. "default" restores the 2.30.x backoff, and is a no-op on
+      # the release-2.30 matrix leg because TileDB ignores config keys it does
+      # not recognize. Remove once the regression is fixed upstream.
+      TILEDB_VFS_S3_RETRY_STRATEGY: default
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v6
