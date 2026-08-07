@@ -18,7 +18,11 @@ on:
 jobs:
   nightly:
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }}-libtiledb-${{ matrix.branches.libtiledb }}
+    # Name includes tiledb-py so the diagnostic cross leg below is distinguishable.
+    name: ${{ matrix.os }}-libtiledb-${{ matrix.branches.libtiledb }}-py-${{ matrix.branches.tiledb-py }}
+    # A stalled leg has burned ~2.5h of 10x-billed macOS time twice; cap it.
+    # Budget: ~35m builds + 10m read diagnostic + 20m pytest timeout + slack.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -26,19 +30,15 @@ jobs:
         branches:
           - {libtiledb: release-2.30, tiledb-py: 0.36.1}
           - {libtiledb: main, tiledb-py: main}
+        include:
+          # DIAGNOSTIC LEG: the two matrix legs above vary libtiledb *and*
+          # tiledb-py together, so the macOS stall cannot be attributed to
+          # either. This crosses them. If this leg is fast, tiledb-py is
+          # implicated; if it stalls, libtiledb is. Remove once answered.
+          - os: macos-15
+            branches: {libtiledb: main, tiledb-py: 0.36.1}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
-      # Workaround for an S3 retry regression on unreleased TileDB main
-      # (2.31.0-dev, introduced by TileDB PR #5747). The default S3 retry
-      # strategy became the AWS SDK's "standard" mode, which sleeps a random
-      # 0-1000ms before the *first* retry -- 2.30.x retried immediately -- caps
-      # a request at 3 attempts, and spends a retry quota that is only
-      # partially refunded on success. On the macOS runners' higher-latency
-      # link this turned the ~5 minute S3 read in test_large_export_correctness
-      # into ~2 hours. "default" restores the 2.30.x backoff, and is a no-op on
-      # the release-2.30 matrix leg because TileDB ignores config keys it does
-      # not recognize. Remove once the regression is fixed upstream.
-      TILEDB_VFS_S3_RETRY_STRATEGY: default
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v6
@@ -60,6 +60,11 @@ jobs:
       - name: Define SDKROOT (macOS)
         if: runner.os == 'macOS'
         run: echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+      # DIAGNOSTIC: records the runner's raw S3 latency, which is the baseline
+      # any read-time comparison between legs must be read against. Remove with
+      # the rest of the stall diagnostics.
+      - name: Probe runner and S3 baseline latency
+        run: bash TileDB-VCF/ci/nightly/probe-s3.sh
       - name: Build libtiledb
         run: bash TileDB-VCF/ci/nightly/build-libtiledb.sh
       - name: Setup to build htslib from source (Linux)
@@ -100,6 +105,17 @@ jobs:
           PYBIND11_MAX_VERSION: ${{ matrix.branches.tiledb-py != 'main' && '<3' || '' }}
       - name: Build (and test) tiledbvcf-py
         run: bash TileDB-VCF/ci/nightly/build-tiledbvcf-py.sh
+      # DIAGNOSTIC: the stack samples and per-size read timings are large and
+      # get truncated in the web log, so keep them as an artifact. Runs even
+      # when pytest fails on its timeout, which is the case we care about.
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.os }}-libtiledb-${{ matrix.branches.libtiledb }}-py-${{ matrix.branches.tiledb-py }}
+          path: diagnostics/*
+          retention-days: 14
+          if-no-files-found: warn
   issue:
     permissions:
       issues: write
