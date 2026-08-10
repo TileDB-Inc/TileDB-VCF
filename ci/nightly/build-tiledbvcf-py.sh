@@ -45,9 +45,12 @@ else
   echo "WARNING: pytest-timeout unavailable; suite will run unbounded"
 fi
 
-# Characterise the S3 read at increasing region counts before the full suite,
-# so we get numbers even if pytest is later killed by its timeout.
-python "$CI_DIR/diagnose-s3-read.py" 2>&1 | tee "$DIAG_DIR/diagnose-s3-read.txt" || true
+# Characterise the S3 dataset open and read before the full suite, so we get
+# numbers even if pytest is later killed by its timeout. This script bounds
+# itself: each measurement runs in a sampled worker subprocess under a hard
+# timeout, so a stall yields stacks instead of consuming the job.
+DIAG_DIR="$DIAG_DIR" python "$CI_DIR/diagnose-s3-read.py" 2>&1 \
+  | tee "$DIAG_DIR/diagnose-s3-read.txt" || true
 
 # `set -e` must not abort before the diagnostics are printed, and pytest is
 # backgrounded so its pid can be sampled while it runs.
