@@ -38,6 +38,20 @@ except Exception as e:
     print(f"resolve failed: {e}")
 PY
 
+echo "===== EC2 instance metadata reachability (169.254.169.254) ====="
+# This is the actual cause of the macOS stall, reduced to one measurement and
+# independent of TileDB: the AWS credential chain probes IMDS, and on these
+# macOS runners the probe blocks until timeout instead of failing fast as it
+# does on Linux. Expect a sub-millisecond refusal on Linux and a multi-second
+# hang on macOS. AWS_EC2_METADATA_DISABLED should make TileDB skip it entirely.
+echo "AWS_EC2_METADATA_DISABLED=${AWS_EC2_METADATA_DISABLED:-<unset>}"
+for i in 1 2 3; do
+  curl -s -o /dev/null --max-time 10 \
+    -w "  imds attempt $i: connect=%{time_connect} total=%{time_total} status=%{http_code} err=%{exitcode}\n" \
+    "http://169.254.169.254/latest/meta-data/" \
+    || echo "  imds attempt $i: curl failed (expected off EC2)"
+done
+
 echo "===== 20 sequential GETs (fresh connection each) ====="
 for i in $(seq 1 20); do
   curl -s -o /dev/null \

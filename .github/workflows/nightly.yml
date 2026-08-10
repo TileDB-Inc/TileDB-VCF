@@ -39,6 +39,21 @@ jobs:
             branches: {libtiledb: main, tiledb-py: 0.36.1}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
+      # The macOS legs spent 192s (libtiledb 2.30.1) to >300s (2.31.0) inside a
+      # single tiledbvcf.Dataset() open. Stack samples show why: the AWS
+      # credential chain reaches InstanceProfileCredentialsProvider, which
+      # probes the EC2 instance metadata service at 169.254.169.254. These
+      # runners are not EC2, and on macOS that probe blocks until timeout rather
+      # than failing fast as it does on Linux -- where the same frames never
+      # appear at all. It happens while holding the S3::init_client() mutex, so
+      # every other thread piles up behind it.
+      #
+      # Telling the SDK it is not on EC2 skips that provider outright. The
+      # bucket read by test_large_export_correctness is public, so there are no
+      # instance credentials to find in the first place. TileDB's credential
+      # chain honours this variable in both 2.30.x and 2.31.0
+      # (tiledb/sm/filesystem/s3/AWSCredentialsProviderChain.cc).
+      AWS_EC2_METADATA_DISABLED: "true"
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v6
