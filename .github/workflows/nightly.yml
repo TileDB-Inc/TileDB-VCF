@@ -28,6 +28,9 @@ jobs:
           - {libtiledb: main, tiledb-py: main}
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
+      # Disable EC2 IMDS because the runners aren't on EC2 and the response
+      # timeout/retry config causes the run-time to ballon on macOS
+      AWS_EC2_METADATA_DISABLED: "true"
     steps:
       - name: Clone TileDB
         uses: actions/checkout@v6
