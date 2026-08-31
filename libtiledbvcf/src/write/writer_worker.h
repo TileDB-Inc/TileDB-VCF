@@ -38,6 +38,7 @@
 
 #include "dataset/attribute_buffer_set.h"
 #include "dataset/tiledbvcfdataset.h"
+#include "utils/utils.h"
 #include "vcf/htslib_value.h"
 #include "write/writer.h"
 
@@ -114,7 +115,7 @@ class WriterWorker {
   Region region_;
 
   /** max MiB to buffer before flushing to TileDB. */
-  uint64_t max_total_buffer_size_mb_;
+  uint64_t max_total_buffer_size_mb_ = utils::system_memory_mb() * 0.75;
 
   /**
    * Set the max buffer size in MiB for worker

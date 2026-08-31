@@ -198,6 +198,11 @@ class Writer {
   std::string version();
 
   /**
+    [Store only] Sets whether to enable the legacy ingestion algorithm
+  */
+  void set_legacy(const bool legacy);
+
+  /**
     [Store only] Sets whether to enable resuming partial sample ingestion
   */
   void set_resume(const bool resume);

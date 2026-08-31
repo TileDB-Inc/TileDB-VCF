@@ -27,6 +27,8 @@
 #ifndef TILEDB_VCF_HTSLIB_VALUE_H
 #define TILEDB_VCF_HTSLIB_VALUE_H
 
+#include <htslib/hts.h>
+
 #include "utils/utils.h"
 
 namespace tiledb {

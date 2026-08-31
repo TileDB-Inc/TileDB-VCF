@@ -24,9 +24,11 @@
  * THE SOFTWARE.
  */
 
+#include <memory>
 #if !defined _MSC_VER
 #include <sys/resource.h>
 #endif
+#include <deque>
 #include <future>
 
 #include "dataset/attribute_buffer_set.h"
@@ -50,6 +52,54 @@ Writer::~Writer() {
   AlleleCount::close();
   VariantStats::close();
   SampleStats::close();
+}
+
+Writer::IngestSamplesV4Job::IngestSamplesV4Job(
+    std::shared_ptr<Context> ctx,
+    const TileDBVCFDataset& dataset,
+    int id,
+    size_t num_vcf_streams,
+    size_t num_buffers,
+    uint64_t max_buffer_size_mb,
+    const IngestionParams& params,
+    const std::vector<SampleAndIndex>& samples)
+    : ctx(ctx) {
+  array.reset(new Array(*ctx, dataset.data_uri(), TILEDB_WRITE));
+  reset_queries();
+  worker.reset(new ParallelWriterWorkerV4(id, num_vcf_streams, num_buffers));
+  worker->set_max_total_buffer_size_mb(max_buffer_size_mb);
+  worker->init(dataset, params, samples);
+}
+
+bool Writer::IngestSamplesV4Job::is_finalizing() {
+  return (
+      finalize &&
+      ((records_task.valid() && records_task.wait_for(std::chrono::seconds(
+                                    0)) != std::future_status::ready) ||
+       (anchors_task.valid() && anchors_task.wait_for(std::chrono::seconds(
+                                    0)) != std::future_status::ready) ||
+       (stats_task.valid() && stats_task.wait_for(std::chrono::seconds(0)) !=
+                                  std::future_status::ready)));
+}
+
+void Writer::IngestSamplesV4Job::wait_for_flush_tasks() {
+  // Use .get() instead of .wait() to propagate errors
+  if (records_task.valid()) {
+    records_task.get();
+  }
+  if (anchors_task.valid()) {
+    anchors_task.get();
+  }
+  if (stats_task.valid()) {
+    stats_task.get();
+  }
+}
+
+void Writer::IngestSamplesV4Job::reset_queries() {
+  query.reset(new Query(*ctx, *array));
+  query->set_layout(TILEDB_GLOBAL_ORDER);
+  anchor_query.reset(new Query(*ctx, *array));
+  anchor_query->set_layout(TILEDB_GLOBAL_ORDER);
 }
 
 void Writer::init(const std::string& uri, const std::string& config_str) {
@@ -86,6 +136,60 @@ void Writer::init(const std::string& uri, const std::string& config_str) {
 }
 
 void Writer::init(const IngestionParams& params) {
+  // Clean up old query and array objects first, if any.
+  query_.reset(nullptr);
+  array_.reset(nullptr);
+
+  tiledb_config_.reset(new Config);
+  (*tiledb_config_)["vfs.s3.multipart_part_size"] = params.part_size_mb << 20;
+  (*tiledb_config_)["sm.mem.total_budget"] = params.tiledb_memory_budget_mb
+                                             << 20;
+  (*tiledb_config_)["sm.compute_concurrency_level"] = params.num_threads;
+  (*tiledb_config_)["sm.io_concurrency_level"] = params.num_threads;
+
+  // User overrides
+  utils::set_tiledb_config(params.tiledb_config, tiledb_config_.get());
+
+  ctx_.reset(new Context(*tiledb_config_));
+  dataset_.reset(new TileDBVCFDataset(ctx_));
+
+  dataset_->set_tiledb_stats_enabled(params.tiledb_stats_enabled);
+  dataset_->set_tiledb_stats_enabled_vcf_header(
+      params.tiledb_stats_enabled_vcf_header_array);
+
+  dataset_->open(
+      params.uri, params.tiledb_config, params.load_data_array_fragment_info);
+
+  // Set htslib global config and context based on user passed TileDB config
+  // options
+  std::vector<std::string> vfs_config = params.tiledb_config;
+  try {
+    auto vcf_region = tiledb_config_->get("vcf.s3.region");
+    vfs_config.push_back("vfs.s3.region=" + vcf_region);
+    LOG_INFO("VFS and htslib reading data from S3 region: {}", vcf_region);
+  } catch (...) {
+    // tiledb_config_ is not defined in "vcf.s3.region", no action required
+  }
+  utils::set_htslib_tiledb_context(vfs_config);
+
+  vfs_config_.reset(new Config);
+  utils::set_tiledb_config(vfs_config, vfs_config_.get());
+
+  vfs_.reset(new VFS(*ctx_, *vfs_config_));
+  array_.reset(new Array(*ctx_, dataset_->data_uri(), TILEDB_WRITE));
+  query_.reset(new Query(*ctx_, *array_));
+  query_->set_layout(TILEDB_GLOBAL_ORDER);
+
+  creation_params_.checksum = TILEDB_FILTER_CHECKSUM_SHA256;
+  creation_params_.allow_duplicates = true;
+
+  Group group(*ctx_, params.uri, TILEDB_READ);
+  AlleleCount::init(ctx_, group);
+  VariantStats::init(ctx_, group);
+  SampleStats::init(ctx_, group);
+}
+
+void Writer::init_legacy(const IngestionParams& params) {
   // Clean up old query and array objects first, if any.
   query_.reset(nullptr);
   array_.reset(nullptr);
@@ -272,6 +376,71 @@ void Writer::update_params(IngestionParams& params) {
     LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
 
   } else {
+    // Divide by 2 because we're double buffering
+    params.max_tiledb_buffer_size_mb =
+        params.ratio_output_flush * params.output_memory_budget_mb / 2;
+    LOG_INFO(
+        "Output buffers = {} threads * {} MiB (flush = {} MiB)",
+        params.num_threads,
+        output_mb / params.num_threads,
+        params.max_tiledb_buffer_size_mb);
+  }
+}
+
+void Writer::update_params_legacy(IngestionParams& params) {
+  // Override total memory budget if total_memory_percentage is provided
+  if (params.total_memory_percentage > 0) {
+    params.total_memory_budget_mb =
+        utils::system_memory_mb() * params.total_memory_percentage;
+  }
+
+  // Distribute memory budget
+  uint32_t total_mb = params.total_memory_budget_mb;
+  uint32_t tiledb_mb = total_mb * params.ratio_tiledb_memory;
+  tiledb_mb = std::min(tiledb_mb, params.max_tiledb_memory_mb);
+  uint32_t input_mb = params.input_record_buffer_mb * params.num_threads *
+                      params.sample_batch_size;
+  float output_ratio = 0.5;
+  uint32_t output_mb = (total_mb - tiledb_mb - input_mb) * output_ratio;
+  uint32_t stats_mb = (total_mb - tiledb_mb - input_mb) * (1.0 - output_ratio);
+
+  params.tiledb_memory_budget_mb = tiledb_mb;
+  params.output_memory_budget_mb = output_mb;
+
+  LOG_INFO(
+      "Memory budget: total={} MiB = tiledb={} MiB + input={} MiB + "
+      "output={} MiB + stats={} MiB",
+      total_mb,
+      tiledb_mb,
+      input_mb,
+      output_mb,
+      stats_mb);
+
+  // Set per thread, per sample vcf input buffer size
+  if (params.use_legacy_max_record_buffer_size) {
+    LOG_INFO(
+        "Using legacy option: --max-record-buff={}",
+        params.max_record_buffer_size);
+    params.max_record_buffer_size =
+        params.max_record_buffer_size * params.avg_vcf_record_size;
+  } else {
+    params.max_record_buffer_size = params.input_record_buffer_mb << 20;
+  }
+
+  LOG_INFO(
+      "Input buffers = {} threads * {} samples * {} MiB",
+      params.num_threads,
+      params.sample_batch_size,
+      params.max_record_buffer_size >> 20);
+
+  // Set per thread output buffer size
+  if (params.use_legacy_max_tiledb_buffer_size_mb) {
+    LOG_INFO(
+        "Using legacy option: --mem-budget-mb={}",
+        params.max_tiledb_buffer_size_mb);
+    LOG_INFO("Output buffer flush = {} MiB", params.max_tiledb_buffer_size_mb);
+
+  } else {
     params.max_tiledb_buffer_size_mb = params.ratio_output_flush *
                                        params.output_memory_budget_mb /
                                        params.num_threads;
@@ -284,6 +453,209 @@ void Writer::update_params(IngestionParams& params) {
 }
 
 void Writer::ingest_samples() {
+  if (ingestion_params_.legacy_ingestion_algorithm) {
+    ingest_samples_legacy();
+    return;
+  }
+
+  if (ingestion_params_.resume_sample_partial_ingestion) {
+    LOG_ERROR(
+        "Resuming isn't supported by the current ingestion algorithm; use "
+        "legacy "
+        "ingestion instead");
+  }
+
+  auto start_all = std::chrono::steady_clock::now();
+
+  // If the user requests stats, enable them on read
+  // Multiple calls to enable stats has no effect
+  if (ingestion_params_.tiledb_stats_enabled) {
+    tiledb::Stats::enable();
+  } else {
+    // Else we will make sure they are disable and reset
+    tiledb::Stats::disable();
+    tiledb::Stats::reset();
+  }
+
+  // Reset expected total record count
+  total_records_expected_ = 0;
+
+#if !defined _MSC_VER
+  // Set open file soft limit to hard limit
+  struct rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+    LOG_WARN("Unable to read open file limit");
+  } else {
+    LOG_DEBUG("Open file limit = {}", limit.rlim_cur);
+    limit.rlim_cur = limit.rlim_max;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+      LOG_WARN("Unable to set open file limit");
+    } else {
+      if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        LOG_WARN("Unable to read new open file limit");
+      } else {
+        LOG_DEBUG("New open file limit = {}", limit.rlim_cur);
+      }
+    }
+  }
+#endif
+
+  update_params(ingestion_params_);
+  init(ingestion_params_);
+
+  if (dataset_->metadata().version != TileDBVCFDataset::Version::V4) {
+    std::string message = "Use legacy ingestion for V2 and V3 datasets";
+    LOG_ERROR(message);
+    throw std::runtime_error(message);
+  }
+
+  // Get the list of samples to ingest, sorted on name (v4)
+  std::vector<SampleAndIndex> samples =
+      prepare_sample_list_v4(ingestion_params_);
+
+  // Batch the list of samples per space tile.
+  std::vector<std::vector<SampleAndIndex>> batches =
+      batch_elements_by_tile_v4(samples, ingestion_params_.sample_batch_size);
+
+  std::vector<SampleAndIndex> local_samples;
+  ScratchSpaceInfo scratch_space_a = ingestion_params_.scratch_space;
+  ScratchSpaceInfo scratch_space_b = ingestion_params_.scratch_space;
+  std::future<std::vector<tiledb::vcf::SampleAndIndex>> future_paths;
+  uint64_t scratch_size_mb = 0;
+
+  bool download_samples = !ingestion_params_.scratch_space.path.empty();
+  if (download_samples) {
+    // Set up parameters for two scratch spaces.
+    scratch_size_mb = ingestion_params_.scratch_space.size_mb / 2;
+    scratch_space_a.size_mb = scratch_size_mb;
+    scratch_space_a.path = utils::uri_join(scratch_space_a.path, "ingest-a");
+    if (!vfs_->is_dir(scratch_space_a.path))
+      vfs_->create_dir(scratch_space_a.path);
+    scratch_space_b.size_mb = scratch_size_mb;
+    scratch_space_b.path = utils::uri_join(scratch_space_b.path, "ingest-b");
+    if (!vfs_->is_dir(scratch_space_b.path))
+      vfs_->create_dir(scratch_space_b.path);
+  }
+
+  // Start fetching first batch, either downloading of using remote vfs plugin
+  // if no scratch space.
+  TRY_CATCH_THROW(
+      future_paths = std::async(
+          std::launch::async,
+          SampleUtils::get_samples,
+          *vfs_,
+          batches[0],
+          &scratch_space_a));
+
+  LOG_DEBUG(
+      "Initialization completed in {:.3f} seconds.",
+      utils::chrono_duration(start_all));
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+  uint64_t samples_ingested = 0;
+  for (unsigned i = 1; i < batches.size(); i++) {
+    // Block until current batch is fetched.
+    TRY_CATCH_THROW(local_samples = future_paths.get());
+
+    // Start the next batch fetching.
+    TRY_CATCH_THROW(
+        future_paths = std::async(
+            std::launch::async,
+            SampleUtils::get_samples,
+            *vfs_,
+            batches[i],
+            &scratch_space_b));
+
+    // Ingest the batch.
+    auto start_batch = std::chrono::steady_clock::now();
+    std::pair<uint64_t, uint64_t> result =
+        ingest_samples_v4(ingestion_params_, local_samples);
+    records_ingested += result.first;
+    anchors_ingested += result.second;
+    samples_ingested += local_samples.size();
+
+    LOG_INFO(
+        "Finished ingesting {} / {} samples ({} sec)...",
+        samples_ingested,
+        samples.size(),
+        utils::chrono_duration(start_batch));
+
+    if (download_samples) {
+      // Reset current scratch space and swap.
+      if (vfs_->is_dir(scratch_space_a.path))
+        vfs_->remove_dir(scratch_space_a.path);
+      vfs_->create_dir(scratch_space_a.path);
+      scratch_space_a.size_mb = scratch_size_mb;
+      std::swap(scratch_space_a, scratch_space_b);
+    }
+  }
+
+  // Ingest the last batch
+  TRY_CATCH_THROW(local_samples = future_paths.get());
+  std::pair<uint64_t, uint64_t> result =
+      ingest_samples_v4(ingestion_params_, local_samples);
+  records_ingested += result.first;
+  anchors_ingested += result.second;
+  samples_ingested += local_samples.size();
+
+  auto t0 = std::chrono::steady_clock::now();
+  LOG_DEBUG("Making sure all finalize tasks completed...");
+  for (auto& finalize_task : finalize_tasks_) {
+    if (finalize_task.valid()) {
+      TRY_CATCH_THROW(finalize_task.get());
+    }
+  }
+  LOG_DEBUG(
+      "All finalize tasks successfully completed. Waited for {} sec.",
+      utils::chrono_duration(t0));
+
+  AlleleCount::close();
+  VariantStats::close();
+  SampleStats::close();
+  array_->close();
+
+  // Clean up
+  if (download_samples) {
+    if (vfs_->is_dir(scratch_space_a.path))
+      vfs_->remove_dir(scratch_space_a.path);
+    if (vfs_->is_dir(scratch_space_b.path))
+      vfs_->remove_dir(scratch_space_b.path);
+  }
+  if (ingestion_params_.remove_samples_file &&
+      vfs_->is_file(ingestion_params_.samples_file_uri))
+    vfs_->remove_file(ingestion_params_.samples_file_uri);
+
+  auto time_sec = utils::chrono_duration(start_all);
+  LOG_INFO(fmt::format(
+      std::locale(""),
+      "Done. Ingested {:L} records (+ {:L} anchors) from {:L} samples in "
+      "{:.3f} seconds = {:.1f} records/sec",
+      records_ingested,
+      anchors_ingested,
+      samples.size(),
+      time_sec,
+      records_ingested / time_sec));
+
+  // Check if records ingested matches the expected total record count.
+  if (dataset_->metadata().version >= TileDBVCFDataset::Version::V4) {
+    if (records_ingested != total_records_expected_) {
+      std::string message = fmt::format(
+          "QACheck: [FAIL] Total records ingested ({}) != total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+      LOG_ERROR(message);
+      throw std::runtime_error(message);
+    } else {
+      LOG_INFO(
+          "QACheck: [PASS] Total records ingested ({}) == total records in VCF "
+          "files ({})",
+          records_ingested,
+          total_records_expected_);
+    }
+  }
+}
+
+void Writer::ingest_samples_legacy() {
   auto start_all = std::chrono::steady_clock::now();
 
   // If the user requests stats, enable them on read
@@ -323,8 +695,8 @@ void Writer::ingest_samples() {
   }
 #endif
 
-  update_params(ingestion_params_);
-  init(ingestion_params_);
+  update_params_legacy(ingestion_params_);
+  init_legacy(ingestion_params_);
 
   if (ingestion_params_.resume_sample_partial_ingestion &&
       (dataset_->metadata().version == TileDBVCFDataset::V2 ||
@@ -424,7 +796,7 @@ void Writer::ingest_samples() {
       result = ingest_samples(ingestion_params_, local_samples, regions);
     } else {
       assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-      result = ingest_samples_v4(
+      result = ingest_samples_v4_legacy(
           ingestion_params_, local_samples, regions, existing_fragments);
     }
     records_ingested += result.first;
@@ -458,7 +830,7 @@ void Writer::ingest_samples() {
     query_->finalize();
   } else {
     assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
-    result = ingest_samples_v4(
+    result = ingest_samples_v4_legacy(
         ingestion_params_, local_samples, regions, existing_fragments);
   }
   records_ingested += result.first;
@@ -654,7 +1026,290 @@ std::pair<uint64_t, uint64_t> Writer::ingest_samples(
   return {records_ingested, anchors_ingested};
 }
 
+void Writer::ingest_samples_v4_flush(
+    std::shared_ptr<IngestSamplesV4Job>& job, bool finalize) {
+  // Wait for the previous flush to finish
+  job->wait_for_flush_tasks();
+  const size_t write_buffer = job->current_buffer;
+  if (finalize) {
+    job->worker->pre_finalize(write_buffer);
+    // Move the queries before reseting them
+    TRY_CATCH_THROW(
+        job->records_task = std::async(
+            std::launch::async,
+            [job, query = std::move(job->query), write_buffer]() mutable {
+              job->worker->write_record_buffers(query, true, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->anchors_task = std::async(
+            std::launch::async,
+            [job,
+             anchor_query = std::move(job->anchor_query),
+             write_buffer]() mutable {
+              job->worker->write_anchor_buffers(
+                  anchor_query, true, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->stats_task =
+            std::async(std::launch::async, [job, write_buffer]() mutable {
+              job->worker->flush_ingestion_tasks(true, write_buffer);
+            }));
+    // Start new queries since the next contig will be on a new fragment
+    job->reset_queries();
+  } else {
+    TRY_CATCH_THROW(
+        job->records_task =
+            std::async(std::launch::async, [job, write_buffer]() {
+              job->worker->write_record_buffers(
+                  job->query, false, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->anchors_task =
+            std::async(std::launch::async, [job, write_buffer]() {
+              job->worker->write_anchor_buffers(
+                  job->anchor_query, false, write_buffer);
+            }));
+    TRY_CATCH_THROW(
+        job->stats_task = std::async(std::launch::async, [job, write_buffer]() {
+          job->worker->flush_ingestion_tasks(false, write_buffer);
+        }));
+  }
+}
+
 std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4(
+    const IngestionParams& params, const std::vector<SampleAndIndex>& samples) {
+  assert(dataset_->metadata().version == TileDBVCFDataset::Version::V4);
+  uint64_t records_ingested = 0, anchors_ingested = 0;
+
+  if (ingestion_params_.contig_mode != IngestionParams::ContigMode::ALL &&
+      ingestion_params_.contigs_to_allow_merging.size()) {
+    LOG_FATAL("Cannot set contigs_to_allow_merging with contig_mode != all");
+  }
+
+  // First compose the set of contigs that are nonempty.
+  // This can significantly speed things up in the common case that the sample
+  // headers list many contigs that do not actually have any records.
+  std::set<std::string> nonempty_contigs;
+  std::map<std::string, std::string> sample_headers;
+  std::vector<Region> regions;
+
+  // Total number of records in each contig for all samples.
+  std::map<std::string, uint32_t> total_contig_records;
+  for (const auto& s : samples) {
+    VCFV4 vcf;
+    vcf.open(s.sample_uri, s.index_uri);
+    // For V4 we also need to check the header, collect and write them
+
+    // Allocate a header struct and try to parse from the local file.
+    SafeBCFHdr hdr(VCFUtils::hdr_read_header(s.sample_uri), bcf_hdr_destroy);
+
+    std::vector<std::string> hdr_samples = VCFUtils::hdr_get_samples(hdr.get());
+    // Initially set sample_name to empty string to support annoated vcf's
+    // without sample in the header
+    std::string sample_name;
+    if (hdr_samples.size() > 1)
+      throw std::invalid_argument(
+          "Error registering samples; a file has more than 1 sample. "
+          "Ingestion "
+          "from cVCF is not supported.");
+    else if (hdr_samples.size() == 1)
+      sample_name = hdr_samples[0];
+    sample_headers[sample_name] = VCFUtils::hdr_to_string(hdr.get());
+
+    // Loop over all contigs in the header, store the nonempty and also the
+    // regions
+    for (auto& contig_region : VCFUtils::hdr_get_contigs_regions(hdr.get())) {
+      // Skip empty contigs
+      if (!vcf.contig_has_records(contig_region.seq_name))
+        continue;
+
+      // Ingesting MERGED contigs, skip contigs in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::MERGED &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) !=
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      // Ingesting SEPARATE contigs, skip contigs not in the
+      // contigs_to_keep_separate list
+      if (ingestion_params_.contig_mode ==
+              IngestionParams::ContigMode::SEPARATE &&
+          ingestion_params_.contigs_to_keep_separate.find(
+              contig_region.seq_name) ==
+              ingestion_params_.contigs_to_keep_separate.end()) {
+        continue;
+      }
+
+      LOG_TRACE(fmt::format(
+          std::locale(""),
+          "Sample {} contig {}: {:L} positions {:L} records",
+          sample_name,
+          contig_region.seq_name,
+          contig_region.max + 1,
+          vcf.record_count(contig_region.seq_name)));
+
+      total_contig_records[contig_region.seq_name] +=
+          vcf.record_count(contig_region.seq_name);
+
+      total_records_expected_ += vcf.record_count(contig_region.seq_name);
+
+      nonempty_contigs.emplace(contig_region.seq_name);
+
+      // regions
+      bool region_found = false;
+      for (auto& region : regions) {
+        if (region.seq_name == contig_region.seq_name) {
+          region.max = std::max(region.max, contig_region.max);
+          region_found = true;
+          break;
+        }
+      }
+
+      if (!region_found)
+        regions.emplace_back(contig_region);
+    }
+  }
+
+  // If there were no regions in the VCF files return early
+  if (regions.empty())
+    return {0, 0};
+
+  // Estimate the number of records that will fill the output buffer
+  float output_buffer_records = 1024.0 * 1024.0 *
+                                params.max_tiledb_buffer_size_mb /
+                                params.avg_vcf_record_size;
+
+  LOG_DEBUG("Output buffer records = {}", output_buffer_records);
+  assert(
+      output_buffer_records > 0 &&
+      output_buffer_records < static_cast<float>(UINT32_MAX));
+
+  if (params.use_legacy_thread_task_size) {
+    LOG_INFO(
+        "Using legacy option: --thread-task-size={}", params.thread_task_size);
+  }
+
+  // Sort regions to ensure global ordering
+  std::sort(regions.begin(), regions.end());
+
+  // Write the headers for this batch of samples
+  dataset_->write_vcf_headers_v4(*ctx_, sample_headers);
+
+  // Instantiate a single worker that will be reused for all regions
+  int worker_id = 0;
+  unsigned num_vcf_streams =
+      std::max(1u, params.num_threads - 1);  // -1 for the worker itself
+  unsigned num_buffers = 2;
+  std::deque<std::shared_ptr<IngestSamplesV4Job>> ingestion_job_pool;
+  ingestion_job_pool.emplace_front(new IngestSamplesV4Job(
+      ctx_,
+      *dataset_,
+      worker_id++,
+      num_vcf_streams,
+      num_buffers,
+      params.max_tiledb_buffer_size_mb,
+      params,
+      samples));
+
+  // Parse the regions one at a time
+  for (size_t i = 0; i < regions.size(); ++i) {
+    const Region& region = regions[i];
+    LOG_DEBUG("Current contig = {}", region.seq_name);
+
+    auto start = std::chrono::steady_clock::now();
+    size_t prev_records = records_ingested;
+
+    // Get the next job from the pool
+    std::shared_ptr<IngestSamplesV4Job> job = ingestion_job_pool.front();
+    // Create a new job if the job's flush task is still running and the job is
+    // finalized, otherwise leave the job at the front of the pool in case it's
+    // part of a merged contig
+    if (job->is_finalizing()) {
+      // Add a new job to the front of the pool
+      ingestion_job_pool.emplace_front(new IngestSamplesV4Job(
+          ctx_,
+          *dataset_,
+          worker_id++,
+          num_vcf_streams,
+          num_buffers,
+          params.max_tiledb_buffer_size_mb,
+          params,
+          samples));
+      job = ingestion_job_pool.front();
+    }
+    job->wait_for_flush_tasks();
+
+    // Repeatedly parse variants into a buffer and write the buffer when it's
+    // full
+    bool parse_complete = job->worker->parse(region, job->current_buffer);
+    while (!parse_complete) {
+      records_ingested += job->worker->records_buffered(job->current_buffer);
+      anchors_ingested += job->worker->anchors_buffered(job->current_buffer);
+      LOG_DEBUG(
+          "Parse not complete: {} records buffered, {} anchors buffered.",
+          job->worker->records_buffered(job->current_buffer),
+          job->worker->anchors_buffered(job->current_buffer));
+      if (job->worker->records_buffered(job->current_buffer) == 0) {
+        LOG_FATAL("Parse not complete but no records were buffered.");
+      }
+
+      // Concurrently flush the current buffers
+      LOG_DEBUG("allow duplicates: {}", creation_params_.allow_duplicates);
+      ingest_samples_v4_flush(job);
+      ++job->current_buffer %= num_buffers;
+
+      // Parse more records into the now empty buffers
+      parse_complete = job->worker->resume(job->current_buffer);
+    }
+
+    // Write the records from the last parse and finalize, if necessary
+    records_ingested += job->worker->records_buffered(job->current_buffer);
+    anchors_ingested += job->worker->anchors_buffered(job->current_buffer);
+    if (job->worker->records_buffered(job->current_buffer) == 0) {
+      LOG_FATAL("No records were buffered after parse completed.");
+    }
+
+    // Finalize if last region or if this/next region isn't mergeable
+    job->finalize = i == regions.size() - 1 ||
+                    !check_contig_mergeable(region.seq_name) ||
+                    !check_contig_mergeable(regions[i + 1].seq_name);
+    // Concurrently flush the current buffers
+    ingest_samples_v4_flush(job, job->finalize);
+    if (job->finalize) {
+      LOG_INFO(
+          "Finalizing on region {}, records: {}, anchors: {}",
+          region.seq_name,
+          job->worker->records_buffered(job->current_buffer),
+          job->worker->anchors_buffered(job->current_buffer));
+      // Move the job to the back of the job pool
+      ingestion_job_pool.pop_front();
+      ingestion_job_pool.push_back(job);
+    }
+    ++job->current_buffer %= num_buffers;
+
+    // Report ingestion stats
+    if (records_ingested > prev_records) {
+      LOG_INFO(
+          "Ingestion rate = {:.3f} records/sec (VmRSS = {})",
+          (records_ingested - prev_records) / utils::chrono_duration(start),
+          utils::memory_usage_str());
+    }
+  }
+
+  // Wait for all flush tasks before finishing
+  while (!ingestion_job_pool.empty()) {
+    std::shared_ptr<IngestSamplesV4Job> job = ingestion_job_pool.front();
+    job->wait_for_flush_tasks();
+    ingestion_job_pool.pop_front();
+  }
+
+  return {records_ingested, anchors_ingested};
+}
+
+std::pair<uint64_t, uint64_t> Writer::ingest_samples_v4_legacy(
     const IngestionParams& params,
     const std::vector<SampleAndIndex>& samples,
     std::vector<Region>& regions,
@@ -1401,6 +2056,10 @@ void Writer::finalize_query(std::unique_ptr<tiledb::Query> query) {
 
 void Writer::set_sample_batch_size(const uint64_t size) {
   ingestion_params_.sample_batch_size = size;
+}
+
+void Writer::set_legacy_ingestion_algorithm(const bool legacy) {
+  ingestion_params_.legacy_ingestion_algorithm = legacy;
 }
 
 void Writer::set_resume_sample_partial_ingestion(const bool resume) {

@@ -961,6 +961,7 @@ class Dataset(object):
         contigs_to_keep_separate: List[str] = None,
         contigs_to_allow_merging: List[str] = None,
         contig_mode: str = "all",
+        legacy: bool = False,
         thread_task_size: int = None,
         memory_budget_mb: int = None,
         record_limit: int = None,
@@ -1017,6 +1018,8 @@ class Dataset(object):
             combined fragments.
         contig_mode
             Select which contigs are ingested: 'all', 'separate', or 'merged'.
+        legacy
+            Whether to use the legacy ingestion algorithm.
         thread_task_size
             **DEPRECATED** - This parameter will be removed in a future release.
         memory_budget_mb
@@ -1030,6 +1033,9 @@ class Dataset(object):
 
         if sample_uris is None:
             return
+
+        # set whether to use the legacy ingestion algorithm
+        self.writer.set_legacy(legacy)
 
         if threads is not None:
             self.writer.set_num_threads(threads)
@@ -1106,6 +1112,7 @@ class Dataset(object):
         # Only v2 and v3 datasets need registration
         if self.schema_version() < 4:
             self.writer.register_samples()
+
         self.writer.ingest_samples()
 
     def delete_samples(
