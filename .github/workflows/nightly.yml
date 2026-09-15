@@ -82,7 +82,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: "3.14"
       - name: Build tiledb-py from source
         run: bash TileDB-VCF/ci/nightly/build-tiledb-py.sh
         env:
