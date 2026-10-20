@@ -18,7 +18,7 @@ on:
 jobs:
   nightly:
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }}-libtiledb-${{ matrix.branches.libtiledb }}
+    name: ${{ matrix.os }}-libtiledb-${{ matrix.branches.libtiledb }}-py${{ matrix.python }}
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +26,7 @@ jobs:
         branches:
           - {libtiledb: release-2.30, tiledb-py: 0.36.1}
           - {libtiledb: main, tiledb-py: main}
+        python: ["3.9", "3.14"]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
       # Disable EC2 IMDS because the runners aren't on EC2 and the response
@@ -85,7 +86,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.9"
+          python-version: ${{ matrix.python }}
       - name: Build tiledb-py from source
         run: bash TileDB-VCF/ci/nightly/build-tiledb-py.sh
         env:
