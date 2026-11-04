@@ -391,6 +391,7 @@ TEST_CASE("TileDB-VCF: Write to existing V2 array", "[tiledbvcf][ingest][v2]") {
   params.uri = dataset_uri;
   params.sample_uris = {sample_uri};
   params.verbose = true;
+  params.legacy_ingestion_algorithm = true;  // Only legacy supports V2 datasets
   writer.set_all_params(params);
   writer.ingest_samples();
 
@@ -424,6 +425,7 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -451,6 +453,7 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -490,6 +493,7 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -510,6 +514,7 @@ TEST_CASE("TileDB-VCF: Test Resume", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = false;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -666,6 +671,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     params.thread_task_size = 500000000;
     params.verbose = true;
@@ -695,6 +701,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     params.verbose = true;
     params.thread_task_size = 500000000;
@@ -736,6 +743,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     writer.set_all_params(params);
     writer.ingest_samples();
@@ -756,6 +764,7 @@ TEST_CASE("TileDB-VCF: Test Resume Contig Merge", "[tiledbvcf][ingest]") {
     params.uri = dataset_uri;
     params.sample_uris = {input_dir + "/v2-DjrIAzkP-downsampled.vcf.gz"};
     params.resume_sample_partial_ingestion = true;
+    params.legacy_ingestion_algorithm = true;  // Only legacy supports resuming
     params.contig_fragment_merging = true;
     writer.set_all_params(params);
     writer.ingest_samples();

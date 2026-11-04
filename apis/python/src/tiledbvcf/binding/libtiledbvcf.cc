@@ -142,6 +142,7 @@ PYBIND11_MODULE(libtiledbvcf, m) {
       .def("get_tiledb_stats_enabled", &Writer::get_tiledb_stats_enabled)
       .def("get_tiledb_stats", &Writer::get_tiledb_stats)
       .def("version", &Writer::version)
+      .def("set_legacy", &Writer::set_legacy)
       .def("set_resume", &Writer::set_resume)
       .def("set_contig_fragment_merging", &Writer::set_contig_fragment_merging)
       .def(

@@ -41,6 +41,7 @@
 #include "dataset/tiledbvcfdataset.h"
 #include "utils/utils.h"
 #include "vcf/htslib_value.h"
+#include "write/parallel_writer_worker_v4.h"
 #include "write/writer_worker_v4.h"
 
 namespace tiledb {
@@ -52,6 +53,7 @@ namespace vcf {
 
 // Forward declaration
 class WriterWorkerV4;
+class ParallelWriterWorkerV4;
 
 /** Arguments/params for dataset ingestion. */
 struct IngestionParams {
@@ -115,6 +117,9 @@ struct IngestionParams {
   // Should the fragment info of data be loaded
   // This is used for resuming partial ingestions
   bool load_data_array_fragment_info = false;
+
+  // Should the legacy algorithm be used when ingesting samples
+  bool legacy_ingestion_algorithm = false;
 
   // Should we check if the samples have been partial ingested?
   // This might have a significant performance penalty on large arrays
@@ -204,6 +209,13 @@ class Writer {
   void update_params(IngestionParams& params);
 
   /**
+   * Update parameters computed from other parameters for legacy ingestion.
+   *
+   * @param params IngesttionParams& Ingestion params (will be modified)
+   */
+  void update_params_legacy(IngestionParams& params);
+
+  /**
    * Set writer tiledb config parameters, these can also be passed directly on
    * the ingestion params
    * @param config_str csv string of tiledb options in key2=value1,key2=value2
@@ -277,6 +289,10 @@ class Writer {
   /** Ingests samples based on parameters that have been set. */
   void ingest_samples();
 
+  /** Uses legacy algorithm to ingest samples based on parameters that have been
+   * set. */
+  void ingest_samples_legacy();
+
   /** Set number of ingestion threads. */
   void set_num_threads(const unsigned threads);
 
@@ -344,8 +360,11 @@ class Writer {
   /** Set the sample batch size for storing. */
   void set_sample_batch_size(const uint64_t size);
 
+  /** Set use of legacy ingestion algorithm. */
+  void set_legacy_ingestion_algorithm(const bool legacy);
+
   /** Set resume support for partial ingestion. */
-  void set_resume_sample_partial_ingestion(const bool);
+  void set_resume_sample_partial_ingestion(const bool resume);
 
   /** Set contig fragment merging. */
   void set_contig_fragment_merging(const bool contig_fragment_merging);
@@ -394,6 +413,39 @@ class Writer {
   void delete_samples(std::vector<std::string> samples);
 
  private:
+  /**
+   * Encapsulates everything for a single global-order write job, e.g. ingesting
+   * a specific chromosome or a sequence of mergeable chromosomes.
+   */
+  struct IngestSamplesV4Job {
+    std::shared_ptr<Context> ctx;
+    std::unique_ptr<Array> array;
+    std::unique_ptr<Query> query;
+    std::unique_ptr<Query> anchor_query;
+    uint8_t current_buffer = 0;
+    bool finalize;
+    std::future<void> records_task;
+    std::future<void> anchors_task;
+    std::future<void> stats_task;
+    std::unique_ptr<ParallelWriterWorkerV4> worker;
+
+    IngestSamplesV4Job(
+        std::shared_ptr<Context> ctx,
+        const TileDBVCFDataset& dataset,
+        int id,
+        size_t num_vcf_streams,
+        size_t num_buffers,
+        uint64_t max_buffer_size_mb,
+        const IngestionParams& params,
+        const std::vector<SampleAndIndex>& samples);
+
+    bool is_finalizing();
+
+    void wait_for_flush_tasks();
+
+    void reset_queries();
+  };
+
   /* ********************************* */
   /*          PRIVATE ATTRIBUTES       */
   /* ********************************* */
@@ -426,6 +478,15 @@ class Writer {
    * @param params Ingestion parameter
    */
   void init(const IngestionParams& params);
+
+  /**
+   * Initializes the writer for storing to the given dataset using the legacy
+   * ingestion. Opens the array, creates the TileDB query, etc.
+   *
+   * @param dataset Dataset where samples will be stored
+   * @param params Ingestion parameter
+   */
+  void init_legacy(const IngestionParams& params);
 
   /**
    * Prepares the samples list to be ingested. This combines the sample URI list
@@ -473,6 +534,16 @@ class Writer {
       std::vector<Region>& regions);
 
   /**
+   * A helper that concurrently flushes the current buffer of the given V4
+   * ingestion job.
+   *
+   * @param params The job to flush
+   * @param finalize Whether or not the flush's writes should be finalized
+   */
+  void ingest_samples_v4_flush(
+      std::shared_ptr<IngestSamplesV4Job>& job, bool finalize = false);
+
+  /**
    * Ingests a batch of samples.
    *
    * @param params Ingestion parameters
@@ -481,6 +552,18 @@ class Writer {
    * @return A pair (num_records_ingested, num_anchors_ingested)
    */
   std::pair<uint64_t, uint64_t> ingest_samples_v4(
+      const IngestionParams& params,
+      const std::vector<SampleAndIndex>& samples);
+
+  /**
+   * Uses the legacy algoriithm to ingest a batch of samples.
+   *
+   * @param params Ingestion parameters
+   * @param samples List of samples to ingest with this call
+   * @param regions List of regions covering the whole genome
+   * @return A pair (num_records_ingested, num_anchors_ingested)
+   */
+  std::pair<uint64_t, uint64_t> ingest_samples_v4_legacy(
       const IngestionParams& params,
       const std::vector<SampleAndIndex>& samples,
       std::vector<Region>& regions,
