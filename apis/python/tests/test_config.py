@@ -218,7 +218,8 @@ def test_large_export_correctness():
     """Verify large export from S3 produces the expected total and unique record counts."""
     uri = "s3://tiledb-inc-demo-data/tiledbvcf-arrays/v4/vcf-samples-20"
 
-    ds = tiledbvcf.Dataset(uri)
+    # Pin the bucket's region; otherwise the AWS SDK uses the runner's region
+    ds = tiledbvcf.Dataset(uri, tiledb_config={"vfs.s3.region": "us-east-1"})
     df = ds.read(
         attrs=[
             "sample_name",
