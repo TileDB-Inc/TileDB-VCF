@@ -26,6 +26,7 @@
 
 #include "write/record_heap_v4.h"
 #include "vcf/vcf_utils.h"
+#include "writer_record_v4.h"
 
 namespace tiledb {
 namespace vcf {
@@ -41,7 +42,7 @@ bool RecordHeapV4::empty() const {
 
 void RecordHeapV4::insert(
     std::shared_ptr<VCFV4> vcf,
-    NodeType type,
+    WriterRecordV4::Type type,
     SafeSharedBCFRec record,
     const std::string& contig,
     uint32_t start_pos,
@@ -50,7 +51,8 @@ void RecordHeapV4::insert(
   // Sanity check start_pos is greater than the record start position.
   if (start_pos < (uint32_t)record->pos) {
     HtslibValueMem val;
-    std::string str_type = type == NodeType::Record ? "record" : "anchor";
+    std::string str_type =
+        type == WriterRecordV4::Type::Record ? "record" : "anchor";
     throw std::runtime_error(
         "Error inserting " + str_type + " '" + contig + ":" +
         std::to_string(record->pos + 1) + "-" +
@@ -61,7 +63,7 @@ void RecordHeapV4::insert(
         " cannot be less than start.");
   }
 
-  auto node = std::unique_ptr<Node>(new Node);
+  auto node = std::unique_ptr<WriterRecordV4>(new WriterRecordV4);
   node->vcf = vcf;
   node->type = type;
   node->record = std::move(record);
@@ -72,7 +74,7 @@ void RecordHeapV4::insert(
   heap_.push(std::move(node));
 }
 
-void RecordHeapV4::insert(const Node& node) {
+void RecordHeapV4::insert(const WriterRecordV4& node) {
   insert(
       node.vcf,
       node.type,
@@ -83,7 +85,7 @@ void RecordHeapV4::insert(const Node& node) {
       node.sample_name);
 }
 
-const RecordHeapV4::Node& RecordHeapV4::top() const {
+const WriterRecordV4& RecordHeapV4::top() const {
   return *heap_.top();
 }
 
@@ -92,6 +94,76 @@ void RecordHeapV4::pop() {
 }
 
 size_t RecordHeapV4::size() {
+  return heap_.size();
+}
+
+void SharedRecordHeapV4::clear() {
+  while (!heap_.empty())
+    heap_.pop();
+}
+
+bool SharedRecordHeapV4::empty() const {
+  return heap_.empty();
+}
+
+void SharedRecordHeapV4::insert(
+    std::shared_ptr<VCFV4> vcf,
+    WriterRecordV4::Type type,
+    SafeSharedBCFRec record,
+    const std::string& contig,
+    uint32_t start_pos,
+    uint32_t end_pos,
+    const std::string& sample_name) {
+  // Sanity check start_pos is greater than the record start position.
+  if (start_pos < (uint32_t)record->pos) {
+    HtslibValueMem val;
+    std::string str_type =
+        type == WriterRecordV4::Type::Record ? "record" : "anchor";
+    throw std::runtime_error(
+        "Error inserting " + str_type + " '" + contig + ":" +
+        std::to_string(record->pos + 1) + "-" +
+        std::to_string(
+            VCFUtils::get_end_pos(vcf->hdr(), record.get(), &val) + 1) +
+        "' into ingestion heap from sample " + sample_name +
+        "; sort start position " + std::to_string(start_pos + 1) +
+        " cannot be less than start.");
+  }
+
+  auto node = std::shared_ptr<WriterRecordV4>(new WriterRecordV4);
+  node->vcf = vcf;
+  node->type = type;
+  node->record = std::move(record);
+  node->contig = contig;
+  node->start_pos = start_pos;
+  node->end_pos = end_pos;
+  node->sample_name = sample_name;
+  heap_.push(std::move(node));
+}
+
+void SharedRecordHeapV4::insert(const WriterRecordV4& node) {
+  insert(
+      node.vcf,
+      node.type,
+      node.record,
+      node.contig,
+      node.start_pos,
+      node.end_pos,
+      node.sample_name);
+}
+
+void SharedRecordHeapV4::insert(const SharedWriterRecordV4& node) {
+  heap_.push(node);
+}
+
+const SharedWriterRecordV4& SharedRecordHeapV4::top() const {
+  return heap_.top();
+}
+
+void SharedRecordHeapV4::pop() {
+  heap_.pop();
+}
+
+size_t SharedRecordHeapV4::size() {
   return heap_.size();
 }
 
